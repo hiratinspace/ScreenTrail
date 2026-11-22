@@ -56,8 +56,8 @@ waits for the owner's ST-027 recording. A stop in the middle of a transcription 
 memory test now waits for that (#339, #340). whisper.cpp cannot be stopped inside an encoder pass, so a
 stop during one lets go only when the pass ends (about 4.7 s on one thread; `docs/dev/performance.md`).
 
-**Pull `main` before the next run on the laptop.** The pipe contract is version 14 (v10 for "Not
-confirmed", v11 for the rail's rows, v12 for the diagnostics' backend note, v13 for the tray's Start capture, v14 for the coverage banner), and the service and the UI
+**Pull `main` before the next run on the laptop.** The pipe contract is version 15 (v10 for "Not
+confirmed", v11 for the rail's rows, v12 for the diagnostics' backend note, v13 for the tray's Start capture, v14 for the coverage banner, v15 for the panel's live CPU and capture level), and the service and the UI
 must match it exactly. The demo scripts are unaffected by #326's machine-wide backend address: they run a
 development build from the clone, which still reads `SCREENTRAIL_BACKEND`.
 

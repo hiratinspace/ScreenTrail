@@ -38,6 +38,14 @@ namespace ScreenTrail.Core.Shell;
 /// Why an installed copy has no backend, when only an administrator can fix it (contract v12). Fixed
 /// wording; null when there is nothing to say, and then there is no row and no clipboard line.
 /// </param>
+/// <param name="CpuPercent">
+/// The service's share of the whole machine, as a percentage, over its last reading (contract v15). Null
+/// while it is still being measured.
+/// </param>
+/// <param name="CaptureLevel">
+/// How far capture has given way to stay inside the processor budget, a <see cref="CaptureLevels"/> name,
+/// or null when the service did not say (ST-031, contract v15).
+/// </param>
 public sealed record Diagnostics(
     string Scope,
     string? Microphone,
@@ -49,10 +57,11 @@ public sealed record Diagnostics(
     long? NameHookRefusals,
     bool LocalOnly,
     string PolicyVersion,
-    double CpuPercent,
+    double? CpuPercent,
     long WorkingSetBytes,
     string ClientVersion,
-    string? BackendNote = null)
+    string? BackendNote = null,
+    string? CaptureLevel = null)
 {
     /// <summary>
     /// What the service answered, field for field. Here rather than in the window so the Mac suite holds
@@ -76,7 +85,8 @@ public sealed record Diagnostics(
             reported.CpuPercent,
             reported.WorkingSetBytes,
             reported.ServiceVersion,
-            reported.BackendNote);
+            reported.BackendNote,
+            reported.CaptureLevel);
     }
 
     /// <summary>
@@ -98,8 +108,13 @@ public sealed record Diagnostics(
             .Append("keystrokes held  ").AppendLine(KeystrokesDropped.ToString(CultureInfo.InvariantCulture))
             .Append("egress blocked   ").AppendLine(EgressBlocked.ToString(CultureInfo.InvariantCulture))
             .Append("hook fallbacks   ").AppendLine(NameHookRefusals?.ToString(CultureInfo.InvariantCulture) ?? DiagnosticsPanel.Unknown)
-            .Append("cpu              ").AppendLine(CpuPercent.ToString("F1", CultureInfo.InvariantCulture) + "%")
-            .Append("memory           ").AppendLine((WorkingSetBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) + " MB");
+            .Append("cpu              ").AppendLine(DiagnosticsPanel.CpuValue(CpuPercent))
+            .Append("memory           ").AppendLine(DiagnosticsPanel.MemoryValue(WorkingSetBytes));
+        if (CaptureLevel is { } level)
+        {
+            _ = text.Append("capture          ").AppendLine(DiagnosticsPanel.CaptureWords(level) ?? DiagnosticsPanel.CaptureAsUsual);
+        }
+
         if (BackendNote is { } note)
         {
             _ = text.Append("backend          ").AppendLine(note);

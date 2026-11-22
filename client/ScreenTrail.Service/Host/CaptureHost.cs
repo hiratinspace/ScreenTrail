@@ -297,9 +297,14 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         var verifier = new WindowsClientVerifier(serviceExecutable);
         var pipeName = paths.PipeName;
 
+        // ST-031: the panel's processor figure. The throttle reads through it while a session is under
+        // way, so the panel shows the share the throttle acts on; between sessions the panel's own request
+        // is the reading, and nothing wakes the idle service to keep it fresh. Numbers only (INV-10).
+        var cpu = new ProcessorShareGauge(new ThisProcessTime());
+
         // Filled in below, once the pieces it reports on exist. The controller only ever calls it on a
         // request, by which time everything is wired.
-        Func<DiagnosticsReported> diagnostics = () => Diagnostics(version, egress, egressPolicy, machine, pending, null, null, null, null);
+        Func<DiagnosticsReported> diagnostics = () => Diagnostics(version, egress, egressPolicy, machine, pending, cpu, null, null, null, null, null);
         // What the UI reports about the pill being on screen, and what the indicator guard reads. A
         // connection is not a pill (2026-09-20 review).
         var indicators = new IndicatorReports();
@@ -592,7 +597,7 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // hooks, click screenshots and speech are never throttled, and redaction never changes (INV-1).
         // One reading a second while a session is under way and none otherwise; the log carries the level
         // and the reading, nothing else (INV-10).
-        var throttle = new CaptureThrottle(new ThisProcessTime());
+        var throttle = new CaptureThrottle(cpu);
         throttle.Changed += change => LogThrottle(logger, change.From, change.To, change.Share * 100);
         var throttling = throttle.RunAsync(machine, failure => LogLoopFailed(logger, "capture-throttle", failure.GetType().Name), stoppingToken);
         var scenes = new SceneSampleLoop(machine, capturer, () => coordinator.CurrentScope, logger, sampler, throttle: throttle);
@@ -793,6 +798,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             egressPolicy,
             machine,
             pending,
+            cpu,
+            throttle,
             coordinator.CurrentScope?.Reason,
             redaction.Progress,
             capture.DroppedOutOfScope,
@@ -996,7 +1003,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
     /// What the diagnostics panel shows: this process's live sources, mapped by
     /// <see cref="ServiceDiagnostics.Report"/> in Core, where the Mac suite holds each field to its source.
     /// The suppression comes from the machine's state and holds, and the backlog and the frames it refused
-    /// for want of room from the queue of frames waiting to be read.
+    /// for want of room from the queue of frames waiting to be read. The processor share and the throttle's
+    /// level are ST-031's live figures: numbers and a level, never content (INV-10).
     /// </summary>
     private static DiagnosticsReported Diagnostics(
         string version,
@@ -1004,6 +1012,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         EgressPolicy egressPolicy,
         SessionMachine machine,
         PendingFrames pending,
+        ProcessorShareGauge cpu,
+        CaptureThrottle? throttle,
         string? scope,
         RedactionProgress? redaction,
         long? keystrokesDropped,
@@ -1025,6 +1035,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             egressBlocked: egress.Blocked,
             localOnly: egressPolicy.Settings.LocalOnly,
             policyVersion: _policySync?.Current.Version ?? TenantPolicy.Default.Version,
-            workingSetBytes: self.WorkingSet64);
+            workingSetBytes: self.WorkingSet64,
+            cpuShare: cpu.ShareOfMachine(),
+            captureLevel: throttle is null ? null : CaptureLevelNames.WireName(throttle.Level));
     }
 }

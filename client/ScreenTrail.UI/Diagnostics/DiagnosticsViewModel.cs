@@ -14,10 +14,14 @@ public sealed record DiagnosticsRow(string Label, string Value);
 /// which has nowhere to put content, so the panel cannot show a window title or a line of OCR even by
 /// mistake, and neither can the clipboard text the Copy button produces (INV-10). The panel also decides
 /// what to say when the service cannot be asked, so that is tested without a window.
+///
+/// While the window is open it asks the service again every <see cref="CoreShell.DiagnosticsPanel.RefreshEvery"/>
+/// and <see cref="Show"/>s the answer, so CPU, memory and the capture row are live (ST-031). Only what
+/// changed is raised, so the headline's live region speaks when the state changes and not on every refresh.
 /// </summary>
 public sealed partial class DiagnosticsViewModel : ObservableObject
 {
-    private readonly CoreShell.DiagnosticsPanel _panel;
+    private CoreShell.DiagnosticsPanel _panel;
     private readonly Action<string> _copy;
     private readonly TimeProvider _time;
 
@@ -34,18 +38,48 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
         _time = time ?? TimeProvider.System;
 
         Headline = _panel.Headline;
-        Rows = [.. _panel.Rows.Select(line => new DiagnosticsRow(line.Label, line.Value))];
+        Rows = RowsOf(_panel);
+        State = _panel.State;
+        LocalOnlyVisibility = VisibilityOf(_panel);
     }
 
-    public string Headline { get; }
+    [ObservableProperty]
+    public partial string Headline { get; private set; }
 
-    public IReadOnlyList<DiagnosticsRow> Rows { get; }
+    [ObservableProperty]
+    public partial IReadOnlyList<DiagnosticsRow> Rows { get; private set; }
 
     /// <summary>The headline's state, which picks its glyph and colour (Spec §1.1): Capturing, Paused, NotCapturing or Unknown.</summary>
-    public CoreShell.DiagnosticsState State => _panel.State;
+    [ObservableProperty]
+    public partial CoreShell.DiagnosticsState State { get; private set; }
 
     /// <summary>Spec §5 S1's Local-only badge: shown when the service says local-only mode is on.</summary>
-    public System.Windows.Visibility LocalOnlyVisibility => _panel.LocalOnly == true ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
+    [ObservableProperty]
+    public partial System.Windows.Visibility LocalOnlyVisibility { get; private set; }
+
+    /// <summary>
+    /// The service's newer answer, or the unanswered panel when it stopped answering. The rows are swapped
+    /// only when one of them says something different, so a refresh that changed nothing redraws nothing.
+    /// What Copy puts on the clipboard follows: it is always the panel on screen.
+    /// </summary>
+    public void Show(CoreShell.DiagnosticsPanel panel)
+    {
+        _panel = panel ?? throw new ArgumentNullException(nameof(panel));
+        Headline = panel.Headline;
+        State = panel.State;
+        LocalOnlyVisibility = VisibilityOf(panel);
+        var rows = RowsOf(panel);
+        if (!rows.SequenceEqual(Rows))
+        {
+            Rows = rows;
+        }
+    }
+
+    private static IReadOnlyList<DiagnosticsRow> RowsOf(CoreShell.DiagnosticsPanel panel) =>
+        [.. panel.Rows.Select(line => new DiagnosticsRow(line.Label, line.Value))];
+
+    private static System.Windows.Visibility VisibilityOf(CoreShell.DiagnosticsPanel panel) =>
+        panel.LocalOnly == true ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
 
     /// <summary>Said beside Copy diagnostics once it has run; empty, and so not shown, before.</summary>
     [ObservableProperty]

@@ -698,8 +698,57 @@ public sealed class IpcServerTests : IAsyncDisposable
 
         var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 13, Token = IpcToken.Encode(_token), ClientName = "v13-ui" });
 
-        Assert.Equal(14, IpcContract.Version);
+        Assert.True(IpcContract.Version >= 14);
         Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
+    }
+
+    [Fact]
+    public async Task AVersionFourteenUiIsTurnedAwayByAVersionFifteenService()
+    {
+        // Contract v15 (ST-031): the diagnostics reply's cpu_percent is real and absent while still being
+        // measured, where it was required and always 0, and capture_level is new. A v14 UI would fail on
+        // both, so it is refused at the handshake.
+        await StartServerAsync();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 14, Token = IpcToken.Encode(_token), ClientName = "v14-ui" });
+
+        Assert.Equal(15, IpcContract.Version);
+        Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
+    }
+
+    [Fact]
+    public async Task TheLiveFiguresTravelFromTheGaugeAndTheThrottleToThePanel()
+    {
+        // ST-031: the processor share the throttle measured and the level it chose, through the service's
+        // report and a real pipe, to the rows the panel shows. Numbers and a level only (INV-10).
+        var cpu = new ScreenTrail.Tests.Performance.FakeProcessorTime(processors: 4);
+        var time = new ManualTime(DateTimeOffset.UnixEpoch);
+        var gauge = new ScreenTrail.Core.Perf.ProcessorShareGauge(cpu, time);
+        var throttle = new ScreenTrail.Core.Perf.CaptureThrottle(gauge, time);
+        throttle.Observe();
+        for (var second = 0; second < 10; second++)
+        {
+            cpu.Use(TimeSpan.FromSeconds(1)); // One core of four: 25%, over the 15% budget.
+            time.Advance(TimeSpan.FromSeconds(1));
+            throttle.Observe();
+        }
+
+        _controller.AnswersTo = typeof(GetDiagnosticsCommand);
+        _controller.Answer = DiagnosticsWith(null) with
+        {
+            CpuPercent = gauge.ShareOfMachine() * 100,
+            CaptureLevel = ScreenTrail.Core.Perf.CaptureLevelNames.WireName(throttle.Level),
+        };
+        await StartServerAsync();
+        await using var ui = await ConnectAsync();
+
+        var reply = await ui.RequestAsync<DiagnosticsReported>(id => new GetDiagnosticsCommand { RequestId = id }, TestContext.Current.CancellationToken);
+
+        Assert.Equal(25, reply.CpuPercent);
+        Assert.Equal(CaptureLevels.FewerSamples, reply.CaptureLevel);
+        var panel = CoreShell.DiagnosticsPanel.FromReply(reply);
+        Assert.Equal("25.0% of this PC", panel.Rows.Single(r => r.Label == CoreShell.DiagnosticsPanel.Cpu).Value);
+        Assert.Equal("Taking fewer screenshots between clicks to keep your PC responsive", panel.Rows.Single(r => r.Label == CoreShell.DiagnosticsPanel.Capture).Value);
     }
 
     [Fact]
