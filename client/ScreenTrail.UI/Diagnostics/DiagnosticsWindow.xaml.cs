@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Threading;
 using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Ipc;
 using CoreShell = ScreenTrail.Core.Shell;
@@ -23,17 +24,67 @@ public partial class DiagnosticsWindow : Window
     ///
     /// The question is asked every time the panel opens rather than cached, because the answer is what a
     /// technician turns the screen round and shows a customer, and a stale one is a claim about the
-    /// present tense that happens to be about the past.
+    /// present tense that happens to be about the past. For the same reason it is asked again every
+    /// <see cref="CoreShell.DiagnosticsPanel.RefreshEvery"/> while the panel is open, so CPU, memory and
+    /// whether capture has eased off are live (ST-031), and not at all once it is closed.
     /// </summary>
     public static async Task ShowLiveAsync(CaptureConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
-        var reported = await connection.RequestAsync<DiagnosticsReported>(
-            id => new GetDiagnosticsCommand { RequestId = id }).ConfigureAwait(true);
-
-        var window = new DiagnosticsWindow(reported is null ? CoreShell.DiagnosticsPanel.Unanswered : CoreShell.DiagnosticsPanel.From(CoreShell.Diagnostics.From(reported)));
+        var window = new DiagnosticsWindow(await AskAsync(connection).ConfigureAwait(true));
+        window.Refresh(connection);
         window.Show();
         _ = window.Activate();
+    }
+
+    private static async Task<CoreShell.DiagnosticsPanel> AskAsync(CaptureConnection connection, CancellationToken ct = default) =>
+        CoreShell.DiagnosticsPanel.FromReply(await connection.RequestAsync<DiagnosticsReported>(
+            id => new GetDiagnosticsCommand { RequestId = id }, ct).ConfigureAwait(true));
+
+    /// <summary>
+    /// Asks again on a timer while the window is open. One question at a time: a tick that finds the last
+    /// still unanswered waits for the next, and one not answered within a few seconds shows the panel as
+    /// unanswered rather than leaving old figures up as if they were now. Stopped when the window closes.
+    /// </summary>
+    private void Refresh(CaptureConnection connection)
+    {
+        var asking = false;
+        var timer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher) { Interval = CoreShell.DiagnosticsPanel.RefreshEvery };
+        timer.Tick += async (_, _) =>
+        {
+            if (asking)
+            {
+                return;
+            }
+
+            asking = true;
+            try
+            {
+                CoreShell.DiagnosticsPanel panel;
+                using (var patience = new CancellationTokenSource(CoreShell.DiagnosticsPanel.RefreshEvery * 2))
+                {
+                    try
+                    {
+                        panel = await AskAsync(connection, patience.Token).ConfigureAwait(true);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        panel = CoreShell.DiagnosticsPanel.Unanswered;
+                    }
+                }
+
+                if (timer.IsEnabled)
+                {
+                    ((DiagnosticsViewModel)DataContext).Show(panel);
+                }
+            }
+            finally
+            {
+                asking = false;
+            }
+        };
+        Closed += (_, _) => timer.Stop();
+        timer.Start();
     }
 
     public DiagnosticsWindow(CoreShell.Diagnostics diagnostics)
@@ -74,5 +125,7 @@ public partial class DiagnosticsWindow : Window
         PolicyVersion: "policy-2026-09-13",
         CpuPercent: 3.4,
         WorkingSetBytes: 240L * 1024 * 1024,
-        ClientVersion: "0.1.0");
+        ClientVersion: "0.1.0",
+        // Eased off at its longest words, so the render and the accessibility scan see the capture row (ST-031).
+        CaptureLevel: CaptureLevels.OcrOneAtATime);
 }
