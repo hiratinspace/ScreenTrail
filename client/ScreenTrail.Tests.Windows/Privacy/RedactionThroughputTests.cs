@@ -83,7 +83,7 @@ public sealed class RedactionThroughputTests : IAsyncDisposable
         // number about contention. The loop below is the only thing taking frames.
         var worker = new RedactionWorker(
             store, recogniser, new WindowsFrameMasker(), new RedactionEngine(), pending,
-            new RedactionOptions { Concurrency = 0 });
+            new RedactionOptions { Concurrency = 0 }, decoder: new WindowsFrameDecoder());
         var backlog = new List<int>();
         worker.BacklogChanged += depth =>
         {

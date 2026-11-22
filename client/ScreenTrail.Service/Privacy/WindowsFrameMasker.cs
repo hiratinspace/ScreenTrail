@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using ScreenTrail.Core.Capture;
 using ScreenTrail.Core.Privacy;
@@ -29,11 +30,44 @@ internal sealed class WindowsFrameMasker(int jpegQuality = 82) : IFrameMasker
     {
         ArgumentNullException.ThrowIfNull(regions);
 
-        using var source = new MemoryStream(image.ToArray(), writable: false);
+        using var source = MemoryMarshal.TryGetArray(image, out var segment)
+            ? new MemoryStream(segment.Array!, segment.Offset, segment.Count, writable: false)
+            : new MemoryStream(image.ToArray(), writable: false);
         using var native = new Bitmap(source);
 
         Paint(native, regions);
+        return Store(native, maxEdge);
+    }
 
+    /// <summary>
+    /// Paints the decoded frame the recogniser read, in place, and shrinks it for storage (ST-031). The
+    /// GDI+ bitmap here is a view of the decoded pixels, not a copy, so the pixels painted are the pixels
+    /// that were read, and the frame is never decoded a second time.
+    /// </summary>
+    public MaskedImage Mask(DecodedFrame frame, IReadOnlyList<MaskedRegion> regions, int maxEdge)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(regions);
+        return frame is WindowsDecodedFrame decoded && OperatingSystem.IsWindowsVersionAtLeast(10, 0, 19041)
+            ? MaskInPlace(decoded, regions, maxEdge)
+            : Mask(frame.Encoded, regions, maxEdge);
+    }
+
+    [SupportedOSPlatform("windows10.0.19041.0")]
+    private MaskedImage MaskInPlace(WindowsDecodedFrame frame, IReadOnlyList<MaskedRegion> regions, int maxEdge)
+    {
+        using var pixels = frame.Lock(Windows.Graphics.Imaging.BitmapBufferAccessMode.ReadWrite);
+
+        // 32 bits a pixel with the fourth byte ignored: the decoded picture is opaque, and the painted
+        // boxes and the stored JPEG have no alpha either.
+        using var native = new Bitmap(frame.Width, frame.Height, pixels.Stride, PixelFormat.Format32bppRgb, pixels.Start);
+        Paint(native, regions);
+        return Store(native, maxEdge);
+    }
+
+    /// <summary>Encodes a painted frame, shrunk to <paramref name="maxEdge"/> first if it is larger.</summary>
+    private MaskedImage Store(Bitmap native, int maxEdge)
+    {
         var plan = Downscale.For(native.Width, native.Height, maxEdge);
         if (!plan.Resamples)
         {

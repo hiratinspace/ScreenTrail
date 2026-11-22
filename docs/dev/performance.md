@@ -299,6 +299,47 @@ percent):
 OCR at twice the size (#275, #278) is about 90% of a frame's redaction and runs on one thread. It is not
 changed here: redaction stays complete, and a frame that cannot be read in time is dropped.
 
+### One decode per frame (2026-11-22)
+
+Until 2026-11-22 each frame was decoded twice: the recogniser decoded the JPEG with WIC to read it (at up
+to twice its size), and the masker decoded it again with GDI+ to paint on it. Now the redaction worker
+decodes it once (`WindowsFrameDecoder`: WIC, 32-bit, at the captured size), and the two share that
+picture (`DecodedFrame`, `IFrameDecoder`):
+
+- **The read.** A frame read as captured (4K and anything else at or past `OcrScaling.PixelBudget`) is the
+  decoded picture itself, with no copy. A frame read larger (full HD and smaller) is scaled from the
+  decoded pixels by the same WIC cubic transform as before, given those pixels behind a 54-byte BMP
+  header (`BitmapFileStream`: no copy, nothing to decompress) instead of the JPEG.
+- **The mask.** The masker's GDI+ bitmap is a view of the decoded pixels, not a copy, so it paints the
+  pixels the engine read, in place, then shrinks and encodes as before.
+- **Held for one frame only.** The queue still holds the encoded JPEG (ADR-0006). The decoded picture
+  exists from the decode to the end of the mask, and is let go of before the store is written, on every
+  path, the ones that throw included (`SharedDecodeRedactionTests`). At most one a reader, two readers.
+
+**The saving, estimated from run 44027063937 until the laptop measures it.** The mask stage's 34.9 ms
+was a GDI+ decode of the 1920x1080 JPEG, the paint, a resample to 1600x900 and a JPEG encode of that.
+Frame capture (grab, convert and a 1920x1080 encode) is 16.8 ms, so the 1600x900 encode is roughly 7 ms
+and the resample about as much, which leaves **10 to 20 ms for the decode that is gone**. What the
+shared path adds is a copy of the decoded rows into the scaler (8 MB at full HD, about 1 ms), and it
+also drops the two copies of the JPEG the old code made before decoding (`ToArray`, then a WinRT
+stream). Net, about 10 to 20 ms a full HD frame: 1.5 to 3% of a dense 9 pt frame's redaction (615 +
+10.2 + 34.9 ms) and 4 to 8% of a settings dialog's (200 + 10.2 + 34.9 ms). Small, because OCR is the
+cost; the larger effect is memory at 4K.
+
+**Memory per frame.** Full HD: the decoded picture is 8.3 MB, held through the read, which already held
+a 33 MB picture at twice the size; the masker's 6.2 MB GDI+ copy is gone, so the peak is about the same.
+4K: one 33 MB picture through the read and the mask, where there were a 33 MB picture for OCR and then a
+25 MB GDI+ decode, plus the copies of the JPEG (weaknesses P2-5 put the transient at about 80 MB a 4K
+frame). Bounded either way: one frame a reader, and nothing decoded waits in the queue.
+
+**What the laptop measures.** `RecordingCostBreakdownTests` now writes, beside the old stages, the
+decode on its own, the dense frame decoded once and read, and decoded once and masked, so the job
+summary gives the saving directly ("a dense frame read and masked ... decoding twice against ... once").
+`SharedDecodeTests.TheDecodeItSavesIsMeasured` times the GDI+ decode that is gone against the WIC decode
+that is left. `SharedDecodeTests` also holds the read to the old one: the same pixels, channel for
+channel, at 1920x1080 and 1280x720 (scaled) and 3840x2160 (as captured), and the same words in the same
+boxes.
+
 Speech dominates a narrated session. whisper.cpp encodes a full 30-second window (1500 audio context
 positions) for every segment, so a segment costs nearly the same processor time whatever its length:
 
@@ -479,6 +520,8 @@ Paste the tables here.
 - Battery: the wakeup counts are the proxy, not a power measurement.
 - Whether the throttle ever trips in a real session with speech (the owner step above), and whether the
   scene floor then gives that session its scene frames (up to two a minute).
+- The saving from one decode per frame on the laptop's processor (estimated at 10 to 20 ms a full HD
+  frame above), and the service's memory with a 4K screen recording.
 
 ## Not done yet in ST-031
 

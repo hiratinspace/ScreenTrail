@@ -76,6 +76,11 @@ public sealed record RedactionProgress(
 /// A frame it cannot process is deleted rather than stored. There is no third option: an unreadable frame
 /// kept "just in case" is an unredacted frame, and the session is better off missing a screenshot than
 /// carrying one nobody checked.
+///
+/// Given a <see cref="IFrameDecoder"/>, each frame is decoded once and the recogniser reads the same
+/// pixels the masker then paints (ST-031). The decoded frame is held only while that one frame is read
+/// and masked, and let go of before the store is written, whatever the outcome; the queue holds the
+/// encoded frame as before (ADR-0006).
 /// </summary>
 public sealed class RedactionWorker(
     ISessionStore store,
@@ -85,7 +90,8 @@ public sealed class RedactionWorker(
     Capture.PendingFrames pending,
     RedactionOptions? options = null,
     TimeProvider? time = null,
-    CaptureThrottle? throttle = null)
+    CaptureThrottle? throttle = null,
+    IFrameDecoder? decoder = null)
 {
     private readonly RedactionOptions _options = options ?? new RedactionOptions();
     private readonly TimeProvider _time = time ?? TimeProvider.System;
@@ -273,12 +279,44 @@ public sealed class RedactionWorker(
 
     private async Task RedactAsync(Capture.QueuedFrame queued, CancellationToken ct)
     {
-        var frame = queued.Frame;
         var started = Stopwatch.GetTimestamp();
+        DecodedFrame? decoded = null;
+        if (decoder is not null)
+        {
+            try
+            {
+                decoded = await decoder.DecodeAsync(queued.Frame.Image, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Not an image the platform can decode, so nothing about it can be read: it goes unstored,
+                // the same as a frame the recogniser fell over on (ADR-0006).
+                await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
+                return;
+            }
+        }
+
+        try
+        {
+            await RedactAsync(queued, decoded, started, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            // However it ended: a discard, a failure, a cancellation. Disposing twice is harmless, and the
+            // masked path has already let go of it before the store write.
+            decoded?.Dispose();
+        }
+    }
+
+    private async Task RedactAsync(Capture.QueuedFrame queued, DecodedFrame? decoded, long started, CancellationToken ct)
+    {
+        var frame = queued.Frame;
         RecognisedText text;
         try
         {
-            text = await recogniser.ReadAsync(frame.Image, ct).ConfigureAwait(false);
+            text = decoded is null
+                ? await recogniser.ReadAsync(frame.Image, ct).ConfigureAwait(false)
+                : await recogniser.ReadAsync(decoded, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -326,14 +364,21 @@ public sealed class RedactionWorker(
         MaskedImage masked;
         try
         {
-            // Masking happens at the size the regions were found in; the downscale comes after.
-            masked = masker.Mask(frame.Image, regions, _options.MaxEdge);
+            // Masking happens at the size the regions were found in; the downscale comes after. Given the
+            // decoded frame, the masker paints the very pixels the recogniser read.
+            masked = decoded is null
+                ? masker.Mask(frame.Image, regions, _options.MaxEdge)
+                : masker.Mask(decoded, regions, _options.MaxEdge);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
             return;
         }
+
+        // Nothing needs the decoded pixels after the mask, so they are let go of before the store is
+        // written rather than held through it.
+        decoded?.Dispose();
 
         // The only write. A frame reaches the store already read and already masked, so a row here was
         // never pending and no window was ever open on it (ADR-0006).

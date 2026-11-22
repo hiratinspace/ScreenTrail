@@ -16,6 +16,17 @@ public sealed record RecognisedText(IReadOnlyList<OcrWord> Words, double MeanCon
 public interface IFrameTextRecogniser
 {
     Task<RecognisedText> ReadAsync(ReadOnlyMemory<byte> image, CancellationToken ct = default);
+
+    /// <summary>
+    /// Reads a frame already decoded for its redaction, so the masker can paint the same pixels without
+    /// decoding the frame a second time (ST-031). One that cannot use the decoded pixels reads the
+    /// captured bytes instead, which is the same frame read the same way.
+    /// </summary>
+    Task<RecognisedText> ReadAsync(DecodedFrame frame, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        return ReadAsync(frame.Encoded, ct);
+    }
 }
 
 /// <param name="Image">The image with every region painted over, and downscaled for storage.</param>
@@ -31,4 +42,64 @@ public sealed record MaskedImage(byte[] Image, int Width, int Height);
 public interface IFrameMasker
 {
     MaskedImage Mask(ReadOnlyMemory<byte> image, IReadOnlyList<MaskedRegion> regions, int maxEdge);
+
+    /// <summary>
+    /// Paints the regions over the decoded frame the recogniser read and shrinks it for storage (ST-031).
+    /// The painting may happen in the decoded pixels themselves, so nothing reads the frame afterwards. One
+    /// that cannot use the decoded pixels paints the captured bytes instead, which is the same frame.
+    /// </summary>
+    MaskedImage Mask(DecodedFrame frame, IReadOnlyList<MaskedRegion> regions, int maxEdge)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        return Mask(frame.Encoded, regions, maxEdge);
+    }
+}
+
+/// <summary>
+/// Decodes a captured frame once, for the recogniser to read and the masker to paint (ST-031).
+///
+/// Before this the recogniser decoded the JPEG to read it and the masker decoded it again to paint it.
+/// The decoded frame lives only while one frame is being redacted: the queue still holds the encoded
+/// JPEG, so what waits for redaction is as small as ADR-0006 sized it.
+/// </summary>
+public interface IFrameDecoder
+{
+    Task<DecodedFrame> DecodeAsync(ReadOnlyMemory<byte> image, CancellationToken ct = default);
+}
+
+/// <summary>
+/// One captured frame, decoded once for its redaction (ST-031). The pixels are the platform's own; Core
+/// only carries the frame from the recogniser to the masker and lets go of it as soon as the masker is
+/// done, so at most one decoded frame per redaction reader is held at a time.
+/// </summary>
+public abstract class DecodedFrame : IDisposable
+{
+    protected DecodedFrame(ReadOnlyMemory<byte> encoded, int width, int height)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        Encoded = encoded;
+        Width = width;
+        Height = height;
+    }
+
+    /// <summary>The frame as captured, for a reader or a masker that decodes it itself.</summary>
+    public ReadOnlyMemory<byte> Encoded { get; }
+
+    /// <summary>The frame's width in pixels, the coordinates every region is found and painted in.</summary>
+    public int Width { get; }
+
+    /// <summary>Its height in pixels.</summary>
+    public int Height { get; }
+
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Lets go of the decoded pixels.</summary>
+    protected virtual void Dispose(bool disposing)
+    {
+    }
 }
