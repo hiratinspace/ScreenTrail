@@ -5,6 +5,12 @@ namespace ScreenTrail.Core.Capture;
 /// <param name="SessionId">Which session it belongs to. The queue outlives no session, but it holds two.</param>
 public readonly record struct QueuedFrame(string SessionId, StagedFrame Frame);
 
+/// <summary>What <see cref="PendingFrames.RecordUnwrittenAsync"/> managed to count. Numbers and a type name only (INV-10).</summary>
+/// <param name="Counted">Frames now counted against their sessions in the store.</param>
+/// <param name="NotCounted">Frames the store refused to count; they are still held, to be tried again.</param>
+/// <param name="Fault">The first refusal's exception type, never its message.</param>
+public readonly record struct UnwrittenCount(int Counted, int NotCounted, string? Fault);
+
 /// <summary>
 /// Where a frame waits between being taken and being read (ADR-0006, ST-041).
 ///
@@ -54,6 +60,11 @@ public sealed class PendingFrames(int depth = PendingFrames.DefaultDepth)
     private readonly int _depth = depth > 0 ? depth : throw new ArgumentOutOfRangeException(nameof(depth));
     private TaskCompletionSource _arrived = Fresh();
     private long _dropped;
+
+    /// <summary>
+    /// Frames lost and not yet counted in the store, per session (#251). Numbers only.
+    /// </summary>
+    private readonly Dictionary<string, int> _uncounted = new(StringComparer.Ordinal);
 
     /// <summary>
     /// How many frames are unwritten: waiting, plus taken and not yet finished.
@@ -215,6 +226,127 @@ public sealed class PendingFrames(int depth = PendingFrames.DefaultDepth)
             return dropped;
         }
     }
+
+    /// <summary>
+    /// This frame is no longer owed, and it was neither written nor counted as lost (#251).
+    ///
+    /// A frame the worker let go of because the store refused the write, or refused the count of the
+    /// loss as well (a full disk), or because the service stopped while it was being read. Its loss is
+    /// held here, against its session, until something can write it down: the worker's next attempt,
+    /// finalize, or <see cref="RecordUnwrittenAsync"/> at stop. Only a number per session, never the
+    /// frame (INV-1, INV-10).
+    ///
+    /// Counted only if the frame was still in flight, so a frame finished twice is not lost twice.
+    /// </summary>
+    public void Unwritten(QueuedFrame frame)
+    {
+        lock (_gate)
+        {
+            var at = _inFlight.FindIndex(queued => string.Equals(queued.Frame.Id, frame.Frame.Id, StringComparison.Ordinal));
+            if (at < 0)
+            {
+                return;
+            }
+
+            _inFlight.RemoveAt(at);
+            OweLocked(frame.SessionId, 1);
+        }
+    }
+
+    /// <summary>How many lost frames of one session are still waiting to be counted in the store.</summary>
+    public int UncountedFor(string sessionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
+        lock (_gate)
+        {
+            return _uncounted.GetValueOrDefault(sessionId);
+        }
+    }
+
+    /// <summary>
+    /// Takes one session's uncounted losses, to be written down by the caller.
+    ///
+    /// Taken rather than read, so two callers can never write the same loss: whoever takes it owns it,
+    /// and gives it back with <see cref="Owe"/> if the write fails.
+    /// </summary>
+    public int TakeUncounted(string sessionId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+
+        lock (_gate)
+        {
+            return _uncounted.Remove(sessionId, out var count) ? count : 0;
+        }
+    }
+
+    /// <summary>Gives back losses that were taken and could not be written, so they are tried again.</summary>
+    public void Owe(string sessionId, int count)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
+        if (count <= 0)
+        {
+            return;
+        }
+
+        lock (_gate)
+        {
+            OweLocked(sessionId, count);
+        }
+    }
+
+    /// <summary>
+    /// Counts against each session whatever it lost and the store has not been told about: the frames
+    /// still waiting, and the losses held by <see cref="Unwritten"/> (#251).
+    ///
+    /// Called once the service has stopped capturing and redacting, before the store closes. A session
+    /// left recording is recovered as partial at the next start, and the draft it gets then hedges for
+    /// these frames instead of claiming to have seen them. Frames in flight are left alone: a worker still
+    /// holding one may yet write it, and a worker that has stopped holds none.
+    ///
+    /// Each session's share is taken before it is written and given back if the write fails, so a
+    /// retry, a second call, or a finalize running beside this one never counts a frame twice.
+    /// </summary>
+    public async Task<UnwrittenCount> RecordUnwrittenAsync(ISessionStore store, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+
+        Dictionary<string, int> owed;
+        lock (_gate)
+        {
+            foreach (var queued in _waiting)
+            {
+                OweLocked(queued.SessionId, 1);
+            }
+
+            _waiting.Clear();
+            owed = new Dictionary<string, int>(_uncounted, StringComparer.Ordinal);
+            _uncounted.Clear();
+        }
+
+        var counted = 0;
+        var notCounted = 0;
+        string? fault = null;
+        foreach (var (sessionId, count) in owed)
+        {
+            try
+            {
+                await store.RecordPurgedFramesAsync(sessionId, count, ct).ConfigureAwait(false);
+                counted += count;
+            }
+            catch (Exception ex)
+            {
+                Owe(sessionId, count);
+                notCounted += count;
+                fault ??= ex.GetType().Name;
+            }
+        }
+
+        return new UnwrittenCount(counted, notCounted, fault);
+    }
+
+    private void OweLocked(string sessionId, int count) =>
+        _uncounted[sessionId] = _uncounted.GetValueOrDefault(sessionId) + count;
 
     private static bool Same(QueuedFrame queued, string sessionId) =>
         string.Equals(queued.SessionId, sessionId, StringComparison.Ordinal);

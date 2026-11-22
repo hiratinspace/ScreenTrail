@@ -846,7 +846,25 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         {
         }
 
-        await Task.WhenAll(coordinating, capturing, throttling, sampling, redacting, showing, guarding, watchingFields, listening, preparing, draining, updating).ConfigureAwait(false);
+        try
+        {
+            await Task.WhenAll(coordinating, capturing, throttling, sampling, redacting, showing, guarding, watchingFields, listening, preparing, draining, updating).ConfigureAwait(false);
+        }
+        finally
+        {
+            // #251: nothing captures or redacts any more, and the store is still open. Frames still
+            // waiting for redaction, and losses the store refused to count while it was full, are
+            // counted against their sessions now, so a session recovered as partial at the next start is
+            // drafted knowing it has a hole. Numbers only (INV-1, INV-10). Bounded, because Windows
+            // holds the end of the session for the store to close for about 4 s (#251).
+            using var counting = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+            var unwritten = await pending.RecordUnwrittenAsync(store, counting.Token).ConfigureAwait(false);
+            if (unwritten.Counted > 0 || unwritten.NotCounted > 0)
+            {
+                LogUnwrittenAtStop(logger, unwritten.Counted, unwritten.NotCounted, unwritten.Fault ?? "none");
+            }
+        }
+
         // ST-112: a segment still with the model when the stop came is dropped, not waited for. A count.
         if (narration.AbandonedAtStop > 0)
         {
@@ -855,6 +873,10 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
         LogStopping(logger);
     }
+
+    // Counts and an exception type, never a session's content (INV-10).
+    [LoggerMessage(Level = LogLevel.Information, Message = "Stopping: {Counted} frame(s) never redacted were counted against their sessions; {NotCounted} could not be counted ({Error})")]
+    private static partial void LogUnwrittenAtStop(ILogger logger, int counted, int notCounted, string error);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Stopping with {Count} narration segment(s) still being transcribed; dropped, not waited for")]
     private static partial void LogNarrationAbandoned(ILogger logger, long count);
