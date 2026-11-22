@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using ScreenTrail.Core.Audit;
 using ScreenTrail.Core.Capture;
 using ScreenTrail.Core.Perf;
@@ -149,12 +150,19 @@ public sealed class RedactionWorker(
             return false;
         }
 
+        // Set once the frame is written, refused as discarded, or its loss is counted in the store. A frame
+        // that ends any other way (the write threw, the count of its loss threw too, the service stopped
+        // while it was being read) is a loss nobody has written down yet (#251).
+        var settled = new StrongBox<bool>();
         try
         {
-            await RedactAsync(queued, ct).ConfigureAwait(false);
+            await RedactAsync(queued, settled, ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
+            // A cancellation nobody asked for (a call that timed out) is a failed frame like any other,
+            // and its loss is counted now; only the service stopping leaves the count to the stop (#251).
+            //
             // Given up on rather than retried. A frame whose redaction throws will throw again (the
             // store refusing a write does not become a different store on the next pass), and retrying
             // it is a tight loop burning the CPU budget on one frame forever.
@@ -172,16 +180,56 @@ public sealed class RedactionWorker(
 
             // Nothing to discard from the store: the frame never reached it (ADR-0006), so letting go
             // of it is the whole of the discard. What matters is counted -- a frame was captured and
-            // never made it into the session, and the bundle says so.
+            // never made it into the session, and the bundle says so (below).
         }
         finally
         {
             // However it ended. A frame left in flight would hold finalize open for the whole redaction
-            // grace and then be dropped anyway.
-            pending.Done(queued);
+            // grace and then be dropped anyway. One that was never settled is held as a loss against
+            // its session, so a stop or a full disk cannot make it vanish from the count.
+            if (settled.Value)
+            {
+                pending.Done(queued);
+            }
+            else
+            {
+                pending.Unwritten(queued);
+            }
+        }
+
+        if (!settled.Value)
+        {
+            await CountLossesAsync(queued.SessionId).ConfigureAwait(false);
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Writes down a session's losses that are not yet in the store, this frame's and any earlier ones a
+    /// full disk refused (#251). Taken before the write and given back if it fails, so a loss is counted
+    /// once: here, at the next try, at finalize, or at stop.
+    ///
+    /// Not on the worker's token: the frame is already lost, and counting it is what makes the draft hedge.
+    /// </summary>
+    private async Task CountLossesAsync(string sessionId)
+    {
+        var owed = pending.TakeUncounted(sessionId);
+        if (owed == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await store.RecordPurgedFramesAsync(sessionId, owed, CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Any refusal, a timed-out call included: the store did not take the count, so it is held
+            // again and the next attempt, finalize or the stop writes it.
+            pending.Owe(sessionId, owed);
+        }
     }
 
     private async Task WorkAsync(int index, CancellationToken ct)
@@ -271,7 +319,7 @@ public sealed class RedactionWorker(
         }
     }
 
-    private async Task RedactAsync(Capture.QueuedFrame queued, CancellationToken ct)
+    private async Task RedactAsync(Capture.QueuedFrame queued, StrongBox<bool> settled, CancellationToken ct)
     {
         var frame = queued.Frame;
         var started = Stopwatch.GetTimestamp();
@@ -284,7 +332,7 @@ public sealed class RedactionWorker(
         {
             // The recogniser failed, so nothing about this frame is known. It cannot be stored -- and
             // it never was, so not writing it is the whole of the discard (ADR-0006).
-            await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
+            await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
             return;
         }
 
@@ -296,7 +344,7 @@ public sealed class RedactionWorker(
         // a screenshot of a wallpaper is worth less than the chance that the frame was a terminal.
         if (text.IsEmpty)
         {
-            await DiscardAsync(queued.SessionId, unread: true, ct).ConfigureAwait(false);
+            await DiscardAsync(queued.SessionId, unread: true, settled, ct).ConfigureAwait(false);
             return;
         }
 
@@ -304,7 +352,7 @@ public sealed class RedactionWorker(
         // out is where a secret is most likely to survive, so it goes rather than being stored unchecked.
         if (text.MeanConfidence < _options.MinimumConfidence)
         {
-            await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
+            await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
             return;
         }
 
@@ -312,7 +360,7 @@ public sealed class RedactionWorker(
         if (!redaction.Complete)
         {
             // A pattern ran out of its budget, so parts of this text were never searched (ST-042).
-            await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
+            await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
             return;
         }
 
@@ -331,7 +379,7 @@ public sealed class RedactionWorker(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            await DiscardAsync(queued.SessionId, unread: false, ct).ConfigureAwait(false);
+            await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
             return;
         }
 
@@ -342,6 +390,10 @@ public sealed class RedactionWorker(
             frame,
             new RedactionOutcome(masked.Image, redaction.Text, regions, sensitive, _time.GetUtcNow(), masked.Width, masked.Height),
             ct).ConfigureAwait(false);
+
+        // Written, or refused because its session is gone: either way nothing about it is owed, and what
+        // follows (the audit rows) must not make a stored frame look lost if it throws.
+        settled.Value = true;
 
         // The session was discarded while the frame was being read, and the store kept nothing (INV-12).
         // Not a redacted frame: nothing to audit as masked, no time in the per-frame cost, just a count.
@@ -418,9 +470,10 @@ public sealed class RedactionWorker(
     /// hole in it and lets the draft hedge rather than claim to have seen everything. The store used to
     /// write that as a side effect of deleting the row; it is written here, where the deciding is done.
     /// </summary>
-    private async Task DiscardAsync(string sessionId, bool unread, CancellationToken ct)
+    private async Task DiscardAsync(string sessionId, bool unread, StrongBox<bool> settled, CancellationToken ct)
     {
         await store.RecordPurgedFramesAsync(sessionId, 1, ct).ConfigureAwait(false);
+        settled.Value = true;
 
         lock (_counters)
         {

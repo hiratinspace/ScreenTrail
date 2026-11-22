@@ -822,7 +822,7 @@ On UIA focus change read `IsPassword` (fallback `EM_GETPASSWORDCHAR`); enter `su
 - **Epic/Feature:** PRIVACY
 - **Priority:** Urgent
 - **Estimate:** 5
-- **Status:** Done 2026-09-13.
+- **Status:** Done 2026-09-13. Fixed 2026-11-21 (STATUS §6, #251's gap): a frame the worker cannot write or count (a full disk, a failed write) and frames still waiting when Windows closes the service are now counted in `frames_purged_unredacted` exactly once (held per session in `PendingFrames` until the store takes the count, written at the stop by `RecordUnwrittenAsync`, at finalize, or on the next failure). Not asserted on Windows: `StopTimeTests` stops the real host with a frame waiting but does not check the count.
 
 **Description:**
 Background worker pulls `redaction_pending` frames, runs OCR (Tesseract .NET) for text + boxes, applies login-screen heuristic, hands to pattern engine, flips flag; bounded concurrency; backlog depth exposed via IPC.

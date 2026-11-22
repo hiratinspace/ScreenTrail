@@ -548,8 +548,12 @@ chose it says so.
 - **OCR is a best-effort input to redaction, not a guarantee** (ADR-0001 finding 9).
 - **A 4K frame exceeds ST-025's budget and nothing fails**: about 309 ms against 120 ms on the laptop.
 - **Each frame is decoded twice**, once to read it and once to paint on it (kept out of ADR-0006).
-- **The full-disk case under-reports `frames_purged_unredacted`**, and frames waiting for redaction when
-  Windows closes the service are not counted (#251); neither is ever stored unredacted.
+- **A count the store refuses is held in memory until it can be written** (fixed 2026-11-21, was #251's
+  gap). A frame lost to a full disk or a failed write, and frames still waiting for redaction when
+  Windows closes the service, are counted in `frames_purged_unredacted` once, at the next try, at
+  finalize or at the stop, and the session recovered at the next start is drafted with them. A disk
+  still full at the stop loses the count (logged as a number); neither case ever stores a frame
+  unredacted. A crash, as opposed to a close, still loses the count of frames waiting in memory.
 - **The deployment is IPv4 only** (#249).
 - **Not done from the 2026-09-20 review, with reasons:** the hardware workflow as a reusable workflow, a
   model hash cache, the SQLite `cache_size` pragma, `run-local.ps1` deleting its output directory.
