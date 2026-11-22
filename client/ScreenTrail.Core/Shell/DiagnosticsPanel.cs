@@ -110,7 +110,7 @@ public sealed class DiagnosticsPanel
     /// <summary>
     /// What capture has given up to stay inside the processor budget, in words a customer can read over a
     /// shoulder, or null when it has given up nothing. Click screenshots are never skipped, so every step
-    /// short of the last says "between clicks". A level this build does not know still says that capture
+    /// short of the last says "between clicks". The last says "mostly": the scene floor (#361) still takes a frame now and then when the screen changes. A level this build does not know still says that capture
     /// has eased off rather than nothing.
     /// </summary>
     public static string? CaptureWords(string? level) => level switch
@@ -119,7 +119,7 @@ public sealed class DiagnosticsPanel
         CaptureLevels.FewerSamples => "Taking fewer screenshots between clicks to keep your PC responsive",
         CaptureLevels.FewestSamples => "Taking far fewer screenshots between clicks to keep your PC responsive",
         CaptureLevels.OcrOneAtATime => "Taking far fewer screenshots between clicks and checking them one at a time to keep your PC responsive",
-        CaptureLevels.OcrClicksOnly => "Taking screenshots only on clicks and marked moments to keep your PC responsive",
+        CaptureLevels.OcrClicksOnly => "Taking screenshots mostly on clicks and marked moments to keep your PC responsive",
         _ => "Taking fewer screenshots to keep your PC responsive",
     };
 

@@ -79,8 +79,51 @@ public sealed class CaptureThrottleTests : IAsyncDisposable
         Assert.Equal(CaptureLevel.OcrClicksOnly, throttle.Level);
         Assert.True(throttle.ReadsOneFrameAtATime);
 
-        // The deepest step reads only what a click or a marked moment asked for: no scene frames at all.
-        Assert.False(throttle.LooksAtScenes);
+        // The deepest step reads mostly what a click or a marked moment asked for, and keeps a floor of
+        // scene frames (#232): a look on one tick in thirty, kept only if the screen changed.
+        Assert.Equal(30, throttle.SampleEveryNth);
+        Assert.True(throttle.LooksAtScenes);
+    }
+
+    [Theory]
+    [InlineData(CaptureLevel.Full, 1)]
+    [InlineData(CaptureLevel.FewerSamples, 2)]
+    [InlineData(CaptureLevel.FewestSamples, 4)]
+    [InlineData(CaptureLevel.OcrOneAtATime, 4)]
+    [InlineData(CaptureLevel.OcrClicksOnly, 30)]
+    public void EveryLevelStillLooksAtTheScreen(CaptureLevel level, int everyNth)
+    {
+        // #232: no level stops the sampler looking; the deepest one looks on one tick in thirty.
+        var throttle = Throttles.At(level);
+
+        Assert.Equal(everyNth, throttle.SampleEveryNth);
+        Assert.True(throttle.LooksAtScenes);
+    }
+
+    [Fact]
+    public void TheFloorCanBeSetButIsNeverOff()
+    {
+        // A floor can be made sparser; it cannot be made to stop looking, which is the defect itself, nor to
+        // look more often than the level above it, which would make the deepest level cost more.
+        Assert.Equal(60, Throttles.At(CaptureLevel.OcrClicksOnly, new CaptureThrottleOptions { FloorLookEvery = 60 }).SampleEveryNth);
+        Assert.Equal(4, Throttles.At(CaptureLevel.OcrClicksOnly, new CaptureThrottleOptions { FloorLookEvery = 0 }).SampleEveryNth);
+    }
+
+    [Fact]
+    public void TheFloorDoesNotKeepTheThrottleDown()
+    {
+        // The hysteresis is unchanged: the floor is a cost inside the reading, not a reason to stay down. Once
+        // the service is well under budget for thirty seconds, the deepest level climbs back a step.
+        var (throttle, cpu, time) = Rig(processors: 4);
+        Run(throttle, cpu, time, share: 0.5, seconds: 40);
+        Assert.Equal(CaptureLevel.OcrClicksOnly, throttle.Level);
+
+        Run(throttle, cpu, time, share: 0.05, seconds: 29);
+        Assert.Equal(CaptureLevel.OcrClicksOnly, throttle.Level);
+        Run(throttle, cpu, time, share: 0.05, seconds: 1);
+
+        Assert.Equal(CaptureLevel.OcrOneAtATime, throttle.Level);
+        Assert.Equal(4, throttle.SampleEveryNth);
     }
 
     [Fact]

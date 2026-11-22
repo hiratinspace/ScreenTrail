@@ -19,8 +19,10 @@ public enum CaptureLevel
     OcrOneAtATime,
 
     /// <summary>
-    /// One frame at a time, and OCR reads only what a click or a marked moment asked for: the scene sampler
-    /// stops looking, so there are no scene frames to read.
+    /// One frame at a time, and OCR reads what a click or a marked moment asked for plus a floor of scene
+    /// frames: the scene sampler looks on one tick in <see cref="CaptureThrottleOptions.FloorLookEvery"/>
+    /// (every 30 s by default) and keeps what it sees only if the screen changed, so a technician who only
+    /// watches still gets pictures (#232).
     /// </summary>
     OcrClicksOnly,
 }
@@ -43,6 +45,13 @@ public sealed record CaptureThrottleOptions
 
     /// <summary>"Well under": a reading below this share of the budget. Between it and the budget, the level holds.</summary>
     public double RecoverBelow { get; init; } = 0.8;
+
+    /// <summary>
+    /// The scene floor (#232): at the deepest level the sampler still looks on one tick in this many, every
+    /// 30 s at the default one-second tick. A look can become at most one frame, so this is also the most
+    /// scene frames the floor can take. Never more often than every fourth tick, the level above it.
+    /// </summary>
+    public int FloorLookEvery { get; init; } = 30;
 }
 
 /// <summary>
@@ -52,11 +61,20 @@ public sealed record CaptureThrottleOptions
 /// <b>What gives, and in what order.</b> Scene sampling first, because a scene frame is the one no click
 /// asked for: looking every other tick, then every fourth, costs screenshots of things a technician only
 /// watched. OCR next, because it is the expensive half of redaction: one frame read at a time instead of
-/// two, and then only the frames a click or a marked moment asked for, the scene sampler no longer looking.
-/// The input hooks, click screenshots and speech are never touched. A click's event and its screenshot are
-/// what the note is built from, and the hooks are a buffer write; speech is the technician's own account of
-/// the session. All of them still count towards the reading, so a busy transcription is paid for out of
-/// sampling and OCR, which is the trade the ticket names.
+/// two, and then mostly the frames a click or a marked moment asked for, the scene sampler down to its
+/// floor. The input hooks, click screenshots and speech are never touched. A click's event and its
+/// screenshot are what the note is built from, and the hooks are a buffer write; speech is the technician's
+/// own account of the session. All of them still count towards the reading, so a busy transcription is paid
+/// for out of sampling and OCR, which is the trade the ticket names.
+///
+/// <b>The scene floor (#232).</b> The deepest level used to stop the sampler looking at all, and M1's
+/// narrated session spent most of its length there with no scene frames. Now it looks on one tick in
+/// thirty and keeps a look only if the screen changed, under the sampler's usual threshold, so a still
+/// screen costs looks and no frames. Bounded so it cannot hold the service over budget by itself: two looks
+/// a minute (about 13 ms of processor each on the laptop) and at most two frames (capture, OCR at up to 2x,
+/// search and mask, about 680 ms at worst), about 1.4 s a minute or 2.3% of one core. That is under 4% of
+/// the 60% budget, inside the 20% of headroom recovery waits for, so the level still climbs back once the
+/// rest of the service quiets down.
 ///
 /// <b>What never gives.</b> Redaction. Every frame that is taken is read, searched and painted exactly as
 /// before (INV-1). Throttling only takes fewer pictures and reads them one at a time; a frame waiting its
@@ -112,16 +130,24 @@ public sealed class CaptureThrottle
 
     public CaptureLevel Level => (CaptureLevel)Volatile.Read(ref _level);
 
-    /// <summary>The scene sampler looks at the screen on one tick in this many.</summary>
+    /// <summary>
+    /// The scene sampler looks at the screen on one tick in this many. It always looks eventually: at the
+    /// deepest level this is the floor, <see cref="CaptureThrottleOptions.FloorLookEvery"/>.
+    /// </summary>
     public int SampleEveryNth => Level switch
     {
         CaptureLevel.Full => 1,
         CaptureLevel.FewerSamples => 2,
+        CaptureLevel.OcrClicksOnly => Math.Max(4, _options.FloorLookEvery),
         _ => 4,
     };
 
-    /// <summary>Whether the scene sampler looks at the screen at all.</summary>
-    public bool LooksAtScenes => Level < CaptureLevel.OcrClicksOnly;
+    /// <summary>
+    /// Whether the scene sampler looks at the screen at all. Always, since the scene floor (#232): the
+    /// deepest level used to answer no and now looks on one tick in
+    /// <see cref="CaptureThrottleOptions.FloorLookEvery"/> instead. Kept because the sampler still asks.
+    /// </summary>
+    public bool LooksAtScenes => Level <= CaptureLevel.OcrClicksOnly;
 
     /// <summary>
     /// Whether only one frame may be read at once. Only while the session records: paused or finalizing,

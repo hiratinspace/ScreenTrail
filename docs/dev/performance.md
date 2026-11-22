@@ -182,7 +182,7 @@ held to 15% of itself.
 | 10 s over budget | Fewer samples | The scene sampler looks at the screen every other tick (every 2 s by default) |
 | 10 s more | Fewest samples | Every fourth tick (every 4 s) |
 | 10 s more | OCR one at a time | And redaction reads one frame at a time instead of two while the session records |
-| 10 s more | OCR clicks only | And the scene sampler stops looking, so OCR reads only the frames a click or a marked moment asked for |
+| 10 s more | OCR clicks only | And the scene sampler drops to its floor: one look every thirtieth tick (every 30 s), kept only if the screen changed, so OCR reads mostly the frames a click or a marked moment asked for |
 
 - **Back up:** one step after 30 s below 80% of the budget. Between 80% and 100% the level holds, so a
   load that sits at the budget does not flap. A reading back under the budget starts the ten seconds again.
@@ -210,16 +210,35 @@ held to 15% of itself.
   once it is read. With one reader, a click's frame can wait behind the frames ahead of it in the queue: at
   most three, each taking a median of 171 ms and at most about 700 ms (ST-041's budget), so up to about
   two seconds later than at full capture. At the deepest level a prompt that appears without a click is
-  not photographed, so the OCR check cannot see it until the next click; the password-field guard (ST-040),
-  which asks Windows rather than reading the screen, is unaffected and still suppresses capture the moment
-  focus lands in a password field.
-- **Scene frames can stop for long stretches.** Speech is never throttled, so a technician narrating
-  steadily can hold the service over budget for as long as they talk, and the throttle stays down for as
-  long as it is. Down to "OCR clicks only", that session has no scene frames at all until the process has
-  been well under budget for thirty seconds a step; above it, scenes are looked at every 2 or 4 s. While
-  throttled, ST-026's AC2 ("error dialog appears, frame within 2 s") is suspended: a dialog that appears
-  without a click may be photographed late or not at all. Clicks and marked moments are still
+  photographed only by the scene floor, up to 30 s later, so the OCR check may not see it until then or
+  the next click; the password-field guard (ST-040), which asks Windows rather than reading the screen, is
+  unaffected and still suppresses capture the moment focus lands in a password field.
+- **Scene frames thin out but never stop (the scene floor, #232).** Speech is never throttled, so a
+  technician narrating steadily can hold the service over budget for as long as they talk, and the
+  throttle stays down for as long as it is (M1, 2026-11-13). Until 2026-11-21 "OCR clicks only" stopped
+  the scene sampler, and such a session had no scene frames at all for those stretches. Now the deepest
+  level keeps a floor: the sampler looks every thirtieth tick (30 s at the default one-second tick) and
+  keeps a look only if the screen changed, under the usual change threshold, so a still screen costs
+  looks and no frames. A technician who only watches still gets a picture of what changed, at most 30 s
+  after it did. Above the floor, scenes are looked at every 2 or 4 s. While throttled, ST-026's AC2
+  ("error dialog appears, frame within 2 s") is suspended: a dialog that appears without a click is
+  photographed late, and only if it is still on screen at the next look. Clicks and marked moments are
   photographed throughout.
+- **The floor is bounded.** Two looks a minute (12.7 ms of processor each, laptop run 44027063937) and,
+  since a look becomes at most one frame, at most two frames (capture 16.8 ms, OCR at up to 2x up to
+  615 ms, pattern search 10.2 ms, mask 34.9 ms: about 680 ms at worst): about 1.4 s a minute, 2.3% of one
+  core. That is under 4% of the 60%-of-one-core budget, inside the 20% of headroom recovery waits for, so
+  the floor alone cannot hold the service over budget or stop it climbing back. Every floor frame is
+  staged waiting for redaction and redacted exactly as at full capture (INV-1, ADR-0006). The number is
+  `CaptureThrottleOptions.FloorLookEvery` (30 ticks, never fewer than 4, the level above); the cap of 60
+  scene frames in any twenty minutes still applies on top, and the floor alone can reach at most 40 of
+  them.
+- **Why the floor is a slower look and not a longer quiet period.** A look every 15 s with a frame at
+  most once a minute would catch a change sooner for less, but it needs the sampler (`Core/Capture`) to
+  take a per-sample quiet period, and a change there needs the spare laptop's evidence, which was not to
+  be had on 2026-11-21. The look interval is the throttle's alone (`Core/Perf`). The comment in
+  `SceneRecorder.SampleAsync` that says the deepest level looks "not at all" is stale until the next change
+  there.
 
 The Mac suite proves the rules on a fake processor clock and a hand-moved clock (`CaptureThrottleTests`,
 `ThrottledSamplingTests`, `ThrottledRedactionTests`). The laptop rig composes the throttle as the host
@@ -242,9 +261,10 @@ one at a time at 51 s. During a demo rehearsal, with the service's console log i
 3. If the narrated session trips the throttle, check how many scene frames it kept. The count is in
    the service's log at debug level (start the service with `SCREENTRAIL_LOG_LEVEL=Debug`; each kept frame
    logs `Scene frame N of M samples`). Compare it with a session of the same length without narration.
-   A count near zero means narration alone holds the service over budget and costs the session its scene
-   frames; paste both counts here, since that is a reason to revisit the budget or the order in which
-   things give.
+   With the scene floor (#232) a narrated session that changes on screen should keep up to two scene
+   frames a minute even at the deepest level; a count near zero on a screen that changed means the floor
+   is not reaching the real service. Paste both counts here, since that is a reason to revisit the
+   budget, the floor's numbers or the order in which things give.
 
 Without narration a session should not trip the throttle. With it, the rig says it will, until the
 sized context is switched on or the throttle's accounting changes (ST-031's status).
@@ -474,7 +494,8 @@ Paste the tables here.
   are cleaner than a technician on a headset; ST-027's recorded fixture is still owed.
 - ST-031's 30-minute golden replay (ST-030's sessions) and the nightly harness that asserts the budgets.
 - Battery: the wakeup counts are the proxy, not a power measurement.
-- Whether the throttle ever trips in a real session with speech (the owner step above).
+- Whether the throttle ever trips in a real session with speech (the owner step above), and whether the
+  scene floor then gives that session its scene frames (up to two a minute).
 
 ## Not done yet in ST-031
 

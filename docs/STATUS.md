@@ -315,7 +315,8 @@ Phases A and B of the ordered plan (backlog Part C) are complete apart from what
 - **Device activation** takes a twenty-character invite code only and claims the invite and the seat
   under a lock on the tenant's row (#248, #260).
 - **A recording session watches its own processor use** (ST-031 AC2, #232) and, over budget for ten
-  seconds, samples the screen less, then reads one frame at a time, then stops scene sampling. Every
+  seconds, samples the screen less, then reads one frame at a time, then drops scene sampling to a floor
+  (a look every 30 s, kept only if the screen changed, about 2.3% of one core at worst). Every
   frame it does take is redacted exactly as before (INV-1). M1 saw it throttle a real session, and a
   narrated session as shipped still trips it (#334).
 - **Updates are built, and off** (ST-113): a signed manifest checked against a compiled-in key that is
@@ -553,9 +554,11 @@ chose it says so.
 - **Not done from the 2026-09-20 review, with reasons:** the hardware workflow as a reusable workflow, a
   model hash cache, the SQLite `cache_size` pragma, `run-local.ps1` deleting its output directory.
 - **ST-006's frames are drawn, not captured.** Fine for UI and pattern work, useless for judging OCR.
-- **A throttled session can go without scene frames for long stretches** (#232): speech is never
-  throttled, and M1 showed the service over budget for most of a real session. Clicks and marked moments
-  are still photographed.
+- **A throttled session gets fewer scene frames** (#232): speech is never throttled, and M1 showed the
+  service over budget for most of a real session. At the deepest level the screen is now looked at every
+  30 s instead of never (the scene floor, 2026-11-21), so a dialog that appears without a click can be
+  photographed up to 30 s late. Clicks and marked moments are still photographed
+  throughout. Not yet seen on the laptop.
 
 ## 7. Next steps
 

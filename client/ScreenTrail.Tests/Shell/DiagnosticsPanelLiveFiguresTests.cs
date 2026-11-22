@@ -55,7 +55,7 @@ public sealed class DiagnosticsPanelLiveFiguresTests
     [InlineData(CaptureLevels.FewerSamples, "Taking fewer screenshots between clicks to keep your PC responsive")]
     [InlineData(CaptureLevels.FewestSamples, "Taking far fewer screenshots between clicks to keep your PC responsive")]
     [InlineData(CaptureLevels.OcrOneAtATime, "Taking far fewer screenshots between clicks and checking them one at a time to keep your PC responsive")]
-    [InlineData(CaptureLevels.OcrClicksOnly, "Taking screenshots only on clicks and marked moments to keep your PC responsive")]
+    [InlineData(CaptureLevels.OcrClicksOnly, "Taking screenshots mostly on clicks and marked moments to keep your PC responsive")]
     public void WhenCaptureHasGivenWayTheRowUnderTheScopeSaysWhatInPlainWords(string level, string words)
     {
         var panel = DiagnosticsPanel.From(With(captureLevel: level));
