@@ -319,11 +319,13 @@ picture (`DecodedFrame`, `IFrameDecoder`):
 **The saving, estimated from run 44027063937 until the laptop measures it.** The mask stage's 34.9 ms
 was a GDI+ decode of the 1920x1080 JPEG, the paint, a resample to 1600x900 and a JPEG encode of that.
 Frame capture (grab, convert and a 1920x1080 encode) is 16.8 ms, so the 1600x900 encode is roughly 7 ms
-and the resample about as much, which leaves **10 to 20 ms for the decode that is gone**. What the
+and the resample about as much, which leaves 10 to 20 ms for the decode that is gone. The hosted
+runner timed that GDI+ decode at **8.2 ms** wall on a 1920x1080 frame of dense text (875 KB; the WIC
+decode that is left, 10.7 ms; PR #363), so the saving is likely at the low end: **about 8 to 15 ms**. What the
 shared path adds is a copy of the decoded rows into the scaler (8 MB at full HD, about 1 ms), and it
 also drops the two copies of the JPEG the old code made before decoding (`ToArray`, then a WinRT
-stream). Net, about 10 to 20 ms a full HD frame: 1.5 to 3% of a dense 9 pt frame's redaction (615 +
-10.2 + 34.9 ms) and 4 to 8% of a settings dialog's (200 + 10.2 + 34.9 ms). Small, because OCR is the
+stream). Net, about 8 to 15 ms a full HD frame: 1 to 2% of a dense 9 pt frame's redaction (615 +
+10.2 + 34.9 ms) and 3 to 6% of a settings dialog's (200 + 10.2 + 34.9 ms). Small, because OCR is the
 cost; the larger effect is memory at 4K.
 
 **Memory per frame.** Full HD: the decoded picture is 8.3 MB, held through the read, which already held
@@ -338,7 +340,7 @@ summary gives the saving directly ("a dense frame read and masked ... decoding t
 `SharedDecodeTests.TheDecodeItSavesIsMeasured` times the GDI+ decode that is gone against the WIC decode
 that is left. `SharedDecodeTests` also holds the read to the old one: the same pixels, channel for
 channel, at 1920x1080 and 1280x720 (scaled) and 3840x2160 (as captured), and the same words in the same
-boxes.
+boxes. On the hosted runner (PR #363) not one channel value differed at any of the three sizes.
 
 Speech dominates a narrated session. whisper.cpp encodes a full 30-second window (1500 audio context
 positions) for every segment, so a segment costs nearly the same processor time whatever its length:
@@ -520,7 +522,7 @@ Paste the tables here.
 - Battery: the wakeup counts are the proxy, not a power measurement.
 - Whether the throttle ever trips in a real session with speech (the owner step above), and whether the
   scene floor then gives that session its scene frames (up to two a minute).
-- The saving from one decode per frame on the laptop's processor (estimated at 10 to 20 ms a full HD
+- The saving from one decode per frame on the laptop's processor (estimated at 8 to 15 ms a full HD
   frame above), and the service's memory with a 4K screen recording.
 
 ## Not done yet in ST-031

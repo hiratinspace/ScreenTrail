@@ -36,6 +36,14 @@ internal sealed class WindowsFrameDecoder : IFrameDecoder
 
         try
         {
+            // The masker paints this picture in place, so it has to be one that can be written to.
+            if (bitmap.IsReadOnly)
+            {
+                var writable = SoftwareBitmap.Copy(bitmap);
+                bitmap.Dispose();
+                bitmap = writable;
+            }
+
             return new WindowsDecodedFrame(image, bitmap);
         }
         catch
