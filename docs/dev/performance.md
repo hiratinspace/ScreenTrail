@@ -269,6 +269,23 @@ one at a time at 51 s. During a demo rehearsal, with the service's console log i
 Without narration a session should not trip the throttle. With it, the rig says it will, until the
 sized context is switched on or the throttle's accounting changes (ST-031's status).
 
+The panel makes this easier to see (2026-11-21, contract v15): with "What's being captured right now?"
+open during the session, CPU shows the throttle's own one-second reading as a share of this PC, and a
+Capture row appears under Scope in plain words once the throttle has stepped down. Compare the CPU figure
+with Task Manager's for `ScreenTrail.Service`; they count the same way.
+
+### Live figures in the panel
+
+"What's being captured right now?" shows the service's processor share and memory, live while the panel
+is open (contract v15). The throttle reads through `ProcessorShareGauge` (Core), which keeps its last two
+readings: while a session is under way the panel is told the share the throttle last acted on, and
+between sessions the panel's own request is the reading, so the idle service gains no timer and no
+wakeups. The first answer after a quiet spell (no pair of readings within 30 s) says "measuring"; the
+panel asks again every two seconds while it is open and not at all once it is closed. Readings under
+half a second apart are not paired, so the panel's request landing beside the throttle's never makes a
+pair too short to measure. `ProcessorShareGaugeTests` and `DiagnosticsPanelLiveFiguresTests` hold this on
+a fake clock on the Mac.
+
 ## Narrated recording (M1, 2026-11-17)
 
 M1 (2026-11-13) saw the capture service at about 25% of the laptop during a six-minute narrated AnyDesk
@@ -531,4 +548,3 @@ Paste the tables here.
 - A narrated session inside the budget: the sized encoder context does it in the rig and waits on real
   speech; otherwise the throttle's accounting.
 - The nightly harness and the golden replay.
-- Live CPU and memory in "What's being captured" (it shows the working set only).

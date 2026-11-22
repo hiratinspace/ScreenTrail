@@ -1055,6 +1055,59 @@ public sealed class StateMachineTests : IAsyncDisposable
         Assert.Empty(await store.ListSessionsInStatesAsync(SessionStateNames.Orphanable));
     }
 
+    [Fact]
+    public async Task FramesUnwrittenWhenWindowsStopsTheServiceAreCountedOnceAcrossTheRestart()
+    {
+        // #251. Windows closes the service mid-session: a frame the worker was holding when it was
+        // stopped, and two still waiting, were never written. The stop counts them against the session
+        // while the store is open; the next start recovers the session as partial and drafts it with the
+        // count, and recovery's own finalize must not count them a second time.
+        var machine = await MachineAsync();
+        await machine.StartAsync(ScreenConnect);
+        var id = machine.SessionId!;
+        foreach (var frame in new[] { "held", "w1", "w2" })
+        {
+            Assert.True(await machine.TryStageFrameAsync(Frame(frame, machine.NowMs)));
+        }
+
+        Assert.True(_pending.TryTake(out var held));
+        _pending.Unwritten(held);
+
+        Assert.Equal(new UnwrittenCount(3, 0, null), await _pending.RecordUnwrittenAsync(_store!));
+        Assert.Equal(new UnwrittenCount(0, 0, null), await _pending.RecordUnwrittenAsync(_store!));
+        Assert.Equal(3, (await _store!.LoadSessionAsync(id))!.FramesPurgedUnredacted);
+
+        // A new process: a new queue, and recovery over the same store.
+        await machine.DisposeAsync();
+        _pending = new PendingFrames();
+        var restarted = await MachineAsync();
+        Assert.Equal(1, await restarted.RecoverAsync());
+
+        var stored = (await _store.LoadSessionAsync(id))!;
+        Assert.True(stored.PartialCapture);
+        Assert.Equal(3, stored.FramesPurgedUnredacted);
+        Assert.NotNull(stored.Draft);
+        Assert.Equal(3, (await _store.GetAuditAsync(id)).Where(a => a.Type == AuditTypes.FramesPurgedUnredacted).Sum(a => a.Count ?? 0));
+    }
+
+    [Fact]
+    public async Task ALossTheStoreCouldNotCountWhileRecordingIsCountedAtFinalize()
+    {
+        // #251, the full-disk half: losses the store refused to count while the session recorded are
+        // held against it, and finalize writes them before the note is drafted, so the draft hedges.
+        var machine = await MachineAsync(grace: TimeSpan.FromMilliseconds(100));
+        await machine.StartAsync(ScreenConnect);
+        var id = machine.SessionId!;
+        _pending.Owe(id, 2);
+        Assert.True(await machine.TryStageFrameAsync(Frame("straggler", machine.NowMs)));
+
+        Assert.True(await machine.StopAsync());
+
+        Assert.Equal(3, (await _store!.LoadSessionAsync(id))!.FramesPurgedUnredacted);
+        Assert.Equal(0, _pending.UncountedFor(id));
+        Assert.Equal(new UnwrittenCount(0, 0, null), await _pending.RecordUnwrittenAsync(_store));
+    }
+
     [Theory]
     [InlineData(CaptureStates.Recording)]
     [InlineData(CaptureStates.Paused)]

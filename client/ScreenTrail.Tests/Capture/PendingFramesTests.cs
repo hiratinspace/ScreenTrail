@@ -201,6 +201,40 @@ public sealed class PendingFramesTests
         Assert.Equal(0, queue.Depth);
     }
 
+    [Fact]
+    public void AFrameLetGoOfUnwrittenIsHeldAsALossOnceForItsSession()
+    {
+        // #251: a frame the worker could neither write nor count is a loss nobody has written down. It
+        // is held here, a number per session, and finishing the same frame twice must not lose it twice.
+        var queue = new PendingFrames();
+        _ = queue.TryEnqueue("s1", Frame("f1"));
+        _ = queue.TryEnqueue("s2", Frame("f2"));
+        Assert.True(queue.TryTake(out var first));
+
+        queue.Unwritten(first);
+        queue.Unwritten(first);
+        queue.Done(first);
+
+        Assert.Equal(1, queue.UncountedFor("s1"));
+        Assert.Equal(0, queue.UncountedFor("s2"));
+        Assert.Equal(1, queue.Depth);
+    }
+
+    [Fact]
+    public void ALossTakenIsTakenOnceAndComesBackWhenItCouldNotBeWritten()
+    {
+        // Taken rather than read, so the worker, finalize and the stop can never write the same loss.
+        var queue = new PendingFrames();
+        queue.Owe("s1", 2);
+
+        Assert.Equal(2, queue.TakeUncounted("s1"));
+        Assert.Equal(0, queue.TakeUncounted("s1"));
+
+        queue.Owe("s1", 2);
+        queue.Owe("s1", 1);
+        Assert.Equal(3, queue.UncountedFor("s1"));
+    }
+
     private static StagedFrame Frame(string id) =>
         new(id, 1_000, FrameTrigger.Click, 1920, 1080, null, new byte[] { 0xAA });
 }

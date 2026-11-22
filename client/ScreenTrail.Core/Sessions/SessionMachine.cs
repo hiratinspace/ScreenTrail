@@ -792,6 +792,9 @@ public sealed class SessionMachine : IAsyncDisposable
         // Whatever is still queued for it goes too, before the store lets it go. Nobody has read those
         // frames, so nobody can say what is on them, and ADR-0004 is clear about such a frame.
         _options.Pending.Forget(session.Id);
+
+        // And any loss still waiting to be counted: there is no session left to count it against.
+        _ = _options.Pending.TakeUncounted(session.Id);
     }
 
     /// <summary>The second half, once the store has let it go: the machine lets go too, and says so.</summary>
@@ -1073,7 +1076,18 @@ public sealed class SessionMachine : IAsyncDisposable
         // they were staged, and can be larger than "captured" for a session that lost frames this way.
         if (!_options.Pending.TryEnqueue(session.Id, frame))
         {
-            await _store.RecordPurgedFramesAsync(session.Id, 1, CancellationToken.None).ConfigureAwait(false);
+            // A store that refuses the count (a full disk) does not lose it: it is held against the
+            // session and written by finalize or at stop (#251).
+            try
+            {
+                await _store.RecordPurgedFramesAsync(session.Id, 1, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                _options.Pending.Owe(session.Id, 1);
+                throw;
+            }
+
             return false;
         }
 
@@ -1333,8 +1347,20 @@ public sealed class SessionMachine : IAsyncDisposable
         // Whatever is still queued when the grace runs out. The frames were captured and never read, so
         // they cannot be stored (ADR-0004) -- and there is no row to delete, so what is left to do is
         // count the loss where the bundle will find it (ADR-0006).
-        var stragglers = _options.Pending.Forget(sessionId);
-        await _store.RecordPurgedFramesAsync(sessionId, stragglers, ct).ConfigureAwait(false);
+        //
+        // With them, the losses the store refused to count while the session recorded (a full disk) and
+        // frames the worker let go of unwritten (#251). Taken, and given back if this write fails, so the
+        // stop or the next finalize counts them and nothing is counted twice.
+        var stragglers = _options.Pending.Forget(sessionId) + _options.Pending.TakeUncounted(sessionId);
+        try
+        {
+            await _store.RecordPurgedFramesAsync(sessionId, stragglers, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            _options.Pending.Owe(sessionId, stragglers);
+            throw;
+        }
 
         // Still called: a store written by an older build may hold pending rows, and recovery is the
         // path that meets them.

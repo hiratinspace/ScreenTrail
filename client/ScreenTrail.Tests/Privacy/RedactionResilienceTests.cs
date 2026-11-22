@@ -70,6 +70,10 @@ public sealed class RedactionResilienceTests : IAsyncDisposable
         // Nothing is left owed: the failed frame was let go of rather than retried for ever, and there
         // was never a row to leave behind (ADR-0006).
         Assert.Equal(0, _pending.Depth);
+
+        // And it is counted against the session at once (#251): the write failed, the count did not.
+        Assert.Equal(1, (await store.LoadSessionAsync("s1"))!.FramesPurgedUnredacted);
+        Assert.Equal(0, _pending.UncountedFor("s1"));
     }
 
     [Fact]
@@ -104,36 +108,97 @@ public sealed class RedactionResilienceTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task AFrameThatCannotEvenBeCountedIsStillLetGoOf()
+    public async Task AFrameThatCannotEvenBeCountedIsHeldUntilTheStoreTakesTheCount()
     {
-        // The other half, and its answer changed with ADR-0006. A full disk refuses both the write and
-        // the record of the loss, so there is nowhere to say what happened to the frame.
+        // The other half. A full disk refuses both the write and the record of the loss, so there is
+        // nowhere to say what happened to the frame.
         //
-        // It used to stay pending, and finalize purged it later. There is no row now, so there is
-        // nothing to leave behind: the frame is let go of, because a worker that retried it would
-        // retry it for ever on a disk that is not going to empty itself.
-        //
-        // <b>What is lost is the count.</b> `frames_purged_unredacted` under-reports on a store that
-        // refuses everything, so a session recorded against a full disk can have a hole the draft does
-        // not know to hedge about. The worker's own Failed count is where that shows instead, and it
-        // reaches the diagnostics panel. Said plainly rather than left for somebody to find: it is the
-        // price of not remembering a frame for ever, and a full disk is a session in trouble anyway.
+        // The frame itself is let go of, because a worker that retried it would retry it for ever on a
+        // disk that is not going to empty itself. The count used to go with it, so a session recorded
+        // against a full disk had a hole the draft did not know to hedge about (#251). It is held now,
+        // a number against the session, and written once the store takes it: by the next frame's
+        // failure, by finalize, or at stop. Exactly once, however many times it is tried.
         var store = await OpenAsync();
         await StageAsync(store, "s1", "f1");
         await StageAsync(store, "s1", "f2");
-        var worker = new RedactionWorker(
-            new RefusesOneWrite(store, "f1", alsoDiscard: true), Reads(), new PassThroughMasker(), new RedactionEngine(), _pending);
+        var full = new RefusesOneWrite(store, "f1", alsoDiscard: true);
+        var worker = new RedactionWorker(full, Reads(), new PassThroughMasker(), new RedactionEngine(), _pending);
 
         using var stopping = new CancellationTokenSource();
         var running = worker.RunAsync(stopping.Token);
-        await WaitUntilAsync(() => worker.Progress.Frames >= 1);
+        await WaitUntilAsync(() => worker.Progress.Frames >= 1 && worker.Progress.Failed >= 1);
         await stopping.CancelAsync();
         await running;
 
-        // The good frame still went through, the bad one was counted as a failure, and nothing is owed.
+        // The good frame still went through, the bad one was counted as a failure, and no frame is owed.
         Assert.Equal(1, worker.Progress.Frames);
-        Assert.True(worker.Progress.Failed >= 1);
+        Assert.Equal(1, worker.Progress.Failed);
         Assert.Equal(0, _pending.Depth);
+
+        // Its loss is held, not lost, and not yet in the store.
+        Assert.Equal(1, _pending.UncountedFor("s1"));
+        Assert.Equal(0, (await store.LoadSessionAsync("s1"))!.FramesPurgedUnredacted);
+
+        // Still full at stop: nothing is written, and the loss is kept to be tried again.
+        var refused = await _pending.RecordUnwrittenAsync(full, TestContext.Current.CancellationToken);
+        Assert.Equal(new UnwrittenCount(0, 1, nameof(InvalidOperationException)), refused);
+        Assert.Equal(1, _pending.UncountedFor("s1"));
+
+        // The store takes it: counted once, and a second try finds nothing left to count.
+        Assert.Equal(new UnwrittenCount(1, 0, null), await _pending.RecordUnwrittenAsync(store, TestContext.Current.CancellationToken));
+        Assert.Equal(new UnwrittenCount(0, 0, null), await _pending.RecordUnwrittenAsync(store, TestContext.Current.CancellationToken));
+        Assert.Equal(1, (await store.LoadSessionAsync("s1"))!.FramesPurgedUnredacted);
+        Assert.Single(await store.GetAuditAsync("s1"), a => a.Type == AuditTypes.FramesPurgedUnredacted);
+    }
+
+    [Fact]
+    public async Task FramesTheServiceStoppedOnAreCountedAtTheStop()
+    {
+        // #251: Windows closing the service cancels the worker mid-read. The frames it was holding and
+        // the ones still waiting were never written and used to be counted nowhere, so the session,
+        // recovered as partial at the next start, was drafted as if it had seen them.
+        var store = await OpenAsync();
+        await StageAsync(store, "s1", "f1");
+        await StageAsync(store, "s1", "f2");
+        await StageAsync(store, "s1", "f3");
+        var reading = new ReadsUntilStopped();
+        var worker = new RedactionWorker(store, reading, new PassThroughMasker(), new RedactionEngine(), _pending);
+
+        using var stopping = new CancellationTokenSource();
+        var running = worker.RunAsync(stopping.Token);
+        await WaitUntilAsync(() => reading.Started == 2);
+        await stopping.CancelAsync();
+        await running;
+
+        // Two were being read and are held as losses; one is still waiting. None reached the store.
+        Assert.Equal(0, worker.Progress.Frames);
+        Assert.Equal(0, worker.Progress.Failed);
+        Assert.Equal(2, _pending.UncountedFor("s1"));
+        Assert.Equal(1, _pending.Depth);
+
+        var counted = await _pending.RecordUnwrittenAsync(store, TestContext.Current.CancellationToken);
+
+        Assert.Equal(new UnwrittenCount(3, 0, null), counted);
+        Assert.Equal(0, _pending.Depth);
+        var session = (await store.LoadSessionAsync("s1"))!;
+        Assert.Equal(3, session.FramesPurgedUnredacted);
+        Assert.Empty(session.Frames);
+        Assert.Single(await store.GetAuditAsync("s1"), a => a.Type == AuditTypes.FramesPurgedUnredacted && a.Count == 3);
+    }
+
+    /// <summary>A recogniser that is still reading when the service stops: it returns only by being cancelled.</summary>
+    private sealed class ReadsUntilStopped : IFrameTextRecogniser
+    {
+        private int _started;
+
+        public int Started => Volatile.Read(ref _started);
+
+        public async Task<RecognisedText> ReadAsync(ReadOnlyMemory<byte> image, CancellationToken ct = default)
+        {
+            _ = Interlocked.Increment(ref _started);
+            await Task.Delay(Timeout.Infinite, ct);
+            throw new InvalidOperationException("Unreachable: the delay only ends by cancellation.");
+        }
     }
 
     [Fact]

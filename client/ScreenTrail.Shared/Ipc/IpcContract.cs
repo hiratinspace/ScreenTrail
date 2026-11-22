@@ -73,8 +73,14 @@ namespace ScreenTrail.Shared.Ipc;
 /// <c>coverage</c> reply carries them. New messages, which on their own have not moved the version; it
 /// moves because the banner's numbers depend on the service answering, and a UI paired with a service
 /// that cannot would lose the banner without a word. The handshake turns such a pair away instead.
+///
+/// 15: ST-031, live figures in "What's being captured right now?". The <c>diagnostics</c> reply's
+/// <c>cpu_percent</c> is the service's real share of the machine and is absent while it is still being
+/// measured (it was required and always 0), and the reply gains <c>capture_level</c>, optional, the capture
+/// throttle's level. A changed and a new member on a reply both sides exchange, which a v14 UI would fail
+/// on, so the version moves.
 /// </summary>
 public static class IpcContract
 {
-    public const int Version = 14;
+    public const int Version = 15;
 }

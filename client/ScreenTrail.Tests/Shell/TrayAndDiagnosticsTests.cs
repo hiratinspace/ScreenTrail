@@ -207,8 +207,9 @@ public sealed class TrayAndDiagnosticsTests
             .Select(p => p.Name)
             .ToList();
 
-        // BackendNote (contract v12) is one fixed sentence from DeploymentAddresses, never the address.
-        Assert.Equal(["Scope", "Microphone", "Suppression", "PolicyVersion", "ClientVersion", "BackendNote", "Headline"], content);
+        // BackendNote (contract v12) is one fixed sentence from DeploymentAddresses, never the address, and
+        // CaptureLevel (v15) one of CaptureLevels' five names.
+        Assert.Equal(["Scope", "Microphone", "Suppression", "PolicyVersion", "ClientVersion", "BackendNote", "CaptureLevel", "Headline"], content);
     }
 
     [Fact]

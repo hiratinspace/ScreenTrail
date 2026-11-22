@@ -1198,14 +1198,52 @@ public sealed record DiagnosticsReported : IpcEvent
     [JsonPropertyName("policy_version")]
     public required string PolicyVersion { get; init; }
 
+    /// <summary>
+    /// The service's processor share as a percentage of the whole machine, the way Task Manager shows it,
+    /// over its last reading (ST-031, contract v15): while a session is under way the reading the capture
+    /// throttle last acted on, between sessions the time since the panel last asked. Absent while there is
+    /// no recent reading to give, which the panel shows as still measuring. A number, never content (INV-10).
+    /// It was always 0 before v15.
+    /// </summary>
     [JsonPropertyName("cpu_percent")]
-    public required double CpuPercent { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? CpuPercent { get; init; }
+
+    /// <summary>
+    /// How far capture has given way to stay inside the processor budget (ST-031, contract v15), one of
+    /// <see cref="CaptureLevels"/>. Absent before the throttle exists. A level, never content (INV-10).
+    /// </summary>
+    [JsonPropertyName("capture_level")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? CaptureLevel { get; init; }
 
     [JsonPropertyName("working_set_bytes")]
     public required long WorkingSetBytes { get; init; }
 
     [JsonPropertyName("service_version")]
     public required string ServiceVersion { get; init; }
+}
+
+/// <summary>
+/// The <c>diagnostics</c> reply's <c>capture_level</c> (contract v15): the capture throttle's level, mildest
+/// first. The panel says each in plain words; these are the wire names.
+/// </summary>
+public static class CaptureLevels
+{
+    /// <summary>Everything as configured.</summary>
+    public const string Full = "full";
+
+    /// <summary>The screen is looked at between clicks every other second.</summary>
+    public const string FewerSamples = "fewer_samples";
+
+    /// <summary>The screen is looked at between clicks every fourth second.</summary>
+    public const string FewestSamples = "fewest_samples";
+
+    /// <summary>As few looks, and screenshots are read for redaction one at a time instead of two.</summary>
+    public const string OcrOneAtATime = "ocr_one_at_a_time";
+
+    /// <summary>Only clicks and marked moments are photographed, read one at a time.</summary>
+    public const string OcrClicksOnly = "ocr_clicks_only";
 }
 
 /// <summary>The History screen's rows (ST-079), read from the store by the service.</summary>

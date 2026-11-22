@@ -56,8 +56,8 @@ waits for the owner's ST-027 recording. A stop in the middle of a transcription 
 memory test now waits for that (#339, #340). whisper.cpp cannot be stopped inside an encoder pass, so a
 stop during one lets go only when the pass ends (about 4.7 s on one thread; `docs/dev/performance.md`).
 
-**Pull `main` before the next run on the laptop.** The pipe contract is version 14 (v10 for "Not
-confirmed", v11 for the rail's rows, v12 for the diagnostics' backend note, v13 for the tray's Start capture, v14 for the coverage banner), and the service and the UI
+**Pull `main` before the next run on the laptop.** The pipe contract is version 15 (v10 for "Not
+confirmed", v11 for the rail's rows, v12 for the diagnostics' backend note, v13 for the tray's Start capture, v14 for the coverage banner, v15 for the panel's live CPU and capture level), and the service and the UI
 must match it exactly. The demo scripts are unaffected by #326's machine-wide backend address: they run a
 development build from the clone, which still reads `SCREENTRAIL_BACKEND`.
 
@@ -551,8 +551,12 @@ chose it says so.
   picture, held only while that frame is redacted. The saving is estimated at 8 to 15 ms a full HD frame
   (1 to 6% of its redaction) and less memory at 4K; the laptop's breakdown measures it
   (`docs/dev/performance.md`, "One decode per frame").
-- **The full-disk case under-reports `frames_purged_unredacted`**, and frames waiting for redaction when
-  Windows closes the service are not counted (#251); neither is ever stored unredacted.
+- **A count the store refuses is held in memory until it can be written** (fixed 2026-11-21, was #251's
+  gap). A frame lost to a full disk or a failed write, and frames still waiting for redaction when
+  Windows closes the service, are counted in `frames_purged_unredacted` once, at the next try, at
+  finalize or at the stop, and the session recovered at the next start is drafted with them. A disk
+  still full at the stop loses the count (logged as a number); neither case ever stores a frame
+  unredacted. A crash, as opposed to a close, still loses the count of frames waiting in memory.
 - **The deployment is IPv4 only** (#249).
 - **Not done from the 2026-09-20 review, with reasons:** the hardware workflow as a reusable workflow, a
   model hash cache, the SQLite `cache_size` pragma, `run-local.ps1` deleting its output directory.

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using ScreenTrail.Shared.Ipc;
 
 namespace ScreenTrail.Core.Shell;
 
@@ -50,6 +51,30 @@ public sealed class DiagnosticsPanel
     /// </summary>
     public const string HookFallbacksMeaning = "watched every window's title instead of only the one in front; nothing missed, a little more idle CPU";
 
+    /// <summary>The processor row (ST-031).</summary>
+    public const string Cpu = "CPU";
+
+    /// <summary>The memory row.</summary>
+    public const string Memory = "Memory";
+
+    /// <summary>What the processor row says before the service has two readings to give a share from.</summary>
+    public const string Measuring = "measuring";
+
+    /// <summary>
+    /// The row that says capture has given way to keep the PC responsive (ST-031), shown only then, in
+    /// words about the screenshots a technician or a customer can see change, never the throttle's names.
+    /// </summary>
+    public const string Capture = "Capture";
+
+    /// <summary>What the copied text says about capture when it has not given way.</summary>
+    public const string CaptureAsUsual = "as usual";
+
+    /// <summary>
+    /// How often the open panel asks the service again, so CPU, memory and the rest are live while it is
+    /// on screen. Only while it is open: the idle service is not woken for a panel nobody is looking at.
+    /// </summary>
+    public static readonly TimeSpan RefreshEvery = TimeSpan.FromSeconds(2);
+
     private readonly Diagnostics? _diagnostics;
 
     private DiagnosticsPanel(Diagnostics? diagnostics)
@@ -66,6 +91,37 @@ public sealed class DiagnosticsPanel
         ArgumentNullException.ThrowIfNull(diagnostics);
         return new DiagnosticsPanel(diagnostics);
     }
+
+    /// <summary>The panel for one answer to <c>get_diagnostics</c>, or for none: every row unknown (T-152).</summary>
+    public static DiagnosticsPanel FromReply(DiagnosticsReported? reported) =>
+        reported is null ? Unanswered : From(Diagnostics.From(reported));
+
+    /// <summary>
+    /// The processor row's value: the service's share of the whole PC, as Task Manager counts it, so a
+    /// technician can hold the two side by side. "measuring" until there is a reading to give.
+    /// </summary>
+    public static string CpuValue(double? percent) => percent is { } value
+        ? value.ToString("0.0", CultureInfo.InvariantCulture) + "% of this PC"
+        : Measuring;
+
+    public static string MemoryValue(long workingSetBytes) =>
+        (Math.Max(0, workingSetBytes) / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) + " MB";
+
+    /// <summary>
+    /// What capture has given up to stay inside the processor budget, in words a customer can read over a
+    /// shoulder, or null when it has given up nothing. Click screenshots are never skipped, so every step
+    /// short of the last says "between clicks". The last says "mostly": the scene floor (#361) still takes a frame now and then when the screen changes. A level this build does not know still says that capture
+    /// has eased off rather than nothing.
+    /// </summary>
+    public static string? CaptureWords(string? level) => level switch
+    {
+        null or CaptureLevels.Full => null,
+        CaptureLevels.FewerSamples => "Taking fewer screenshots between clicks to keep your PC responsive",
+        CaptureLevels.FewestSamples => "Taking far fewer screenshots between clicks to keep your PC responsive",
+        CaptureLevels.OcrOneAtATime => "Taking far fewer screenshots between clicks and checking them one at a time to keep your PC responsive",
+        CaptureLevels.OcrClicksOnly => "Taking screenshots mostly on clicks and marked moments to keep your PC responsive",
+        _ => "Taking fewer screenshots to keep your PC responsive",
+    };
 
     /// <summary>Whether the service answered. False means every row below says unknown.</summary>
     public bool Answered => _diagnostics is not null;
@@ -123,9 +179,12 @@ public sealed class DiagnosticsPanel
         ? [.. EveryAnsweredRow(d), new(Backend, note)]
         : EveryAnsweredRow(d);
 
-    private static IReadOnlyList<DiagnosticsLine> EveryAnsweredRow(Diagnostics d) =>
+    private static IReadOnlyList<DiagnosticsLine> EveryAnsweredRow(Diagnostics d) => CaptureWords(d.CaptureLevel) is { } eased
+        ? [new("Scope", d.Scope), new(Capture, eased), .. RowsAfterScope(d)]
+        : [new("Scope", d.Scope), .. RowsAfterScope(d)];
+
+    private static IReadOnlyList<DiagnosticsLine> RowsAfterScope(Diagnostics d) =>
     [
-        new("Scope", d.Scope),
         new("Microphone", d.Microphone ?? "none"),
         new("Suppressed", d.Suppression ?? "no"),
         new("Redaction queue", d.RedactionBacklog.ToString(CultureInfo.InvariantCulture)),
@@ -135,8 +194,8 @@ public sealed class DiagnosticsPanel
         new(HookFallbacks, HookFallbacksValue(d.NameHookRefusals)),
         new("Local-only", d.LocalOnly ? "yes" : "no"),
         new("Policy", d.PolicyVersion),
-        new("CPU", d.CpuPercent.ToString("F1", CultureInfo.InvariantCulture) + "%"),
-        new("Memory", (d.WorkingSetBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) + " MB"),
+        new(Cpu, CpuValue(d.CpuPercent)),
+        new(Memory, MemoryValue(d.WorkingSetBytes)),
         new("Client", d.ClientVersion),
     ];
 
@@ -160,8 +219,8 @@ public sealed class DiagnosticsPanel
         new(HookFallbacks, Unknown),
         new("Local-only", Unknown),
         new("Policy", Unknown),
-        new("CPU", Unknown),
-        new("Memory", Unknown),
+        new(Cpu, Unknown),
+        new(Memory, Unknown),
         new("Client", Unknown),
     ];
 }

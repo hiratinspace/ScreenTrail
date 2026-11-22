@@ -43,6 +43,11 @@ public static class ServiceDiagnostics
     /// <see cref="ScreenTrail.Core.Net.DeploymentAddress.AdministratorNote"/>: fixed wording when an installed
     /// copy has no machine-wide address, null otherwise.
     /// </param>
+    /// <param name="cpuShare">
+    /// The service's share of the whole machine, 0 to 1, from <see cref="ScreenTrail.Core.Perf.ProcessorShareGauge"/>,
+    /// or null while there is no recent reading. Sent as a percentage (ST-031, contract v15).
+    /// </param>
+    /// <param name="captureLevel">The capture throttle's level, a <see cref="CaptureLevels"/> name, or null before the throttle exists.</param>
     public static DiagnosticsReported Report(
         string serviceVersion,
         string? scope,
@@ -58,7 +63,9 @@ public static class ServiceDiagnostics
         bool localOnly,
         string policyVersion,
         long workingSetBytes,
-        string? backendNote = null)
+        string? backendNote = null,
+        double? cpuShare = null,
+        string? captureLevel = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(isHeld);
@@ -76,7 +83,8 @@ public static class ServiceDiagnostics
             BackendNote = backendNote, // Fixed wording, never the address.
             LocalOnly = localOnly,
             PolicyVersion = policyVersion,
-            CpuPercent = 0,
+            CpuPercent = cpuShare is { } share ? Math.Round(Math.Clamp(share, 0, 1) * 100, 1) : null, // A number (INV-10).
+            CaptureLevel = captureLevel,
             WorkingSetBytes = workingSetBytes,
             ServiceVersion = serviceVersion,
         };
