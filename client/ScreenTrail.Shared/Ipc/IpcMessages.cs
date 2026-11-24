@@ -1242,7 +1242,7 @@ public static class CaptureLevels
     /// <summary>As few looks, and screenshots are read for redaction one at a time instead of two.</summary>
     public const string OcrOneAtATime = "ocr_one_at_a_time";
 
-    /// <summary>Only clicks and marked moments are photographed, read one at a time.</summary>
+    /// <summary>Mostly clicks and marked moments are photographed, read one at a time; the screen is still looked at every 30 s.</summary>
     public const string OcrClicksOnly = "ocr_clicks_only";
 }
 
