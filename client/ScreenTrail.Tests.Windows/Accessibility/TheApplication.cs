@@ -95,9 +95,16 @@ public sealed class TheApplication : IDisposable
         AxeScan.Stop();
         if (_app is { } app)
         {
-            // Queued rather than waited for: a thread that hung would never run it.
-            _ = Dispatcher.BeginInvoke(() => app.Shutdown());
-            Dispatcher.InvokeShutdown();
+            // Application.Shutdown closes the application's windows and then stops the dispatcher, on the
+            // thread that owns them. Dispatcher.InvokeShutdown from this thread used to follow it, but from
+            // another thread that runs at Send priority, ahead of the queued Shutdown: the thread could end
+            // with windows still open, Windows destroyed them on a thread the runtime had already left, and
+            // the process failed fast at exit (0xC0000602, "managed code after the thread state has been
+            // destroyed", twice on main 2026-11-24 after every test had passed). So the dispatcher's own
+            // shutdown is queued below Shutdown, as a fallback that does nothing once Shutdown has run.
+            // Both are queued rather than waited for: a thread that hung would never run them.
+            _ = Dispatcher.BeginInvoke(() => app.Shutdown(), DispatcherPriority.Normal);
+            Dispatcher.BeginInvokeShutdown(DispatcherPriority.ApplicationIdle);
             _ = _thread.Join(TimeSpan.FromSeconds(30));
             _app = null;
         }
