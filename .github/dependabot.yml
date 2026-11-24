@@ -14,6 +14,10 @@ updates:
       # that Node 24 cannot run; this moves with .nvmrc, by hand.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # astro check (@astrojs/check 0.9.12) takes TypeScript 5 or 6 as a peer, so a TypeScript 7 bump
+      # cannot install (#364, ERESOLVE). Lift this when @astrojs/check accepts 7.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       site:
         patterns: ['*']
