@@ -619,7 +619,7 @@ JSON registry of remote-tool processes and browser title/URL patterns; auto-star
 - **Epic/Feature:** CAPTURE
 - **Priority:** Urgent
 - **Estimate:** 3
-- **Status:** Done 2026-09-13.
+- **Status:** Done 2026-09-13. **One picture per change (2026-11-23, `LastFrame`):** the owner found one-minute laptop sessions kept 15 to 19 frames and asked for screenshots of the relevant moments only, one per step. A click frame is now skipped when the window looks practically the same as the last frame kept by either path (within 5 bits of the 256-bit scene hash, half the sampler's medium threshold, so a ticked box or a highlighted row still counts), and the scene sampler compares against the last frame kept, click or scene, so a dialog a click photographed is not photographed again. The click is still recorded; marked moments are never skipped; a session's first click is always photographed. Mac: `LastFrameTests`.
 
 **Description:**
 On in-scope click: capture active window at native res with per-monitor DPI, debounce 400 ms, cursor marker, downscale ≤ 1600 px JPEG, write encrypted with `redaction_pending: true`.

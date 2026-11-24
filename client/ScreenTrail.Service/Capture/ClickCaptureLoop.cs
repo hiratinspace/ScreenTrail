@@ -37,13 +37,14 @@ internal sealed partial class ClickCaptureLoop
         IScreenshotCapturer capturer,
         Func<ScopeDecision?> currentScope,
         ILogger logger,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        LastFrame? lastFrame = null)
     {
         _time = time ?? TimeProvider.System;
         _machine = machine;
         _hooks = hooks;
         _logger = logger;
-        _recorder = new SessionRecorder(machine, capturer, currentScope, foreground: GetForegroundWindow);
+        _recorder = new SessionRecorder(machine, capturer, currentScope, foreground: GetForegroundWindow, lastFrame: lastFrame);
         _recorder.FrameMissed += tsMs => LogNoFrame(logger, tsMs);
         _recorder.FrameStaged += frame =>
         {

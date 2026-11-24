@@ -37,7 +37,8 @@ public sealed class SessionRecorder(
     IScreenshotCapturer capturer,
     Func<ScopeDecision?> currentScope,
     ClickDebouncer? debouncer = null,
-    Func<nint>? foreground = null)
+    Func<nint>? foreground = null,
+    LastFrame? lastFrame = null)
 {
     private readonly ClickDebouncer _debouncer = debouncer ?? new ClickDebouncer();
     private readonly InputSignalReader _reader = new();
@@ -63,6 +64,7 @@ public sealed class SessionRecorder(
     public void Reset()
     {
         _debouncer.Reset();
+        lastFrame?.Reset();
 
         // Whatever was being typed belonged to no session, or to the last one.
         _reader.Discard();
@@ -204,6 +206,19 @@ public sealed class SessionRecorder(
             return;
         }
 
+        // A click on a screen that looks like the last frame kept adds no step, only a duplicate (LastFrame).
+        // One StretchBlt into a 17x16 grid decides it, before any full capture is paid for. A grid that
+        // could not be taken decides nothing, and the click is photographed as before.
+        SceneHash? hash = null;
+        if (lastFrame is not null && capturer.CaptureSceneGrid(window) is { } grid)
+        {
+            hash = PerceptualHash.OfGrid(grid);
+            if (lastFrame.Repeats(hash.Value))
+            {
+                return;
+            }
+        }
+
         var frame = capturer.CaptureForegroundWindow(window);
         if (frame is null)
         {
@@ -229,6 +244,11 @@ public sealed class SessionRecorder(
         // frame that went nowhere (2026-10-12 review, S-1; the scene recorder already did this).
         if (staged)
         {
+            if (hash is { } kept)
+            {
+                lastFrame?.Kept(kept);
+            }
+
             FrameStaged?.Invoke(frame);
         }
     }

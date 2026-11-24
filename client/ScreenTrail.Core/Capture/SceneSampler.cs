@@ -135,6 +135,13 @@ public sealed class SceneSampler(TimeProvider? time = null, SceneSamplerOptions?
     }
 
     /// <summary>A new session starts with no history, so its first sample is a baseline again.</summary>
+    /// <summary>
+    /// Compare from now on against a frame kept elsewhere (a click's, LastFrame). Only the baseline moves:
+    /// the minimum gap still runs from this sampler's own last frame, so a dialog that appears just after a
+    /// click is photographed at the next look rather than three seconds later.
+    /// </summary>
+    public void Rebase(SceneHash hash) => _baseline = hash;
+
     public void Reset()
     {
         _baseline = null;

@@ -580,12 +580,17 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
         // ST-025: clicks become events always, and screenshots only where scope allows.
         using var capturer = new ScreenshotCapturer(logger: logger, registry: registry);
+
+        // What the last frame kept looked like, shared by clicks and scenes: a click on a screen that has
+        // not changed, and a scene change a click already photographed, add no picture (LastFrame).
+        var lastFrame = new LastFrame();
         var capture = new ClickCaptureLoop(
             machine,
             new WindowsInputHooksAccessor(hooks),
             capturer,
             () => coordinator.CurrentScope,
-            logger);
+            logger,
+            lastFrame: lastFrame);
         var capturing = capture.RunAsync(stoppingToken);
 
         // ST-026: clicks miss everything the technician reads rather than does, such as a dialog appearing while
@@ -600,7 +605,7 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         var throttle = new CaptureThrottle(cpu);
         throttle.Changed += change => LogThrottle(logger, change.From, change.To, change.Share * 100);
         var throttling = throttle.RunAsync(machine, failure => LogLoopFailed(logger, "capture-throttle", failure.GetType().Name), stoppingToken);
-        var scenes = new SceneSampleLoop(machine, capturer, () => coordinator.CurrentScope, logger, sampler, throttle: throttle);
+        var scenes = new SceneSampleLoop(machine, capturer, () => coordinator.CurrentScope, logger, sampler, throttle: throttle, lastFrame: lastFrame);
         var sampling = scenes.RunAsync(stoppingToken);
 
         // ST-029: "mark moment" is the only frame the technician asks for by name, so it goes around the

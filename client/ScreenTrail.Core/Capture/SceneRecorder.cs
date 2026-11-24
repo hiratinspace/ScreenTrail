@@ -24,8 +24,10 @@ public sealed class SceneRecorder(
     IScreenshotCapturer capturer,
     Func<ScopeDecision?> currentScope,
     SceneSampler? sampler = null,
-    CaptureThrottle? throttle = null)
+    CaptureThrottle? throttle = null,
+    LastFrame? lastFrame = null)
 {
+    private long _lastFrameSeen;
     private readonly SceneSampler _sampler = sampler ?? new SceneSampler();
     private int _resetRequested;
     private bool _recording;
@@ -97,7 +99,15 @@ public sealed class SceneRecorder(
             return;
         }
 
-        if (_sampler.Offer(PerceptualHash.OfGrid(grid)) != SceneDecision.Keep)
+        // Compared against the last frame kept by either path, so a dialog a click already photographed is
+        // not photographed again as a scene change (LastFrame).
+        if (lastFrame is not null && lastFrame.TryNewer(ref _lastFrameSeen, out var keptByClick))
+        {
+            _sampler.Rebase(keptByClick);
+        }
+
+        var hash = PerceptualHash.OfGrid(grid);
+        if (_sampler.Offer(hash) != SceneDecision.Keep)
         {
             return;
         }
@@ -126,6 +136,7 @@ public sealed class SceneRecorder(
 
         if (staged)
         {
+            lastFrame?.Kept(hash);
             FrameStaged?.Invoke(frame);
         }
     }
