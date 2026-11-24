@@ -187,7 +187,11 @@ held to 15% of itself.
 - **Back up:** one step after 30 s below 80% of the budget. Between 80% and 100% the level holds, so a
   load that sits at the budget does not flap. A reading back under the budget starts the ten seconds again.
 - **Never throttled:** the input hooks, click events and click screenshots, mark moment, and speech.
-  They still count towards the reading, so a busy transcription is paid for out of sampling and OCR. A
+  Speech does not count towards the reading (2026-11-23, `CaptureWorkTime`): the recogniser times each
+  segment (`SpeechTime`) and the throttle subtracts it, because no step makes speech cheaper. Counted, one
+  narrated session kept whisper's single thread busy (12.5% of the laptop, against 7.5%) and walked
+  capture down to clicks only within a minute, talking or typing; the panel still shows the whole service.
+  The hooks and click screenshots do count. A
   click's screenshot is never paused or skipped: it is always taken, and a frame that is waiting is read
   as soon as the reader is free. From "OCR one at a time" down, click frames are read one at a time like
   every other frame, so a burst waits its turn in the four-frame queue, and a burst that outruns a single
@@ -213,9 +217,10 @@ held to 15% of itself.
   photographed only by the scene floor, up to 30 s later, so the OCR check may not see it until then or
   the next click; the password-field guard (ST-040), which asks Windows rather than reading the screen, is
   unaffected and still suppresses capture the moment focus lands in a password field.
-- **Scene frames thin out but never stop (the scene floor, #232).** Speech is never throttled, so a
-  technician narrating steadily can hold the service over budget for as long as they talk, and the
-  throttle stays down for as long as it is (M1, 2026-11-13). Until 2026-11-21 "OCR clicks only" stopped
+- **Scene frames thin out but never stop (the scene floor, #232).** Speech is never throttled, so until
+  2026-11-23 a technician narrating steadily held the service over budget for as long as they talked, and
+  the throttle stayed down for as long as that (M1, 2026-11-13). Speech is now left out of the reading, so
+  this is the case only when capture itself is over budget. Until 2026-11-21 "OCR clicks only" stopped
   the scene sampler, and such a session had no scene frames at all for those stretches. Now the deepest
   level keeps a floor: the sampler looks every thirtieth tick (30 s at the default one-second tick) and
   keeps a look only if the screen changed, under the usual change threshold, so a still screen costs
