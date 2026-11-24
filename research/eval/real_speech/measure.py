@@ -65,7 +65,8 @@ RATE = 16_000
 _WORD = re.compile(r"<w\s([^>]*)>([^<]*)</w>")
 _SPEAKER = re.compile(r'<speaker\s[^>]*channel="(\d)"[^>]*nxt_agent="([A-Z])"')
 _SUMMARY = re.compile(
-    r"(\d+) segments, (\d+) rejected as invented, (\d+) stretches heard\. Took ([\d.]+)s for ([\d.]+)s"
+    r"(\d+) segments, (\d+) rejected as invented, (\d+) stretches heard(?:, \d+ with no voice)?\. "
+    r"Took ([\d.]+)s for ([\d.]+)s"
 )
 
 
