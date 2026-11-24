@@ -44,6 +44,9 @@ public sealed record NarrationOptions
     /// one enumeration of the capture devices, only while a session records.
     /// </summary>
     public TimeSpan Reopen { get; init; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Only stretches with a voice in them go to the model (Voicing). Off only to measure the check itself.</summary>
+    public bool VoicedOnly { get; init; } = true;
 }
 
 /// <summary>
@@ -227,6 +230,9 @@ public sealed class NarrationRecorder : IDisposable
 
     /// <summary>Segments the assembler refused as invented. Counts only, never the text (INV-10).</summary>
     public long Rejected { get; private set; }
+
+    /// <summary>Stretches the gate let through that had no voice in them (typing, clicks), never sent to the model.</summary>
+    public long NotVoiced { get; private set; }
 
     /// <summary>Speech that arrived before the model did, and was dropped rather than queued.</summary>
     public long MissedWaitingForModel { get; private set; }
@@ -807,6 +813,15 @@ public sealed class NarrationRecorder : IDisposable
 
     private async Task TranscribeAsync(string session, SpeechSegment segment, ReadOnlyMemory<short> audio, CancellationToken ct)
     {
+        // Loud enough for the gate is not the same as speech: a keyboard or a mouse beside the microphone
+        // passes the gate, and the model writes words for it that nobody said (Voicing). Refused before the
+        // model's five seconds of processor are spent on it.
+        if (_options.VoicedOnly && !Voicing.SoundsVoiced(audio.Span, _microphone.SampleRate))
+        {
+            NotVoiced++;
+            return;
+        }
+
         // Waited for only until the service stops. A recogniser that does not answer its token (a native
         // call between its own checks) would otherwise hold the drain, and the drain holds the service's
         // stop (ST-112). What it says after that is not heard; a fault it ends in is observed, not thrown.

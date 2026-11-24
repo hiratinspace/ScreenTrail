@@ -82,6 +82,15 @@ public sealed class TranscriptAssembler(TranscriptOptions? options = null)
     /// </summary>
     private bool IsHallucination(string text, Transcribed heard)
     {
+        // Nothing but the model describing a sound: "(keyboard clicking)", "[typing sounds]", "[MUSIC
+        // PLAYING]". Nobody narrates in brackets, so these are refused whatever the confidence. Measured
+        // on typing and clicks with nobody speaking, they were all of what got through (ST-027,
+        // research/eval/voice_gate). A tag among real words stays: the words are what was said.
+        if (SoundTagsOnly.IsMatch(text))
+        {
+            return true;
+        }
+
         var known = Boilerplate.IsMatch(text);
 
         // A rate no one speaks at. Whisper's inventions are fluent sentences attached to a second of
@@ -112,6 +121,11 @@ public sealed class TranscriptAssembler(TranscriptOptions? options = null)
         string.IsNullOrWhiteSpace(text) ? string.Empty : Whitespace.Replace(text.Trim(), " ");
 
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled);
+
+    /// <summary>Text that is only bracketed, parenthesised or starred descriptions, with punctuation between.</summary>
+    private static readonly Regex SoundTagsOnly = new(
+        @"^(?:[\s.!,\-]*(?:\[[^\]]*\]|\([^)]*\)|\*[^*]+\*))+[\s.!,\-]*$",
+        RegexOptions.Compiled);
 
     /// <summary>
     /// What Whisper says when it has nothing to say. Drawn from its training data (subtitle tracks), which

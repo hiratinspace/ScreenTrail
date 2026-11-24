@@ -81,7 +81,7 @@ public static class Transcribe
         var ratio = clock.Elapsed.TotalSeconds / Math.Max(seconds, 0.001);
         await Console.Error.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"{heard.Count} segments, {recorder.Rejected} rejected as invented, {recorder.Heard} stretches heard. "
+            $"{heard.Count} segments, {recorder.Rejected} rejected as invented, {recorder.Heard} stretches heard, {recorder.NotVoiced} with no voice. "
             + $"Took {clock.Elapsed.TotalSeconds:F1}s for {seconds:F1}s of audio ({ratio:F2}x real time; under 1.00 keeps up live).")).ConfigureAwait(false);
 
         return heard.Count > 0 ? 0 : 1;

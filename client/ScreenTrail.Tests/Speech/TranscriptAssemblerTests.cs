@@ -196,6 +196,33 @@ public sealed class TranscriptAssemblerTests
 
     private static readonly string[] Lines = ["Checked the service.", "Started it again.", "Printed a test page."];
 
+    [Theory]
+    [InlineData("(keyboard clicking)")]
+    [InlineData("[typing sounds]")]
+    [InlineData("[MUSIC PLAYING]")]
+    [InlineData("(mouse clicking) [CLICKING]")]
+    [InlineData("*sighs*")]
+    [InlineData(" [SOUND]. ")]
+    public void ASoundTheModelDescribedIsNotSpeechHoweverSureItIs(string described)
+    {
+        // What came back for typing and clicks with nobody speaking (ST-027, research/eval/voice_gate),
+        // long and confident or not.
+        var assembler = new TranscriptAssembler();
+
+        Assert.Null(assembler.Add(Heard(described, durationMs: 6000, confidence: 0.95)));
+    }
+
+    [Theory]
+    [InlineData("(laughs) okay that fixed the print spooler")]
+    [InlineData("restarted the service [inaudible] and it came back")]
+    [InlineData("checked the (old) drive mapping")]
+    public void ATagAmongRealWordsIsKept(string said)
+    {
+        var assembler = new TranscriptAssembler();
+
+        Assert.Equal(said, assembler.Add(Heard(said, durationMs: 4000, confidence: 0.9))?.Text);
+    }
+
     private static Transcribed Heard(string text, long durationMs, double confidence, long startMs = 1000) =>
         new(new SpeechSegment(startMs, startMs + durationMs, Truncated: false), text, confidence);
 }
