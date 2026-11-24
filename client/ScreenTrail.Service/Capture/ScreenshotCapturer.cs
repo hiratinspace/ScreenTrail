@@ -53,6 +53,7 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
 
     // Reused under the lock by the covered check, so it allocates nothing per capture once warm.
     private readonly List<WindowAbove> _above = new(64);
+    private readonly List<IntPtr> _aboveHandles = new(64);
     private readonly char[] _className = new char[64];
     private readonly char[] _toolClassName = new char[256];
 
@@ -86,16 +87,23 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             // the lock for about 300 ms at 4K, and a capture that read them first and then waited could copy
             // a rectangle the judged window had already left (INV-5).
             BeforeGrab?.Invoke();
-            if (_disposed || !ReadTarget(expected, minWidth: 1, minHeight: 1, out var window, out var rect))
+            if (_disposed)
             {
+                return null;
+            }
+
+            if (!ReadTarget(expected, minWidth: 1, minHeight: 1, out var window, out var rect))
+            {
+                LogTargetRefused(expected);
                 return null;
             }
 
             // The interim half of capturing the window rather than the screen: another application's
             // window over this one, topmost or not, would be in the frame, so the sample is skipped.
-            if (IsCovered(window, rect))
+            if (IsCovered(window, rect, out var coverer))
             {
                 _ = Interlocked.Increment(ref _skippedCovered);
+                LogCoverRefused(coverer);
                 return null;
             }
 
@@ -114,7 +122,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             var height = rect.Bottom - rect.Top;
             if (!Prepare(width, height))
             {
-                return null;
+                // Seen on the laptop on 2026-11-23, minutes after a fresh start. Everything is made from the
+                // kept screen DC, so it is made again once, as for a failed copy.
+                var error = Marshal.GetLastPInvokeError();
+                LogRefusedWith($"no {width}x{height} bitmap could be made (Win32 error {error}); trying again with a fresh screen DC");
+                ReleaseHandles();
+                if (!Prepare(width, height))
+                {
+                    error = Marshal.GetLastPInvokeError();
+                    LogRefusedWith($"no {width}x{height} bitmap could be made with a fresh screen DC either (Win32 error {error})");
+                    return null;
+                }
             }
 
             // Captured and staged at native resolution (ADR-0001 finding 2a). Shrinking here would be
@@ -124,13 +142,21 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             // miss a password is not a cheaper capture. The downscale happens in the worker instead, after
             // masking, on pixels that have already been read.
             var grabStart = Stopwatch.GetTimestamp();
-            var previous = SelectObject(_memoryDc, _bitmap);
-            var copied = BitBlt(_memoryDc, 0, 0, width, height, _screenDc, rect.Left, rect.Top, SRCCOPY | CAPTUREBLT);
-            DrawCursor(_memoryDc, rect, 1.0);
-            _ = SelectObject(_memoryDc, previous);
+            var copied = CopyWindow(rect, width, height, out var copyError);
+            if (!copied)
+            {
+                // The screen DC is got once and kept, and a copy off it can fail from then on (after the
+                // desktop was locked, say). On the laptop on 2026-11-22, after a session's first frame, every
+                // click lost its frame and no scene frame was kept again. Made again once and tried again.
+                LogRefusedWith($"the copy off the screen failed (Win32 error {copyError}); trying again with a fresh screen DC");
+                ReleaseHandles();
+                copied = Prepare(width, height) && CopyWindow(rect, width, height, out copyError);
+            }
+
             var grab = Stopwatch.GetElapsedTime(grabStart);
             if (!copied)
             {
+                LogRefusedWith($"the copy off the screen failed (Win32 error {copyError})");
                 return null;
             }
 
@@ -174,16 +200,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             var width = rect.Right - rect.Left;
             var height = rect.Bottom - rect.Top;
 
-            var previous = SelectObject(_gridDc, _gridBitmap);
-            _ = SetStretchBltMode(_gridDc, STRETCH_HALFTONE);
-            _ = SetBrushOrgEx(_gridDc, 0, 0, IntPtr.Zero);
-            var copied = StretchBlt(
-                _gridDc, 0, 0, PerceptualHash.Columns, PerceptualHash.Rows,
-                _screenDc, rect.Left, rect.Top, width, height,
-                SRCCOPY);
-            _ = SelectObject(_gridDc, previous);
+            var copied = CopyGrid(rect, width, height, out var error);
             if (!copied)
             {
+                // As for a full capture: the kept screen DC may have stopped working, so it is made again once.
+                ReleaseHandles();
+                copied = PrepareGrid() && CopyGrid(rect, width, height, out error);
+            }
+
+            if (!copied)
+            {
+                LogGridFailed(error);
                 return null;
             }
 
@@ -229,11 +256,55 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     /// properties only. Measured against the window's visible frame rather than its rectangle, which on a
     /// maximized window reaches a few pixels under the taskbar.
     /// </summary>
-    private bool IsCovered(IntPtr window, Rect rect)
+    private bool CopyGrid(Rect rect, int width, int height, out int error)
     {
+        var previous = SelectObject(_gridDc, _gridBitmap);
+        _ = SetStretchBltMode(_gridDc, STRETCH_HALFTONE);
+        _ = SetBrushOrgEx(_gridDc, 0, 0, IntPtr.Zero);
+        var copied = StretchBlt(
+            _gridDc, 0, 0, PerceptualHash.Columns, PerceptualHash.Rows,
+            _screenDc, rect.Left, rect.Top, width, height,
+            SRCCOPY);
+        error = copied ? 0 : Marshal.GetLastPInvokeError();
+        _ = SelectObject(_gridDc, previous);
+        return copied;
+    }
+
+    // A scene look is taken once a second, so a grid that keeps failing is logged on the first failure and
+    // then once a minute, with the count.
+    private long _gridFailures;
+
+    private void LogGridFailed(int error)
+    {
+        var failures = ++_gridFailures;
+        if (logger is not null && logger.IsEnabled(LogLevel.Debug) && (failures == 1 || failures % 60 == 0))
+        {
+            var reason = $"a scene look could not copy the screen (Win32 error {error}), {failures} time(s) so far";
+            LogRefused(logger, reason);
+        }
+    }
+
+    private bool CopyWindow(Rect rect, int width, int height, out int error)
+    {
+        var previous = SelectObject(_memoryDc, _bitmap);
+        var copied = BitBlt(_memoryDc, 0, 0, width, height, _screenDc, rect.Left, rect.Top, SRCCOPY | CAPTUREBLT);
+        error = copied ? 0 : Marshal.GetLastPInvokeError();
+        if (copied)
+        {
+            DrawCursor(_memoryDc, rect, 1.0);
+        }
+
+        _ = SelectObject(_memoryDc, previous);
+        return copied;
+    }
+
+    private bool IsCovered(IntPtr window, Rect rect, out IntPtr coverer)
+    {
+        coverer = IntPtr.Zero;
         var target = VisibleBounds(window, rect);
         _ = GetWindowThreadProcessId(window, out var owner);
         _above.Clear();
+        _aboveHandles.Clear();
         var walked = 0;
         var above = GetWindow(window, GW_HWNDPREV);
         while (above != IntPtr.Zero && walked < WindowCover.MaxWindowsAbove)
@@ -254,12 +325,28 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
                     SameProcess: aboveOwner == owner && !JudgeOwnWindowsAsForeign,
                     ExcludedFromCapture: GetWindowDisplayAffinity(above, out var affinity) && affinity != WDA_NONE,
                     Taskbar: IsTaskbar(above)));
+                _aboveHandles.Add(above);
             }
 
             above = GetWindow(above, GW_HWNDPREV);
         }
 
-        return WindowCover.AnyCovers(target, _above, walkComplete: above == IntPtr.Zero);
+        if (!WindowCover.AnyCovers(target, _above, walkComplete: above == IntPtr.Zero))
+        {
+            return false;
+        }
+
+        // Which one, for the log only. Zero when the walk was cut short and nothing it saw covered.
+        for (var i = 0; i < _above.Count; i++)
+        {
+            if (WindowCover.Covers(target, _above[i]))
+            {
+                coverer = _aboveHandles[i];
+                break;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -306,6 +393,62 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             return "unknown";
         }
     }
+
+    // Why a frame was not taken, at Debug. "No frame for the click ... the window was gone" was the only
+    // line for every refusal, and on the laptop on 2026-11-22 an AnyDesk session lost every click to it with
+    // no way to tell which check refused. Process names and window classes only, never titles (INV-10).
+    private void LogTargetRefused(nint expected)
+    {
+        if (logger is null || !logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        var now = GetForegroundWindow();
+        var reason = now == IntPtr.Zero
+            ? "no window is in front"
+            : expected != 0 && now != expected
+                ? $"the window in front is {Describe(now)}, not the one judged in scope, {Describe(expected)}"
+                : $"the window in front, {Describe(now)}, is too small or has no rectangle";
+        LogRefused(logger, reason);
+    }
+
+    private void LogCoverRefused(IntPtr coverer)
+    {
+        if (logger is null || !logger.IsEnabled(LogLevel.Debug))
+        {
+            return;
+        }
+
+        var reason = coverer == IntPtr.Zero
+            ? $"more than {WindowCover.MaxWindowsAbove} windows lie above the window in front"
+            : $"{Describe(coverer)} lies over the window in front (topmost {((long)GetWindowLongPtr(coverer, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0})";
+        LogRefused(logger, reason);
+    }
+
+    private void LogRefusedWith(string reason)
+    {
+        if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+        {
+            LogRefused(logger, reason);
+        }
+    }
+
+    private string Describe(IntPtr window)
+    {
+        if (!IsWindow(window))
+        {
+            return "a window that no longer exists";
+        }
+
+        _ = GetWindowThreadProcessId(window, out var processId);
+        var length = GetClassName(window, _toolClassName, _toolClassName.Length);
+        var className = length > 0 ? new string(_toolClassName, 0, length) : string.Empty;
+        return $"{ProcessNameOf(processId)}#{processId} class={PrintableText.Of(className)}";
+    }
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Frame refused: {Reason}")]
+    private static partial void LogRefused(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "No frames of {Process} while it is drawn see-through ({How}): what is behind it would be in the frame. Logged once per window.")]
     private static partial void LogSeeThrough(ILogger logger, string process, string how);
@@ -439,6 +582,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             }
 
             _disposed = true;
+            ReleaseHandles();
+        }
+    }
+
+    /// <summary>
+    /// Lets go of the screen DC and everything made from it. Called under the lock, by Dispose and by a copy
+    /// that failed, after which the next Prepare makes them again.
+    /// </summary>
+    private void ReleaseHandles()
+    {
+        {
             if (_bitmap != IntPtr.Zero)
             {
                 _ = DeleteObject(_bitmap);
@@ -468,6 +622,9 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
                 _ = ReleaseDC(IntPtr.Zero, _screenDc);
                 _screenDc = IntPtr.Zero;
             }
+
+            _bitmapWidth = 0;
+            _bitmapHeight = 0;
         }
     }
 
@@ -542,6 +699,10 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     private static extern IntPtr GetForegroundWindow();
 
     [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
     private static extern IntPtr GetWindow(IntPtr hWnd, uint command);
 
     [DllImport("user32.dll")]
@@ -587,16 +748,16 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DrawIconEx(IntPtr hdc, int x, int y, IntPtr icon, int width, int height, int step, IntPtr brush, int flags);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr GetDC(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int width, int height);
 
     [DllImport("gdi32.dll")]
