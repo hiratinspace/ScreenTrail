@@ -36,12 +36,13 @@ internal sealed partial class SceneSampleLoop
         ILogger logger,
         SceneSampler? sampler = null,
         TimeProvider? time = null,
-        CaptureThrottle? throttle = null)
+        CaptureThrottle? throttle = null,
+        LastFrame? lastFrame = null)
     {
         _time = time ?? TimeProvider.System;
         _machine = machine;
         _logger = logger;
-        _recorder = new SceneRecorder(machine, capturer, currentScope, sampler, throttle);
+        _recorder = new SceneRecorder(machine, capturer, currentScope, sampler, throttle, lastFrame);
         _recorder.FrameMissed += () => LogNoFrame(logger);
         _recorder.FrameStaged += _ =>
         {

@@ -180,7 +180,9 @@ internal sealed class ServiceRig : IAsyncDisposable
 
         var capturer = new ScreenshotCapturer();
         _ownedSync.Add(capturer);
-        var clicks = new ClickCaptureLoop(Machine, new WindowsInputHooksAccessor(hooks), capturer, scope, NullLogger.Instance);
+        // As the host composes them: clicks and scenes share what the last frame kept looked like.
+        var lastFrame = new LastFrame();
+        var clicks = new ClickCaptureLoop(Machine, new WindowsInputHooksAccessor(hooks), capturer, scope, NullLogger.Instance, lastFrame: lastFrame);
         _running.Add(clicks.RunAsync(stopping));
         Throttle = new CaptureThrottle(new ThisProcessTime());
         Throttle.Changed += change =>
@@ -195,7 +197,7 @@ internal sealed class ServiceRig : IAsyncDisposable
         // The throttle always reads the process, so a measurement can say where it would have gone; it acts
         // on sampling and OCR only when asked, so a breakdown measures the work a full session does.
         var acting = options.ApplyThrottle ? Throttle : null;
-        Scenes = new SceneSampleLoop(Machine, capturer, scope, NullLogger.Instance, new SceneSampler(), throttle: acting);
+        Scenes = new SceneSampleLoop(Machine, capturer, scope, NullLogger.Instance, new SceneSampler(), throttle: acting, lastFrame: lastFrame);
         _running.Add(Scenes.RunAsync(stopping));
 
         Redaction = new RedactionWorker(
