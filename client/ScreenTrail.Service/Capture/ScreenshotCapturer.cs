@@ -133,11 +133,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             // miss a password is not a cheaper capture. The downscale happens in the worker instead, after
             // masking, on pixels that have already been read.
             var grabStart = Stopwatch.GetTimestamp();
-            var previous = SelectObject(_memoryDc, _bitmap);
-            var copied = BitBlt(_memoryDc, 0, 0, width, height, _screenDc, rect.Left, rect.Top, SRCCOPY | CAPTUREBLT);
-            var copyError = copied ? 0 : Marshal.GetLastPInvokeError();
-            DrawCursor(_memoryDc, rect, 1.0);
-            _ = SelectObject(_memoryDc, previous);
+            var copied = CopyWindow(rect, width, height, out var copyError);
+            if (!copied)
+            {
+                // The screen DC is got once and kept, and a copy off it can fail from then on (after the
+                // desktop was locked, say). On the laptop on 2026-11-22, after a session's first frame, every
+                // click lost its frame and no scene frame was kept again. Made again once and tried again.
+                LogRefusedWith($"the copy off the screen failed (Win32 error {copyError}); trying again with a fresh screen DC");
+                ReleaseHandles();
+                copied = Prepare(width, height) && CopyWindow(rect, width, height, out copyError);
+            }
+
             var grab = Stopwatch.GetElapsedTime(grabStart);
             if (!copied)
             {
@@ -185,16 +191,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             var width = rect.Right - rect.Left;
             var height = rect.Bottom - rect.Top;
 
-            var previous = SelectObject(_gridDc, _gridBitmap);
-            _ = SetStretchBltMode(_gridDc, STRETCH_HALFTONE);
-            _ = SetBrushOrgEx(_gridDc, 0, 0, IntPtr.Zero);
-            var copied = StretchBlt(
-                _gridDc, 0, 0, PerceptualHash.Columns, PerceptualHash.Rows,
-                _screenDc, rect.Left, rect.Top, width, height,
-                SRCCOPY);
-            _ = SelectObject(_gridDc, previous);
+            var copied = CopyGrid(rect, width, height, out var error);
             if (!copied)
             {
+                // As for a full capture: the kept screen DC may have stopped working, so it is made again once.
+                ReleaseHandles();
+                copied = PrepareGrid() && CopyGrid(rect, width, height, out error);
+            }
+
+            if (!copied)
+            {
+                LogGridFailed(error);
                 return null;
             }
 
@@ -240,6 +247,48 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     /// properties only. Measured against the window's visible frame rather than its rectangle, which on a
     /// maximized window reaches a few pixels under the taskbar.
     /// </summary>
+    private bool CopyGrid(Rect rect, int width, int height, out int error)
+    {
+        var previous = SelectObject(_gridDc, _gridBitmap);
+        _ = SetStretchBltMode(_gridDc, STRETCH_HALFTONE);
+        _ = SetBrushOrgEx(_gridDc, 0, 0, IntPtr.Zero);
+        var copied = StretchBlt(
+            _gridDc, 0, 0, PerceptualHash.Columns, PerceptualHash.Rows,
+            _screenDc, rect.Left, rect.Top, width, height,
+            SRCCOPY);
+        error = copied ? 0 : Marshal.GetLastPInvokeError();
+        _ = SelectObject(_gridDc, previous);
+        return copied;
+    }
+
+    // A scene look is taken once a second, so a grid that keeps failing is logged on the first failure and
+    // then once a minute, with the count.
+    private long _gridFailures;
+
+    private void LogGridFailed(int error)
+    {
+        var failures = ++_gridFailures;
+        if (logger is not null && logger.IsEnabled(LogLevel.Debug) && (failures == 1 || failures % 60 == 0))
+        {
+            var reason = $"a scene look could not copy the screen (Win32 error {error}), {failures} time(s) so far";
+            LogRefused(logger, reason);
+        }
+    }
+
+    private bool CopyWindow(Rect rect, int width, int height, out int error)
+    {
+        var previous = SelectObject(_memoryDc, _bitmap);
+        var copied = BitBlt(_memoryDc, 0, 0, width, height, _screenDc, rect.Left, rect.Top, SRCCOPY | CAPTUREBLT);
+        error = copied ? 0 : Marshal.GetLastPInvokeError();
+        if (copied)
+        {
+            DrawCursor(_memoryDc, rect, 1.0);
+        }
+
+        _ = SelectObject(_memoryDc, previous);
+        return copied;
+    }
+
     private bool IsCovered(IntPtr window, Rect rect, out IntPtr coverer)
     {
         coverer = IntPtr.Zero;
@@ -524,6 +573,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             }
 
             _disposed = true;
+            ReleaseHandles();
+        }
+    }
+
+    /// <summary>
+    /// Lets go of the screen DC and everything made from it. Called under the lock, by Dispose and by a copy
+    /// that failed, after which the next Prepare makes them again.
+    /// </summary>
+    private void ReleaseHandles()
+    {
+        {
             if (_bitmap != IntPtr.Zero)
             {
                 _ = DeleteObject(_bitmap);
@@ -553,6 +613,9 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
                 _ = ReleaseDC(IntPtr.Zero, _screenDc);
                 _screenDc = IntPtr.Zero;
             }
+
+            _bitmapWidth = 0;
+            _bitmapHeight = 0;
         }
     }
 
