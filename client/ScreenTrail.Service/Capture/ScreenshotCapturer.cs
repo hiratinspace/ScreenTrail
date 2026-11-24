@@ -122,8 +122,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
             var height = rect.Bottom - rect.Top;
             if (!Prepare(width, height))
             {
-                LogRefusedWith($"no {width}x{height} bitmap could be made");
-                return null;
+                // Seen on the laptop on 2026-11-23, minutes after a fresh start. Everything is made from the
+                // kept screen DC, so it is made again once, as for a failed copy.
+                var error = Marshal.GetLastPInvokeError();
+                LogRefusedWith($"no {width}x{height} bitmap could be made (Win32 error {error}); trying again with a fresh screen DC");
+                ReleaseHandles();
+                if (!Prepare(width, height))
+                {
+                    error = Marshal.GetLastPInvokeError();
+                    LogRefusedWith($"no {width}x{height} bitmap could be made with a fresh screen DC either (Win32 error {error})");
+                    return null;
+                }
             }
 
             // Captured and staged at native resolution (ADR-0001 finding 2a). Shrinking here would be
@@ -739,16 +748,16 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DrawIconEx(IntPtr hdc, int x, int y, IntPtr icon, int width, int height, int step, IntPtr brush, int flags);
 
-    [DllImport("user32.dll")]
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr GetDC(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateCompatibleDC(IntPtr hdc);
 
-    [DllImport("gdi32.dll")]
+    [DllImport("gdi32.dll", SetLastError = true)]
     private static extern IntPtr CreateCompatibleBitmap(IntPtr hdc, int width, int height);
 
     [DllImport("gdi32.dll")]
