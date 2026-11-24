@@ -547,7 +547,10 @@ chose it says so.
   session is not shown until the next one.
 - **OCR is a best-effort input to redaction, not a guarantee** (ADR-0001 finding 9).
 - **A 4K frame exceeds ST-025's budget and nothing fails**: about 309 ms against 120 ms on the laptop.
-- **Each frame is decoded twice**, once to read it and once to paint on it (kept out of ADR-0006).
+- **Each frame is decoded once** since 2026-11-22 (ST-031): the OCR read and the mask share one decoded
+  picture, held only while that frame is redacted. The saving is estimated at 8 to 15 ms a full HD frame
+  (1 to 6% of its redaction) and less memory at 4K; the laptop's breakdown measures it
+  (`docs/dev/performance.md`, "One decode per frame").
 - **A count the store refuses is held in memory until it can be written** (fixed 2026-11-21, was #251's
   gap). A frame lost to a full disk or a failed write, and frames still waiting for redaction when
   Windows closes the service, are counted in `frames_purged_unredacted` once, at the next try, at

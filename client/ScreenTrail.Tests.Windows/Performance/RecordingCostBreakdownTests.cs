@@ -130,11 +130,32 @@ public sealed class RecordingCostBreakdownTests
             return Task.CompletedTask;
         });
 
+        // ST-031: the frame decoded once and shared, as the service now runs. The two above are each
+        // stage decoding the JPEG for itself, as it was; the mask after the shared decode is its stage
+        // with the decode taken out, which is the saving.
+        var decoder = new WindowsFrameDecoder();
+        var decode = await StageAsync("decode once (WIC, 32-bit at the captured size)", 5, idle, async n =>
+        {
+            using var decoded = await decoder.DecodeAsync(dense, ct);
+        });
+        var sharedOcr = await StageAsync("decode once and OCR it (up to 2x), dense 9 pt list", 3, idle, async n =>
+        {
+            using var decoded = await decoder.DecodeAsync(dense, ct);
+            _ = await ((IFrameTextRecogniser)service).ReadAsync(decoded, ct);
+        });
+        var sharedMask = await StageAsync($"decode once and mask it ({regions.Count} regions)", 5, idle, async n =>
+        {
+            using var decoded = await decoder.DecodeAsync(dense, ct);
+            _ = ((IFrameMasker)masker).Mask(decoded, regions, Downscale.MaxEdge);
+        });
+
         var ocrLine = string.Join(", ", ocr.Select(o => string.Create(Invariant, $"OCR {o.Frame} **{o.Twice.CpuMs:F0}** at up to 2x against {o.Once.CpuMs:F0} as captured")));
         Measurements.Record(string.Create(
             Invariant,
             $"Breakdown, per unit (processor ms, net of the idle process at {idle * 100:F2}% of one core): scene look **{looks.CpuMs:F1}**, frame capture at {captured!.SourceWidth}x{captured.SourceHeight} **{capture.CpuMs:F1}**, {ocrLine}, "
-            + $"pattern search **{search.CpuMs:F1}**, mask **{mask.CpuMs:F1}**"));
+            + $"pattern search **{search.CpuMs:F1}**, mask **{mask.CpuMs:F1}**; shared decode (ST-031): decode **{decode.CpuMs:F1}**, "
+            + $"OCR of the dense list with it **{sharedOcr.CpuMs - decode.CpuMs:F0}**, mask after it **{sharedMask.CpuMs - decode.CpuMs:F1}**, "
+            + $"a dense frame read and masked {ocr[0].Twice.CpuMs + mask.CpuMs:F0} decoding twice against **{sharedOcr.CpuMs + sharedMask.CpuMs - decode.CpuMs:F0}** once"));
     }
 
     [Fact]

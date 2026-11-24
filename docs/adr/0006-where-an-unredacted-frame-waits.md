@@ -93,6 +93,14 @@ held instead of 1.5 MB. That is a different trade with a different answer, it is
 rather than a privacy one, and putting it in this ADR would let a memory decision ride in on a privacy
 decision. It stays in the efficiency backlog.
 
+*Amended 2026-11-22 (ST-031):* the efficiency change has since been made, and on the terms above: the
+decoded frame is never queued. The queue holds the encoded JPEG at a depth of 4 as decided here; the
+worker decodes a frame when it takes it, the recogniser reads that picture and the masker paints it in
+place, and it is let go of before the store is written, on every path. So at most one decoded frame a
+redaction reader is held (33 MB at 4K, 8.3 MB at full HD), never one a queued frame, and nothing
+unredacted reaches the store or a log any more than before (`docs/dev/performance.md`, "One decode per
+frame").
+
 ## Alternatives considered
 
 **Turn on `secure_delete` and keep staging.** One pragma, closes the third window and neither of the

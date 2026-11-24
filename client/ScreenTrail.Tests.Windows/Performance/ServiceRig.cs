@@ -198,7 +198,8 @@ internal sealed class ServiceRig : IAsyncDisposable
         Scenes = new SceneSampleLoop(Machine, capturer, scope, NullLogger.Instance, new SceneSampler(), throttle: acting);
         _running.Add(Scenes.RunAsync(stopping));
 
-        Redaction = new RedactionWorker(Store, new WindowsOcrRecogniser(), new WindowsFrameMasker(), engine, pending, throttle: acting);
+        Redaction = new RedactionWorker(
+            Store, new WindowsOcrRecogniser(), new WindowsFrameMasker(), engine, pending, throttle: acting, decoder: new WindowsFrameDecoder());
         Redaction.BacklogChanged += Machine.ReportPendingRedactions;
         var sensitive = new SensitiveContextGuard(Machine);
         Redaction.SensitiveContextSeen += sensitive.Seen;

@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Runtime.Versioning;
 using ScreenTrail.Core.Privacy;
 using ScreenTrail.Shared.Schema;
@@ -74,36 +73,89 @@ internal sealed class WindowsOcrRecogniser : IFrameTextRecogniser
 
     public async Task<RecognisedText> ReadAsync(ReadOnlyMemory<byte> image, CancellationToken ct = default)
     {
-        if (_engine is null)
-        {
-            // No engine means no reading, and the worker treats that as a frame it cannot check.
-            throw new InvalidOperationException("Windows has no OCR language pack installed.");
-        }
-
-        using var stream = new InMemoryRandomAccessStream();
-        await stream.WriteAsync(image.ToArray().AsBuffer()).AsTask(ct).ConfigureAwait(false);
-        stream.Seek(0);
-
+        var engine = Engine();
+        using var stream = WindowsImages.Open(image);
         var decoder = await BitmapDecoder.CreateAsync(stream).AsTask(ct).ConfigureAwait(false);
 
         // The size and the way back are worked out in Core (OcrScaling), where every platform tests them.
         var (width, height) = (decoder.PixelWidth, decoder.PixelHeight);
         var read = OcrScaling.ReadSize(width, height, _scale, OcrEngine.MaxImageDimension);
-        using var bitmap = read.Width == width && read.Height == height
+        using var bitmap = AsCaptured(read, width, height)
             ? await decoder.GetSoftwareBitmapAsync().AsTask(ct).ConfigureAwait(false)
-            : await decoder.GetSoftwareBitmapAsync(
-                BitmapPixelFormat.Bgra8,
-                BitmapAlphaMode.Premultiplied,
-                new BitmapTransform
-                {
-                    ScaledWidth = read.Width,
-                    ScaledHeight = read.Height,
-                    InterpolationMode = BitmapInterpolationMode.Cubic,
-                },
-                ExifOrientationMode.IgnoreExifOrientation,
-                ColorManagementMode.DoNotColorManage).AsTask(ct).ConfigureAwait(false);
+            : await Scaled(decoder, read, ct).ConfigureAwait(false);
 
-        var result = await _engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false);
+        return await RecogniseAsync(engine, bitmap, width, height, read, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Reads a frame decoded once for its redaction (ST-031). A frame read as captured is the decoded
+    /// picture itself, with no copy; a frame read larger is scaled from the decoded pixels by the same
+    /// scaler, the same way, that scaled it while the JPEG was decoded a second time.
+    /// </summary>
+    public async Task<RecognisedText> ReadAsync(DecodedFrame frame, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (frame is not WindowsDecodedFrame decoded)
+        {
+            return await ReadAsync(frame.Encoded, ct).ConfigureAwait(false);
+        }
+
+        var engine = Engine();
+        var (width, height) = ((uint)decoded.Width, (uint)decoded.Height);
+        var read = OcrScaling.ReadSize(width, height, _scale, OcrEngine.MaxImageDimension);
+        if (AsCaptured(read, width, height))
+        {
+            return await RecogniseAsync(engine, decoded.Bitmap, width, height, read, ct).ConfigureAwait(false);
+        }
+
+        using var bitmap = await PictureToReadAsync(decoded, read, ct).ConfigureAwait(false);
+        return await RecogniseAsync(engine, bitmap, width, height, read, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The picture the engine is given for a decoded frame read at <paramref name="read"/>: the decoded
+    /// pixels behind a BMP header (<see cref="BitmapFileStream"/>, no copy and nothing to decompress),
+    /// scaled as they are read. Internal so the Windows tests can hold it to what the JPEG gave.
+    /// </summary>
+    internal static async Task<SoftwareBitmap> PictureToReadAsync(WindowsDecodedFrame frame, OcrReadSize read, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(frame);
+        if (AsCaptured(read, (uint)frame.Width, (uint)frame.Height))
+        {
+            return SoftwareBitmap.Copy(frame.Bitmap);
+        }
+
+        using var pixels = frame.Lock(BitmapBufferAccessMode.Read);
+        using var file = new BitmapFileStream(frame.Width, frame.Height, pixels.Stride, pixels.Read);
+        using var stream = file.AsRandomAccessStream();
+        var decoder = await BitmapDecoder.CreateAsync(BitmapDecoder.BmpDecoderId, stream).AsTask(ct).ConfigureAwait(false);
+        return await Scaled(decoder, read, ct).ConfigureAwait(false);
+    }
+
+    private static bool AsCaptured(OcrReadSize read, uint width, uint height) => read.Width == width && read.Height == height;
+
+    private static Task<SoftwareBitmap> Scaled(BitmapDecoder decoder, OcrReadSize read, CancellationToken ct) =>
+        decoder.GetSoftwareBitmapAsync(
+            BitmapPixelFormat.Bgra8,
+            BitmapAlphaMode.Premultiplied,
+            new BitmapTransform
+            {
+                ScaledWidth = read.Width,
+                ScaledHeight = read.Height,
+                InterpolationMode = BitmapInterpolationMode.Cubic,
+            },
+            ExifOrientationMode.IgnoreExifOrientation,
+            ColorManagementMode.DoNotColorManage).AsTask(ct);
+
+    private OcrEngine Engine() =>
+
+        // No engine means no reading, and the worker treats that as a frame it cannot check.
+        _engine ?? throw new InvalidOperationException("Windows has no OCR language pack installed.");
+
+    private static async Task<RecognisedText> RecogniseAsync(
+        OcrEngine engine, SoftwareBitmap bitmap, uint width, uint height, OcrReadSize read, CancellationToken ct)
+    {
+        var result = await engine.RecognizeAsync(bitmap).AsTask(ct).ConfigureAwait(false);
         var words = new List<FoundWord>();
         foreach (var line in result.Lines)
         {

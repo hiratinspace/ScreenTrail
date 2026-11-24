@@ -648,7 +648,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // pending frame or to clear the flag, so INV-1 rests on it.
         var recogniser = new WindowsOcrRecogniser();
         LogOcr(logger, recogniser.Available, recogniser.Language ?? "none");
-        var redaction = new RedactionWorker(store, recogniser, new WindowsFrameMasker(), redactionEngine, pending, throttle: throttle);
+        var redaction = new RedactionWorker(
+            store, recogniser, new WindowsFrameMasker(), redactionEngine, pending, throttle: throttle, decoder: new WindowsFrameDecoder());
         redaction.BacklogChanged += machine.ReportPendingRedactions;
 
         // Without this the login heuristic fires into nothing: the frame is marked sensitive and the next
