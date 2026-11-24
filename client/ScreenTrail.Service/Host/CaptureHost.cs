@@ -464,13 +464,17 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         await using var foreground = new WindowsForegroundWatcher();
         // Passed as separate values rather than a formatted string: nothing is built unless the log is on,
         // and the title is reduced to its length here, never its text.
-        foreground.Changed += window => LogForeground(
-            logger,
-            window.ProcessName ?? "unknown",
-            window.ProcessId,
-            window.ClassName,
-            window.Title.Length,
-            window.IsElevated);
+        foreground.Changed += window =>
+        {
+            // Control characters in the class are escaped so the line stays one line (PrintableText).
+            if (!logger.IsEnabled(LogLevel.Debug))
+            {
+                return;
+            }
+
+            var windowClass = PrintableText.Of(window.ClassName);
+            LogForeground(logger, window.ProcessName ?? "unknown", window.ProcessId, windowClass, window.Title.Length, window.IsElevated);
+        };
 
         // ST-023: the registry decides what counts as a support session and what may be photographed
         // alongside one (INV-5). A registry that fails validation stops the service rather than falling back
