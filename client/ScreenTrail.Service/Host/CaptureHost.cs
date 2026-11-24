@@ -302,6 +302,10 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // is the reading, and nothing wakes the idle service to keep it fresh. Numbers only (INV-10).
         var cpu = new ProcessorShareGauge(new ThisProcessTime());
 
+        // ST-031: the time speech recognition spends, counted by the recogniser and taken out of what the
+        // capture throttle weighs. Numbers only.
+        var speechTime = new SpeechTime();
+
         // Filled in below, once the pieces it reports on exist. The controller only ever calls it on a
         // request, by which time everything is wired.
         Func<DiagnosticsReported> diagnostics = () => Diagnostics(version, egress, egressPolicy, machine, pending, cpu, null, null, null, null, null);
@@ -606,7 +610,12 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // hooks, click screenshots and speech are never throttled, and redaction never changes (INV-1).
         // One reading a second while a session is under way and none otherwise; the log carries the level
         // and the reading, nothing else (INV-10).
-        var throttle = new CaptureThrottle(cpu);
+        //
+        // Speech is left out of what the throttle weighs (CaptureWorkTime): none of its steps makes speech
+        // cheaper, and whisper's one busy thread alone is over the budget on an eight-processor machine,
+        // so counting it walked capture down to clicks only in every narrated session. The panel still
+        // shows the whole service (cpu).
+        var throttle = new CaptureThrottle(new CaptureWorkTime(cpu, speechTime));
         throttle.Changed += change => LogThrottle(logger, change.From, change.To, change.Share * 100);
         var throttling = throttle.RunAsync(machine, failure => LogLoopFailed(logger, "capture-throttle", failure.GetType().Name), stoppingToken);
         var scenes = new SceneSampleLoop(machine, capturer, () => coordinator.CurrentScope, logger, sampler, throttle: throttle, lastFrame: lastFrame);
@@ -707,7 +716,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
             // ST-031: off unless the service is started with SCREENTRAIL_SPEECH_SIZED_CONTEXT=1, until
             // recorded speech shows the smaller context keeps the transcript as good (AudioContext).
-            sizeContext: AudioContext.Enabled(Environment.GetEnvironmentVariable));
+            sizeContext: AudioContext.Enabled(Environment.GetEnvironmentVariable),
+            speechTime: speechTime);
         var narration = new NarrationRecorder(
             microphone,
             whisper,

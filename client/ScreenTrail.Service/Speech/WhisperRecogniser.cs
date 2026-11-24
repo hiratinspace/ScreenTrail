@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using ScreenTrail.Core.Net;
+using ScreenTrail.Core.Perf;
 using ScreenTrail.Core.Speech;
 using Whisper.net;
 
@@ -103,6 +104,10 @@ public sealed class WhisperRecogniser : ISpeechRecogniser
     private WhisperFactory? _factory;
     private WhisperProcessor? _processor;
 
+    // ST-031: how long the model has been at work, so the capture throttle can leave speech out of what it
+    // weighs against the budget (CaptureWorkTime). Null counts nothing.
+    private readonly SpeechTime? _speechTime;
+
     /// <summary>
     /// Processors with a reduced encoder context, by size (<see cref="AudioContext"/>). Built when a
     /// segment first needs one and released with the model. Empty unless <see cref="SizesContext"/>.
@@ -141,9 +146,11 @@ public sealed class WhisperRecogniser : ISpeechRecogniser
         TimeProvider? time = null,
         TimeSpan? stopWait = null,
         Action? abandoned = null,
-        bool sizeContext = false)
+        bool sizeContext = false,
+        SpeechTime? speechTime = null)
     {
         SizesContext = sizeContext;
+        _speechTime = speechTime;
         _time = time ?? TimeProvider.System;
         _stopWait = stopWait ?? StopBound.Default;
         _abandoned = abandoned;
@@ -343,16 +350,24 @@ public sealed class WhisperRecogniser : ISpeechRecogniser
             var text = new System.Text.StringBuilder();
             double probability = 0;
             var pieces = 0;
-            await foreach (var piece in processor.ProcessAsync(samples, ct).ConfigureAwait(false))
+            _speechTime?.Begin();
+            try
             {
-                if (text.Length > 0)
+                await foreach (var piece in processor.ProcessAsync(samples, ct).ConfigureAwait(false))
                 {
-                    _ = text.Append(' ');
-                }
+                    if (text.Length > 0)
+                    {
+                        _ = text.Append(' ');
+                    }
 
-                _ = text.Append(piece.Text.Trim());
-                probability += piece.Probability;
-                pieces++;
+                    _ = text.Append(piece.Text.Trim());
+                    probability += piece.Probability;
+                    pieces++;
+                }
+            }
+            finally
+            {
+                _speechTime?.End();
             }
 
             return pieces == 0
