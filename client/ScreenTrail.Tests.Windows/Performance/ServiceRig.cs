@@ -84,6 +84,8 @@ internal sealed class ServiceRig : IAsyncDisposable
 
     private readonly List<CaptureLevelChange> _throttleMoves = [];
 
+    private readonly SpeechTime _speechTime = new();
+
     public HookLifetime Hooks { get; private set; } = null!;
 
     /// <summary>The foreground watcher's pump thread, so a measurement can say what it alone cost.</summary>
@@ -182,7 +184,8 @@ internal sealed class ServiceRig : IAsyncDisposable
         _ownedSync.Add(capturer);
         var clicks = new ClickCaptureLoop(Machine, new WindowsInputHooksAccessor(hooks), capturer, scope, NullLogger.Instance);
         _running.Add(clicks.RunAsync(stopping));
-        Throttle = new CaptureThrottle(new ThisProcessTime());
+        // As the host composes it: speech is left out of what the throttle weighs (CaptureWorkTime).
+        Throttle = new CaptureThrottle(new CaptureWorkTime(new ThisProcessTime(), _speechTime));
         Throttle.Changed += change =>
         {
             lock (_throttleMoves)
@@ -233,11 +236,13 @@ internal sealed class ServiceRig : IAsyncDisposable
                 new ModelDownload(new HttpClient(new EgressGuard(new EgressPolicy(ClientEgress.Settings(null))))),
                 SpeechModels.BaseEnglish,
                 SpeechUnloadTests.ModelCache(),
-                sizeContext: options.SizeContext)
+                sizeContext: options.SizeContext,
+                speechTime: _speechTime)
             : new WhisperRecogniser(
                 new ModelDownload(new HttpClient(new EgressGuard(new EgressPolicy()))),
                 SpeechModels.BaseEnglish,
-                Path.Combine(_dir, "models"));
+                Path.Combine(_dir, "models"),
+                speechTime: _speechTime);
         _owned.Add(whisper);
         ISpeechRecogniser recogniser = whisper;
         if (options.Speech)
