@@ -229,6 +229,39 @@ than three rows or two row heights down, or wider than the row above by more tha
 continuation that is not among the bound's nearest runs; a token the engine read as more than eight
 pieces.
 
+**A cue whose value was not read** (2026-11-24). Through a viewer that resizes and compresses, the
+engine often reads a credential cue and returns no word for what follows it: "token:" and nothing over
+the token, "--key" and nothing over a wrapped key's first row, or only a scrap of the key's end ("--key
+BeF2"). Those were most of what the viewer probe lost: about 150 of 2,400 secrets half masked (the
+wrapped key's second row masked by the random-run rule, its first row not read) and most of the 250
+missed. No rule can match a word that was never returned, so the screen is asked instead:
+
+- The cues are "password", "passwd", "passphrase", "passcode", "pwd", "pass", "pw", "passi" (a "pass:"
+  whose colon read as an i), "token", "secret", "key", "apikey" and "bearer", case ignored, as a whole
+  word once leading marks and a trailing colon, equals sign or full stop are trimmed, and as the last
+  part of a word joined by hyphens, underscores or full stops ("--key", "api_key=", "x-api-key:",
+  "client-secret:"). A word with a digit or another letter in it is not a cue ("keyboard", "key2").
+- Where the next word read on the cue's row starts more than 1.2 row heights after the cue's end (a
+  space is 0.28 to 0.56), or there is none, the place after the cue is masked: from the cue's end to the
+  next word, or 40 row heights at most, and three quarters of a height either side of the cue's middle,
+  so a value's capitals and descenders are under it when the cue has none ("pass:").
+- Where that next word has a digit, or a capital after its first letter, it is taken for the end of the
+  value and masked as well, in the stored text too ("BeF2" becomes "[SECRET]"). A plain word ("Remember"
+  across an empty "Password" field) is kept.
+- It masks only where nothing was read, so the stored text is unchanged except for such a piece, and it
+  is not counted as a find. A row with a right-to-left letter is left alone. It does not depend on what
+  the other rules masked, so it only ever adds masks.
+
+What it costs is the blank space, or whatever the engine did not read, after a cue word: "press any key"
+at a line's end has the space after it masked, and so does an empty "Password" field. A cue the engine
+misread ("togen:") does not fire. `OcrScaledSecretTests` measures it through the viewer from the same
+readings, with and without, and prints both. On the hosted runner (run 45551439527): through the viewer,
+2,220 of 2,400 secrets masked whole with it against 1,990 without (82.9% to 92.5%), and part showing
+157 to 61; at 100% to 150% display scale, 1,196 of 1,200 (99.7%, from 1,165). What the viewer still
+loses is mostly at 0.6 and 0.7 of the size: card numbers with a digit misread so the checksum fails
+("47a6 0407 ..."), cues the engine misread, and a wrapped key's second row when that is the one not
+read.
+
 The reading costs time in proportion to the page: the text it gives the detectors is 1.3 times the
 page's on ordinary prose, 4 to 8 times where every cell of a grid is a run of its own, and 15 times
 where every row has a right-to-left word. Measured alone in the release build on a development Mac,

@@ -55,6 +55,12 @@ public sealed class RedactionEngine
     /// </summary>
     internal bool Wraps { get; init; } = true;
 
+    /// <summary>
+    /// Test seam: false leaves out the slot after a credential cue whose value was not read
+    /// (<see cref="UnreadValueSlots"/>), so the probes can measure what it adds. Nothing else sets it.
+    /// </summary>
+    internal bool UnreadValues { get; init; } = true;
+
     /// <summary>The technician's settings arriving (ST-081): every frame and segment after this one is scrubbed under the new policy.</summary>
     public void Apply(RedactionPolicy policy) => _policy = policy ?? throw new ArgumentNullException(nameof(policy));
 
@@ -181,9 +187,15 @@ public sealed class RedactionEngine
             }
         }
 
+        // And the place after a credential cue whose value the engine did not read at all.
+        if (UnreadValues)
+        {
+            UnreadValueSlots(page, starts, ends, taken, regions, widened);
+        }
+
         if (widened.Count == 0)
         {
-            return new FrameRedaction(text, [], counts, complete);
+            return new FrameRedaction(text, regions, counts, complete);
         }
 
         // A match's runs can sit either side of another match's in the text; Merge and Replace walk it
@@ -493,6 +505,190 @@ public sealed class RedactionEngine
                 _ = masked.Add(word);
             }
         }
+    }
+
+    /// <summary>
+    /// How far past a credential cue, in row heights, the next word may start before what lies between is
+    /// taken for a value the engine did not read. A space is 0.28 to 0.56 of the row (<see cref="TokenGap"/>),
+    /// and a colon and a space a little more, so a value that was read is never this far off.
+    /// </summary>
+    internal const double UnreadValueGap = 1.2;
+
+    /// <summary>
+    /// How far past a credential cue, in row heights, the slot reaches where nothing after it on its row
+    /// was read. A 40-character token is about 25 row heights in Segoe UI and Consolas.
+    /// </summary>
+    internal const double UnreadValueReach = 40;
+
+    /// <summary>
+    /// How tall the slot is, in heights either side of the cue's middle: a cue with no ascender
+    /// ("pass:") is shorter than the capitals and descenders of the value after it.
+    /// </summary>
+    internal const double UnreadValueHalfHeight = 0.75;
+
+    /// <summary>
+    /// The place after a credential cue whose value the engine read no word for (ST-042, after the
+    /// viewer probe of 2026-11-24). Through a scaled, lossy viewer Windows OCR often reads the cue and
+    /// returns nothing for what follows it: "token:" and no word over the token, "--key" and no word over
+    /// the key's first row, or a scrap of its end ("--key BeF2" for "sk_live_Jtb1o1BeF2"). No rule can
+    /// match a word that was never returned, so the screen is asked instead: a cue with nothing read for
+    /// more than <see cref="UnreadValueGap"/> row heights after it on its row has that place masked, up to
+    /// the next word read or <see cref="UnreadValueReach"/> row heights, whichever is nearer. Where the
+    /// next word looks like a piece of a secret (a digit, or a change of case inside it) it is masked too,
+    /// in the picture and the text, since it is what the engine read of the value.
+    ///
+    /// It masks only where nothing was read, so the stored text keeps every word it kept before except
+    /// such a piece, and it is not counted as a find: nothing was read to count. What it costs is the
+    /// blank space, or the unread picture, after a cue word at a line's end ("press any key", a form's
+    /// empty "Password" field). It does not ask whether another rule masked the cue: a rule that read a
+    /// value left nothing unread after the cue, and one that took the cue for some other reason (a wrapped
+    /// line, a password's row) says nothing about the gap after it, so the slot is the same either way and
+    /// the passes only ever add masks. A row with a right-to-left letter is left alone: the cues are Latin,
+    /// and its value may be on either side.
+    /// </summary>
+    private static void UnreadValueSlots(
+        OcrPage page,
+        int[] starts,
+        int[] ends,
+        HashSet<int> taken,
+        List<MaskedRegion> regions,
+        List<PatternMatch> widened)
+    {
+        var words = page.Words;
+        for (var row = 0; row < page.RowCount; row++)
+        {
+            var members = page.RowAt(row);
+            if (members.RightToLeft)
+            {
+                continue;
+            }
+
+            for (var place = 0; place < members.Members.Length; place++)
+            {
+                var cue = members.Members[place];
+                if (CredentialCue(words[cue].Text) is not { } kind)
+                {
+                    continue;
+                }
+
+                var word = words[cue];
+                var cueRight = word.X + word.Width;
+                var height = (double)Math.Max(Math.Max(members.Height, page.MedianHeight), word.Height);
+
+                // The first word after it on the row: the members are in order of their left edges.
+                var next = -1;
+                for (var after = place + 1; after < members.Members.Length; after++)
+                {
+                    if (words[members.Members[after]].X + words[members.Members[after]].Width > cueRight)
+                    {
+                        next = members.Members[after];
+                        break;
+                    }
+                }
+
+                var gap = next < 0 ? double.MaxValue : words[next].X - cueRight;
+                if (gap <= UnreadValueGap * height)
+                {
+                    continue;
+                }
+
+                var reach = cueRight + (UnreadValueReach * height);
+                var right = next >= 0 && words[next].X < reach ? words[next].X : reach;
+                var middle = word.Y + (word.Height / 2.0);
+                var top = (int)Math.Floor(Math.Min(word.Y, middle - (UnreadValueHalfHeight * height)));
+                var bottom = (int)Math.Ceiling(Math.Max(word.Y + word.Height, middle + (UnreadValueHalfHeight * height)));
+                regions.Add(new MaskedRegion
+                {
+                    X = cueRight,
+                    Y = Math.Max(0, top),
+                    Width = Math.Max(1, (int)Math.Ceiling(right) - cueRight),
+                    Height = Math.Max(1, bottom - Math.Max(0, top)),
+                    Kind = kind,
+                });
+
+                if (next >= 0 && words[next].X < reach && LooksLikePiece(words[next].Text))
+                {
+                    // Painted whatever an earlier match took, so what this adds does not depend on the
+                    // other passes: its token's box is the same with the wrap pass or without it.
+                    var piece = new PatternMatch(kind, starts[next], ends[next] - starts[next], kind == MaskKind.Password ? "[REDACTED]" : "[SECRET]");
+                    var mine = new HashSet<int>();
+                    _ = Mask(page, starts, ends, [next], [], piece, mine, regions, widened);
+                    taken.UnionWith(mine);
+                }
+            }
+        }
+    }
+
+    /// <summary>The words that say a credential follows them, as their last part reads once marks are trimmed.</summary>
+    private static readonly Dictionary<string, MaskKind> Cues = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["password"] = MaskKind.Password,
+        ["passwd"] = MaskKind.Password,
+        ["passphrase"] = MaskKind.Password,
+        ["passcode"] = MaskKind.Password,
+        ["pwd"] = MaskKind.Password,
+        ["pass"] = MaskKind.Password,
+        ["passi"] = MaskKind.Password, // "pass:" with its colon read as an i
+        ["pw"] = MaskKind.Password,
+        ["token"] = MaskKind.ApiKey,
+        ["secret"] = MaskKind.ApiKey,
+        ["key"] = MaskKind.ApiKey,
+        ["apikey"] = MaskKind.ApiKey,
+        ["bearer"] = MaskKind.ApiKey,
+    };
+
+    /// <summary>
+    /// Whether a word is a credential cue, and which kind its value would be: "token:", "Password",
+    /// "--key", "api_key=", "client-secret:". The marks around it are trimmed and only its last part,
+    /// after a hyphen, underscore or full stop, is looked up, so "x-api-key" is "key". A word with a
+    /// digit or any other letter in it is not a cue.
+    /// </summary>
+    internal static MaskKind? CredentialCue(string text)
+    {
+        var span = text.AsSpan().Trim();
+        while (span.Length > 0 && !char.IsLetter(span[0]))
+        {
+            span = span[1..];
+        }
+
+        while (span.Length > 0 && span[^1] is ':' or '=' or '.' or ',' or ';')
+        {
+            span = span[..^1];
+        }
+
+        if (span.Length == 0 || span.Length > 32)
+        {
+            return null;
+        }
+
+        foreach (var c in span)
+        {
+            if (!char.IsAsciiLetter(c) && c is not '-' and not '_' and not '.')
+            {
+                return null;
+            }
+        }
+
+        var cut = span.LastIndexOfAny("-_.");
+        var last = cut >= 0 ? span[(cut + 1)..] : span;
+        return Cues.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(last, out var kind) ? kind : null;
+    }
+
+    /// <summary>
+    /// Whether a word read after an unread stretch looks like the end of a secret rather than the next
+    /// word of a sentence or a form: it has a digit, or a capital after its first letter.
+    /// </summary>
+    internal static bool LooksLikePiece(string text)
+    {
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (char.IsDigit(text[i]) || (i > 0 && char.IsUpper(text[i])))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>Whether two words share a row: the middle of either lies within the other's height.</summary>

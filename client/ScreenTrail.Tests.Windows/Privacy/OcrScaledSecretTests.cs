@@ -112,11 +112,16 @@ public sealed partial class OcrScaledSecretTests
         // wrapped keys with no word over a piece against 23 at twice the size, and most of those were
         // missed whole rather than part showing. The laptop's own number is held there, the hosted one
         // here; the floors of what is masked whole are the same on both.
+        //
+        // Since the slot after a cue whose value was not read (2026-11-24, hosted run 45551439527): 396,
+        // 400 and 400 of 400, part showing 1, 0 and 0, the one at 100% a rule stopped short with every
+        // piece read. The laptop's part showing is still the bound measured before the slot until it is
+        // measured there again.
         var (measured, partial, stoppedShort) = scale switch
         {
-            1.0 => (new[] { 80, 77, 77, 80, 67 }, OnTheLaptop ? 15 : 12, 0),
-            1.25 => (new[] { 80, 78, 80, 80, 74 }, 6, 1),
-            _ => (new[] { 80, 80, 80, 80, 73 }, 7, 5),
+            1.0 => (new[] { 80, 80, 77, 80, 79 }, OnTheLaptop ? 15 : 1, 1),
+            1.25 => (new[] { 80, 80, 80, 80, 80 }, 0, 0),
+            _ => (new[] { 80, 80, 80, 80, 80 }, 0, 0),
         };
         Hold(total, measured, partial, stoppedShort, string.Create(CultureInfo.InvariantCulture, $"{scale * 100:0}% display scale"));
     }
@@ -183,6 +188,8 @@ public sealed partial class OcrScaledSecretTests
         };
         var results = new Dictionary<(double Scale, long Quality), Tally>();
         var stages = new List<(string, Tally)>();
+        var slotGain = new List<string>();
+        var (allWith, allWithout) = (new Tally(), new Tally());
         foreach (var scale in scales)
         {
             foreach (var quality in qualities)
@@ -191,13 +198,22 @@ public sealed partial class OcrScaledSecretTests
                 foreach (var font in Fonts)
                 {
                     var tally = new Tally { SampleCap = 1 };
+                    var without = new Tally { SampleCap = 0 };
                     for (var page = 0; page < Pages; page++)
                     {
                         using var screen = Draw(font, 11f, 1.0, page);
                         using var seen = Resize(screen.Bitmap, scale);
                         var secrets = screen.Secrets.Select(s => s with { Pieces = [.. s.Pieces.Select(p => Scale(p, scale))] }).ToList();
-                        await Redact(recogniser, seen, secrets, quality, tally);
+                        var reading = await Read(recogniser)(Encode(seen, quality));
+                        Score(reading, seen, secrets, tally);
+                        Score(reading with { Redaction = WithoutUnreadValues.RedactFrame(reading.Words[0]) }, seen, secrets, without);
                     }
+
+                    slotGain.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"| {scale:0.0} | {quality} | {font} | {without.Masked} | {tally.Masked} | {string.Join(", ", without.MaskedByKind)} | {string.Join(", ", tally.MaskedByKind)} | {without.Partial} | {tally.Partial} |"));
+                    allWith.Add(tally);
+                    allWithout.Add(without);
 
                     table.Add(string.Create(
                         CultureInfo.InvariantCulture,
@@ -212,6 +228,14 @@ public sealed partial class OcrScaledSecretTests
 
         Measurements.Record(string.Join(Environment.NewLine, table));
         Measurements.Record(StageTable("Where secrets were lost through the viewer.", stages));
+        Measurements.Record(string.Join(
+            Environment.NewLine,
+            [
+                string.Create(CultureInfo.InvariantCulture, $"The slot after a cue whose value was not read, through the viewer, from the same readings: masked whole **{allWithout.Masked}** of {allWithout.Secrets} without it, **{allWith.Masked}** with it; part showing {allWithout.Partial} without, {allWith.Partial} with."),
+                "| scale | JPEG | font | masked without | masked with | by kind without | by kind with | part showing without | part showing with |",
+                "|---|---|---|---|---|---|---|---|---|",
+                .. slotGain,
+            ]));
 
         // What is held to. Every condition was drawn and read, nothing masked in the picture is left
         // in the stored text, and at every scale and quality each kind is masked whole no fewer times
@@ -228,21 +252,29 @@ public sealed partial class OcrScaledSecretTests
     /// What the hosted runner measured through the viewer, both fonts together: of 40 of each kind
     /// (password, token, card, ssn, wrapped key) how many were masked whole, how many secrets of the
     /// 200 were part showing, and how many of those had every piece read.
+    ///
+    /// Measured again with the slot after a cue whose value was not read (2026-11-24, hosted run
+    /// 45551439527): 2,220 of 2,400 masked whole against 1,990 from the same readings without it. A
+    /// kind measured lower than before keeps the earlier figure (the card at 1.1). Part showing fell
+    /// from 157 to 61, but more of what is left counts as stopped short rather than unread: each of its
+    /// pieces has some mask over it. At 0.6 it is mostly the wrapped key whose first row the engine read
+    /// no word on, about half covered; which box reaches part way over that row the probe cannot say,
+    /// since it prints no text, and the engine joining the cue to the key ("--keysk...") is one way.
     /// </summary>
     private static readonly (double Scale, long Quality, int[] Masked, int Partial, int StoppedShort)[] ViewerMeasured =
     [
-        (0.6, 50, [26, 5, 12, 29, 2], 24, 6),
-        (0.6, 75, [34, 20, 23, 36, 4], 25, 0),
-        (0.7, 50, [37, 24, 36, 38, 9], 24, 1),
-        (0.7, 75, [36, 33, 39, 37, 18], 18, 2),
-        (0.8, 50, [39, 32, 33, 40, 18], 22, 1),
-        (0.8, 75, [40, 34, 35, 40, 27], 13, 1),
-        (0.9, 50, [40, 36, 39, 40, 33], 6, 4),
-        (0.9, 75, [40, 37, 40, 40, 35], 5, 2),
-        (1.0, 50, [40, 39, 40, 40, 38], 2, 1),
-        (1.0, 75, [40, 39, 40, 40, 32], 8, 1),
-        (1.1, 50, [40, 38, 40, 40, 36], 4, 2),
-        (1.1, 75, [40, 40, 40, 40, 34], 5, 4),
+        (0.6, 50, [35, 23, 12, 29, 20], 19, 15),
+        (0.6, 75, [38, 31, 23, 36, 28], 12, 7),
+        (0.7, 50, [39, 39, 36, 38, 32], 10, 5),
+        (0.7, 75, [40, 40, 39, 37, 36], 4, 2),
+        (0.8, 50, [40, 40, 33, 40, 39], 1, 1),
+        (0.8, 75, [40, 40, 35, 40, 39], 1, 1),
+        (0.9, 50, [40, 40, 39, 40, 35], 5, 5),
+        (0.9, 75, [40, 40, 40, 40, 38], 2, 2),
+        (1.0, 50, [40, 40, 40, 40, 40], 0, 0),
+        (1.0, 75, [40, 40, 40, 40, 40], 0, 0),
+        (1.1, 50, [40, 40, 40, 40, 38], 2, 2),
+        (1.1, 75, [40, 40, 40, 40, 35], 5, 5),
     ];
 
     private sealed partial class Tally
@@ -367,6 +399,9 @@ public sealed partial class OcrScaledSecretTests
     /// Reads the picture as the worker does, redacts it, and counts for each secret how much of its
     /// ink is under a mask.
     /// </summary>
+    /// <summary>The engine without the slot after an unread value, to measure what the slot adds from the same reading.</summary>
+    private static readonly RedactionEngine WithoutUnreadValues = new() { UnreadValues = false };
+
     private static Task Redact(WindowsOcrRecogniser recogniser, Bitmap bitmap, List<Secret> secrets, long quality, Tally tally) =>
         Redact(Read(recogniser), bitmap, secrets, quality, tally);
 
