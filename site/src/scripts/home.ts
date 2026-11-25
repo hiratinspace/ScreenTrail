@@ -14,6 +14,19 @@ const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const ease = (v: number) => 1 - Math.pow(1 - v, 3);
 const fmt = (v: number) => `${String(Math.floor(v / 60)).padStart(2, '0')}:${String(Math.floor(v % 60)).padStart(2, '0')}`;
 
+/* One frame per scroll for everything scroll moves. Each step reads the page and returns what to
+   write; every read happens before any write, so no write forces the next read to lay the page out
+   again. */
+type Step = () => (() => void) | void;
+const steps: Step[] = [];
+const runSteps = () => { steps.map((s) => s()).forEach((w) => w?.()); };
+let queuedFrame = false;
+addEventListener('scroll', () => {
+  if (queuedFrame) return;
+  queuedFrame = true;
+  requestAnimationFrame(() => { queuedFrame = false; runSteps(); });
+}, { passive: true });
+
 /* ---------- Mocks replay once when they come into view ---------- */
 const replay = new IntersectionObserver(
   (entries) => entries.forEach((e) => {
@@ -176,8 +189,9 @@ figs.forEach((o) => figVisible.observe(o.el));
 addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now()); });
 
 /* ---------- The pinned scene: scroll runs four beats ----------
-   0 to .2 the problem wall; .2 to .44 every tile gets its note (the tally counts them, 38 to 46);
-   .46 to .66 the tiles fly together while the note for #48213 comes up and is written; .84 published.
+   0 to .2 the problem wall; .22 to .44 every tile gets its note (the tally counts them, 38 to 46);
+   .46 to .66 the tiles fly together while the note for #48213 comes up (.52) and is written (.58 to
+   .76); .78 the last caption and .8 published, held to the end so it is read before the page moves on.
    With reduced motion, or without this script, the section is the still layout in home.css. */
 const sceneEl = byId('scene');
 const wall = byId('wall');
@@ -215,11 +229,17 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
       return [(cx - (r.left + r.width / 2)) / wallFit, (cy - (r.top + r.height / 2)) / wallFit];
     });
   };
-  const tick = () => {
+  const read: Step = () => {
     if (!pinned) return;
     const r = sceneEl.getBoundingClientRect();
     const p = clamp(-r.top / Math.max(1, r.height - innerHeight + 60));
-    const beat = p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.82 ? 2 : 3;
+    return () => write(p);
+  };
+  const tick = () => read()?.();
+  const write = (p: number) => {
+    const beat = p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.78 ? 2 : 3;
+    // The tiles are their own layers only while they fly.
+    wall.classList.toggle('flying', p > 0.42 && p < 0.72);
     if (beat !== lastBeat) {
       lastBeat = beat;
       // Only what is seen changes: all four captions stay readable to assistive technology.
@@ -247,12 +267,12 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
     noteEl.style.opacity = String(n);
     noteEl.style.transform = `scale(${((0.6 + 0.4 * n) * noteFit).toFixed(4)})`;
     noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.58 - i * 0.02) / 0.04).toFixed(3)));
-    stamp?.classList.toggle('on', p > 0.84);
+    stamp?.classList.toggle('on', p > 0.8);
   };
   const still = () => {
     tiles.forEach((t) => { t.style.transform = ''; t.style.opacity = ''; t.classList.remove('healed'); });
     wall.style.transform = '';
-    wall.classList.remove('scaled');
+    wall.classList.remove('scaled', 'flying');
     noteEl.classList.remove('scaled');
     noteEl.style.opacity = '';
     noteEl.style.transform = '';
@@ -268,12 +288,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
   };
   if (!reduce) {
     arrange();
-    let queued = false;
-    addEventListener('scroll', () => {
-      if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => { queued = false; tick(); });
-    }, { passive: true });
+    steps.push(read);
     addEventListener('resize', arrange);
     void document.fonts?.ready.then(arrange);
   }
@@ -288,23 +303,25 @@ if (pill && pillLabel && pillClock && lastRow) {
   const names: Record<string, string> = { rec: 'Recording', paused: 'Paused: sensitive field', drafting: 'Drafting', published: 'Published to #48213' };
   const marks = Array.from(document.querySelectorAll<HTMLElement>('[data-pill]'));
   const session = byId('session');
-  let raf = 0;
-  const tick = () => {
-    raf = 0;
-    const endY = lastRow.getBoundingClientRect().top + scrollY - innerHeight * 0.5;
+  const read: Step = () => {
+    const last = lastRow.getBoundingClientRect();
+    const endY = last.top + scrollY - innerHeight * 0.5;
     const t = fmt(clamp(scrollY / Math.max(1, endY)) * 600);
-    pillClock.textContent = t;
     let s = 'rec';
     for (const m of marks) if (m.getBoundingClientRect().top <= innerHeight * 0.55) s = m.dataset.pill ?? s;
-    if (pill.dataset.s !== s) { pill.dataset.s = s; pillLabel.textContent = names[s] ?? ''; }
     // Shown for the session it narrates: from "One session, start to ticket" to the end of the four
     // stages. It stays out of the hero, out of the pinned scene, and off everything after the stages,
     // so it never sits on a button, a disclaimer or a form field.
     const from = session ? session.getBoundingClientRect().top : 0;
-    const until = lastRow.getBoundingClientRect().bottom;
-    pill.classList.toggle('shown', from < innerHeight * 0.7 && until > innerHeight * 0.6);
+    const shown = from < innerHeight * 0.7 && last.bottom > innerHeight * 0.6;
+    return () => {
+      pillClock.textContent = t;
+      if (pill.dataset.s !== s) { pill.dataset.s = s; pillLabel.textContent = names[s] ?? ''; }
+      pill.classList.toggle('shown', shown);
+    };
   };
-  addEventListener('scroll', () => { if (!raf) raf = requestAnimationFrame(tick); }, { passive: true });
+  const tick = () => read()?.();
+  steps.push(read);
   addEventListener('resize', tick);
   tick();
 }
@@ -365,6 +382,26 @@ const markPans = () => pans.forEach((el) => {
 addEventListener('resize', markPans);
 addEventListener('load', markPans);
 markPans();
+
+/* ---------- A link to a place far down the page jumps most of the way ----------
+   Smooth scrolling 4,000px ran the pinned scene in fast forward on the way. A target more than two
+   screens off is jumped to within half a screen, and the last stretch is still a smooth scroll, so
+   the reader sees where they landed. */
+document.addEventListener('click', (e) => {
+  const a = (e.target as Element).closest<HTMLAnchorElement>('a[href*="#"]');
+  if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const url = new URL(a.href);
+  if (url.pathname !== location.pathname || !url.hash) return;
+  const target = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+  if (!target) return;
+  const top = target.getBoundingClientRect().top;
+  if (reduce || Math.abs(top) < innerHeight * 2) return;
+  const html = document.documentElement;
+  html.style.scrollBehavior = 'auto';
+  scrollBy(0, top - Math.sign(top) * innerHeight * 0.5);
+  html.style.scrollBehavior = '';
+  // The link then does what it always did: a smooth scroll the rest of the way, and the address.
+});
 
 /* ---------- The small-screen menu closes when one of its links is followed ---------- */
 const menu = document.querySelector<HTMLDetailsElement>('details.menu');

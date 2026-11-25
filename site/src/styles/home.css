@@ -74,15 +74,17 @@ html:not(.js-scene) .cap:not([data-cap='0']) .h2-like { font-size: clamp(22px, 2
 html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-top: 88px; }
 
 /* Pinned: scroll runs the four beats in one screen. */
-.js-scene .scene { height: 320vh; padding: 0; }
+.js-scene .scene { height: 280vh; padding: 0; }
 .js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: hidden; }
 .js-scene .scene-copy { display: grid; width: 100%; }
-.js-scene .cap { grid-area: 1 / 1; opacity: 0; transform: translateY(14px); transition: opacity .45s ease, transform .45s cubic-bezier(.16,1,.3,1); pointer-events: none; }
-.js-scene .cap.on { opacity: 1; transform: none; }
+/* The outgoing caption fades out in .14s and only then drops back to its start; the incoming one waits
+   for it, so two headings never show at once. */
+.js-scene .cap { grid-area: 1 / 1; opacity: 0; transform: translateY(10px); transition: opacity .14s ease-in, transform 0s linear .14s; pointer-events: none; }
+.js-scene .cap.on { opacity: 1; transform: none; transition: opacity .3s cubic-bezier(.16,1,.3,1) .14s, transform .4s cubic-bezier(.16,1,.3,1) .14s; }
 .js-scene .tally { grid-row: 2; }
 .js-scene .scene-stage { position: relative; margin-top: 24px; display: grid; place-items: center; min-height: 0; }
 .js-scene .wall { grid-area: 1 / 1; max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-.js-scene .tile { will-change: transform, opacity; }
+.js-scene .wall.flying .tile { will-change: transform, opacity; }
 .js-scene .wall.scaled, .js-scene .scene-note.scaled { align-self: start; transform-origin: top center; }
 .js-scene .scene-note { grid-area: 1 / 1; width: min(560px, calc(100% - 40px)); opacity: 0; transform: scale(.6); pointer-events: none; }
 .js-scene .sn-body h3, .js-scene .sn-body .ln { opacity: var(--o, 1); transform: translateY(calc((1 - var(--o, 1)) * 6px)); }
@@ -445,7 +447,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .tile:not(.bad) .a span:last-child { display: none; }
   .tile .b { grid-auto-flow: column; justify-content: space-between; align-content: center; }
   .tile .b .st { font-size: 0; gap: 0; }
-  .js-scene .scene { height: 300vh; }
+  .js-scene .scene { height: 260vh; }
   .js-scene .wall { padding: 0 12px; }
   .js-scene .scene-note { padding: 12px; font-size: 12px; }
   .sn-body .ln .shot { display: none; }
@@ -463,27 +465,27 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .fn-main, .fn-side { padding: 28px 20px; }
 }
 
-/* Scroll transitions: each scene eases in as it scrolls into view. Scroll-driven, so it follows the
-   reader's pace; without support or with reduced motion, everything simply shows. */
+/* Scroll transitions. The pinned scene is the page's one authored moment; the rest only settles in.
+   Headings are never animated. A body block lifts 14px and comes up from .25 over the first 160px of
+   its entry, whatever its height, so a tall block on a phone is not left see-through while it is
+   read. A mock fades only: its replay is its motion. Scroll-driven, so it follows the reader's pace;
+   without support or with reduced motion, everything simply shows. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .session > h2, .session > .sub, .stages > h2, .realapp > h2, .realapp > .sub, .stack > h2, .stack > .sub,
-    .setup-copy, .privacy > h2, .pilot > h2, .pilot > .sub, .feature .copy, .stepbox, .realapp-row figure {
-      animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 70%;
+    .setup-copy, .feature .copy, .stepbox, .realapp-row figure, .events-box, .flow-list, .flow-core,
+    .trust, .realapp > .frame-fig, .final-note {
+      animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
-    .events-box, .flow-list, .flow-core, .trust, .realapp > .frame-fig, .final-note {
-      animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 45%;
-    }
-    .feature .mock { animation: scene-slide linear both; animation-timeline: view(); animation-range: entry 5% entry 75%; }
-    .feature:nth-child(even) .mock { animation-name: scene-slide-l; }
+    .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
     .hero-copy { animation: scene-leave linear both; animation-timeline: view(); animation-range: exit 0% exit 80%; }
     .hero .fig { animation: scene-drift linear both; animation-timeline: view(block); animation-range: exit 0% exit 100%; }
     .hero .f1, .hero .f2, .hero .f5 { animation-name: scene-drift-l; }
   }
 }
-@keyframes scene-rise { from { opacity: 0; transform: translateY(48px); } to { opacity: 1; transform: none; } }
-@keyframes scene-slide { from { opacity: 0; transform: translate(56px, 24px) scale(.96); } to { opacity: 1; transform: none; } }
-@keyframes scene-slide-l { from { opacity: 0; transform: translate(-56px, 24px) scale(.96); } to { opacity: 1; transform: none; } }
+/* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
+   linear keyframe moved at a constant speed and stopped dead. */
+@keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
+@keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
 @keyframes scene-leave { to { opacity: 0; transform: translateY(-60px) scale(.97); } }
 @keyframes scene-drift { to { opacity: 0; transform: translate(40px, -90px); } }
 @keyframes scene-drift-l { to { opacity: 0; transform: translate(-40px, -90px); } }
