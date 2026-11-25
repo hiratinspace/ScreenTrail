@@ -125,17 +125,16 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-scene .scene { height: 240vh; padding: 0; }
 .js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: clip; }
 .js-scene .scene-copy { display: grid; width: 100%; }
-/* Changing caption: the outgoing one drifts up 10px and fades with a soft blur over .4s; the incoming
-   one waits .3s, then rises 14px into place and sharpens over .7s, its line a beat after its heading.
-   They overlap only while the outgoing one is nearly gone, so two headings are never read at once.
-   The fade is on the caption and the rise uses `translate`, so neither fights the first caption's
-   scroll-in animation (which runs on its heading and line, with `transform`). */
-.js-scene .cap { grid-area: 1 / 1; pointer-events: none; opacity: 0; filter: blur(4px); translate: 0 -10px; transition: opacity .4s ease, filter .4s ease, translate .4s ease; }
-.js-scene .cap.on { opacity: 1; filter: none; translate: 0 0; transition: opacity .7s cubic-bezier(.22,1,.36,1) .3s, filter .6s ease .3s, translate 0s linear .3s; }
-/* Its parts wait below while it is hidden, then rise in. */
-.js-scene .cap > * { translate: 0 14px; transition: translate 0s linear .4s; }
-.js-scene .cap.on > * { translate: 0 0; transition: translate .8s cubic-bezier(.22,1,.36,1) .3s; }
-.js-scene .cap.on > :nth-child(2) { transition-delay: .4s; }
+/* Changing caption, in the site's own motion (the hero cards' fade and short rise, same curve, no blur):
+   the outgoing one fades and lifts 6px over .35s; the incoming one starts as it is nearly gone, rising
+   8px into place over .7s, its line a beat after its heading. The fade sits on the caption and the
+   rise on its parts (with `translate`), so neither fights the first caption's scroll-in animation. */
+.js-scene .cap { grid-area: 1 / 1; pointer-events: none; opacity: 0; translate: 0 -6px; transition: opacity .35s cubic-bezier(.33,1,.68,1), translate .35s cubic-bezier(.33,1,.68,1); }
+.js-scene .cap.on { opacity: 1; translate: 0 0; transition: opacity .6s cubic-bezier(.33,1,.68,1) .25s, translate 0s linear .25s; }
+/* Its parts wait just below while it is hidden, then rise in. */
+.js-scene .cap > * { translate: 0 8px; transition: translate 0s linear .35s; }
+.js-scene .cap.on > * { translate: 0 0; transition: translate .7s cubic-bezier(.22,1,.36,1) .25s; }
+.js-scene .cap.on > :nth-child(2) { transition-delay: .33s; }
 /* The layout switch on load (see home.ts) lands on the right caption without a crossfade. */
 .scene-switch.js-scene .cap, .scene-switch.js-scene .cap > *, .scene-switch.js-scene .cap.on > * { transition: none; }
 .js-scene .tally { grid-row: 2; }
