@@ -56,6 +56,9 @@ const days = perDay.map((count, d) => {
     <a href="#pilot">Pilot form</a>
   </div>
 
+  <!-- The hero and the scene share one spot for the handoff: the hero fades out where it is while the
+       scene fades in over it (home.css, "One page into the next"). -->
+  <div class="intro">
   <section class="hero" data-pill="rec" aria-labelledby="h-hero">
     <!-- One session around the headline, in the order it happens (the times are the session timeline's
          below): down the left, along the bottom, up the right to the note. Mirrored pairs. -->
@@ -123,6 +126,7 @@ const days = perDay.map((count, d) => {
       <p class="wall-note">An illustration of a week of sessions, not measured data.</p>
     </div>
   </section>
+  </div>
 
   <section class="session wrap" data-pill="rec" id="session" aria-labelledby="h-session">
     <h2 id="h-session">One session, start to ticket.</h2>

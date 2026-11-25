@@ -549,4 +549,22 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 @keyframes scene-leave { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translateY(-48px) scale(.98); } }
 @keyframes scene-drift { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(36px, -70px); } }
 @keyframes scene-drift-l { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(-36px, -70px); } }
+/* One page into the next: on a laptop or larger, where the hero fits the screen, the hero and the scene
+   hold the same spot for the first 70vh of scroll. The hero fades out where it is (0 to 40vh) and the
+   scene, pulled up under it, fades in in place (28 to 68vh); nothing slides. They overlap only while
+   both are faint, so two headlines are never read on top of each other. The scene's beats start after (--lead, read by
+   home.ts). Phones, short windows, reduced motion and browsers without scroll timelines keep the plain
+   fade above. */
+@media (prefers-reduced-motion: no-preference) and (min-width: 900px) and (min-height: 700px) {
+  @supports (animation-timeline: scroll()) {
+    .js-scene .hero { position: sticky; top: 60px; z-index: 2; animation: hero-gone linear both; animation-timeline: scroll(root); animation-range: 0px 44vh; }
+    .js-scene .hero-copy { animation-timeline: scroll(root); animation-range: 0px 40vh; }
+    .js-scene .hero .fig { animation-timeline: auto, scroll(root); animation-range: normal, 0px 40vh; }
+    .js-scene .scene { --lead: .7; height: 310vh; margin-top: calc(-1 * max(640px, 100svh - 98px)); border-top: 0; z-index: 1; }
+    .js-scene .scene-copy, .js-scene .scene-stage, .js-scene .wall-note { animation: none; }
+    .js-scene .scene-pin { animation: scene-in linear both; animation-timeline: scroll(root); animation-range: 28vh 68vh; }
+  }
+}
+@keyframes hero-gone { to { visibility: hidden; } }
+@keyframes scene-in { from { opacity: 0; transform: scale(.985); animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-arrive { from { opacity: 0; transform: translateY(40px); animation-timing-function: cubic-bezier(.33,1,.68,1); } to { opacity: 1; transform: none; } }
