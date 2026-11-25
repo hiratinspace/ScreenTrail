@@ -91,16 +91,30 @@ public sealed class SettingsScreenMaskingTests
     }
 
     [Theory]
+    [InlineData("githubToken=")]
+    [InlineData("myApiKey:")]
+    [InlineData("clientSecret =")]
+    [InlineData("AUTH_TOKEN=")]
     [InlineData("api_key=")]
     [InlineData("access_token:")]
     [InlineData("aws_secret_access_key =")]
     [InlineData("client-secret:")]
     [InlineData("Bearer")]
-    public void AKeyCueStillIntroducesAKeyWithADigitInIt(string cue)
+    public void AKeyCueStillIntroducesAKey(string cue)
     {
         var text = $"{cue} wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY";
 
         Assert.DoesNotContain("wJalrXUtnFEMIK7MDENG", Engine.ScrubText(text).Text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("token:")]
+    [InlineData("sessionToken=")]
+    public void AKeyWithNoDigitInItIsStillMaskedAfterItsCue(string cue)
+    {
+        var text = $"{cue} wJalrXUtnFEMIKMDENGbPxRfiCYEXAMPLEKEY";
+
+        Assert.DoesNotContain("wJalrXUtnFEMIKMDENG", Engine.ScrubText(text).Text, StringComparison.Ordinal);
     }
 
     [Fact]

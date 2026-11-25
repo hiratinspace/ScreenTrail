@@ -123,6 +123,21 @@ public sealed class OcrWrapTests
     }
 
     [Fact]
+    public void ALogLinesKeyWrappedUnderItsFirstFieldIsMasked()
+    {
+        // Security review of #375: a log line's fields stand a row height or two apart, and the line
+        // wraps to the left edge under its first field. That is one line, not two panes, and is joined.
+        var words = Page(
+            [.. Row(0, 20, "10:00:01"), .. Row(0, 140, "deploy", "--key", "sk_live_ABCDEFGHIJ")],
+            Row(1, 20, "KLMNOPQRSTUV0123", "--region", "eu"));
+
+        var redaction = Engine.RedactFrame(words);
+
+        Assert.DoesNotContain("KLMNOPQRSTUV0123", redaction.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("sk_live", redaction.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AWordOfTheOtherPaneUnderItsOwnRunIsKept()
     {
         // The other pane's first word sits under the other pane's run of the row above, so it is that

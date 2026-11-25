@@ -323,19 +323,29 @@ internal sealed class OcrWraps
 
         return way == 0
             ? _runs[other].Left < run.Right && _runs[other].Right <= run.Right + (Overhang * height)
-                && !UnderAnother(run, _runs[other], way)
+                && !UnderAnother(run, _runs[other], height, way)
             : _runs[other].Right > run.Left && _runs[other].Left >= run.Left - (Overhang * height)
-                && !UnderAnother(run, _runs[other], way);
+                && !UnderAnother(run, _runs[other], height, way);
     }
 
     /// <summary>
     /// Whether <paramref name="below"/> sits under another run of <paramref name="run"/>'s row, one on the
-    /// side the line would have wrapped back to (2026-11-25). Then it is that run's column going on, not
+    /// side the line would have wrapped back to and more than <see cref="PaneGap"/> row heights from the
+    /// run beside it, another pane (2026-11-25). Then it is that run's column going on, not
     /// this line's continuation: a key ending a settings pane's row was joined to the sidebar item under
     /// the sidebar item level with the key. A line that starts in from the left, with nothing before it
     /// on its row, still wraps to the left edge.
     /// </summary>
-    private bool UnderAnother(Run run, Run below, int way)
+    /// <summary>
+    /// The gap, in row heights, that makes the run beside a line another pane rather than an earlier
+    /// column of the same line. A log line's aligned fields ("10:00:01    INFO    token=…") stand one
+    /// or two row heights apart and wrap to the left edge under the first field, so they are joined;
+    /// a settings sidebar stands 7 or more row heights from its pane. The same gap as a password's
+    /// stretch (RedactionEngine.PasswordStretchGap).
+    /// </summary>
+    internal const double PaneGap = 4.0;
+
+    private bool UnderAnother(Run run, Run below, double height, int way)
     {
         var index = _runs.IndexOf(run, _firstRun[run.Row], _firstRun[run.Row + 1] - _firstRun[run.Row]);
         if (way == 0)
@@ -349,7 +359,7 @@ internal sealed class OcrWraps
                     return false;
                 }
 
-                if (left.Left < below.Right && !left.Mark)
+                if (left.Left < below.Right && !left.Mark && _runs[other + 1].Left - left.Right > PaneGap * height)
                 {
                     return true;
                 }
@@ -366,7 +376,7 @@ internal sealed class OcrWraps
                 return false;
             }
 
-            if (right.Right > below.Left && !right.Mark)
+            if (right.Right > below.Left && !right.Mark && right.Left - _runs[other - 1].Right > PaneGap * height)
             {
                 return true;
             }
