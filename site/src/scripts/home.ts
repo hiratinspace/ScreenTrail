@@ -188,6 +188,85 @@ figs.forEach((o) => figVisible.observe(o.el));
 // A rotation or a resized window changes each canvas's box; its pixels follow.
 addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now()); });
 
+/* ---------- The hero's thread: one session through the six cards, in order ----------
+   Each card is left from the edge that faces the next one and the curve leaves straight out of it.
+   A card that is hidden (narrow windows show four, phones none) is skipped. If any of the line would
+   pass behind the headline, the buttons or the paragraph, none of it is drawn. It draws itself once
+   when the page opens; with reduced motion it is simply there. */
+const heroEl = document.querySelector<HTMLElement>('.hero');
+const thread = byId<SVGSVGElement>('thread');
+const heroCopy = document.querySelector<HTMLElement>('.hero-copy');
+if (heroEl && thread && heroCopy) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const cards = Array.from(heroEl.querySelectorAll<HTMLElement>(':scope > .fig[data-step]'))
+    .sort((a, b) => Number(a.dataset.step) - Number(b.dataset.step));
+  let drawn = false;
+  const make = (tag: string, cls: string, attrs: Record<string, string | number>) => {
+    const el = document.createElementNS(NS, tag);
+    el.setAttribute('class', cls);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+    return el;
+  };
+  const drawThread = (animate: boolean) => {
+    const box = heroEl.getBoundingClientRect();
+    const rects = cards.filter((c) => c.getClientRects().length > 0).map((c) => {
+      const r = c.getBoundingClientRect();
+      return { l: r.left - box.left, t: r.top - box.top, r: r.right - box.left, b: r.bottom - box.top };
+    });
+    thread.replaceChildren();
+    thread.classList.remove('on');
+    if (rects.length < 2) return;
+    let d = '';
+    const knots: [number, number][] = [];
+    for (let i = 1; i < rects.length; i++) {
+      const a = rects[i - 1]!, b = rects[i]!;
+      const ax = (a.l + a.r) / 2, ay = (a.t + a.b) / 2, bx = (b.l + b.r) / 2, by = (b.t + b.b) / 2;
+      const across = Math.abs(bx - ax) > Math.abs(by - ay);
+      // Out of the facing edge, a little in from it, and into the next card's facing edge.
+      const p0: [number, number] = across ? [bx > ax ? a.r : a.l, ay] : [ax, by > ay ? a.b : a.t];
+      const p3: [number, number] = across ? [bx > ax ? b.l : b.r, by] : [bx, by > ay ? b.t : b.b];
+      const reach = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) * 0.45;
+      const c1 = across ? [p0[0] + Math.sign(bx - ax) * reach, p0[1]] : [p0[0], p0[1] + Math.sign(by - ay) * reach];
+      const c2 = across ? [p3[0] - Math.sign(bx - ax) * reach, p3[1]] : [p3[0], p3[1] - Math.sign(by - ay) * reach];
+      d += `M ${p0[0]} ${p0[1]} C ${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${p3[0]} ${p3[1]} `;
+      knots.push(p0, p3);
+    }
+    const line = make('path', 'line', { d }) as SVGPathElement;
+    thread.append(line);
+    // Never behind the copy: each line of the badge, the headline and the paragraph as it is set, and
+    // the buttons, with a 20px margin. The copy's column is wider than its lines, and the curve may
+    // pass beside them.
+    const keep: DOMRect[] = [];
+    for (const el of Array.from(heroCopy.children)) {
+      if (el.matches('.actions')) { keep.push(...Array.from(el.children).map((x) => x.getBoundingClientRect())); continue; }
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      keep.push(...Array.from(range.getClientRects()));
+    }
+    const m = 20;
+    const len = line.getTotalLength();
+    for (let s = 0; s <= len; s += 6) {
+      const pt = line.getPointAtLength(s);
+      const x = pt.x + box.left, y = pt.y + box.top;
+      if (keep.some((k) => x > k.left - m && x < k.right + m && y > k.top - m && y < k.bottom + m)) { thread.replaceChildren(); return; }
+    }
+    const last = knots.pop()!;
+    knots.forEach(([x, y]) => thread.append(make('circle', 'knot', { cx: x, cy: y, r: 3 })));
+    thread.append(make('circle', 'end', { cx: last[0], cy: last[1], r: 4 }));
+    thread.classList.add('on');
+    if (animate && !reduce) {
+      line.style.strokeDasharray = `${len}`;
+      line.style.strokeDashoffset = `${len}`;
+      void line.getBoundingClientRect();
+      line.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1) .35s';
+      line.style.strokeDashoffset = '0';
+    }
+  };
+  const settle = () => { drawThread(!drawn); drawn = true; };
+  void document.fonts?.ready.then(settle);
+  addEventListener('resize', () => drawThread(false));
+}
+
 /* ---------- The pinned scene: scroll runs four beats ----------
    0 to .2 the problem wall; .22 to .44 every tile gets its note (the tally counts them, 38 to 46);
    .46 to .66 the tiles fly together while the note for #48213 comes up (.52) and is written (.58 to
