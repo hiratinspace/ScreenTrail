@@ -311,6 +311,8 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     const back = ease(clamp((p - 0.33) / 0.08));
     playhead.style.opacity = String(clamp(p / 0.02) * (1 - back));
     dayEls.forEach((el, i) => el.classList.toggle('now', i === d && p > 0.01 && back < 1));
+    // Once the note is opening, the calendar card itself steps back so the note stands on it alone.
+    wall.classList.toggle('open', back > 0.5);
     // The tally is the count of tiles that have their note, so the number and the wall always agree.
     let written = 0;
     tiles.forEach((t, i) => {
@@ -340,7 +342,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     tiles.forEach((t) => { t.style.opacity = ''; t.classList.remove('healed'); });
     dayEls.forEach((el) => el.classList.remove('now'));
     wall.style.transform = '';
-    wall.classList.remove('scaled', 'opening');
+    wall.classList.remove('scaled', 'opening', 'open');
     noteEl.classList.remove('scaled');
     noteEl.style.opacity = '';
     noteEl.style.transform = '';

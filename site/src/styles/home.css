@@ -96,7 +96,7 @@
 
 /* The pinned scene: a week of sessions becomes one ticket note. Without JavaScript, or with reduced
    motion, it is a plain section: the first caption, the wall and its note. */
-.scene { position: relative; border-top: 1px solid var(--line); padding: 96px 0 40px; }
+.scene { position: relative; padding: 104px 0 88px; background: var(--band-deep); }
 .scene-pin { position: relative; }
 .cap { display: grid; gap: 14px; align-content: start; }
 .h2-like { font-size: clamp(28px, 3.2vw, 40px); line-height: 1.12; letter-spacing: -0.025em; text-wrap: balance; color: var(--ink); }
@@ -130,7 +130,9 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-scene .cap { grid-area: 1 / 1; opacity: 0; transform: translateY(10px); transition: opacity .14s ease-in, transform 0s linear .14s; pointer-events: none; }
 .js-scene .cap.on { opacity: 1; transform: none; transition: opacity .3s cubic-bezier(.16,1,.3,1) .14s, transform .4s cubic-bezier(.16,1,.3,1) .14s; }
 .js-scene .tally { grid-row: 2; }
-.js-scene .scene-stage { position: relative; margin-top: 24px; display: grid; place-items: center; min-height: 0; }
+/* One cell the stage's own height: the note's layout box is taller than the stage (it is scaled down
+   to fit), and a cell grown to hold it would push the centred calendar down onto the footnote. */
+.js-scene .scene-stage { position: relative; margin-top: 24px; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; min-height: 0; }
 .js-scene .wall { grid-area: 1 / 1; width: min(1000px, calc(100% - 48px)); margin: 0 auto; }
 .js-scene .wall.opening .tile { will-change: opacity; }
 .js-scene .scene-note { will-change: transform; }
@@ -142,6 +144,12 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-scene .playhead span { position: absolute; right: 0; bottom: 4px; padding: 2px 6px; border-radius: 999px; background: var(--iris); color: var(--white); font: 500 10px/1.2 var(--mono); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .js-scene .day.now .dh { color: var(--iris); }
 .js-scene .day.now .col { background-color: color-mix(in srgb, var(--iris) 6%, transparent); }
+/* The note open: the card fades into the band (its frame, scale and headings), the note lifts off it. */
+.js-scene .wall { transition: background-color .45s ease, border-color .45s ease, box-shadow .45s ease; }
+.js-scene .wall .hours, .js-scene .wall .dh, .js-scene .wall .col { transition: opacity .45s ease; }
+.js-scene .wall.open { background-color: color-mix(in srgb, var(--white) 35%, transparent); border-color: transparent; box-shadow: none; }
+.js-scene .wall.open .hours, .js-scene .wall.open .dh, .js-scene .wall.open .col { opacity: .35; }
+.js-scene .scene-note { border-color: color-mix(in srgb, var(--iris) 30%, var(--line-2)); box-shadow: 0 1px 0 var(--line), 0 40px 80px -28px rgba(30, 20, 80, .42); }
 .js-scene .wall.scaled { align-self: start; transform-origin: top center; }
 .js-scene .scene-note.scaled { align-self: start; }
 /* The note opens out of #48213's tile: script sets its transform from the tile's spot to its own. */
@@ -204,7 +212,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .sn-stamp svg { width: 15px; height: 15px; color: #6fd08c; flex: none; }
 
 /* Masking bands: redaction bars painting in as they scroll past. */
-.maskband { display: flex; align-items: center; gap: 18px; padding-top: 72px; }
+.maskband { display: flex; align-items: center; gap: 18px; padding-block: 24px 72px; }
 .mb-label { flex: none; font: 500 12px/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--iris-line); }
 .mb-bars { display: flex; gap: 6px; flex-wrap: nowrap; overflow: hidden; flex: 1; mask-image: linear-gradient(to right, #000 80%, transparent); }
 .mb-bars i { flex: none; height: 14px; border-radius: 2px; background: var(--iris); transform-origin: left center; }
@@ -222,7 +230,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 @keyframes mb-paint { from { transform: scaleX(0); opacity: .2; } to { transform: scaleX(1); opacity: 1; } }
 
 /* One session, start to ticket: the logo's ribbon threaded through the events. */
-.session { padding-block: 120px 40px; }
+.session { padding-block: 112px; }
 .events-box { position: relative; margin-top: 64px; }
 .events { position: relative; margin: 0; padding: 0; list-style: none; counter-reset: ev; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 84px; column-gap: 32px; }
 .ribbon { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -243,7 +251,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .ev q, .tl-row .what q { quotes: '\201C' '\201D'; }
 
 /* How it works: four stages, each beside a live mock of the app. */
-.stages { padding-block: 120px 40px; }
+.stages { padding-block: 112px; }
 .stages > h2 { margin-bottom: 24px; }
 .feature h3 { font-size: clamp(22px, 2.1vw, 26px); line-height: 1.2; }
 .feature { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 72px; align-items: center; padding: 72px 0; border-top: 1px solid var(--line); }
@@ -327,7 +335,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .outbox { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 13px; color: var(--ink-3); }
 
 /* The real app */
-.realapp { padding-block: 120px 40px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+.realapp { padding-block: 112px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
 .realapp > h2 { margin-bottom: -14px; }
 .pan-hint { display: none; font-size: 13px; color: var(--ink-3); margin-top: -12px; }
 .frame-fig { position: relative; border: 1px solid var(--line-2); background: var(--white); padding: 14px; margin: 0; }
@@ -341,7 +349,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .realapp-row img { width: 100%; aspect-ratio: 4 / 3; }
 
 /* Works with */
-.stack { padding-block: 120px 40px; }
+.stack { padding-block: 112px; }
 /* The stack as the path a session takes: the remote tools it starts in run into ScreenTrail, and the
    note runs out to where it is published. The wires are the logo's ribbon as hairlines. */
 .flow { margin-top: 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(56px, 130px) minmax(0, 1.15fr) minmax(56px, 130px) minmax(0, 1fr); grid-template-rows: auto 320px; row-gap: 14px; }
@@ -378,7 +386,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .stack-note { margin-top: 32px; font-size: 14px; color: var(--ink-3); max-width: 62ch; }
 
 /* Setup */
-.setup { padding-block: 120px 40px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 72px; align-items: start; }
+.setup { padding-block: 112px 56px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 72px; align-items: start; }
 .setup-copy { display: grid; gap: 14px; }
 .steps { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
 .stepbox { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding: 18px; background: var(--white); border: 1px solid var(--line-2); border-radius: 8px; }
@@ -395,7 +403,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .code em { white-space: nowrap; }
 
 /* Privacy */
-.privacy { padding-block: 120px 40px; }
+.privacy { padding-block: 112px; }
 .privacy-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 56px; margin-top: 40px; align-items: start; }
 .trust { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line-2); border-left: 1px solid var(--line-2); margin: 0; padding: 0; list-style: none; }
 .trust li { padding: 22px; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); display: grid; gap: 6px; align-content: start; background: color-mix(in srgb, var(--white) 50%, transparent); }
@@ -405,7 +413,16 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .privacy-more { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }
 
 /* Pilot: the invitation written as the ticket note this page drafted, with the form as its Publish side. */
-.pilot { padding-block: 120px 130px; }
+.pilot { padding-block: 112px 130px; }
+
+/* Section bands: the page alternates three flat surfaces, so each section reads as its own room and a
+   white card always has something to stand on. Paper (the hero, how it works, setup), white (the
+   session, the stack, security) and a deeper lavender for the sections built around a white card or
+   screen (the week, the real app, the pilot). A .wrap section is only as wide as its content, so its
+   band is painted out to the window's edges with a spread shadow and clipped back to its own height. */
+:root { --band-deep: #ece7fb; }
+.session, .stack, .privacy { background: var(--white); box-shadow: 0 0 0 100vmax var(--white); clip-path: inset(0 -100vmax); }
+.realapp, .pilot { background: var(--band-deep); box-shadow: 0 0 0 100vmax var(--band-deep); clip-path: inset(0 -100vmax); }
 .final-note { margin-top: 40px; background: var(--white); border: 1px solid var(--line-2); display: grid; grid-template-columns: minmax(0, 1fr) 380px; position: relative; }
 .final-note::after { content: ''; position: absolute; inset: 10px -11px -11px 10px; border: 1px solid var(--line); z-index: -1; }
 .fn-main { padding: 40px 44px 44px; }
