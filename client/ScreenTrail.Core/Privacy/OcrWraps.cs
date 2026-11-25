@@ -22,7 +22,8 @@ namespace ScreenTrail.Core.Privacy;
 /// row starts no more than <see cref="LineGap"/> row heights under it (<see cref="RowsBelow"/> rows are
 /// looked at), the run below starts left of where the run above ends, and it ends no more than
 /// <see cref="Overhang"/> row heights past it: a line that overflowed is as wide as its box, so its
-/// continuation cannot run on past it.</item>
+/// continuation cannot run on past it. Nor may it sit under another run of the row above, on the side
+/// the line wraps back to: that is the other run's column going on (2026-11-25).</item>
 /// <item>Every run that fits is tried, up to a bound: on the row next below, the
 /// <see cref="RunsARow"/> that start nearest the start of the run above, and on each row after it the
 /// nearest one, of the <see cref="RunsLookedAt"/> nearest on the row. So four joins at most from one
@@ -322,7 +323,66 @@ internal sealed class OcrWraps
 
         return way == 0
             ? _runs[other].Left < run.Right && _runs[other].Right <= run.Right + (Overhang * height)
-            : _runs[other].Right > run.Left && _runs[other].Left >= run.Left - (Overhang * height);
+                && !UnderAnother(run, _runs[other], height, way)
+            : _runs[other].Right > run.Left && _runs[other].Left >= run.Left - (Overhang * height)
+                && !UnderAnother(run, _runs[other], height, way);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="below"/> sits under another run of <paramref name="run"/>'s row, one on the
+    /// side the line would have wrapped back to and more than <see cref="PaneGap"/> row heights from the
+    /// run beside it, another pane (2026-11-25). Then it is that run's column going on, not
+    /// this line's continuation: a key ending a settings pane's row was joined to the sidebar item under
+    /// the sidebar item level with the key. A line that starts in from the left, with nothing before it
+    /// on its row, still wraps to the left edge.
+    /// </summary>
+    /// <summary>
+    /// The gap, in row heights, that makes the run beside a line another pane rather than an earlier
+    /// column of the same line. A log line's aligned fields ("10:00:01    INFO    token=…") stand one
+    /// or two row heights apart and wrap to the left edge under the first field, so they are joined;
+    /// a settings sidebar stands 7 or more row heights from its pane. The same gap as a password's
+    /// stretch (RedactionEngine.PasswordStretchGap).
+    /// </summary>
+    internal const double PaneGap = 4.0;
+
+    private bool UnderAnother(Run run, Run below, double height, int way)
+    {
+        var index = _runs.IndexOf(run, _firstRun[run.Row], _firstRun[run.Row + 1] - _firstRun[run.Row]);
+        if (way == 0)
+        {
+            // The row's runs left of this one, nearest first; their right edges only fall going left.
+            for (var other = index - 1; other >= _firstRun[run.Row]; other--)
+            {
+                var left = _runs[other];
+                if (left.Right <= below.Left)
+                {
+                    return false;
+                }
+
+                if (left.Left < below.Right && !left.Mark && _runs[other + 1].Left - left.Right > PaneGap * height)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        for (var other = index + 1; other < _firstRun[run.Row + 1]; other++)
+        {
+            var right = _runs[other];
+            if (right.Left >= below.Right)
+            {
+                return false;
+            }
+
+            if (right.Right > below.Left && !right.Mark && right.Left - _runs[other - 1].Right > PaneGap * height)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

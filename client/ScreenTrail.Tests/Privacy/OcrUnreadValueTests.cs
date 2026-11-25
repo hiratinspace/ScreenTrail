@@ -70,6 +70,30 @@ public sealed class OcrUnreadValueTests
     }
 
     [Fact]
+    public void ANameThatEndsInACueWordHasNoSlot()
+    {
+        // A settings sidebar's "Touch ID & Password", with nothing after it on its row: a name, not a
+        // label, and no box is painted after it (2026-11-25).
+        var words = Page(Row(0, Left, "Touch", "ID", "&", "Password"));
+
+        var redaction = Engine.RedactFrame(words);
+
+        Assert.Empty(redaction.Regions);
+    }
+
+    [Theory]
+    [InlineData("Password")]
+    [InlineData("Password:")]
+    public void ALabelThatStartsItsRowStillHasASlot(string cue)
+    {
+        var words = Page(Row(0, Left, cue));
+
+        var redaction = Engine.RedactFrame(words);
+
+        Assert.NotEmpty(redaction.Regions);
+    }
+
+    [Fact]
     public void AWordOfProseFarAfterTheCueIsKept()
     {
         // A form: "Password" and, across an empty field, "Remember me".

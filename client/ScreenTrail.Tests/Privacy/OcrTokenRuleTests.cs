@@ -320,9 +320,13 @@ public sealed class OcrTokenRuleTests
 
         var redaction = Engine.RedactFrame(words);
 
+        // "note" is 4.8 row heights left of the secret, in another column of its row, and is kept since
+        // 2026-11-25 (RedactionEngine.PasswordStretchGap).
         Assert.StartsWith("ticket ", redaction.Text, StringComparison.Ordinal);
+        Assert.EndsWith(" note", redaction.Text, StringComparison.Ordinal);
         Assert.False(Touched(redaction, words[0]), "a word the text keeps is painted over");
-        Assert.All(words.Skip(1), w => Assert.True(Covered(redaction, w), "a masked word is left unpainted in the frame"));
+        Assert.False(Touched(redaction, words[4]), "a word the text keeps is painted over");
+        Assert.All(words.Skip(1).Take(3), w => Assert.True(Covered(redaction, w), "a masked word is left unpainted in the frame"));
     }
 
     [Fact]

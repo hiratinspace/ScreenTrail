@@ -267,8 +267,10 @@ public sealed class OcrSplitTokenTests
     [Fact]
     public void ARowInDoubtIsTheSameHoweverTheEngineListsIt()
     {
-        // The fallback, cue on the row above: every word on the secret's row is masked, and the cue,
-        // wherever each was listed. "note" listed before the cue was kept readable by its index.
+        // The fallback, cue on the row above: every word in the secret's stretch of its row is masked,
+        // and the cue, wherever each was listed. "note" listed before the cue was kept readable by its
+        // index once; since 2026-11-25 it is kept by where it is, 4.8 row heights left of the secret,
+        // another column (RedactionEngine.PasswordStretchGap), however it is listed.
         OcrWord cue = new("pass:", 600, 100, 60, Height);
         OcrWord above = new("ticket", 24, 100, 80, Height);
         OcrWord note = new("note", 24, 140, 60, Height);
@@ -281,7 +283,7 @@ public sealed class OcrSplitTokenTests
         var shuffled = Masked(Engine.RedactFrame(reshuffled), reshuffled);
 
         Assert.Equal(inOrder, shuffled);
-        Assert.Equal(["Tangerine4821", "note", "pass:", "reception"], inOrder);
+        Assert.Equal(["Tangerine4821", "pass:", "reception"], inOrder);
     }
 
     [Fact]

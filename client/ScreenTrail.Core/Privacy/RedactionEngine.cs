@@ -144,7 +144,20 @@ public sealed class RedactionEngine
                 }
             }
 
-            _ = Mask(page, starts, ends, [.. Enumerable.Range(first, last - first + 1)], cues, match, taken, regions, widened);
+            List<int> touched = [.. Enumerable.Range(first, last - first + 1)];
+
+            // A password read on into what the page lists next is not one (see Mask), and is not counted.
+            if (match.Kind == MaskKind.Password && cues.Count > 0 && FarFromItsCue(page, touched, cues))
+            {
+                if (--counts[MaskKind.Password] == 0)
+                {
+                    _ = counts.Remove(MaskKind.Password);
+                }
+
+                continue;
+            }
+
+            _ = Mask(page, starts, ends, touched, cues, match, taken, regions, widened);
         }
 
         // And the page read again with every line that may have wrapped joined to the one that may
@@ -224,6 +237,25 @@ public sealed class RedactionEngine
         List<MaskedRegion> regions,
         List<PatternMatch> widened)
     {
+        // A password the rule found by reading on past its cue's row and the one under it is a word of
+        // whatever the page lists next, not the cue's value: on a settings sidebar "Touch ID & Password"
+        // read on through "Users & Groups" and "Internet Accounts" to "iCloud" four rows down, and took
+        // every row between (2026-11-25). The page's text joins its words in the engine's order, rows and
+        // columns alike, so the rule cannot see that; the screen can. A value is on the cue's row or the
+        // row under it, where a form puts the field under its label, or it wrapped there. Only the
+        // password is dropped: where another rule claimed the same span, that rule's find stands, without
+        // the password's rows.
+        if (cues.Count > 0 && FarFromItsCue(page, touched, cues))
+        {
+            if (match.Kind == MaskKind.Password)
+            {
+                return false;
+            }
+
+            cues = [];
+            match = match with { CueStarts = [] };
+        }
+
         // Every token the match touches. The engine can read one token on screen as several
         // words: "pass: Tangerine4821Wobble" came back as "Tangerine4821" and "Wobble", and the
         // password rule, which ends a value at the first plain word, masked the first and left the
@@ -495,8 +527,43 @@ public sealed class RedactionEngine
         {
             var members = page.RowAt(row);
             int? keep = !members.RightToLeft && keepLeftOf.TryGetValue(row, out var left) ? left : null;
+
+            // Only the stretch of the row the password is in (2026-11-25): a row is the page's width, and
+            // a password in a settings pane masked the sidebar item level with it. A stretch ends where
+            // two words stand more than PasswordStretchGap row heights apart, a gap between columns
+            // rather than a wide space, and over ten times any split the token rule joins (0.35), so no
+            // piece of the value is in another stretch. A row that may read right to left is masked
+            // whole, as before.
+            var reached = members.RightToLeft ? null : Stretches(page, row, masked, cues);
+
+            // On a cue's own row everything from the cue rightward stays masked, however far: a form
+            // sets its field well right of its label, and in doubt which word is the value (review of
+            // #268, leak 1) the row past the cue is not cut. Only what lies left of the cue may be
+            // another column.
+            var cueLeft = int.MaxValue;
             foreach (var word in members.Members)
             {
+                if (cues.Contains(word))
+                {
+                    cueLeft = Math.Min(cueLeft, words[word].X);
+                }
+            }
+
+            if (reached is not null && cueLeft != int.MaxValue)
+            {
+                for (var place = 0; place < members.Members.Length; place++)
+                {
+                    reached[place] |= words[members.Members[place]].X >= cueLeft;
+                }
+            }
+            for (var place = 0; place < members.Members.Length; place++)
+            {
+                var word = members.Members[place];
+                if (reached is not null && !reached[place])
+                {
+                    continue;
+                }
+
                 if (keep is { } edge && !cues.Contains(word) && words[word].X + words[word].Width <= edge)
                 {
                     continue;
@@ -546,6 +613,28 @@ public sealed class RedactionEngine
     /// the passes only ever add masks. A row with a right-to-left letter is left alone: the cues are Latin,
     /// and its value may be on either side.
     /// </summary>
+    private static bool HasMark(string text) => text.Any(c => !char.IsLetter(c));
+
+    /// <summary>
+    /// Whether no word of the row ends within <see cref="PasswordStretchGap"/> row heights left of the
+    /// word at <paramref name="place"/>: it is the first word of its column on the row.
+    /// </summary>
+    private static bool StartsItsStretch(OcrPage page, OcrPage.Row members, int place, double height)
+    {
+        var words = page.Words;
+        var left = words[members.Members[place]].X;
+        foreach (var other in members.Members)
+        {
+            var word = words[other];
+            if (other != members.Members[place] && word.X < left && left - (word.X + word.Width) <= PasswordStretchGap * height)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private static void UnreadValueSlots(
         OcrPage page,
         int[] starts,
@@ -574,6 +663,15 @@ public sealed class RedactionEngine
                 var word = words[cue];
                 var cueRight = word.X + word.Width;
                 var height = (double)Math.Max(Math.Max(members.Height, page.MedianHeight), word.Height);
+
+                // A label, not a name that ends in a cue word (2026-11-25): the cue carries punctuation
+                // ("Password:", "pass.", "--key", "api_key="), or it starts its stretch of the row, as a
+                // form's label does beside its field. A settings sidebar's "Touch ID & Password" is neither, and its
+                // slot was a 640-pixel box reaching into the pane beside it.
+                if (!HasMark(word.Text) && !StartsItsStretch(page, members, place, height))
+                {
+                    continue;
+                }
 
                 // The first word after it on the row: the members are in order of their left edges.
                 var next = -1;
@@ -689,6 +787,74 @@ public sealed class RedactionEngine
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// The gap, in row heights, past which a password's row is in another column and is not masked
+    /// with it. A macOS Settings sidebar stands 5 to 7 row heights from its pane.
+    /// </summary>
+    internal const double PasswordStretchGap = 4.0;
+
+    /// <summary>
+    /// Which places of a row are in a stretch that holds a word already masked or a cue: the row cut
+    /// wherever two neighbours stand more than <see cref="PasswordStretchGap"/> row heights apart.
+    /// </summary>
+    private static bool[] Stretches(OcrPage page, int rowIndex, HashSet<int> masked, HashSet<int> cues)
+    {
+        var row = page.RowAt(rowIndex);
+        var words = page.Words;
+        var reached = new bool[row.Members.Length];
+        var from = 0;
+        var right = int.MinValue;
+        for (var place = 0; place <= row.Members.Length; place++)
+        {
+            if (place < row.Members.Length)
+            {
+                var word = words[row.Members[place]];
+                if (place == from || word.X - right <= PasswordStretchGap * row.Height)
+                {
+                    right = Math.Max(right, word.X + word.Width);
+                    continue;
+                }
+            }
+
+            var holds = false;
+            for (var i = from; i < place && !holds; i++)
+            {
+                holds = masked.Contains(row.Members[i]) || cues.Contains(row.Members[i]);
+            }
+
+            for (var i = from; i < place; i++)
+            {
+                reached[i] = holds;
+            }
+
+            if (place < row.Members.Length)
+            {
+                from = place;
+                right = words[row.Members[place]].X + words[row.Members[place]].Width;
+            }
+        }
+
+        return reached;
+    }
+
+    /// <summary>
+    /// Whether a password's value has a word above every cue's row or more than one row under it:
+    /// read on into whatever the page lists next rather than the cue's own value.
+    /// </summary>
+    private static bool FarFromItsCue(OcrPage page, List<int> touched, List<int> cues)
+    {
+        foreach (var cue in cues)
+        {
+            var cueRow = page.RowOf(cue);
+            if (touched.All(w => page.RowOf(w) >= cueRow && page.RowOf(w) <= cueRow + 1))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>Whether two words share a row: the middle of either lies within the other's height.</summary>
