@@ -123,18 +123,19 @@ public sealed class OcrWrapTests
     }
 
     [Fact]
-    public void AWordOfTheOtherPaneThatCompletesAKeyIsMasked()
+    public void AWordOfTheOtherPaneUnderItsOwnRunIsKept()
     {
-        // The rule's cost, stated: the two runs nearest on the row below are both tried, and the other
-        // pane's first word is long enough to make the key's first piece a key. Nothing on the screen
-        // says which run the line went on in.
+        // The other pane's first word sits under the other pane's run of the row above, so it is that
+        // pane going on, not the key's line wrapping (2026-11-25), and it is kept. It was tried before
+        // and masked, a cost that took a settings sidebar's items for a key's continuation. The key's
+        // own continuation, under the key's run, is still joined.
         var words = Page(
             [.. Row(0, 20, "Notes", "pane"), .. Row(0, 500, "deploy", "--key", "sk_live_ABCDEFGHIJ")],
             [.. Row(1, 20, "second", "note"), .. Row(1, 500, "KLMNOPQRSTUV0123", "--region", "eu")]);
 
         var redaction = Engine.RedactFrame(words);
 
-        Assert.Equal("Notes pane deploy --key [SECRET] note [SECRET] --region eu", redaction.Text);
+        Assert.Equal("Notes pane deploy --key [SECRET] second note [SECRET] --region eu", redaction.Text);
     }
 
     [Fact]
@@ -344,9 +345,11 @@ public sealed class OcrWrapTests
     [Fact]
     public void APasswordAtTheEndOfItsRowTakesEveryShortRowInReach()
     {
-        // The rule's cost, stated: every row that may continue the password's is tried, the second
-        // down as well as the first, and a password takes each row its match touches. Both rows below
-        // are no wider than the password's and within two row heights of it.
+        // The rule's cost, stated: every row that may continue the password's is tried, and a password
+        // takes each row its match touches. Since 2026-11-25 a password's value reaches the row under
+        // its cue and no further, so the first row down is taken and the second is not: a value is in
+        // the field under its label or wrapped there, and a join into the second row down took whatever
+        // the page listed next.
         var words = Page(
             Row(0, Left, "wifi", "password:", "Tangerine4821"),
             Row(1, Left, "Queue", "cleared"),
@@ -354,7 +357,7 @@ public sealed class OcrWrapTests
 
         var redaction = Engine.RedactFrame(words);
 
-        Assert.Equal("wifi [REDACTED] [REDACTED]", redaction.Text);
+        Assert.Equal("wifi [REDACTED] Driver updated", redaction.Text);
     }
 
     [Fact]

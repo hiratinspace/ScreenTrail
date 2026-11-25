@@ -186,6 +186,33 @@ screen, never by the order the OCR engine listed it. That is the owner's decisio
 (PR #268): more of a technician's line is masked than strictly needed, because a split the engine makes through a remote viewer's
 scaling cannot be measured in advance, and a piece of a password left showing is a stored password.
 
+That rule masked too much on a screen of names (owner report, 2026-11-25): on a user's macOS System
+Settings seen through a remote session, "Wi-Fi", "Bluetooth", "Network" and most of the sidebar were
+masked, and the pane's IP address and router with them, though nothing on the screen was a secret.
+Five changes since then, none of them to a secret's own row:
+
+- A key cue is a whole word that says key, token or secret ("api key", "access_token",
+  "client-secret", "bearer"), and the value after it has a digit. "account", "app" and "auth" alone,
+  or inside a longer word ("accounting", "applied"), are no longer cues: "Apple Account" took the wrap
+  pass's join of the sidebar's one-word rows below it for a 100-character account key. A key of 24
+  characters or more with no digit in it after a cue is now left to the shape and random-run rules.
+- A password's value is on its cue's row or the row under it. A match the password rule read on past
+  that, four rows down from "Touch ID & Password" to "iCloud", is a word of whatever the page lists
+  next and is dropped, uncounted. Where another rule claimed the same span, that rule's mask stands
+  without the password's rows.
+- A password masks only its own stretch of each row it takes: a row is cut where two words stand
+  more than four row heights apart, a gap between columns, so a password in a settings pane no longer
+  masks the sidebar item level with it. On the cue's own row everything from the cue rightward is
+  masked however far, since a form sets its field well right of its label. A row that may read right
+  to left is masked whole, as before.
+- The place after a cue whose value was not read is masked only after a label: a cue word with
+  punctuation in it ("Password:", "--key", "api_key") or one that starts its column of the row, as
+  a form's label does. "Touch ID & Password" in a sidebar is a name, and had a 640-pixel box painted
+  after it, into the pane beside it.
+- The wrap pass does not join a line's end to a run that sits under another run of the row above,
+  on the side the line would wrap back to: that is the other column going on, not the line's
+  continuation. A line with nothing before it on its row still wraps to the left edge.
+
 A value that a terminal or a text box wrapped onto the next row is found by reading the page a second
 time with each line's end joined to the start of each line that may continue it, and masking whatever
 matches across a join (2026-11-10). What is joined is decided on the screen:

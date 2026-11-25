@@ -955,6 +955,10 @@ internal static partial class PatternLibrary
     private static partial Regex CardCandidate();
 
     // Recognisable credential shapes plus any long random-looking string introduced as a key or token.
+    // The cue is a whole word and says key, token or secret ("api key", "access_token", "client-secret",
+    // "bearer"), and the value has a digit (2026-11-25): "account", "app" and "auth" alone, or inside a
+    // word, took a macOS Settings sidebar that the wrap pass had joined into one run ("Apple Account"
+    // over "Wi-Fi", "Bluetooth", "Network" ...) for a 100-character account key.
     [GeneratedRegex(
         """
         (?:
@@ -971,7 +975,7 @@ internal static partial class PatternLibrary
           | ya29\.[A-Za-z0-9._-]{20,}
           | eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}
           | -----BEGIN[\ A-Z]*PRIVATE\ KEY(?:\ BLOCK)?-----(?s:.*?)(?:-----END[\ A-Z]*PRIVATE\ KEY(?:\ BLOCK)?-----|$)
-          | (?<=(?i:(?:api|access|secret|private|auth|account|client|consumer|signing|encryption|master|app|maps)[ _-]?(?:key|token|secret)?|secret|token|bearer)["']?\s{0,4}[:=]?\s{0,4}["']?)[A-Za-z0-9+/_.-]{24,}={0,2}
+          | (?<=(?<![A-Za-z])(?i:(?:api|access|secret|private|auth|account|client|consumer|signing|encryption|master|app|maps)[ _-]?(?:key|token|secret)|apikey|secret|token|bearer)["']?\s{0,4}[:=]?\s{0,4}["']?)(?=[A-Za-z+/_.-]*[0-9])[A-Za-z0-9+/_.-]{24,}={0,2}
         )
         """,
         RegexOptions.CultureInvariant | RegexOptions.IgnorePatternWhitespace,
