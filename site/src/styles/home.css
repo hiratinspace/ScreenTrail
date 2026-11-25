@@ -528,25 +528,29 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
-    /* Leaving the hero: from the first scroll, the copy and the cards fade out slowly together over
-       most of the hero's height, the cards drifting up and away to their sides. On the hero's own
-       timeline (overflow: clip, so it is not a scroller of its own and the page's scroll drives it). */
-    .hero-copy { animation: scene-leave linear both; animation-timeline: --hero; animation-range: exit 0% exit 75%; }
+    /* Leaving the hero: from the first scroll, the copy and the cards fade out together over the first
+       half of the hero's height, the cards drifting up and out to their sides, so the hero has gone
+       before the scene's pieces come up. On the hero's own timeline (overflow: clip, so it is not a
+       scroller of its own and the page's scroll drives it). */
+    .hero-copy { animation: scene-leave linear both; animation-timeline: --hero; animation-range: exit 0% exit 45%; }
     .hero .fig {
       animation: card-open 1.4s cubic-bezier(.22,1,.36,1) .35s both, scene-drift linear both;
-      animation-timeline: auto, --hero; animation-range: normal, exit 0% exit 75%;
+      animation-timeline: auto, --hero; animation-range: normal, exit 0% exit 45%;
     }
     .hero .f1, .hero .f2, .hero .f5 { animation-name: card-open, scene-drift-l; }
     /* Arriving at the scene: it comes up slowly as it rises into view, settled by the time it pins. */
-    /* Arriving at the scene: its pieces come up one at a time as each scrolls into view, the headline,
-       its line, the tally, then the week a day at a time, Monday first. Each on its own view timeline
-       (the pin is overflow: clip, not a scroller), all settled before the scene pins. */
-    .js-scene .cap[data-cap='0'] > *, .js-scene .tally, .js-scene .day {
-      animation: scene-arrive linear both; animation-timeline: view(); animation-range: entry calc(var(--k, 0) * 36px) entry calc(180px + var(--k, 0) * 36px);
+    /* Arriving at the scene, after the hero has gone: its pieces stay hidden until the hero has faded,
+       then come up one at a time while they are on screen (the headline, its line, the tally, then the
+       week a day at a time, Monday first), all in before the scene pins. Timed on the scene's own
+       timeline: it pins at entry 100vh - 60px, so every range ends by entry 90vh. */
+    .js-scene .scene { view-timeline: --scene block; }
+    .js-scene .cap[data-cap='0'] > *, .js-scene .tally, .js-scene .day, .js-scene .wall-note {
+      animation: scene-arrive linear both; animation-timeline: --scene;
+      animation-range: entry calc(var(--at) * 1vh) entry calc(var(--at) * 1vh + 16vh);
     }
-    .js-scene .cap[data-cap='0'] .sub { --k: 1; } .js-scene .tally { --k: 2; }
-    .js-scene .day:nth-child(1) { --k: 0; } .js-scene .day:nth-child(2) { --k: 1; } .js-scene .day:nth-child(3) { --k: 2; } .js-scene .day:nth-child(4) { --k: 3; } .js-scene .day:nth-child(5) { --k: 4; }
-    .js-scene .wall-note { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 100%; }
+    .js-scene .cap[data-cap='0'] > h2 { --at: 36; } .js-scene .cap[data-cap='0'] .sub { --at: 42; } .js-scene .tally { --at: 48; }
+    .js-scene .day:nth-child(1) { --at: 52; } .js-scene .day:nth-child(2) { --at: 56; } .js-scene .day:nth-child(3) { --at: 60; } .js-scene .day:nth-child(4) { --at: 64; } .js-scene .day:nth-child(5) { --at: 68; }
+    .js-scene .wall-note { --at: 72; }
   }
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
