@@ -17,30 +17,25 @@
 .hero .actions .btn { height: 44px; padding: 0 18px; font-size: 15px; }
 .stage { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); color: var(--ink-2); border: 1px solid var(--line-2); background: var(--white); padding: 7px 10px; border-radius: 999px; }
 .stage img { width: 16px; height: 16px; }
-.fig { position: absolute; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--white) 55%, transparent); }
+/* The six cards: one size, a header row (what, and when in the session) over the drawing, the same
+   padding in every one, and mirrored about the centre: three down each side at the same heights, the
+   middle pair set in a little, the bottom pair turned in under the buttons. Each side card keeps clear
+   of the copy's 612px column (306px either side of the centre) on any window. */
+.fig { position: absolute; display: flex; flex-direction: column; width: 200px; height: 140px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--white) 72%, transparent); }
 .fig::after { content: ''; position: absolute; inset: 6px -7px -7px 6px; border: 1px solid var(--line); z-index: -1; }
-.fig canvas { display: block; width: 100%; height: 100%; }
-.fig .tag { position: absolute; top: 8px; left: 9px; white-space: nowrap; }
-/* The side cards keep clear of the copy's 612px column (306px either side of the centre) on any
-   window: each sits at its usual place, or as far out as it must be to clear the column. */
-.f1 { left: max(8px, min(4%, calc(50% - 526px))); top: 10%; width: 220px; height: 150px; }
-.f2 { left: max(8px, min(7%, calc(50% - 476px))); top: 47%; width: 170px; height: 200px; }
-.f3 { right: max(8px, min(4%, calc(50% - 506px))); top: 8%; width: 200px; height: 180px; }
-.f4 { right: max(8px, min(9%, calc(50% - 496px))); top: 47%; width: 190px; height: 160px; }
-/* The two bottom cards stay at least 250px either side of the centre, clear of the buttons, however
-   narrow the window; on a wide one they sit where they always did. */
-.f5 { right: max(calc(50% + 250px), calc(78% - 150px)); top: 80%; width: 150px; height: 96px; }
-.f6 { left: max(calc(50% + 250px), calc(75% - 170px)); top: 77%; width: 170px; height: 110px; }
-/* The session's last card, the note it ends on, is drawn a step stronger so the eye ends there. */
-.fig.last { border-color: color-mix(in srgb, var(--iris) 70%, var(--line-2)); background: color-mix(in srgb, var(--white) 85%, transparent); }
-.fig.last::after { border-color: color-mix(in srgb, var(--iris) 30%, var(--line)); }
-/* The thread: the logo's band as a 1.5px line through the six cards, drawn by home.ts. It runs round
-   the copy, never through it; where the copy would be crossed it is not drawn at all. */
-.hero-thread { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; display: none; }
-.js .hero-thread.on { display: block; }
-.hero-thread .line { fill: none; stroke: var(--iris); stroke-width: 1.5; stroke-linecap: round; opacity: .55; }
-.hero-thread .knot { fill: var(--paper); stroke: var(--iris); stroke-width: 1.5; }
-.hero-thread .end { fill: var(--iris); }
+.fig.r::after { inset: 6px 6px -7px -7px; }
+.fig .tag { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 28px; padding: 0 11px; border-bottom: 1px solid var(--line); font-size: 11px; white-space: nowrap; }
+.fig .tag time { color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.fig canvas { display: block; flex: 1 1 0; min-height: 0; width: 100%; }
+.f1, .f2, .f5 { right: auto; }
+.f1 { left: max(8px, min(4%, calc(50% - 506px))); top: 10%; }
+.f2 { left: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
+.f3 { right: max(8px, min(4%, calc(50% - 506px))); top: 10%; }
+.f4 { right: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
+/* At least 250px either side of the centre, clear of the buttons, and set from the hero's foot so the
+   frame behind them is never cut off on a short window. */
+.f5 { right: max(calc(50% + 250px), calc(78% - 200px)); left: auto; bottom: max(20px, 5%); }
+.f6 { left: max(calc(50% + 250px), calc(78% - 200px)); bottom: max(20px, 5%); }
 .hero-figs { display: none; }
 
 /* The wall of sessions */
@@ -408,17 +403,16 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 
 @media (max-width: 1100px) {
   .f5, .f6 { display: none; }
-  /* Smaller cards, so four still fit beside the copy at 1024px. */
-  .f1 { left: 8px; width: 186px; height: 126px; }
-  .f2 { left: 8px; width: 150px; height: 170px; }
-  .f3 { right: 8px; width: 170px; height: 150px; }
-  .f4 { right: 8px; width: 160px; height: 136px; }
+  /* Four smaller cards still fit beside the copy at 1024px. */
+  .fig { width: 180px; height: 128px; }
+  .f1, .f2 { left: 8px; }
+  .f3, .f4 { right: 8px; }
 }
 @media (max-width: 960px) {
   .hero { min-height: calc(100svh - 98px); padding: 64px 0 40px; display: flex; flex-direction: column; justify-content: center; }
   .fig { display: none; }
   .hero-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 44px; padding: 0 24px; }
-  .hero-figs .fig { display: block; position: relative; inset: auto; width: auto; height: 130px; }
+  .hero-figs .fig { display: flex; position: relative; inset: auto; width: auto; height: 136px; }
   .feature, .setup, .privacy-grid { grid-template-columns: 1fr; gap: 36px; }
   .realapp-row { grid-template-columns: 1fr; }
   /* Stacked: the same path, top to bottom, with one straight wire between the three parts. */
@@ -500,8 +494,6 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
     .hero-copy { animation: scene-leave linear both; animation-timeline: view(); animation-range: exit 0% exit 80%; }
     .hero .fig { animation: scene-drift linear both; animation-timeline: view(block); animation-range: exit 0% exit 100%; }
-    /* Gone before the cards it joins have drifted far from it. */
-    .hero-thread { animation: thread-leave linear both; animation-timeline: view(block); animation-range: exit 0% exit 30%; }
     .hero .f1, .hero .f2, .hero .f5 { animation-name: scene-drift-l; }
   }
 }
@@ -510,6 +502,5 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 @keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
 @keyframes scene-leave { to { opacity: 0; transform: translateY(-60px) scale(.97); } }
-@keyframes thread-leave { to { opacity: 0; } }
 @keyframes scene-drift { to { opacity: 0; transform: translate(40px, -90px); } }
 @keyframes scene-drift-l { to { opacity: 0; transform: translate(-40px, -90px); } }

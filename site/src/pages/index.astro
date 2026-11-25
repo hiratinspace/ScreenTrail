@@ -51,14 +51,13 @@ const tiles = widths.map((w, i) => {
 
   <section class="hero" data-pill="rec" aria-labelledby="h-hero">
     <!-- One session around the headline, in the order it happens (the times are the session timeline's
-         below): down the left, along the bottom, up the right to the note. The thread joins them. -->
-    <svg class="hero-thread" id="thread" aria-hidden="true"></svg>
-    <div class="fig f1" data-step="1" aria-hidden="true"><canvas data-draw="windows"></canvas><span class="tag">13:54 · ScreenConnect</span></div>
-    <div class="fig f2" data-step="2" aria-hidden="true"><canvas data-draw="voice"></canvas><span class="tag">13:58 · your voice</span></div>
-    <div class="fig f5" data-step="3" aria-hidden="true"><canvas data-draw="clicks"></canvas><span class="tag">14:01 · 6 clicks</span></div>
-    <div class="fig f6" data-step="4" aria-hidden="true"><canvas data-draw="mask"></canvas><span class="tag">14:02 · key masked</span></div>
-    <div class="fig f4" data-step="5" aria-hidden="true"><canvas data-draw="ribbon"></canvas><span class="tag">14:04 · drafting</span></div>
-    <div class="fig f3 last" data-step="6" aria-hidden="true"><canvas data-draw="note"></canvas><span class="tag">14:05 · note ready</span></div>
+         below): down the left, along the bottom, up the right to the note. Mirrored pairs. -->
+    <div class="fig f1" aria-hidden="true"><span class="tag"><span>ScreenConnect</span><time>13:54</time></span><canvas data-draw="windows"></canvas></div>
+    <div class="fig f2" aria-hidden="true"><span class="tag"><span>Your voice</span><time>13:58</time></span><canvas data-draw="voice"></canvas></div>
+    <div class="fig f5" aria-hidden="true"><span class="tag"><span>6 clicks</span><time>14:01</time></span><canvas data-draw="clicks"></canvas></div>
+    <div class="fig f6 r" aria-hidden="true"><span class="tag"><span>Key masked</span><time>14:02</time></span><canvas data-draw="mask"></canvas></div>
+    <div class="fig f4 r" aria-hidden="true"><span class="tag"><span>Drafting</span><time>14:04</time></span><canvas data-draw="ribbon"></canvas></div>
+    <div class="fig f3 r" aria-hidden="true"><span class="tag"><span>Note ready</span><time>14:05</time></span><canvas data-draw="note"></canvas></div>
 
     <div class="hero-copy">
       <span class="stage"><img src={glyphLight.src} alt="" width="16" height="16" />In development</span>
@@ -70,8 +69,8 @@ const tiles = widths.map((w, i) => {
       </div>
     </div>
     <div class="hero-figs" aria-hidden="true">
-      <div class="fig"><canvas data-draw="ribbon"></canvas><span class="tag">14:04 · drafting</span></div>
-      <div class="fig last"><canvas data-draw="note"></canvas><span class="tag">14:05 · note ready</span></div>
+      <div class="fig"><span class="tag"><span>Drafting</span><time>14:04</time></span><canvas data-draw="ribbon"></canvas></div>
+      <div class="fig r"><span class="tag"><span>Note ready</span><time>14:05</time></span><canvas data-draw="note"></canvas></div>
     </div>
   </section>
 
