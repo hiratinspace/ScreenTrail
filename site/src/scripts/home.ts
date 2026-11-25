@@ -195,10 +195,11 @@ addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now(
 
 /* ---------- The pinned scene: scroll runs four beats ----------
    The problem week is read on the way in, so the scene moves from the first scroll after it pins.
-   .02 to .32 a now line runs down each day, Monday to Friday, and every session it passes gets its note
-   (the tally counts them, 38 to 46). It stops on Friday's #48213. .33 to .41 the rest of the week
-   steps back; .36 to .5 #48213's tile opens in place into its note, written as it opens (.36 to .49).
-   .66 the last caption and .68 published, held to the end so it is read before the page moves on.
+   .02 to .34 a now line runs down each day, Monday to Friday, and every session it passes gets its note
+   (the tally counts them, 38 to 46). It stops on Friday's #48213. .35 to .43 the rest of the week
+   steps back; .38 to .52 #48213's tile opens in place into its note, written as it opens (.38 to .51).
+   .75 the last caption and .77 published, held to the end so it is read before the page moves on.
+   The captions change at .02, .38 and .75, so the three after the first are on screen equally long.
    With reduced motion, or without this script, the section is the still layout in home.css. */
 const sceneEl = byId('scene');
 const wall = byId('wall');
@@ -287,8 +288,10 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   };
   const tick = () => read()?.();
   const write = (p: number) => {
-    const beat = p < 0.02 ? 0 : p < 0.36 ? 1 : p < 0.66 ? 2 : 3;
-    wall.classList.toggle('opening', p > 0.3 && p < 0.55);
+    // The three captions after the first hold for an even share of the scroll. The last is also read
+    // while the section scrolls away (about an eighth of the pin), so .38 and .75 give each a third.
+    const beat = p < 0.02 ? 0 : p < 0.38 ? 1 : p < 0.75 ? 2 : 3;
+    wall.classList.toggle('opening', p > 0.32 && p < 0.57);
     if (beat !== lastBeat) {
       lastBeat = beat;
       // Only what is seen changes: all four captions stay readable to assistive technology.
@@ -296,7 +299,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     }
     // The now line: how far through the week (0 Monday 08:00, 1 Friday as #48213 ends). It runs down
     // each day from 08:00 to 17:00, then on to the next; Friday stops at the end of #48213.
-    const sweep = clamp((p - 0.02) / 0.3);
+    const sweep = clamp((p - 0.02) / 0.32);
     const u = Math.min(sweep * 5, 4.9999);
     const d = Math.floor(u);
     // How far down the day the line is (a share of 08:00 to 17:30); Friday stops at #48213's foot.
@@ -308,7 +311,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
       playhead.style.transform = `translate(${col.x.toFixed(1)}px, ${(col.y + col.h * at).toFixed(1)}px)`;
     }
     // The rest of the week steps back once the line has stopped; the line goes with it.
-    const back = ease(clamp((p - 0.33) / 0.08));
+    const back = ease(clamp((p - 0.35) / 0.08));
     playhead.style.opacity = String(clamp(p / 0.02) * (1 - back));
     dayEls.forEach((el, i) => el.classList.toggle('now', i === d && p > 0.01 && back < 1));
     // Once the note is opening, the calendar card itself steps back so the note stands on it alone.
@@ -327,7 +330,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     tallyEl.textContent = String(written);
     tallyEl.classList.toggle('full', written === tiles.length);
     // #48213 opens in place: the note starts on its tile's box and grows to its own.
-    const g = ease(clamp((p - 0.36) / 0.14));
+    const g = ease(clamp((p - 0.38) / 0.14));
     // The tile hands over to the note in the first part of the move, so neither is ever seen empty.
     const hand = clamp(g / 0.2);
     target.style.opacity = g > 0 ? String(1 - hand) : '';
@@ -335,8 +338,8 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     const x = from.x + (to.x - from.x) * g, y = from.y + (to.y - from.y) * g, s = from.s + (to.s - from.s) * g;
     noteEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(4)})`;
     // It is written while it opens: the last line lands just after it has settled.
-    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.36 - i * 0.012) / 0.03).toFixed(3)));
-    stamp?.classList.toggle('on', p > 0.68);
+    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.38 - i * 0.012) / 0.03).toFixed(3)));
+    stamp?.classList.toggle('on', p > 0.77);
   };
   const still = () => {
     tiles.forEach((t) => { t.style.opacity = ''; t.classList.remove('healed'); });
