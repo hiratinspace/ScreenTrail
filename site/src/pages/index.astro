@@ -20,7 +20,10 @@ import panel from '../assets/screens/panel.png';
 import { site } from '../site.config';
 import { choices, limits } from '../../worker/pilot';
 
-// The pinned scene's wall: a week of 46 sessions. Red tiles are the notes that never got written.
+// The pinned scene's wall: a week of 46 sessions, Monday to Friday, each day's sessions in time order.
+// Red tiles are the notes that never got written. The week ends on Friday's #48213 at 13:54, the
+// session the timeline below tells. `at` is when the playhead reaches a tile: its day, then its place
+// in the day, as a share of the week.
 const bad: Record<number, [string, string]> = {
   4: ['Note', '"Fixed it."'],
   9: ['No time entry', '0:40 not billed'],
@@ -31,16 +34,20 @@ const bad: Record<number, [string, string]> = {
   37: ['No time entry', '1:15 not billed'],
   42: ['No note', 'escalated blind'],
 };
-const widths = ['w2','w1','w3','w2','w4','w1','w2','w3','w1','w4','w2','w3','w1','w2','w3','w4','w1','w2','w2','w3','w4','w1','w3','w2','w1','w2','w4','w3','w1','w2','w3','w1','w4','w2','w3','w1','w2','w4','w2','w1','w3','w2','w4','w1','w3','w2'];
-const tiles = widths.map((w, i) => {
-  const b = bad[i];
-  return {
-    cls: b ? 'w4 bad' : w,
-    id: `#${48170 + i * 7}`,
-    bad: b,
-    time: `${(i % 5) + 1}:${String((i * 13) % 60).padStart(2, '0')}`,
-    r: (((i * 37) % 46) / 46).toFixed(3),
-  };
+const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+const perDay = [10, 9, 9, 9, 9];
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+let n = 0;
+const days = perDay.map((count, d) => {
+  const start = 8 * 60 + 5 + ((d * 17) % 25);
+  const end = d === 4 ? 13 * 60 + 54 : 16 * 60 + 40 - ((d * 23) % 30);
+  const tiles = Array.from({ length: count }, (_, k) => {
+    const i = n++;
+    const last = d === 4 && k === count - 1;
+    const minute = Math.round(start + ((end - start) * k) / (count - 1)) + (last || k === 0 ? 0 : ((i * 7) % 9) - 4);
+    return { i, id: `#${48213 - (45 - i) * 7}`, time: hhmm(minute), bad: bad[i], last, at: ((d + (k + 0.5) / count) / 5).toFixed(4) };
+  });
+  return { name: dayNames[d]!, tiles };
 });
 ---
 <Base title={site.name}>
@@ -83,12 +90,18 @@ const tiles = widths.map((w, i) => {
       </div>
       <div class="scene-stage" id="stage" aria-hidden="true">
         <div class="wall" id="wall">
-          {tiles.map((t) => (
-            <div class={`tile ${t.cls}`} data-r={t.r}>
-              <span class="a">{t.bad ? (<><span class="k">{t.bad[0]}</span><b>{t.bad[1]}</b></>) : (<><span>{t.id}</span><span>{t.time}</span></>)}</span>
-              <span class="b"><span>{t.id}</span><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>{t.bad ? 'Published · note + time' : 'Published'}</span></span>
+          {days.map((d) => (
+            <div class="day">
+              <span class="dh">{d.name}</span>
+              {d.tiles.map((t) => (
+                <div class={`tile${t.bad ? ' bad' : ''}${t.last ? ' this' : ''}`} data-at={t.at} data-day={d.name} data-time={t.time}>
+                  <span class="a">{t.bad ? (<><span class="row"><span class="k">{t.bad[0]}</span><span>{t.time}</span></span><b>{t.bad[1]}</b></>) : (<><span>{t.id}</span><span>{t.time}</span></>)}</span>
+                  <span class="b"><span>{t.id}</span><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>{t.bad ? 'Note + time' : 'Published'}</span></span>
+                </div>
+              ))}
             </div>
           ))}
+          <div class="playhead" id="playhead"><span id="ph-label">Mon 08:05</span></div>
         </div>
         <article class="scene-note" id="scene-note">
           <div class="sn-head"><span class="chip"><b>#48213</b> Printer offline · Acme Dental</span><span class="chip on">Internal note</span><span class="chip">Time <b>15</b> min</span></div>

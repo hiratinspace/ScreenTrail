@@ -189,46 +189,55 @@ figs.forEach((o) => figVisible.observe(o.el));
 addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now()); });
 
 /* ---------- The pinned scene: scroll runs four beats ----------
-   The problem wall is read on the way in, so the scene moves from the first scroll after it pins:
-   .02 to .22 every tile gets its note (the tally counts them, 38 to 46); .24 to .48 the tiles fly
-   together while the note for #48213 comes up (.34) and is written (.40 to .58); .62 the last caption
-   and .64 published, held to the end so it is read before the page moves on.
+   The problem week is read on the way in, so the scene moves from the first scroll after it pins.
+   .02 to .32 a playhead sweeps the week, Monday to Friday, and every session it passes gets its note
+   (the tally counts them, 38 to 46). It stops on Friday's #48213. .33 to .41 the rest of the week
+   steps back; .36 to .5 #48213's tile opens in place into its note, written as it opens (.36 to .49).
+   .66 the last caption and .68 published, held to the end so it is read before the page moves on.
    With reduced motion, or without this script, the section is the still layout in home.css. */
 const sceneEl = byId('scene');
 const wall = byId('wall');
 const stageEl = byId('stage');
 const tallyEl = byId('tally');
 const noteEl = byId('scene-note');
-if (sceneEl && wall && stageEl && tallyEl && noteEl) {
-  const tiles = Array.from(wall.children) as HTMLElement[];
+const playhead = byId('playhead');
+const phLabel = byId('ph-label');
+if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
+  const tiles = Array.from(wall.querySelectorAll<HTMLElement>('.tile'));
+  const dayEls = Array.from(wall.querySelectorAll<HTMLElement>('.day'));
+  const at = tiles.map((t) => Number(t.dataset.at));
+  const target = wall.querySelector<HTMLElement>('.tile.this') ?? tiles[tiles.length - 1]!;
   const caps = Array.from(document.querySelectorAll<HTMLElement>('.cap'));
   const noteParts = Array.from(noteEl.querySelectorAll<HTMLElement>('.sn-body h3, .sn-body .ln'));
   const stamp = noteEl.querySelector<HTMLElement>('.sn-stamp');
-  let offsets: [number, number][] = [];
+  let cols: [number, number][] = [];
+  // The note's transform at the start (on the tile) and at the end (open, fitted to the stage).
+  let from = { x: 0, y: 0, s: 1 };
+  let to = { x: 0, y: 0, s: 1 };
   let lastBeat = -1;
-  let wallFit = 1;
-  let noteFit = 1;
+  let lastLabel = '';
   let pinned = false;
   // A window too short to hold the scene (a phone on its side) gets the still layout instead.
   const short = matchMedia('(max-height: 600px)');
   const measure = () => {
-    tiles.forEach((t) => { t.style.transform = ''; });
     wall.style.transform = '';
+    noteEl.style.transform = '';
     // The wall and the note are scaled down to the room the stage has, so on any screen the whole
     // beat is inside the pinned view: nothing runs under the caption or off the bottom.
     const room = stageEl.clientHeight;
-    wallFit = clamp(room / Math.max(1, wall.offsetHeight), 0.4, 1);
-    noteFit = clamp(room / Math.max(1, noteEl.offsetHeight), 0.4, 1);
+    const wallFit = clamp(room / Math.max(1, wall.offsetHeight), 0.4, 1);
+    const noteFit = clamp(room / Math.max(1, noteEl.offsetHeight), 0.4, 1);
     // Scaled from the top of the stage, where an overflowing box starts; one that fits stays centred.
     wall.classList.toggle('scaled', wallFit < 1);
     noteEl.classList.toggle('scaled', noteFit < 1);
     if (wallFit < 1) wall.style.transform = `scale(${wallFit.toFixed(4)})`;
-    const st = stageEl.getBoundingClientRect();
-    const cx = st.left + st.width / 2, cy = st.top + st.height / 2;
-    offsets = tiles.map((t) => {
-      const r = t.getBoundingClientRect();
-      return [(cx - (r.left + r.width / 2)) / wallFit, (cy - (r.top + r.height / 2)) / wallFit];
-    });
+    // Each day's column, in the wall's own (unscaled) pixels, for the playhead.
+    cols = dayEls.map((d) => [d.offsetLeft, d.offsetWidth]);
+    const n = noteEl.getBoundingClientRect();
+    const r = target.getBoundingClientRect();
+    // A small copy of the note, as wide as the tile and on its spot, so it is never stretched.
+    from = { x: r.left - n.left, y: r.top - n.top, s: r.width / n.width };
+    to = { x: (n.width * (1 - noteFit)) / 2, y: 0, s: noteFit };
   };
   const read: Step = () => {
     if (!pinned) return;
@@ -239,42 +248,51 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
   };
   const tick = () => read()?.();
   const write = (p: number) => {
-    const beat = p < 0.02 ? 0 : p < 0.32 ? 1 : p < 0.62 ? 2 : 3;
-    // The tiles are their own layers only while they fly.
-    wall.classList.toggle('flying', p > 0.24 && p < 0.54);
+    const beat = p < 0.02 ? 0 : p < 0.36 ? 1 : p < 0.66 ? 2 : 3;
+    wall.classList.toggle('opening', p > 0.3 && p < 0.55);
     if (beat !== lastBeat) {
       lastBeat = beat;
       // Only what is seen changes: all four captions stay readable to assistive technology.
       caps.forEach((c, i) => c.classList.toggle('on', i === beat));
     }
+    // The playhead: how far through the week (0 Monday morning, 1 Friday at 13:54).
+    const sweep = clamp((p - 0.02) / 0.3);
+    const u = Math.min(sweep * 5, 4.9999);
+    const col = cols[Math.floor(u)];
+    if (col) playhead.style.transform = `translateX(${(col[0] + col[1] * (u % 1)).toFixed(1)}px)`;
+    // The rest of the week steps back once the playhead has stopped; the playhead goes with it.
+    const back = ease(clamp((p - 0.33) / 0.08));
+    playhead.style.opacity = String(clamp(p / 0.02) * (1 - back));
     // The tally is the count of tiles that have their note, so the number and the wall always agree.
     let written = 0;
-    let order = 0;
-    tiles.forEach((t) => {
-      const isBad = t.classList.contains('bad');
-      const healed = p > 0.03 + (isBad ? 0.02 + order++ * 0.022 : Number(t.dataset.r) * 0.16);
+    let label = '';
+    tiles.forEach((t, i) => {
+      const healed = sweep > at[i]!;
       t.classList.toggle('healed', healed);
-      if (!isBad || healed) written++;
+      if (healed) label = `${t.dataset.day} ${t.dataset.time}`;
+      if (healed || !t.classList.contains('bad')) written++;
+      t.style.opacity = t === target ? '' : back ? String(1 - 0.82 * back) : '';
     });
+    label ||= `${tiles[0]?.dataset.day} ${tiles[0]?.dataset.time}`;
+    if (label !== lastLabel) { lastLabel = label; phLabel.textContent = label; }
     tallyEl.textContent = String(written);
     tallyEl.classList.toggle('full', written === tiles.length);
-    tiles.forEach((t, i) => {
-      const q = ease(clamp((p - 0.28 - Number(t.dataset.r) * 0.05) / 0.15));
-      const off = offsets[i];
-      if (!off) return;
-      t.style.transform = q ? `translate(${off[0] * q}px, ${off[1] * q}px) scale(${1 - 0.75 * q})` : '';
-      t.style.opacity = q ? String(1 - q) : '';
-    });
-    const n = ease(clamp((p - 0.34) / 0.1));
-    noteEl.style.opacity = String(n);
-    noteEl.style.transform = `scale(${((0.6 + 0.4 * n) * noteFit).toFixed(4)})`;
-    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.40 - i * 0.02) / 0.04).toFixed(3)));
-    stamp?.classList.toggle('on', p > 0.64);
+    // #48213 opens in place: the note starts on its tile's box and grows to its own.
+    const g = ease(clamp((p - 0.36) / 0.14));
+    // The tile hands over to the note in the first part of the move, so neither is ever seen empty.
+    const hand = clamp(g / 0.2);
+    target.style.opacity = g > 0 ? String(1 - hand) : '';
+    noteEl.style.opacity = String(hand);
+    const x = from.x + (to.x - from.x) * g, y = from.y + (to.y - from.y) * g, s = from.s + (to.s - from.s) * g;
+    noteEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(4)})`;
+    // It is written while it opens: the last line lands just after it has settled.
+    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.36 - i * 0.012) / 0.03).toFixed(3)));
+    stamp?.classList.toggle('on', p > 0.68);
   };
   const still = () => {
-    tiles.forEach((t) => { t.style.transform = ''; t.style.opacity = ''; t.classList.remove('healed'); });
+    tiles.forEach((t) => { t.style.opacity = ''; t.classList.remove('healed'); });
     wall.style.transform = '';
-    wall.classList.remove('scaled', 'flying');
+    wall.classList.remove('scaled', 'opening');
     noteEl.classList.remove('scaled');
     noteEl.style.opacity = '';
     noteEl.style.transform = '';
