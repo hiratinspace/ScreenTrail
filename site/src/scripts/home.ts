@@ -222,8 +222,6 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   let lastBeat = -1;
   let lastLabel = '';
   let pinned = false;
-  // The share of a screen the scene waits through while the hero hands over to it (0 where it doesn't).
-  let lead = 0;
   // A window too short to hold the scene (a phone on its side) gets the still layout instead.
   const short = matchMedia('(max-height: 600px)');
   const measure = () => {
@@ -249,9 +247,8 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   const read: Step = () => {
     if (!pinned) return;
     const r = sceneEl.getBoundingClientRect();
-    // 0 the moment the scene pins under the 60px header and the hero has handed over, 1 when it lets go.
-    const wait = lead * innerHeight;
-    const p = clamp((60 - r.top - wait) / Math.max(1, r.height - innerHeight + 60 - wait));
+    // 0 the moment the scene pins under the 60px header, 1 when it lets go.
+    const p = clamp((60 - r.top) / Math.max(1, r.height - innerHeight + 60));
     return () => write(p);
   };
   const tick = () => read()?.();
@@ -312,7 +309,6 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   const arrange = () => {
     pinned = !short.matches;
     document.documentElement.classList.toggle('js-scene', pinned);
-    lead = parseFloat(getComputedStyle(sceneEl).getPropertyValue('--lead')) || 0;
     if (pinned) { measure(); tick(); } else still();
   };
   if (!reduce) {
