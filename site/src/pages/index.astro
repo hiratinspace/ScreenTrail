@@ -35,6 +35,8 @@ const bad: Record<number, [string, string]> = {
   42: ['No note', 'escalated blind'],
 };
 const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+// What each session was about: the topic of the note ScreenTrail writes for it. The week's last is #48213.
+const topics = ['VPN reconnect', 'MFA reset', 'New user setup', 'Disk full', 'Wi-Fi drops', 'Drive access', 'Teams audio', 'Password reset', 'Laptop setup', 'Backup failed', 'Slow PC', 'Scan to email', 'License assigned', 'Mailbox rules', 'Driver update', 'Outlook profile', 'Firewall rule', 'App crash', 'Monitor setup', 'Cert warning', 'Phone pairing', 'Calendar sharing', 'Printer queue'];
 const perDay = [10, 9, 9, 9, 9];
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 let n = 0;
@@ -47,8 +49,9 @@ const days = perDay.map((count, d) => {
     const minute = Math.round(start + ((end - start) * k) / (count - 1)) + (last || k === 0 ? 0 : ((i * 7) % 9) - 4);
     // How long it ran, in minutes: never into the next session; a missed note is long enough for its reason.
     const room = (end - start) / (count - 1) - 7;
-    const dur = Math.round(Math.min(room, bad[i] ? 44 : 20 + ((i * 13) % 16)));
-    return { i, id: `#${48213 - (45 - i) * 7}`, time: hhmm(minute), start: minute, dur, bad: bad[i], last };
+    const dur = Math.round(Math.min(room, bad[i] ? 44 : 18 + ((i * 13) % 22)));
+    const topic = last ? 'Printer offline' : topics[(i * 5) % topics.length]!;
+    return { i, id: `#${48213 - (45 - i) * 7}`, time: hhmm(minute), start: minute, dur, logged: `0:${String(dur).padStart(2, '0')}`, topic, bad: bad[i], last };
   });
   return { name: dayNames[d]!, tiles };
 });
@@ -103,7 +106,7 @@ const days = perDay.map((count, d) => {
                 {d.tiles.map((t) => (
                   <div class={`tile${t.bad ? ' bad' : ''}${t.last ? ' this' : ''}`} data-day={d.name} data-time={t.time} data-start={t.start} data-dur={t.dur}>
                     <span class="a">{t.bad ? (<><span class="row"><span class="k">{t.bad[0]}</span><span>{t.time}</span></span><b>{t.bad[1]}</b></>) : (<><span>{t.time}</span><span>{t.id}</span></>)}</span>
-                    <span class="b"><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>{t.bad ? 'Note + time' : 'Note'}</span><span>{t.id}</span></span>
+                    <span class="b"><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg><span class="tp">{t.topic}</span></span><span class="lg">{t.logged}</span></span>
                   </div>
                 ))}
               </div>

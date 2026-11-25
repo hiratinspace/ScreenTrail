@@ -212,17 +212,33 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   const dayEls = Array.from(wall.querySelectorAll<HTMLElement>('.day'));
   const colEls = dayEls.map((d) => d.querySelector<HTMLElement>('.col')!);
   const target = wall.querySelector<HTMLElement>('.tile.this') ?? tiles[tiles.length - 1]!;
-  // The calendar: 08:00 to 17:00. Each session goes at its start, as tall as it ran. Done here, not in
-  // the markup, because the CSP forbids inline styles; with reduced motion too, it is still a calendar.
-  const DAY0 = 8 * 60, SPAN = 9 * 60;
-  const start = tiles.map((t) => Number(t.dataset.start));
+  // The calendar: 08:00 to 17:30. Each session goes at its start, as tall as it ran, but never shorter
+  // than its words need (a missed note has two lines) and never over the one before: a session is
+  // moved down instead. Done here, not in the markup, because the CSP forbids inline styles; with
+  // reduced motion too, it is still a calendar. top[] and bottom of #48213 are shares of the day.
+  const DAY0 = 8 * 60, SPAN = 9.5 * 60;
   const dayOf = tiles.map((t) => dayEls.indexOf(t.closest<HTMLElement>('.day')!));
-  const weekEnd = Number(target.dataset.start) + Number(target.dataset.dur);
-  tiles.forEach((t, i) => {
-    t.style.top = `${(((start[i]! - DAY0) / SPAN) * 100).toFixed(3)}%`;
-    t.style.height = `${((Number(t.dataset.dur) / SPAN) * 100).toFixed(3)}%`;
-  });
+  const top: number[] = [];
+  let weekEnd = 1;
   wall.classList.add('cal');
+  const place = () => {
+    const h = colEls[0]?.clientHeight || 440;
+    let prevDay = -1, floor = 0;
+    tiles.forEach((t, i) => {
+      if (dayOf[i] !== prevDay) { prevDay = dayOf[i]!; floor = 0; }
+      const want = (Number(t.dataset.dur) / SPAN) * h;
+      const tall = Math.max(want, t.classList.contains('bad') ? 38 : 22);
+      const y = Math.max(((Number(t.dataset.start) - DAY0) / SPAN) * h, floor);
+      floor = y + tall + 4;
+      top[i] = y / h;
+      t.style.top = `${y.toFixed(1)}px`;
+      t.style.height = `${tall.toFixed(1)}px`;
+      if (t === target) weekEnd = (y + tall) / h;
+    });
+  };
+  place();
+  // Without the scroll scene (reduced motion) the calendar still follows a resize.
+  if (reduce) addEventListener('resize', place);
   const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}`;
   const caps = Array.from(document.querySelectorAll<HTMLElement>('.cap'));
   const noteParts = Array.from(noteEl.querySelectorAll<HTMLElement>('.sn-body h3, .sn-body .ln'));
@@ -283,11 +299,13 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     const sweep = clamp((p - 0.02) / 0.3);
     const u = Math.min(sweep * 5, 4.9999);
     const d = Math.floor(u);
-    const minute = DAY0 + (u - d) * ((d === 4 ? weekEnd : DAY0 + SPAN) - DAY0);
+    // How far down the day the line is (a share of 08:00 to 17:30); Friday stops at #48213's foot.
+    const at = (u - d) * (d === 4 ? weekEnd : 1);
+    const minute = DAY0 + at * SPAN;
     const col = cols[d];
     if (col) {
       playhead.style.width = `${col.w}px`;
-      playhead.style.transform = `translate(${col.x.toFixed(1)}px, ${(col.y + (col.h * (minute - DAY0)) / SPAN).toFixed(1)}px)`;
+      playhead.style.transform = `translate(${col.x.toFixed(1)}px, ${(col.y + col.h * at).toFixed(1)}px)`;
     }
     // The rest of the week steps back once the line has stopped; the line goes with it.
     const back = ease(clamp((p - 0.33) / 0.08));
@@ -296,8 +314,8 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     // The tally is the count of tiles that have their note, so the number and the wall always agree.
     let written = 0;
     tiles.forEach((t, i) => {
-      // A session gets its note once the line has passed its start.
-      const healed = p > 0.02 && (dayOf[i]! < d || (dayOf[i] === d && start[i]! < minute));
+      // A session gets its note once the line has reached it.
+      const healed = p > 0.02 && (dayOf[i]! < d || (dayOf[i] === d && top[i]! < at));
       t.classList.toggle('healed', healed);
       if (healed || !t.classList.contains('bad')) written++;
       t.style.opacity = t === target ? '' : back ? String(1 - 0.82 * back) : '';
@@ -334,6 +352,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   const arrange = () => {
     pinned = !short.matches;
     document.documentElement.classList.toggle('js-scene', pinned);
+    place();
     if (pinned) { measure(); tick(); } else still();
   };
   if (!reduce) {

@@ -68,7 +68,9 @@
 .tile.bad b { font: 500 12px/1.2 var(--sans); color: #7d1a10; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile .k { letter-spacing: 0.06em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile .b { display: none; }
-.tile .b .st { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; white-space: nowrap; }
+.tile .b .st { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.tile .b .tp { font: 500 11.5px/1.2 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .b .lg { flex: none; opacity: .8; }
 .tile .b svg { width: 11px; height: 11px; flex: none; }
 .tile { transition: background-color .35s ease, border-color .35s ease, color .35s ease; }
 .tile.healed { background: color-mix(in srgb, var(--iris) 13%, var(--white)); border-color: transparent; color: var(--iris); }
@@ -76,15 +78,19 @@
 .tile.healed .b { display: flex; }
 .tile.this.healed { background: var(--iris); color: var(--white); }
 .playhead { display: none; }
-/* The calendar: an hour scale on the left (08 to 17), faint lines every two hours, each session
-   placed by script. */
-.wall.cal { grid-template-columns: 26px repeat(5, minmax(0, 1fr)); padding-left: 10px; }
+/* The calendar: 08:00 to 17:30, an hour scale on the left, faint lines every two hours, each session
+   placed by script. A missed note keeps room for its two lines; the script moves a session down rather
+   than let two overlap. */
+.wall.cal { grid-template-columns: 26px repeat(5, minmax(0, 1fr)); padding: 18px 20px 20px 12px; }
 .wall.cal .hours { display: block; position: relative; margin-top: 23px; height: var(--cal-h); font: 400 10px/1 var(--mono); color: var(--ink-3); }
 .wall.cal .hours span { position: absolute; left: 0; transform: translateY(-50%); }
-.wall.cal .hours span:nth-child(1) { top: 0; } .wall.cal .hours span:nth-child(2) { top: 22.222%; } .wall.cal .hours span:nth-child(3) { top: 44.444%; }
-.wall.cal .hours span:nth-child(4) { top: 66.667%; } .wall.cal .hours span:nth-child(5) { top: 88.889%; }
-.wall.cal .col { display: block; height: var(--cal-h); background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 22.222%; }
-.wall.cal .tile { position: absolute; left: 3px; right: 3px; height: auto; min-height: 16px; }
+.wall.cal .hours span:nth-child(1) { top: 0; } .wall.cal .hours span:nth-child(2) { top: 21.053%; } .wall.cal .hours span:nth-child(3) { top: 42.105%; }
+.wall.cal .hours span:nth-child(4) { top: 63.158%; } .wall.cal .hours span:nth-child(5) { top: 84.211%; }
+.wall.cal .col { display: block; height: var(--cal-h); background-image: linear-gradient(var(--line) 1px, transparent 1px); background-size: 100% 21.053%; }
+.wall.cal .tile { position: absolute; left: 3px; right: 3px; height: auto; padding: 0 10px; }
+.wall.cal .tile.bad { padding: 5px 10px; }
+.wall.cal .tile.bad .a { gap: 2px; }
+.wall.cal .tile.bad b { line-height: 1.15; }
 .wall { --cal-h: 440px; }
 .wall-note { text-align: center; font-size: 13px; color: var(--ink-3); margin-top: 18px; }
 
@@ -505,7 +511,9 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .dh { font-size: 10px; letter-spacing: .04em; padding-bottom: 8px; justify-content: center; }
   .tile { height: 24px; padding: 0 4px; font-size: 9px; justify-content: center; border-radius: 4px; }
   .wall.cal .tile { left: 1px; right: 1px; }
-  .tile:not(.bad) .a > span:last-child, .tile .b > span:last-child { display: none; }
+  .tile:not(.bad) .a > span:last-child, .tile .b .tp, .tile .b .lg { display: none; }
+  .tile .b .st { gap: 0; }
+  .wall.cal .tile.bad { padding: 3px 3px; }
   .tile .a, .tile .b { justify-content: center; }
   .tile.bad { height: 48px; padding: 0 4px; }
   .tile.bad .a { gap: 2px; }
