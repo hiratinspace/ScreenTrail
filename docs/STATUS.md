@@ -206,12 +206,11 @@ The owner's part of it is in §5.
 TypeScript 7 bump for the site, broke its install against `@astrojs/check`'s peer range; #371 tells
 Dependabot to leave TypeScript majors alone, and #364 is to be closed and opened again by Dependabot.
 
-**`main`'s last client run is red, and not for #370's reason.** The run after #370 (45444156223) passed
-every test but one: `ServiceCostTests.WithNoSessionABusyDesktopDoesNotWakeTheService` measured the
-foreground watcher at 10.5 wakes a second against a ceiling of 10, on a hosted runner. The exit crash
-#370 fixed did not come back in it. The failed job is being run again; if the ceiling keeps failing by a
-hair on hosted runners it needs a margin or the laptop only, which is a small fix of its own. The crash
-came in 2 of 6 runs before #370, so the next few `main` runs are the real check of it.
+**`main` is green.** The run after #370 (45444156223) first failed one hosted timing check by a hair:
+`ServiceCostTests.WithNoSessionABusyDesktopDoesNotWakeTheService` measured the foreground watcher at 10.5
+wakes a second against a ceiling of 10. Run again, it passed, and the exit crash #370 fixed did not come
+back in either attempt. The crash came in 2 of 6 runs before #370, so the next few `main` runs are the
+real check of it; if the timing check keeps failing by a hair on hosted runners it needs a margin.
 
 **The laptop runner** gave green hardware evidence for #365, #366, #367 and #369 on 2026-11-23 and
 2026-11-24. Between those runs it was the demo laptop: on 2026-11-22 and 2026-11-23 it ran demo sessions
@@ -279,7 +278,7 @@ Phases A and B of the ordered plan (backlog Part C) are complete apart from what
 
 | Piece | Where | State |
 |---|---|---|
-| GitHub repo (**public**) | https://github.com/hiratinspace/ScreenTrail | `main` at #371 (`91758355`). Its last client run (45444156223, after #370) failed one hosted timing check by a hair and is being run again (§1); every other job green. Open: Dependabot's #372. Secret scanning, push protection and Dependabot security updates on |
+| GitHub repo (**public**) | https://github.com/hiratinspace/ScreenTrail | `main` green at #371 (`91758355`); its last client run (45444156223, after #370) passed on its second attempt (§1). Open: Dependabot's #372. Secret scanning, push protection and Dependabot security updates on |
 | Build plan | `Build Plan/` | Spec at **v0.7.4** on `main` (#362). v0.4.3 is accepted, and v0.6.0's brand and layout are the owner's choice; the amendment rows from v0.5.0 on mostly say **Awaiting owner review**. Backlog Part C is the ordered plan, Part D the amendments |
 | Client | `client/` | `.Shared` (schema and IPC, contract version 15), `.Core`, `.Platform` (ADR-0005), `.Service`, `.UI`, and `.Tests.AxeRunner`. **4,593 tests** in the suite that runs anywhere and **625** in the Windows-only suite (CI run 45444156223 on `06b88b72`; ten of the 625 skipped on the hosted runner by design, which is the skip budget). Store migrations to 0016 |
 | Backend | `backend/` | ASP.NET Core API: tenants, devices, device tokens, invites, policy, summarize (which now refuses a tenant that locks local-only) and publish (bounded and gated per device and tenant), the Gemini and Claude providers, the cost ledger, the credential vault (rows bound to tenant, provider and site), ConnectWise and Hudu clients with the PSA company lookup, the demo PSA, the web admin's routes including the owner's integrations and their change record. **1,596 tests** (two skipped; CI run 44443446032 on `2bb61af2`, #348, the last `main` run that ran the backend job). Runs locally on PostgreSQL; not deployed (ST-007) |
