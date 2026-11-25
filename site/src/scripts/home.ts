@@ -189,9 +189,10 @@ figs.forEach((o) => figVisible.observe(o.el));
 addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now()); });
 
 /* ---------- The pinned scene: scroll runs four beats ----------
-   0 to .2 the problem wall; .22 to .44 every tile gets its note (the tally counts them, 38 to 46);
-   .46 to .66 the tiles fly together while the note for #48213 comes up (.52) and is written (.58 to
-   .76); .78 the last caption and .8 published, held to the end so it is read before the page moves on.
+   The problem wall is read on the way in, so the scene moves from the first scroll after it pins:
+   .02 to .22 every tile gets its note (the tally counts them, 38 to 46); .24 to .48 the tiles fly
+   together while the note for #48213 comes up (.34) and is written (.40 to .58); .62 the last caption
+   and .64 published, held to the end so it is read before the page moves on.
    With reduced motion, or without this script, the section is the still layout in home.css. */
 const sceneEl = byId('scene');
 const wall = byId('wall');
@@ -232,14 +233,15 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
   const read: Step = () => {
     if (!pinned) return;
     const r = sceneEl.getBoundingClientRect();
-    const p = clamp(-r.top / Math.max(1, r.height - innerHeight + 60));
+    // 0 the moment the scene pins under the 60px header, 1 when it lets go.
+    const p = clamp((60 - r.top) / Math.max(1, r.height - innerHeight + 60));
     return () => write(p);
   };
   const tick = () => read()?.();
   const write = (p: number) => {
-    const beat = p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.78 ? 2 : 3;
+    const beat = p < 0.02 ? 0 : p < 0.32 ? 1 : p < 0.62 ? 2 : 3;
     // The tiles are their own layers only while they fly.
-    wall.classList.toggle('flying', p > 0.42 && p < 0.72);
+    wall.classList.toggle('flying', p > 0.24 && p < 0.54);
     if (beat !== lastBeat) {
       lastBeat = beat;
       // Only what is seen changes: all four captions stay readable to assistive technology.
@@ -250,24 +252,24 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
     let order = 0;
     tiles.forEach((t) => {
       const isBad = t.classList.contains('bad');
-      const healed = p > 0.22 + (isBad ? 0.03 + order++ * 0.024 : Number(t.dataset.r) * 0.16);
+      const healed = p > 0.03 + (isBad ? 0.02 + order++ * 0.022 : Number(t.dataset.r) * 0.16);
       t.classList.toggle('healed', healed);
       if (!isBad || healed) written++;
     });
     tallyEl.textContent = String(written);
     tallyEl.classList.toggle('full', written === tiles.length);
     tiles.forEach((t, i) => {
-      const q = ease(clamp((p - 0.46 - Number(t.dataset.r) * 0.05) / 0.15));
+      const q = ease(clamp((p - 0.28 - Number(t.dataset.r) * 0.05) / 0.15));
       const off = offsets[i];
       if (!off) return;
       t.style.transform = q ? `translate(${off[0] * q}px, ${off[1] * q}px) scale(${1 - 0.75 * q})` : '';
       t.style.opacity = q ? String(1 - q) : '';
     });
-    const n = ease(clamp((p - 0.52) / 0.1));
+    const n = ease(clamp((p - 0.34) / 0.1));
     noteEl.style.opacity = String(n);
     noteEl.style.transform = `scale(${((0.6 + 0.4 * n) * noteFit).toFixed(4)})`;
-    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.58 - i * 0.02) / 0.04).toFixed(3)));
-    stamp?.classList.toggle('on', p > 0.8);
+    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.40 - i * 0.02) / 0.04).toFixed(3)));
+    stamp?.classList.toggle('on', p > 0.64);
   };
   const still = () => {
     tiles.forEach((t) => { t.style.transform = ''; t.style.opacity = ''; t.classList.remove('healed'); });

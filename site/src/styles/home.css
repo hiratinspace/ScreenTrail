@@ -74,7 +74,7 @@ html:not(.js-scene) .cap:not([data-cap='0']) .h2-like { font-size: clamp(22px, 2
 html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-top: 88px; }
 
 /* Pinned: scroll runs the four beats in one screen. */
-.js-scene .scene { height: 280vh; padding: 0; }
+.js-scene .scene { height: 240vh; padding: 0; }
 .js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: hidden; }
 .js-scene .scene-copy { display: grid; width: 100%; }
 /* The outgoing caption fades out in .14s and only then drops back to its start; the incoming one waits
@@ -447,7 +447,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .tile:not(.bad) .a span:last-child { display: none; }
   .tile .b { grid-auto-flow: column; justify-content: space-between; align-content: center; }
   .tile .b .st { font-size: 0; gap: 0; }
-  .js-scene .scene { height: 260vh; }
+  .js-scene .scene { height: 220vh; }
   .js-scene .wall { padding: 0 12px; }
   .js-scene .scene-note { padding: 12px; font-size: 12px; }
   .sn-body .ln .shot { display: none; }
