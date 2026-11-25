@@ -8,7 +8,7 @@
 
 /* Hero: it fills the first screen under the announcement and the header (98px together), so the next
    section starts below the fold at any window size. */
-.hero { position: relative; min-height: max(640px, calc(100svh - 98px)); display: grid; place-items: center; padding: 84px 0 96px; overflow: hidden; }
+.hero { position: relative; min-height: max(640px, calc(100svh - 98px)); display: grid; place-items: center; padding: 84px 0 96px; overflow: clip; view-timeline: --hero block; }
 .hero-copy { position: relative; z-index: 2; text-align: center; display: grid; justify-items: center; gap: 22px; max-width: 640px; margin-inline: auto; padding: 0 24px; }
 .hero h1 { font-size: clamp(38px, 5vw, 58px); line-height: 1.04; letter-spacing: -0.035em; }
 .hero h1 span { color: var(--iris); display: block; }
@@ -506,19 +506,25 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
-    .hero-copy { animation: scene-leave linear both; animation-timeline: view(); animation-range: exit 0% exit 80%; }
-    /* The card opening on load first, then the drift on its own scroll timeline. */
+    /* Leaving the hero: from the first scroll, the copy and the cards fade out slowly together over
+       most of the hero's height, the cards drifting up and away to their sides. On the hero's own
+       timeline (overflow: clip, so it is not a scroller of its own and the page's scroll drives it). */
+    .hero-copy { animation: scene-leave linear both; animation-timeline: --hero; animation-range: exit 0% exit 75%; }
     .hero .fig {
       animation: card-open 1.4s cubic-bezier(.22,1,.36,1) .35s both, scene-drift linear both;
-      animation-timeline: auto, view(block); animation-range: normal, exit 0% exit 100%;
+      animation-timeline: auto, --hero; animation-range: normal, exit 0% exit 75%;
     }
     .hero .f1, .hero .f2, .hero .f5 { animation-name: card-open, scene-drift-l; }
+    /* Arriving at the scene: it comes up slowly as it rises into view, settled by the time it pins. */
+    .js-scene .scene { view-timeline: --scene block; }
+    .js-scene .scene-copy, .js-scene .scene-stage, .js-scene .wall-note { animation: scene-arrive linear both; animation-timeline: --scene; animation-range: entry 0% entry 85vh; }
   }
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
    linear keyframe moved at a constant speed and stopped dead. */
 @keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
-@keyframes scene-leave { to { opacity: 0; transform: translateY(-60px) scale(.97); } }
-@keyframes scene-drift { to { opacity: 0; transform: translate(40px, -90px); } }
-@keyframes scene-drift-l { to { opacity: 0; transform: translate(-40px, -90px); } }
+@keyframes scene-leave { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translateY(-48px) scale(.98); } }
+@keyframes scene-drift { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(36px, -70px); } }
+@keyframes scene-drift-l { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(-36px, -70px); } }
+@keyframes scene-arrive { from { opacity: 0; transform: translateY(40px); animation-timing-function: cubic-bezier(.33,1,.68,1); } to { opacity: 1; transform: none; } }
