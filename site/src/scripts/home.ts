@@ -410,12 +410,17 @@ if (pill && pillLabel && pillClock && lastRow) {
 
 /* ---------- The session ribbon: the logo's band threaded through the events ----------
    A faint track carries the whole route; the Iris band draws along it as the events scroll up, and
-   each event is reached (its knot ringed, its text brought up) as the band gets to it. It is drawn by
-   the time the second row is a little above the middle of the window. Without the script, or with
-   reduced motion, the band is whole and every event is shown. */
+   each event is reached (its knot ringed, its text brought up) as the band gets to it. Where the
+   whole timeline fits in the window, the section holds still once it is all in view and the scroll
+   draws the band (over the first 85% of the hold; the rest is the finished ribbon, read before the
+   page moves on). Where it does not fit (a phone's column) the band draws as the events scroll up,
+   whole when the last is a little above the middle. Without the script, or with reduced motion, the
+   band is whole and every event is shown. */
 const eventsBox = byId('events');
 const ribbon = byId<SVGSVGElement>('ribbon');
-if (eventsBox && ribbon) {
+const sessionEl = byId('session');
+const sessionPin = byId('session-pin');
+if (eventsBox && ribbon && sessionEl && sessionPin) {
   const NS = 'http://www.w3.org/2000/svg';
   const evs = Array.from(eventsBox.querySelectorAll<HTMLElement>('.ev'));
   const live = !reduce;
@@ -425,6 +430,25 @@ if (eventsBox && ribbon) {
   let at: number[] = []; // where each knot sits along the band, as a share of its length
   let span = { y0: 0, y1: 0 }; // the first and last knots' heights in the box
   let lastDrawn = -1;
+  const html = document.documentElement;
+  let held = false, holdTop = 0, holdFor = 0, padTop = 0;
+  // Hold the section still while the band draws, when all of it fits below the header.
+  const layoutHold = (column: boolean) => {
+    sessionEl.style.height = '';
+    sessionPin.style.top = '';
+    html.classList.remove('session-held');
+    const headH = document.querySelector('header')?.offsetHeight ?? 0;
+    const room = innerHeight - headH, need = sessionPin.offsetHeight;
+    held = live && !column && need <= room - 48;
+    if (!held) return;
+    holdFor = Math.round(innerHeight * 1.1);
+    holdTop = headH + Math.round((room - need) / 2);
+    padTop = parseFloat(getComputedStyle(sessionEl).paddingTop) || 0;
+    const natural = sessionEl.offsetHeight;
+    html.classList.add('session-held');
+    sessionPin.style.top = `${holdTop}px`;
+    sessionEl.style.height = `${natural + holdFor}px`;
+  };
   const path = (cls: string, dd: string, w: number) => {
     const el = document.createElementNS(NS, 'path');
     el.setAttribute('class', cls);
@@ -441,6 +465,7 @@ if (eventsBox && ribbon) {
     if (pts.length < 2) return;
     const first = pts[0]!, lastPt = pts[pts.length - 1]!;
     const column = Math.abs(pts[1]!.x - first.x) < 4, W = column ? 4 : 6, edge = box.width + 6;
+    layoutHold(column);
     const k = Math.max(16, Math.min(80, (innerWidth - box.right - 8) / 0.75));
     let d = column ? `M ${first.x} ${first.y - 40}` : `M ${-box.left} ${first.y}`;
     d += ` L ${first.x} ${first.y}`;
@@ -474,9 +499,14 @@ if (eventsBox && ribbon) {
     lastDrawn = -1;
     if (live) write(read0());
   };
-  // How far the band has come: it starts as the first knot passes 78% down the window and is whole
-  // when the last knot is at 48%.
+  // How far the band has come. Held: through the hold. Not held: it starts as the first knot passes
+  // 78% down the window and is whole when the last knot is at 48%.
   const read0 = () => {
+    if (held) {
+      // How far into the hold: the timeline's own top would be at holdTop when it starts.
+      const into = holdTop - (sessionEl.getBoundingClientRect().top + padTop);
+      return clamp(into / (holdFor * 0.85));
+    }
     const top = eventsBox.getBoundingClientRect().top;
     const start = innerHeight * 0.78 - (top + span.y0);
     const run = span.y1 - span.y0 + innerHeight * 0.3;

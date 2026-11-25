@@ -240,6 +240,8 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 /* One session, start to ticket: the logo's ribbon threaded through the events. */
 .session { padding-block: 112px; }
 .events-box { position: relative; margin-top: 64px; }
+/* Held while the ribbon draws (home.ts sets its top and the section's extra height). */
+.session-held .session-pin { position: sticky; }
 .events { position: relative; margin: 0; padding: 0; list-style: none; counter-reset: ev; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 84px; column-gap: 32px; }
 .ribbon { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .ribbon .band, .ribbon .track { fill: none; stroke: var(--brand-ribbon-band); stroke-linejoin: round; stroke-linecap: round; }
