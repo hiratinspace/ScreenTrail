@@ -255,7 +255,12 @@ missed. No rule can match a word that was never returned, so the screen is asked
 What it costs is the blank space, or whatever the engine did not read, after a cue word: "press any key"
 at a line's end has the space after it masked, and so does an empty "Password" field. A cue the engine
 misread ("togen:") does not fire. `OcrScaledSecretTests` measures it through the viewer from the same
-readings, with and without, and prints both.
+readings, with and without, and prints both. On the hosted runner (run 45551439527): through the viewer,
+2,220 of 2,400 secrets masked whole with it against 1,990 without (82.9% to 92.5%), and part showing
+157 to 61; at 100% to 150% display scale, 1,196 of 1,200 (99.7%, from 1,165). What the viewer still
+loses is mostly at 0.6 and 0.7 of the size: card numbers with a digit misread so the checksum fails
+("47a6 0407 ..."), cues the engine misread, and a wrapped key's second row when that is the one not
+read.
 
 The reading costs time in proportion to the page: the text it gives the detectors is 1.3 times the
 page's on ordinary prose, 4 to 8 times where every cell of a grid is a run of its own, and 15 times
