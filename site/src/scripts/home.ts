@@ -353,7 +353,15 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   };
   const arrange = () => {
     pinned = !short.matches;
-    document.documentElement.classList.toggle('js-scene', pinned);
+    const html = document.documentElement;
+    // Switching between the still and pinned layouts (on load, or a resize across the breakpoint) is
+    // not a caption change: without this the three hidden captions would visibly fade out on top of
+    // the shown one. Transitions come back once that frame has painted.
+    if (html.classList.contains('js-scene') !== pinned) {
+      html.classList.add('scene-switch');
+      requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('scene-switch')));
+    }
+    html.classList.toggle('js-scene', pinned);
     place();
     if (pinned) { measure(); tick(); } else still();
   };

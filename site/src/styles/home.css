@@ -136,6 +136,8 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-scene .cap > * { translate: 0 14px; transition: translate 0s linear .4s; }
 .js-scene .cap.on > * { translate: 0 0; transition: translate .8s cubic-bezier(.22,1,.36,1) .3s; }
 .js-scene .cap.on > :nth-child(2) { transition-delay: .4s; }
+/* The layout switch on load (see home.ts) lands on the right caption without a crossfade. */
+.scene-switch.js-scene .cap, .scene-switch.js-scene .cap > *, .scene-switch.js-scene .cap.on > * { transition: none; }
 .js-scene .tally { grid-row: 2; }
 /* One cell the stage's own height: the note's layout box is taller than the stage (it is scaled down
    to fit), and a cell grown to hold it would push the centred calendar down onto the footnote. */
