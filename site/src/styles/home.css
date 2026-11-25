@@ -103,7 +103,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 
 /* Pinned: scroll runs the four beats in one screen. */
 .js-scene .scene { height: 240vh; padding: 0; }
-.js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: hidden; }
+.js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: clip; }
 .js-scene .scene-copy { display: grid; width: 100%; }
 /* The outgoing caption fades out in .14s and only then drops back to its start; the incoming one waits
    for it, so two headings never show at once. */
@@ -538,8 +538,15 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
     }
     .hero .f1, .hero .f2, .hero .f5 { animation-name: card-open, scene-drift-l; }
     /* Arriving at the scene: it comes up slowly as it rises into view, settled by the time it pins. */
-    .js-scene .scene { view-timeline: --scene block; }
-    .js-scene .scene-copy, .js-scene .scene-stage, .js-scene .wall-note { animation: scene-arrive linear both; animation-timeline: --scene; animation-range: entry 0% entry 85vh; }
+    /* Arriving at the scene: its pieces come up one at a time as each scrolls into view, the headline,
+       its line, the tally, then the week a day at a time, Monday first. Each on its own view timeline
+       (the pin is overflow: clip, not a scroller), all settled before the scene pins. */
+    .js-scene .cap[data-cap='0'] > *, .js-scene .tally, .js-scene .day {
+      animation: scene-arrive linear both; animation-timeline: view(); animation-range: entry calc(var(--k, 0) * 36px) entry calc(180px + var(--k, 0) * 36px);
+    }
+    .js-scene .cap[data-cap='0'] .sub { --k: 1; } .js-scene .tally { --k: 2; }
+    .js-scene .day:nth-child(1) { --k: 0; } .js-scene .day:nth-child(2) { --k: 1; } .js-scene .day:nth-child(3) { --k: 2; } .js-scene .day:nth-child(4) { --k: 3; } .js-scene .day:nth-child(5) { --k: 4; }
+    .js-scene .wall-note { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 100%; }
   }
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
@@ -549,4 +556,4 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 @keyframes scene-leave { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translateY(-48px) scale(.98); } }
 @keyframes scene-drift { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(36px, -70px); } }
 @keyframes scene-drift-l { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(-36px, -70px); } }
-@keyframes scene-arrive { from { opacity: 0; transform: translateY(40px); animation-timing-function: cubic-bezier(.33,1,.68,1); } to { opacity: 1; transform: none; } }
+@keyframes scene-arrive { from { opacity: 0; transform: translateY(28px); animation-timing-function: cubic-bezier(.33,1,.68,1); } to { opacity: 1; transform: none; } }
