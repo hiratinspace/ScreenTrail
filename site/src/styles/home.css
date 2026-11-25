@@ -32,7 +32,7 @@
 .f2 { left: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
 .f3 { right: max(8px, min(4%, calc(50% - 506px))); top: 10%; }
 .f4 { right: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
-/* On load the six cards come in together, after the headline, empty at first: a slow fade while each settles 16px in
+/* On load the six cards come in together, after the headline: a slow fade while each settles 16px in
    toward the copy, the left side and the right side mirrored. Calm, not a sequence. Uses `translate`, so
    it never fights the scroll-away drift's `transform`. Plain CSS, so a card shows without the script;
    none of it with reduced motion. */
@@ -40,10 +40,11 @@
 .hero-figs .fig:nth-child(1) { --dx: -12px; } .hero-figs .fig:nth-child(2) { --dx: 12px; }
 @media (prefers-reduced-motion: no-preference) {
   .hero .fig { animation: card-open 1.4s cubic-bezier(.22,1,.36,1) .35s both; }
-  /* Then what is inside: the header and the drawing fade up once the cards have settled. */
-  .hero .fig > * { animation: card-fill .9s cubic-bezier(.22,1,.36,1) 1.25s both; }
+  /* What is inside follows just behind the card, overlapping, so the card is never seen empty: the
+     header and drawing start while the card is still faint and rise 6px into place as it settles. */
+  .hero .fig > * { animation: card-fill 1.3s cubic-bezier(.33,1,.68,1) .45s both; }
 }
-@keyframes card-fill { from { opacity: 0; } to { opacity: 1; } }
+@keyframes card-fill { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
 @keyframes card-open { from { opacity: 0; translate: var(--dx, 0) 0; } to { opacity: 1; translate: 0 0; } }
 /* At least 250px either side of the centre, clear of the buttons, and set from the hero's foot so the
    frame behind them is never cut off on a short window. */
