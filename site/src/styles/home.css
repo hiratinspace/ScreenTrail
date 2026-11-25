@@ -125,10 +125,17 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-scene .scene { height: 240vh; padding: 0; }
 .js-scene .scene-pin { position: sticky; top: 60px; height: calc(100svh - 60px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; padding: clamp(20px, 5vh, 64px) 0 18px; overflow: clip; }
 .js-scene .scene-copy { display: grid; width: 100%; }
-/* The outgoing caption fades out in .14s and only then drops back to its start; the incoming one waits
-   for it, so two headings never show at once. */
-.js-scene .cap { grid-area: 1 / 1; opacity: 0; transform: translateY(10px); transition: opacity .14s ease-in, transform 0s linear .14s; pointer-events: none; }
-.js-scene .cap.on { opacity: 1; transform: none; transition: opacity .3s cubic-bezier(.16,1,.3,1) .14s, transform .4s cubic-bezier(.16,1,.3,1) .14s; }
+/* Changing caption: the outgoing one drifts up 10px and fades with a soft blur over .4s; the incoming
+   one waits .3s, then rises 14px into place and sharpens over .7s, its line a beat after its heading.
+   They overlap only while the outgoing one is nearly gone, so two headings are never read at once.
+   The fade is on the caption and the rise uses `translate`, so neither fights the first caption's
+   scroll-in animation (which runs on its heading and line, with `transform`). */
+.js-scene .cap { grid-area: 1 / 1; pointer-events: none; opacity: 0; filter: blur(4px); translate: 0 -10px; transition: opacity .4s ease, filter .4s ease, translate .4s ease; }
+.js-scene .cap.on { opacity: 1; filter: none; translate: 0 0; transition: opacity .7s cubic-bezier(.22,1,.36,1) .3s, filter .6s ease .3s, translate 0s linear .3s; }
+/* Its parts wait below while it is hidden, then rise in. */
+.js-scene .cap > * { translate: 0 14px; transition: translate 0s linear .4s; }
+.js-scene .cap.on > * { translate: 0 0; transition: translate .8s cubic-bezier(.22,1,.36,1) .3s; }
+.js-scene .cap.on > :nth-child(2) { transition-delay: .4s; }
 .js-scene .tally { grid-row: 2; }
 /* One cell the stage's own height: the note's layout box is taller than the stage (it is scaled down
    to fit), and a cell grown to hold it would push the centred calendar down onto the footnote. */
