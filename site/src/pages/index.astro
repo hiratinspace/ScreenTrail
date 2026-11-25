@@ -120,9 +120,23 @@ const days = perDay.map((count, d) => {
             <h3>Problem</h3>
             <div class="ln"><span></span><span>Nothing would print from the reception workstation; jobs sat in the queue.</span><span></span></div>
             <h3>Steps</h3>
-            <div class="ln"><span>1.</span><span>Found the Print Spooler service stopped.</span><span class="shot"></span></div>
-            <div class="ln"><span>2.</span><span>Started the service and set it to restart automatically on failure.</span><span class="shot"></span></div>
-            <div class="ln"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><span class="shot"></span></div>
+            <!-- Each step beside the screenshot it happened on, at its time in the session (13:54 to 14:05);
+                 step 2's password is painted over, as it was on screen. Drawn, not photographed. -->
+            <div class="ln st"><span>1.</span><span>Found the Print Spooler service stopped.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Services</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Name</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="36">Plug and Play</text><text class="w-mute" x="104" y="36">Running</text>
+<rect class="w-badrow" x="4" y="40" width="152" height="13" rx="2"/><text class="w-bad b" x="8" y="49">Print Spooler</text><text class="w-bad" x="104" y="49">Stopped</text>
+<text class="w-t" x="8" y="62">Remote Registry</text><text class="w-mute" x="104" y="62">Manual</text>
+<text class="w-t" x="8" y="74">Windows Update</text><text class="w-mute" x="104" y="74">Running</text>
+<path class="w-cursor" d="M92 47l0 11 3-3 2 5 2-1-2-5h4z"/></svg><figcaption>13:57</figcaption></figure></div>
+            <div class="ln st"><span>2.</span><span>Started the service and set it to restart automatically on failure.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Print Spooler Properties</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-tab on" x="8" y="23">General</text><text class="w-tab" x="40" y="23">Log On</text><text class="w-tab" x="70" y="23">Recovery</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="38">Startup type</text><rect class="w-field" x="62" y="31" width="90" height="10" rx="2"/><text class="w-t" x="66" y="38.5">Automatic</text><path class="w-ctl" d="M144 35l2 2 2-2"/>
+<text class="w-t" x="8" y="52">Log on as</text><rect class="w-field" x="62" y="45" width="90" height="10" rx="2"/><rect class="w-mask" x="64" y="47" width="64" height="6" rx="1"/><text class="w-masktext" x="131" y="52">masked</text>
+<text class="w-t" x="8" y="66">On failure</text><rect class="w-field" x="62" y="59" width="90" height="10" rx="2"/><text class="w-t" x="66" y="66.5">Restart the service</text>
+<rect class="w-btn" x="118" y="74" width="34" height="11" rx="2"/><text class="w-btntext" x="135" y="81.5" text-anchor="middle">Start</text></svg><figcaption>14:02 · masked</figcaption></figure></div>
+            <div class="ln st"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Reception printer</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Document</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-mute" x="8" y="38">Queue cleared, 0 documents</text>
+<path class="w-ghost" d="M8 46h96M8 55h80M8 64h88"/>
+<rect class="w-toast" x="62" y="68" width="92" height="16" rx="3"/><path class="w-okmark" d="M68 76l2.5 2.5L75 73.5"/><text class="w-toasttext" x="79" y="79">Test page printed</text></svg><figcaption>14:04</figcaption></figure></div>
             <h3>Result</h3>
             <div class="ln"><span></span><span>Printing works again from the reception PC.</span><span></span></div>
           </div>
