@@ -183,6 +183,8 @@ public sealed partial class OcrScaledSecretTests
         };
         var results = new Dictionary<(double Scale, long Quality), Tally>();
         var stages = new List<(string, Tally)>();
+        var slotGain = new List<string>();
+        var (allWith, allWithout) = (new Tally(), new Tally());
         foreach (var scale in scales)
         {
             foreach (var quality in qualities)
@@ -191,13 +193,22 @@ public sealed partial class OcrScaledSecretTests
                 foreach (var font in Fonts)
                 {
                     var tally = new Tally { SampleCap = 1 };
+                    var without = new Tally { SampleCap = 0 };
                     for (var page = 0; page < Pages; page++)
                     {
                         using var screen = Draw(font, 11f, 1.0, page);
                         using var seen = Resize(screen.Bitmap, scale);
                         var secrets = screen.Secrets.Select(s => s with { Pieces = [.. s.Pieces.Select(p => Scale(p, scale))] }).ToList();
-                        await Redact(recogniser, seen, secrets, quality, tally);
+                        var reading = await Read(recogniser)(Encode(seen, quality));
+                        Score(reading, seen, secrets, tally);
+                        Score(reading with { Redaction = WithoutUnreadValues.RedactFrame(reading.Words[0]) }, seen, secrets, without);
                     }
+
+                    slotGain.Add(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"| {scale:0.0} | {quality} | {font} | {without.Masked} | {tally.Masked} | {string.Join(", ", without.MaskedByKind)} | {string.Join(", ", tally.MaskedByKind)} | {without.Partial} | {tally.Partial} |"));
+                    allWith.Add(tally);
+                    allWithout.Add(without);
 
                     table.Add(string.Create(
                         CultureInfo.InvariantCulture,
@@ -212,6 +223,14 @@ public sealed partial class OcrScaledSecretTests
 
         Measurements.Record(string.Join(Environment.NewLine, table));
         Measurements.Record(StageTable("Where secrets were lost through the viewer.", stages));
+        Measurements.Record(string.Join(
+            Environment.NewLine,
+            [
+                string.Create(CultureInfo.InvariantCulture, $"The slot after a cue whose value was not read, through the viewer, from the same readings: masked whole **{allWithout.Masked}** of {allWithout.Secrets} without it, **{allWith.Masked}** with it; part showing {allWithout.Partial} without, {allWith.Partial} with."),
+                "| scale | JPEG | font | masked without | masked with | by kind without | by kind with | part showing without | part showing with |",
+                "|---|---|---|---|---|---|---|---|---|",
+                .. slotGain,
+            ]));
 
         // What is held to. Every condition was drawn and read, nothing masked in the picture is left
         // in the stored text, and at every scale and quality each kind is masked whole no fewer times
@@ -367,6 +386,9 @@ public sealed partial class OcrScaledSecretTests
     /// Reads the picture as the worker does, redacts it, and counts for each secret how much of its
     /// ink is under a mask.
     /// </summary>
+    /// <summary>The engine without the slot after an unread value, to measure what the slot adds from the same reading.</summary>
+    private static readonly RedactionEngine WithoutUnreadValues = new() { UnreadValues = false };
+
     private static Task Redact(WindowsOcrRecogniser recogniser, Bitmap bitmap, List<Secret> secrets, long quality, Tally tally) =>
         Redact(Read(recogniser), bitmap, secrets, quality, tally);
 
