@@ -408,11 +408,30 @@ if (pill && pillLabel && pillClock && lastRow) {
   tick();
 }
 
-/* ---------- The session ribbon: the logo's band threaded through the events ---------- */
+/* ---------- The session ribbon: the logo's band threaded through the events ----------
+   A faint track carries the whole route; the Iris band draws along it as the events scroll up, and
+   each event is reached (its knot ringed, its text brought up) as the band gets to it. It is drawn by
+   the time the second row is a little above the middle of the window. Without the script, or with
+   reduced motion, the band is whole and every event is shown. */
 const eventsBox = byId('events');
 const ribbon = byId<SVGSVGElement>('ribbon');
 if (eventsBox && ribbon) {
   const NS = 'http://www.w3.org/2000/svg';
+  const evs = Array.from(eventsBox.querySelectorAll<HTMLElement>('.ev'));
+  const live = !reduce;
+  if (live) document.documentElement.classList.add('js-ribbon');
+  let band: SVGPathElement | null = null;
+  let folds: { el: SVGPathElement; a: number; b: number }[] = [];
+  let at: number[] = []; // where each knot sits along the band, as a share of its length
+  let span = { y0: 0, y1: 0 }; // the first and last knots' heights in the box
+  let lastDrawn = -1;
+  const path = (cls: string, dd: string, w: number) => {
+    const el = document.createElementNS(NS, 'path');
+    el.setAttribute('class', cls);
+    el.setAttribute('d', dd);
+    el.setAttribute('stroke-width', String(w));
+    return el;
+  };
   const drawRibbon = () => {
     const box = eventsBox.getBoundingClientRect();
     const pts = Array.from(eventsBox.querySelectorAll('.knot')).map((k) => {
@@ -421,28 +440,61 @@ if (eventsBox && ribbon) {
     });
     if (pts.length < 2) return;
     const first = pts[0]!, lastPt = pts[pts.length - 1]!;
-    const column = Math.abs(pts[1]!.x - first.x) < 4, W = column ? 6 : 10, edge = box.width + 6;
+    const column = Math.abs(pts[1]!.x - first.x) < 4, W = column ? 4 : 6, edge = box.width + 6;
     const k = Math.max(16, Math.min(80, (innerWidth - box.right - 8) / 0.75));
     let d = column ? `M ${first.x} ${first.y - 40}` : `M ${-box.left} ${first.y}`;
     d += ` L ${first.x} ${first.y}`;
-    const folds: string[] = [];
+    // The route so far at each knot and around each turn, to measure where they fall along it.
+    const knotD = [d];
+    const foldD: { from: string; seg: string }[] = [];
     for (let i = 1; i < pts.length; i++) {
       const a = pts[i - 1]!, b = pts[i]!;
-      if (column || Math.abs(a.y - b.y) < 4) { d += ` L ${b.x} ${b.y}`; continue; }
+      if (column || Math.abs(a.y - b.y) < 4) { d += ` L ${b.x} ${b.y}`; knotD.push(d); continue; }
       const turn = `C ${edge + k} ${a.y} ${edge + k} ${b.y} ${edge} ${b.y}`;
-      d += ` L ${edge} ${a.y} ${turn} L ${b.x} ${b.y}`;
-      folds.push(`M ${edge} ${a.y} ${turn}`);
+      d += ` L ${edge} ${a.y}`;
+      foldD.push({ from: d, seg: `M ${edge} ${a.y} ${turn}` });
+      d += ` ${turn} L ${b.x} ${b.y}`;
+      knotD.push(d);
     }
     if (!column) d += ` L ${-box.left} ${lastPt.y}`;
-    const path = (cls: string, dd: string) => {
-      const el = document.createElementNS(NS, 'path');
-      el.setAttribute('class', cls);
-      el.setAttribute('d', dd);
-      el.setAttribute('stroke-width', String(W));
-      return el;
-    };
-    ribbon.replaceChildren(path('band', d), ...folds.map((f) => path('fold', f)));
+    const track = path('track', d, W);
+    band = path('band', d, W);
+    const foldEls = foldD.map((f) => path('fold', f.seg, W));
+    ribbon.replaceChildren(track, band, ...foldEls);
+    // Lengths, measured on a scratch path in the drawing.
+    const probe = path('probe', d, W);
+    ribbon.append(probe);
+    const len = (dd: string) => { probe.setAttribute('d', dd); return probe.getTotalLength(); };
+    const total = len(d) || 1;
+    at = knotD.map((dd) => len(dd) / total);
+    folds = foldD.map((f, i) => { const a = len(f.from) / total; return { el: foldEls[i]!, a, b: a + foldEls[i]!.getTotalLength() / total }; });
+    probe.remove();
+    [band, ...foldEls].forEach((el) => el.setAttribute('pathLength', '1'));
+    span = { y0: first.y, y1: lastPt.y };
+    lastDrawn = -1;
+    if (live) write(read0());
   };
+  // How far the band has come: it starts as the first knot passes 78% down the window and is whole
+  // when the last knot is at 48%.
+  const read0 = () => {
+    const top = eventsBox.getBoundingClientRect().top;
+    const start = innerHeight * 0.78 - (top + span.y0);
+    const run = span.y1 - span.y0 + innerHeight * 0.3;
+    return clamp(start / Math.max(1, run));
+  };
+  const write = (f: number) => {
+    if (!band || Math.abs(f - lastDrawn) < 0.0005) return;
+    lastDrawn = f;
+    band.style.strokeDasharray = '1 1';
+    band.style.strokeDashoffset = String(1 - f);
+    folds.forEach(({ el, a, b }) => {
+      const g = clamp((f - a) / Math.max(0.0001, b - a));
+      el.style.strokeDasharray = '1 1';
+      el.style.strokeDashoffset = String(1 - g);
+    });
+    evs.forEach((ev, i) => ev.classList.toggle('reached', f >= (at[i] ?? 1) - 0.004));
+  };
+  if (live) steps.push(() => { const f = read0(); return () => write(f); });
   addEventListener('resize', drawRibbon);
   drawRibbon();
   void document.fonts?.ready.then(drawRibbon);

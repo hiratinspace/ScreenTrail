@@ -132,6 +132,37 @@ test('with reduced motion, all four scene messages show', async ({ page }) => {
   }
 });
 
+test('the session ribbon reaches its events in order as the page scrolls', async ({ page }) => {
+  await page.goto('/');
+  const events = page.locator('#events');
+  const reached = () => page.locator('#events .ev').evaluateAll((els) => els.map((e) => e.classList.contains('reached')));
+  // Before the section, nothing is reached; each scroll reaches more, always from the first one on.
+  expect((await reached()).some(Boolean)).toBe(false);
+  let count = 0;
+  // From the box's top at the window's foot to its last event a little above the middle.
+  for (const f of [0.1, 0.4, 0.7, 1]) {
+    await events.evaluate((el, f) => {
+      const r = el.getBoundingClientRect();
+      const from = r.top + scrollY - innerHeight, to = r.bottom + scrollY - innerHeight * 0.3;
+      scrollTo({ top: from + (to - from) * f, behavior: 'instant' });
+    }, f);
+    // The band is redrawn on the next frame after a scroll.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const now = await reached();
+    expect(now.filter(Boolean).length).toBeGreaterThanOrEqual(count);
+    count = now.filter(Boolean).length;
+    expect(now.indexOf(false) === -1 || now.slice(now.indexOf(false)).every((r) => !r)).toBe(true);
+  }
+  expect(count).toBe(8);
+});
+
+test('with reduced motion, every session event shows at full strength', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const opacities = await page.locator('#events .ev h3').evaluateAll((els) => els.map((e) => getComputedStyle(e).opacity));
+  expect(opacities).toEqual(Array(8).fill('1'));
+});
+
 test('a text page keeps its side margins', async ({ page }) => {
   await page.goto('/security/');
   const left = await page.locator('.page-head h1').evaluate((el) => el.getBoundingClientRect().left);
