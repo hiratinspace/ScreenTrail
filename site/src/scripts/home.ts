@@ -195,7 +195,7 @@ addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now(
 
 /* ---------- The pinned scene: scroll runs four beats ----------
    The problem week is read on the way in, so the scene moves from the first scroll after it pins.
-   .02 to .32 a playhead sweeps the week, Monday to Friday, and every session it passes gets its note
+   .02 to .32 a now line runs down each day, Monday to Friday, and every session it passes gets its note
    (the tally counts them, 38 to 46). It stops on Friday's #48213. .33 to .41 the rest of the week
    steps back; .36 to .5 #48213's tile opens in place into its note, written as it opens (.36 to .49).
    .66 the last caption and .68 published, held to the end so it is read before the page moves on.
@@ -210,12 +210,24 @@ const phLabel = byId('ph-label');
 if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   const tiles = Array.from(wall.querySelectorAll<HTMLElement>('.tile'));
   const dayEls = Array.from(wall.querySelectorAll<HTMLElement>('.day'));
-  const at = tiles.map((t) => Number(t.dataset.at));
+  const colEls = dayEls.map((d) => d.querySelector<HTMLElement>('.col')!);
   const target = wall.querySelector<HTMLElement>('.tile.this') ?? tiles[tiles.length - 1]!;
+  // The calendar: 08:00 to 17:00. Each session goes at its start, as tall as it ran. Done here, not in
+  // the markup, because the CSP forbids inline styles; with reduced motion too, it is still a calendar.
+  const DAY0 = 8 * 60, SPAN = 9 * 60;
+  const start = tiles.map((t) => Number(t.dataset.start));
+  const dayOf = tiles.map((t) => dayEls.indexOf(t.closest<HTMLElement>('.day')!));
+  const weekEnd = Number(target.dataset.start) + Number(target.dataset.dur);
+  tiles.forEach((t, i) => {
+    t.style.top = `${(((start[i]! - DAY0) / SPAN) * 100).toFixed(3)}%`;
+    t.style.height = `${((Number(t.dataset.dur) / SPAN) * 100).toFixed(3)}%`;
+  });
+  wall.classList.add('cal');
+  const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}`;
   const caps = Array.from(document.querySelectorAll<HTMLElement>('.cap'));
   const noteParts = Array.from(noteEl.querySelectorAll<HTMLElement>('.sn-body h3, .sn-body .ln'));
   const stamp = noteEl.querySelector<HTMLElement>('.sn-stamp');
-  let cols: [number, number][] = [];
+  let cols: { x: number; y: number; w: number; h: number }[] = [];
   // The note's transform at the start (on the tile) and at the end (open, fitted to the stage).
   let from = { x: 0, y: 0, s: 1 };
   let to = { x: 0, y: 0, s: 1 };
@@ -236,8 +248,14 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
     wall.classList.toggle('scaled', wallFit < 1);
     noteEl.classList.toggle('scaled', noteFit < 1);
     if (wallFit < 1) wall.style.transform = `scale(${wallFit.toFixed(4)})`;
-    // Each day's column, in the wall's own (unscaled) pixels, for the playhead.
-    cols = dayEls.map((d) => [d.offsetLeft, d.offsetWidth]);
+    // Each day's column, in the wall's own (unscaled) pixels, for the now line. From the boxes on screen
+    // (offsetLeft would count from a day mid-way through its entrance, which has a transform).
+    const wb = wall.getBoundingClientRect();
+    cols = colEls.map((c) => {
+      const r = c.getBoundingClientRect(), day = c.closest<HTMLElement>('.day')!;
+      const lift = new DOMMatrixReadOnly(getComputedStyle(day).transform === 'none' ? undefined : getComputedStyle(day).transform).m42;
+      return { x: (r.left - wb.left) / wallFit - wall.clientLeft, y: (r.top - wb.top) / wallFit - lift - wall.clientTop, w: r.width / wallFit, h: r.height / wallFit };
+    });
     const n = noteEl.getBoundingClientRect();
     const r = target.getBoundingClientRect();
     // A small copy of the note, as wide as the tile and on its spot, so it is never stretched.
@@ -260,25 +278,31 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
       // Only what is seen changes: all four captions stay readable to assistive technology.
       caps.forEach((c, i) => c.classList.toggle('on', i === beat));
     }
-    // The playhead: how far through the week (0 Monday morning, 1 Friday at 13:54).
+    // The now line: how far through the week (0 Monday 08:00, 1 Friday as #48213 ends). It runs down
+    // each day from 08:00 to 17:00, then on to the next; Friday stops at the end of #48213.
     const sweep = clamp((p - 0.02) / 0.3);
     const u = Math.min(sweep * 5, 4.9999);
-    const col = cols[Math.floor(u)];
-    if (col) playhead.style.transform = `translateX(${(col[0] + col[1] * (u % 1)).toFixed(1)}px)`;
-    // The rest of the week steps back once the playhead has stopped; the playhead goes with it.
+    const d = Math.floor(u);
+    const minute = DAY0 + (u - d) * ((d === 4 ? weekEnd : DAY0 + SPAN) - DAY0);
+    const col = cols[d];
+    if (col) {
+      playhead.style.width = `${col.w}px`;
+      playhead.style.transform = `translate(${col.x.toFixed(1)}px, ${(col.y + (col.h * (minute - DAY0)) / SPAN).toFixed(1)}px)`;
+    }
+    // The rest of the week steps back once the line has stopped; the line goes with it.
     const back = ease(clamp((p - 0.33) / 0.08));
     playhead.style.opacity = String(clamp(p / 0.02) * (1 - back));
+    dayEls.forEach((el, i) => el.classList.toggle('now', i === d && p > 0.01 && back < 1));
     // The tally is the count of tiles that have their note, so the number and the wall always agree.
     let written = 0;
-    let label = '';
     tiles.forEach((t, i) => {
-      const healed = sweep > at[i]!;
+      // A session gets its note once the line has passed its start.
+      const healed = p > 0.02 && (dayOf[i]! < d || (dayOf[i] === d && start[i]! < minute));
       t.classList.toggle('healed', healed);
-      if (healed) label = `${t.dataset.day} ${t.dataset.time}`;
       if (healed || !t.classList.contains('bad')) written++;
       t.style.opacity = t === target ? '' : back ? String(1 - 0.82 * back) : '';
     });
-    label ||= `${tiles[0]?.dataset.day} ${tiles[0]?.dataset.time}`;
+    const label = hhmm(minute);
     if (label !== lastLabel) { lastLabel = label; phLabel.textContent = label; }
     tallyEl.textContent = String(written);
     tallyEl.classList.toggle('full', written === tiles.length);
@@ -296,6 +320,7 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
   };
   const still = () => {
     tiles.forEach((t) => { t.style.opacity = ''; t.classList.remove('healed'); });
+    dayEls.forEach((el) => el.classList.remove('now'));
     wall.style.transform = '';
     wall.classList.remove('scaled', 'opening');
     noteEl.classList.remove('scaled');
