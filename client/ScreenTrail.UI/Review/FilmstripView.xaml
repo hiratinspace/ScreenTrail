@@ -135,17 +135,13 @@
                  MouseDoubleClick="OnStripDoubleClick"
                  AutomationProperties.Name="Screenshots" />
 
-        <!-- The chords that apply to this pane, on screen where they are used (Spec §5 S3). -->
-        <Grid x:Name="StripFooter" Grid.Row="2" Margin="0,8,8,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <!-- The 5 s undo, beside the strip rather than floating over it: a toast a technician has to
-                 chase is a toast that expires while they are chasing it. -->
-            <Border Grid.Column="0"
-                    HorizontalAlignment="Left"
+        <!-- The 5 s undo, at a fixed place over the strip's bottom edge so nothing moves. It sat in the
+             footer, which grew about 38 px while it showed and shrank back, so the thumbnails jumped twice
+             (review finding D-24); the note pane's toast is overlaid the same way. -->
+        <Grid x:Name="StripToastLayer" Grid.Row="1">
+            <Border HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,8,8"
                     Style="{StaticResource Toast}"
                     Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
                 <StackPanel Orientation="Horizontal">
@@ -159,6 +155,14 @@
                             Command="{Binding UndoCommand}" />
                 </StackPanel>
             </Border>
+        </Grid>
+
+        <!-- The chords that apply to this pane, on screen where they are used (Spec §5 S3). -->
+        <Grid x:Name="StripFooter" Grid.Row="2" Margin="0,8,8,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
             <TextBlock Grid.Column="1"
                        VerticalAlignment="Center"

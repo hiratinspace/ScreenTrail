@@ -487,6 +487,7 @@ public partial class FilmstripView : UserControl
         Strip.Visibility = covered;
         StripHeader.Visibility = covered;
         StripFooter.Visibility = covered;
+        StripToastLayer.Visibility = covered;
 
         // After layout, so the control being focused is visible and its container exists.
         _ = Dispatcher.BeginInvoke(

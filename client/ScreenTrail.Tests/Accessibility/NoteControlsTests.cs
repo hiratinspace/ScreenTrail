@@ -11,6 +11,7 @@ namespace ScreenTrail.Tests.Accessibility;
 public sealed class NoteControlsTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly XNamespace Controls = "clr-namespace:ScreenTrail.UI.Controls";
 
     [Fact]
@@ -110,6 +111,21 @@ public sealed class NoteControlsTests
         var line = note.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
         Assert.Equal("Wrap", (string?)line.Attribute("TextWrapping"));
         Assert.DoesNotContain(line.Ancestors(), e => e.Name == Wpf + "WrapPanel");
+    }
+
+    [Fact]
+    public void TheStripsUndoToastIsOverTheStripNotInItsFooter()
+    {
+        // Review finding D-24: in the footer, the toast made the footer about 38 px taller for five seconds
+        // and the thumbnails jumped twice. Over the strip's bottom edge nothing moves.
+        var strip = Load("Review", "FilmstripView.xaml");
+        var toast = Assert.Single(strip.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Visibility") == "{Binding HasUndoToast, Converter={StaticResource Visible}}");
+        var layer = toast.Parent!;
+
+        Assert.Equal("StripToastLayer", (string?)layer.Attribute(Xaml + "Name"));
+        Assert.Equal("1", (string?)layer.Attribute("Grid.Row"));
+        Assert.Equal("Bottom", (string?)toast.Attribute("VerticalAlignment"));
+        Assert.DoesNotContain(toast.Ancestors(), e => (string?)e.Attribute(Xaml + "Name") == "StripFooter");
     }
 
     [Fact]
