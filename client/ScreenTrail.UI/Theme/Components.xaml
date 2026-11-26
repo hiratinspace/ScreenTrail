@@ -937,17 +937,24 @@
         </Setter>
     </Style>
 
-    <!-- Check chip: a destination in the envelope's Also line, a check box drawn as a bordered chip with
-         its box inside, so each destination reads as a value that is on or off. -->
+    <!-- Check chip: a destination in the envelope's Also line, a check box drawn as a bordered chip with its
+         box inside, so each destination reads as a value that is on or off. Design system 10.5 (review
+         findings A-18, B-20): the chip is 32 high, radius 6, 8 before the mark and 12 after the words, with a
+         border.strong edge; the mark is the check box's 18 px square of radius 4, not a 16 px near-circle that
+         read as a radio. On, the whole chip takes the selection tint. Hover and pressed are the Secondary
+         button's. -->
     <Style x:Key="CheckChip" BasedOn="{StaticResource {x:Type CheckBox}}" TargetType="CheckBox">
-        <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="Padding" Value="8,0,12,0" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
                     <Border x:Name="Chrome"
+                            MinHeight="{TemplateBinding MinHeight}"
                             Background="{DynamicResource Brush.bg.raised}"
-                            BorderBrush="{DynamicResource Brush.border.control}"
-                            BorderThickness="1"
+                            BorderBrush="{DynamicResource Brush.border.strong}"
+                            BorderThickness="{DynamicResource Thickness.border}"
                             CornerRadius="{DynamicResource Radius.control}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
@@ -957,24 +964,21 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border x:Name="Box"
-                                    Width="{DynamicResource Icon.control}"
-                                    Height="{DynamicResource Icon.control}"
+                                    Width="{DynamicResource Layout.choice-mark}"
+                                    Height="{DynamicResource Layout.choice-mark}"
                                     VerticalAlignment="Center"
                                     Background="{TemplateBinding Background}"
                                     BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource Radius.control}">
-                                <Path x:Name="Tick"
-                                      Width="9"
-                                      Height="7"
-                                      Data="M0.5,4 L3.5,7 L9.5,0.5"
-                                      Stretch="Fill"
-                                      Stroke="{DynamicResource Brush.text.on-accent}"
-                                      StrokeThickness="2"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"
-                                      Visibility="Collapsed" />
+                                    BorderThickness="{DynamicResource Thickness.border}"
+                                    CornerRadius="{DynamicResource Radius.sm}">
+                                <controls:Glyph x:Name="Tick"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource Icon}"
+                                                FontSize="{DynamicResource Icon.sm}"
+                                                Foreground="{DynamicResource Brush.text.on-accent}"
+                                                Text="{StaticResource Icon.Check}"
+                                                Visibility="Collapsed" />
                             </Border>
                             <ContentPresenter Grid.Column="1"
                                               Margin="8,0,0,0"
@@ -986,16 +990,22 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
                         </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+                        </Trigger>
                         <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.accent.primary}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
                             <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-                            <Setter TargetName="Tick" Property="Stroke" Value="{DynamicResource Brush.text.muted}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                            <Setter TargetName="Tick" Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
