@@ -359,14 +359,23 @@ const days = perDay.map((count, d) => {
     <div class="setup-copy">
       <h2 id="h-setup">Three steps per technician.</h2>
       <p class="sub">One installer per technician PC. Your ScreenTrail owner connects ConnectWise and Hudu once in the web admin, and the app's setup guide walks each technician through the rest.</p>
+      <dl class="points roles">
+        <div><dt>Owner</dt><dd>Connects ConnectWise and Hudu once, in the web admin</dd></div>
+        <div><dt>Technician</dt><dd>The three steps, with the app's setup guide</dd></div>
+      </dl>
     </div>
-    <ol class="steps">
-      <li class="stepbox"><span class="num" aria-hidden="true">1</span><div><h3>Install on each technician's PC</h3><p>One installer for the app and its capture service.</p></div></li>
-      <li class="stepbox"><span class="num" aria-hidden="true">2</span><div><h3>Activate with an invite code</h3><p>Your ScreenTrail owner invites each technician; the code works once, on one PC.</p>
-        <div class="code"><span class="fn">Setup · Activate</span>Invite code <em>XXXXX-XXXXX-XXXXX-XXXXX</em></div></div></li>
-      <li class="stepbox"><span class="num" aria-hidden="true">3</span><div><h3>Pick the remote tools</h3><p>Choose which tools start a session. The ConnectWise and Hudu connection is already there.</p>
-        <div class="code"><span class="fn">Setup · Remote tools</span><span class="cbo"><span class="cb on"></span>ScreenConnect</span><span class="cbo"><span class="cb on"></span>Remote Desktop</span><span class="cbo"><span class="cb"></span>AnyDesk</span></div></div></li>
-    </ol>
+    <div class="steps-wrap">
+      <i class="rail" aria-hidden="true"><i></i></i>
+      <ol class="steps">
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 12.5v1h11v-1"/></svg></span><div class="scard"><h3>Install on each technician's PC</h3><p>One installer for the app and its capture service.</p>
+          <div class="mini install" aria-hidden="true"><span class="file-ic"><img src={mark.src} alt="" width="18" height="18" /></span><span class="fname">ScreenTrail Setup<small>App and capture service</small></span><span class="istate"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>Installed</span><i class="ibar"><i></i></i></div></div></li>
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.6 8.4L13.5 2.5M11 5l2 2M9.3 6.7l1.5 1.5"/></svg></span><div class="scard"><h3>Activate with an invite code</h3><p>Your ScreenTrail owner invites each technician; the code works once, on one PC.</p>
+          <div class="mini invite" aria-hidden="true"><span class="mlabel">Invite code</span><span class="cells"><b>XXXXX</b><b>XXXXX</b><b>XXXXX</b><b>XXXXX</b></span><span class="mbtn">Activate</span></div></div></li>
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="5" rx="2.5"/><circle cx="11.5" cy="5" r="1.2" fill="currentColor"/><rect x="1.5" y="8.5" width="13" height="5" rx="2.5"/><circle cx="4.5" cy="11" r="1.2"/></svg></span><div class="scard"><h3>Pick the remote tools</h3><p>Choose which tools start a session. The ConnectWise and Hudu connection is already there.</p>
+          <div class="mini tools" aria-hidden="true"><span class="tog on">ScreenConnect<i></i></span><span class="tog on">Remote Desktop<i></i></span><span class="tog">AnyDesk<i></i></span><span class="mnote"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>ConnectWise and Hudu connected by your owner</span></div></div></li>
+      </ol>
+      <div class="ready"><span class="sicon done" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg></span><p><b>Ready.</b> The next remote session starts capture on its own.</p></div>
+    </div>
   </section>
 
   <MaskBand label="masked on the PC" />

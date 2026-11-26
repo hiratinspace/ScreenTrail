@@ -471,12 +471,51 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 
 /* Setup */
 .setup { padding-block: 112px 56px; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 72px; align-items: start; }
-.setup-copy { display: grid; gap: 14px; }
-.steps { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
-.stepbox { display: grid; grid-template-columns: 34px 1fr; gap: 16px; padding: 18px; background: var(--white); border: 1px solid var(--line-2); border-radius: 8px; }
-.stepbox .num { width: 30px; height: 30px; border: 1px solid var(--line-2); border-radius: 6px; display: grid; place-items: center; font: 500 13px/1 var(--mono); color: var(--iris); }
-.stepbox h3 { font-weight: 500; font-size: 16px; letter-spacing: 0; display: block; margin-bottom: 4px; }
+.setup-copy { display: grid; gap: 14px; position: sticky; top: 120px; }
+.setup-copy .roles { margin-top: 10px; }
+.setup-copy .roles div { grid-template-columns: 96px 1fr; }
+/* The steps hang off a rail that fills as they scroll up, from an icon per step to a solid Ready. */
+.steps-wrap { position: relative; display: grid; gap: 16px; }
+.rail { position: absolute; left: 21px; top: 30px; bottom: 22px; width: 2px; border-radius: 2px; background: color-mix(in srgb, var(--iris) 14%, var(--line)); }
+.rail i { position: absolute; inset: 0; border-radius: inherit; background: var(--iris); transform-origin: 50% 0; }
+.steps { display: grid; gap: 16px; margin: 0; padding: 0; list-style: none; }
+.stepbox { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 18px; align-items: start; }
+.sicon { position: relative; z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; margin-top: 8px; border-radius: 12px; background: var(--white); border: 1px solid color-mix(in srgb, var(--iris) 35%, var(--line-2)); color: var(--iris); box-shadow: 0 1px 2px rgba(30, 20, 80, .06), 0 8px 18px -12px rgba(60, 30, 140, .45); }
+.sicon svg { width: 20px; height: 20px; }
+.sicon.done { background: var(--iris); border-color: var(--iris); color: #fff; }
+.scard { padding: 20px 22px; background: var(--white); border: 1px solid color-mix(in srgb, var(--iris) 14%, var(--line)); border-radius: 14px; box-shadow: 0 1px 2px rgba(30, 20, 80, .05), 0 16px 32px -24px rgba(60, 30, 140, .4); }
+.stepbox h3 { font-weight: 500; font-size: 17px; letter-spacing: -0.01em; display: block; margin-bottom: 4px; }
 .stepbox p { color: var(--ink-2); font-size: 15px; }
+.ready { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 18px; align-items: center; }
+.ready .sicon { margin-top: 0; }
+.ready p { font-size: 15px; color: var(--ink-2); }
+.ready b { font-weight: 600; color: var(--ink); }
+/* A piece of the real setup screen under each step. */
+.mini { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--paper) 55%, var(--white)); font-size: 13px; color: var(--ink-2); }
+.install { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 12px; }
+.file-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--white); border: 1px solid var(--line); }
+.file-ic img { width: 18px; height: 18px; }
+.fname { font: 500 13.5px/1.25 var(--sans); color: var(--ink); }
+.fname small { display: block; font: 400 12px/1.3 var(--sans); color: var(--ink-3); }
+.istate { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: var(--ok-bg); color: var(--ok); font: 500 12px/1 var(--sans); }
+.istate svg { width: 12px; height: 12px; }
+.ibar { grid-column: 1 / -1; height: 4px; margin-top: 8px; border-radius: 4px; background: var(--line); overflow: clip; }
+.ibar i { display: block; height: 100%; border-radius: inherit; background: var(--iris); transform-origin: 0 50%; }
+.invite { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.mlabel { width: 100%; font-size: 12px; color: var(--ink-3); }
+.cells { display: flex; flex-wrap: wrap; gap: 6px; }
+.cells b { padding: 7px 8px; border-radius: 6px; background: var(--white); border: 1px solid var(--line-2); font: 500 12.5px/1 var(--mono); letter-spacing: .06em; color: var(--iris); }
+.mbtn { margin-left: auto; padding: 7px 12px; border-radius: 7px; background: var(--iris); color: #fff; font: 500 12.5px/1 var(--sans); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18); }
+.tools { display: grid; gap: 2px; padding-block: 6px; }
+.tog { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; color: var(--ink); font-size: 13.5px; }
+.tog + .tog { border-top: 1px solid var(--line); }
+.tog i { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--line-2); flex: none; }
+.tog i::after { content: ''; position: absolute; left: 3px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(20, 16, 48, .25); }
+.tog.on i { background: var(--iris); }
+.tog.on i::after { left: 15px; }
+.tog:not(.on) { color: var(--ink-3); }
+.mnote { display: flex; align-items: center; gap: 6px; margin-top: 6px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--ok); font-size: 12.5px; }
+.mnote svg { width: 13px; height: 13px; flex: none; }
 .code { margin-top: 12px; border: 1px solid var(--line); background: var(--paper); border-radius: 6px; font: 400 13px/1.6 var(--mono); color: var(--ink-2); padding: 10px 12px; overflow-x: auto; }
 .code .fn { color: var(--ink-3); display: block; font-size: 12px; margin-bottom: 4px; }
 .code em { font-style: normal; color: var(--iris); }
@@ -602,6 +641,11 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .hero-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 44px; padding: 0 24px; }
   .hero-figs .fig { display: flex; position: relative; inset: auto; width: auto; height: 136px; }
   .feature, .feature:nth-of-type(even), .setup, .privacy-grid { grid-template-columns: 1fr; gap: 36px; }
+  .setup-copy { position: static; }
+  .install { grid-template-columns: auto minmax(0, 1fr); }
+  .istate { grid-column: 2; justify-self: start; margin-top: 4px; }
+  .cells { width: 100%; flex-wrap: nowrap; }
+  .cells b { flex: 1 1 0; min-width: 0; padding-inline: 4px; text-align: center; font-size: 11.5px; letter-spacing: .02em; }
   .feature:nth-of-type(even) .copy { order: 0; }
   .realapp-row { grid-template-columns: 1fr; }
   /* Stacked: the same path, top to bottom, with one straight wire between the three parts. */
@@ -695,7 +739,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
    without support or with reduced motion, everything simply shows. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .setup-copy, .feature .copy, .stepbox, .realapp-row figure, .trust, .final-note {
+    .feature .copy, .scard, .realapp-row figure, .trust, .final-note {
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
     /* The real app: the Review window rises and grows into place as it comes up; the three smaller
@@ -703,6 +747,12 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
     .realapp > .frame-fig { animation: win-up linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; transform-origin: 50% 100%; }
     .realapp-row figure:nth-child(2) { animation-range: entry 8% entry calc(8% + 160px); }
     .realapp-row figure:nth-child(3) { animation-range: entry 16% entry calc(16% + 160px); }
+    /* Setup: the rail fills as the steps come up, whole once the last is in view, and the installer's bar
+       runs to the end as its step comes up. */
+    .rail i { animation: rail-fill linear both; animation-timeline: --steps; animation-range: entry 20% entry 100%; }
+    .steps-wrap { view-timeline: --steps block; }
+    .ibar i { animation: rail-fill-x linear both; animation-timeline: view(); animation-range: entry calc(100% + 15vh) entry calc(100% + 40vh); }
+    .istate { animation: state-in linear both; animation-timeline: view(); animation-range: entry calc(100% + 34vh) entry calc(100% + 42vh); }
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
     /* Leaving the hero: from the first scroll, the copy and the cards fade out together over the first
        half of the hero's height, the cards drifting up and out to their sides, so the hero has gone
@@ -731,6 +781,9 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
    linear keyframe moved at a constant speed and stopped dead. */
+@keyframes state-in { from { opacity: 0; scale: .9; } to { opacity: 1; scale: 1; } }
+@keyframes rail-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes rail-fill-x { from { transform: scaleX(.08); } to { transform: scaleX(1); } }
 @keyframes win-up { from { opacity: .25; transform: translateY(40px) scale(.94); animation-timing-function: cubic-bezier(.22,1,.36,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
