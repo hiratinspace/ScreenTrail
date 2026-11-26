@@ -559,6 +559,15 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .privacy-more { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }
 /* One link now, as wide as the cards above it: the label left, the arrow right. */
 .privacy-more .btn { width: 100%; justify-content: space-between; gap: 8px; height: 50px; padding: 0 20px; border-radius: 12px; }
+/* Its right end eases into Iris behind the arrow; on hover the tint deepens (a second layer fades in,
+   since gradients do not transition) and the arrow takes the Iris. */
+.privacy-more .btn { position: relative; isolation: isolate; overflow: clip; background: var(--white); border-color: color-mix(in srgb, var(--iris) 24%, var(--line-2)); }
+.privacy-more .btn::before, .privacy-more .btn::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; transition: opacity .35s ease; }
+.privacy-more .btn::before { background: linear-gradient(90deg, transparent 40%, color-mix(in srgb, var(--iris) 7%, var(--white)) 72%, color-mix(in srgb, var(--iris) 18%, var(--white))); }
+.privacy-more .btn::after { opacity: 0; background: linear-gradient(90deg, transparent 25%, color-mix(in srgb, var(--iris) 12%, var(--white)) 65%, color-mix(in srgb, var(--iris) 30%, var(--white))); }
+.privacy-more .btn:hover { background: var(--white); border-color: color-mix(in srgb, var(--iris) 45%, var(--line-2)); }
+.privacy-more .btn:hover::after { opacity: 1; }
+.privacy-more .btn svg { color: var(--iris); }
 .privacy-more .btn svg { width: 14px; height: 14px; transition: translate .25s cubic-bezier(.22,1,.36,1); }
 .privacy-more .btn:hover svg { translate: 2px 0; }
 .privacy .plain-fig figcaption { padding-top: 4px; }
