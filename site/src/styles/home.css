@@ -247,14 +247,19 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .events-box { margin-top: 40px; }
   .events-box .events { row-gap: 56px; }
 }
-.events { position: relative; margin: 0; padding: 0; list-style: none; counter-reset: ev; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 84px; column-gap: 32px; }
+.events { position: relative; margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 84px; column-gap: 32px; }
 .ribbon { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .ribbon .band, .ribbon .track { fill: none; stroke: var(--brand-ribbon-band); stroke-linejoin: round; stroke-linecap: round; }
 .ribbon .track { stroke: color-mix(in srgb, var(--iris) 14%, var(--white)); }
 .ribbon .fold { fill: none; stroke: var(--brand-ribbon-fold); stroke-linecap: round; }
 .ribbon .probe { fill: none; stroke: none; }
-.ev { position: relative; z-index: 1; counter-increment: ev; }
-.ev h3::before { content: counter(ev, decimal-leading-zero); margin-right: 10px; font: 500 12px/1 var(--mono); letter-spacing: .02em; color: var(--ink-3); vertical-align: 2px; font-variant-numeric: tabular-nums; }
+.ev { position: relative; z-index: 1; }
+/* Each moment is tagged with what kind of event it is, as the app's capture timeline tags them. */
+.ev h3 .kind { display: inline-block; margin-right: 10px; padding: 4px 6px; border-radius: 4px; font: 500 10.5px/1 var(--mono); text-transform: uppercase; letter-spacing: .05em; vertical-align: 3px; }
+.kind.start { background: color-mix(in srgb, #ff5a5f 12%, var(--white)); color: #b4232a; }
+.kind.draft, .kind.check { background: var(--iris-tint); color: var(--iris); }
+.kind.check { background: var(--ok-bg); color: var(--ok); }
+.kind.sent { background: var(--iris); color: #fff; }
 .ev:nth-child(5) { grid-column: 4; grid-row: 2; }
 .ev:nth-child(6) { grid-column: 3; grid-row: 2; }
 .ev:nth-child(7) { grid-column: 2; grid-row: 2; }
