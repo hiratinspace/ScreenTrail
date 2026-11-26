@@ -22,8 +22,8 @@
                        controls:LiveRegion.Setting="Polite" />
 
             <StackPanel Margin="0,16,0,0" Visibility="{Binding FormVisibility}">
-                <TextBlock Style="{StaticResource Text.Label}" Text="Invite code" />
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock Margin="0,0,0,4" Style="{StaticResource Text.Label}" Text="Invite code" />
+                <StackPanel Orientation="Horizontal">
                     <!-- Twenty characters in four groups of five (ADR-0009, "Guessing invite codes"): wide
                          enough for all of them in the mono face, typed in capitals as the invite shows them. -->
                     <TextBox Width="{DynamicResource Layout.field-wide}"

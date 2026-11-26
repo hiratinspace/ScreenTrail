@@ -102,7 +102,7 @@
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddPatternCommand}" IsEnabled="{Binding CanAddPattern}" AutomationProperties.Name="Add pattern" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding NewPatternProblem}" Visibility="{Binding NewPatternProblemVisibility}" controls:LiveRegion.Setting="Polite" />
-                <TextBlock Margin="0,16,0,8" Style="{StaticResource Text.Label}" Text="Try it on some text" />
+                <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="Try it on some text" />
                 <TextBox Style="{StaticResource Input.Default}" Text="{Binding Sample, UpdateSourceTrigger=PropertyChanged}" theme:Field.Placeholder="Paste a line from a ticket" AutomationProperties.Name="Try it on some text" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SampleMasked}" AutomationProperties.Name="What the sample becomes" />
             </StackPanel>

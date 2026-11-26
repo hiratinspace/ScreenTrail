@@ -130,7 +130,7 @@
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding MicrophoneLevelStatus}" />
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding MicrophoneApplies, Mode=OneWay}" />
                 </StackPanel>
-                <StackPanel Margin="0,16,0,8" Orientation="Horizontal">
+                <StackPanel Margin="0,16,0,4" Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Label}" Text="Speech model" />
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[SpeechModel]}" />
                 </StackPanel>
