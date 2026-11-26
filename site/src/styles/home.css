@@ -386,14 +386,29 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .realapp > h2 { margin-bottom: -14px; }
 .pan-hint { display: none; font-size: 13px; color: var(--ink-3); margin-top: -12px; }
 .frame-fig { position: relative; border: 1px solid var(--line-2); background: var(--white); padding: 14px; margin: 0; }
-.frame-fig::after { content: ''; position: absolute; inset: 10px -11px -11px 10px; border: 1px solid var(--line); z-index: -1; }
 .frame-fig img { border: 1px solid var(--line); }
 .frame-fig .tag { display: block; margin-bottom: 12px; }
-.realapp-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+/* The real app, framed as the Windows app it is: a rounded window, its title bar with the mark, the
+   screen's name and the window controls, the screenshot edge to edge beneath. */
+.frame-fig.win { padding: 0; overflow: hidden; border: 1px solid color-mix(in srgb, var(--iris) 18%, var(--line-2)); border-radius: 12px; box-shadow: 0 1px 2px rgba(30, 20, 80, .06), 0 18px 40px -24px rgba(60, 30, 140, .4); }
+.frame-fig.win.big { border-radius: 14px; box-shadow: 0 2px 4px rgba(30, 20, 80, .06), 0 40px 80px -36px rgba(60, 30, 140, .5); }
+.frame-fig.win img { display: block; border: 0; }
+.win-bar { display: flex; align-items: center; gap: 9px; height: 38px; padding: 0 14px; background: color-mix(in srgb, var(--paper) 70%, var(--white)); border-bottom: 1px solid var(--line); font: 500 12.5px/1 var(--sans); color: var(--ink-2); }
+.win-bar img { width: 16px; height: 16px; }
+.win-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.win-note { padding: 4px 8px; border-radius: 999px; background: color-mix(in srgb, var(--iris) 10%, var(--white)); color: var(--iris); font-size: 11.5px; }
+.win-ctl { margin-left: auto; display: flex; color: var(--ink-3); }
+.win-ctl svg { width: 52px; height: 10px; fill: none; stroke: currentColor; stroke-width: 1.1; stroke-linecap: round; }
+.realapp-row .win-bar { height: 32px; padding: 0 12px; font-size: 12px; }
+.realapp-row .win-ctl svg { width: 40px; }
+.realapp-row .frame-fig.win { transition: translate .35s cubic-bezier(.22,1,.36,1), box-shadow .35s cubic-bezier(.22,1,.36,1); }
+.realapp-row figure:hover .frame-fig.win { translate: 0 -4px; box-shadow: 0 2px 4px rgba(30, 20, 80, .06), 0 28px 48px -26px rgba(60, 30, 140, .5); }
+.realapp-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin-top: 16px; }
 .realapp-row figure, .plain-fig { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; }
 .realapp-row figcaption, .plain-fig figcaption { font-size: 14px; color: var(--ink-3); }
-.realapp-row figcaption { color: var(--ink-2); }
-.realapp-row img { width: 100%; aspect-ratio: 4 / 3; }
+.realapp-row figcaption { color: var(--ink-2); padding-top: 6px; line-height: 1.5; }
+.realapp-row figcaption b { display: block; font-weight: 500; font-size: 15px; color: var(--ink); }
+.realapp-row img:not(.win-bar img) { width: 100%; aspect-ratio: 4 / 3; }
 
 /* Works with */
 .stack { padding-block: 112px; }
@@ -680,10 +695,14 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
    without support or with reduced motion, everything simply shows. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .setup-copy, .feature .copy, .stepbox, .realapp-row figure, .flow-list, .flow-core,
-    .trust, .realapp > .frame-fig, .final-note {
+    .setup-copy, .feature .copy, .stepbox, .realapp-row figure, .trust, .final-note {
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
+    /* The real app: the Review window rises and grows into place as it comes up; the three smaller
+       windows follow one after another, left to right. */
+    .realapp > .frame-fig { animation: win-up linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; transform-origin: 50% 100%; }
+    .realapp-row figure:nth-child(2) { animation-range: entry 8% entry calc(8% + 160px); }
+    .realapp-row figure:nth-child(3) { animation-range: entry 16% entry calc(16% + 160px); }
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
     /* Leaving the hero: from the first scroll, the copy and the cards fade out together over the first
        half of the hero's height, the cards drifting up and out to their sides, so the hero has gone
@@ -712,6 +731,7 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
    linear keyframe moved at a constant speed and stopped dead. */
+@keyframes win-up { from { opacity: .25; transform: translateY(40px) scale(.94); animation-timing-function: cubic-bezier(.22,1,.36,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
 @keyframes scene-leave { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translateY(-48px) scale(.98); } }
