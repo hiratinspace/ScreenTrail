@@ -460,7 +460,9 @@ public sealed partial class XamlLiteralRatchetTests
                         fontSize[key] = numbers[0];
                         break;
                     case "Double" when key.StartsWith("Icon.", StringComparison.Ordinal)
-                        || (key.StartsWith("Layout.", StringComparison.Ordinal) && !key.Contains("padding", StringComparison.Ordinal)):
+                        || (key.StartsWith("Layout.", StringComparison.Ordinal) && !key.Contains("padding", StringComparison.Ordinal)
+                            // Read only by Button.Base; a 56 circle or a 72 field is not a button's width.
+                            && !key.StartsWith("Layout.button-min-width", StringComparison.Ordinal)):
                         box[key] = numbers[0];
                         break;
                     case "CornerRadius":

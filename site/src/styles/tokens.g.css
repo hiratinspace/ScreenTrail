@@ -116,6 +116,9 @@
   --layout-rail-row-padding-x: 12px;
   --layout-rail-row-padding-y: 8px;
   --layout-dialog-width: 420px;
+  --layout-button-min-width: 72px;
+  --layout-button-min-width-compact: 56px;
+  --layout-control-padding-x-compact: 8px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;

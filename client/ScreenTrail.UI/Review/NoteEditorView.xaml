@@ -1,6 +1,7 @@
 <UserControl x:Class="ScreenTrail.UI.Review.NoteEditorView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              xmlns:review="clr-namespace:ScreenTrail.UI.Review"
              Background="Transparent"
@@ -267,6 +268,7 @@
                                             <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
                                                 <Button Margin="0,0,8,0"
                                                         Style="{StaticResource Button.Secondary}"
+                                                        theme:Density.Compact="True"
                                                         Command="{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                         CommandParameter="{Binding}"
                                                         Click="OnConfirmClick"
@@ -279,6 +281,7 @@
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource Button.Ghost}"
+                                                        theme:Density.Compact="True"
                                                         Content="Edit"
                                                         Click="OnEditClick"
                                                         AutomationProperties.Name="{Binding EditName}" />
@@ -445,6 +448,7 @@
                            controls:LiveRegion.Setting="Assertive" />
                 <Button Margin="12,0,0,0"
                         Style="{StaticResource Button.Secondary}"
+                        theme:Density.Compact="True"
                         Command="{Binding UndoDeleteCommand}"
                         Click="OnUndoClick"
                         AutomationProperties.Name="Undo"

@@ -130,8 +130,13 @@
         <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
-    <!-- Button: primary, secondary, subtle (ghost), danger. 32 px tall at least; the reason a button is
-         disabled goes beside it as text (v0.4.3), and in its ToolTip for the mouse. -->
+    <!-- Buttons (design system 10.1, v0.7.0): one template and one base under every style, so a state means
+         the same on each. Pressed darkens the fill and never changes the label or fades (review findings
+         A-32, B-02). Disabled is its own fill and label colour, never an opacity, and never a look one
+         edge away from Secondary (A-13). The reason a button is disabled goes beside it as text (v0.4.3),
+         and in its ToolTip for the mouse. Default 32 high, 12 px sides, 72 wide at least; theme:Density.Compact
+         makes it 28, 8 and 56 (B-03). A shortcut inside a button is Text.KeyHint after the label, 8 apart,
+         and stays out of AutomationProperties.Name (it goes in AcceleratorKey, E-22). -->
     <ControlTemplate x:Key="Button.Template" TargetType="ButtonBase">
         <Border x:Name="Chrome"
                 Background="{TemplateBinding Background}"
@@ -146,9 +151,10 @@
         </Border>
     </ControlTemplate>
 
-    <Style x:Key="Button.Secondary" TargetType="Button">
+    <!-- What every button shares. Not used on its own: a button is one of the styles below. -->
+    <Style x:Key="Button.Base" TargetType="Button">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.button-min-width}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -156,30 +162,42 @@
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template" Value="{StaticResource Button.Template}" />
+        <Style.Triggers>
+            <Trigger Property="theme:Density.Compact" Value="True">
+                <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+                <Setter Property="MinWidth" Value="{DynamicResource Layout.button-min-width-compact}" />
+                <Setter Property="Padding" Value="{DynamicResource Padding.control-compact}" />
+            </Trigger>
+            <!-- The shared disabled look, for the styles with a fill: Primary, Secondary, DangerSolid. -->
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Button.Secondary" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="Button.Primary" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
+    <Style x:Key="Button.Primary" BasedOn="{StaticResource Button.Base}" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
@@ -189,27 +207,27 @@
                 <Setter Property="Background" Value="{DynamicResource Brush.accent.primary.hover}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.hover}" />
             </Trigger>
+            <!-- Its own pressed colour (v0.7.0), not the rest fill at 85%: the fade let the card show through
+                 and looked lighter than hover. -->
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                <Setter Property="Opacity" Value="0.85" />
+                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.pressed}" />
             </Trigger>
             <!-- Neutral when disabled, the way Windows 11 does it: a faded accent reads as "primary, but
-                 broken", and its words fell to about 2:1. -->
+                 broken". Repeated after hover and pressed so it wins over both. -->
             <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="Button.Ghost" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderBrush" Value="Transparent" />
+    <!-- Ghost: no fill and no edge at rest. Hover fills, and no box appears (a border growing on hover is
+         the flat WinForms button). Disabled is the label alone, in text.disabled. -->
+    <Style x:Key="Button.Ghost" BasedOn="{StaticResource Button.Base}" TargetType="Button">
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
@@ -217,56 +235,30 @@
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <!-- Subtle is the Windows 11 name for the same button. -->
-    <Style x:Key="Button.Subtle" BasedOn="{StaticResource Button.Ghost}" TargetType="Button" />
-    <Style x:Key="Button.Danger" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
+    <!-- Danger: an entry point to something destructive (Discard in Review, Bulk discard, Delete
+         everything). Red words with no fill at rest, so it is plainly the destructive one without being
+         the loudest thing on the screen; hover and pressed take the danger tint, and the words stay red
+         throughout (review finding B-01: built on Secondary, the label went grey at the click). Built on
+         the base, so no Secondary trigger can leak into it. -->
+    <Style x:Key="Button.Danger" BasedOn="{StaticResource Button.Base}" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-            </Trigger>
-            <!-- Secondary's pressed trigger turns the label text.secondary, and this style inherits it: the
-                 red label went grey at the click on the most certain button in the app (review finding B-01).
-                 Pressed keeps the danger fill and the red label. -->
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- Ghost, danger on hover (Spec §5 S3, Review's Discard): quiet at rest beside Publish, and plainly the
-         destructive one the moment the pointer or the keyboard reaches it. Keyboard focus takes the same
-         look as hover, so a technician tabbing to it sees what it is before pressing it. -->
-    <Style x:Key="Button.GhostDanger" BasedOn="{StaticResource Button.Ghost}" TargetType="Button">
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
         </Style.Triggers>
     </Style>

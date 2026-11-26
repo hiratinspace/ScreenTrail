@@ -64,6 +64,7 @@ Theme/Components.xaml	Padding	14,0	1
 Theme/Components.xaml	Padding	14,6,10,6	1
 Theme/Components.xaml	Padding	16,0,6,0	1
 Theme/Components.xaml	Padding	6	1
+Theme/Components.xaml	Padding	8,0	1
 Theme/Components.xaml	Width	12	3
 Theme/Components.xaml	Width	20	1
 Theme/Components.xaml	Width	8	3

@@ -87,7 +87,7 @@
 
                             <Button Grid.Column="2"
                                     Margin="0,0,8,0"
-                                    Style="{StaticResource Button.GhostDanger}"
+                                    Style="{StaticResource Button.Danger}"
                                     Content="Discard"
                                     Command="{Binding Note.DiscardCommand}"
                                     ToolTip="Discard this session. You will be asked to type DISCARD."

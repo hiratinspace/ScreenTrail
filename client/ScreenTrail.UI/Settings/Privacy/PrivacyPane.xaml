@@ -1,6 +1,7 @@
 <UserControl x:Class="ScreenTrail.UI.Settings.Privacy.PrivacyPane"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              AutomationProperties.Name="Privacy and redaction">
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
@@ -40,7 +41,7 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" Content="Remove"
+                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
                                         Command="{Binding DataContext.RemoveProcessCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                         AutomationProperties.Name="{Binding StringFormat='Remove {0} from the excluded apps'}" />
                             </StackPanel>
@@ -74,7 +75,7 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                                 <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" Content="Remove"
+                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
                                         Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
                                         AutomationProperties.Name="{Binding StringFormat='Remove the pattern {0}'}" />
                             </StackPanel>
