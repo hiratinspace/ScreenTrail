@@ -528,12 +528,25 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 /* Privacy */
 .privacy { padding-block: 112px; }
 .privacy-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 56px; margin-top: 40px; align-items: start; }
-.trust { display: grid; grid-template-columns: repeat(2, 1fr); border-top: 1px solid var(--line-2); border-left: 1px solid var(--line-2); margin: 0; padding: 0; list-style: none; }
-.trust li { padding: 22px; border-right: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); display: grid; gap: 6px; align-content: start; background: color-mix(in srgb, var(--white) 50%, transparent); }
-.trust h3 { font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
-.trust p { color: var(--ink-2); font-size: 15px; }
-.trust svg { width: 22px; height: 22px; color: var(--iris); margin-bottom: 6px; }
+.trust { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+/* Six answers as cards, each led by its icon and tagged with where the protection lives: on screen, on
+   the technician's PC, or in the MSP's own policy. */
+.trust li { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 12px; align-content: start; padding: 20px 22px 22px; background: color-mix(in srgb, var(--paper) 55%, var(--white)); border: 1px solid color-mix(in srgb, var(--iris) 12%, var(--line)); border-radius: 14px; transition: border-color .3s ease, box-shadow .35s cubic-bezier(.22,1,.36,1), background-color .3s ease; }
+.trust li:hover { background: var(--white); border-color: color-mix(in srgb, var(--iris) 28%, var(--line)); box-shadow: 0 18px 36px -26px rgba(60, 30, 140, .45); }
+.trust .ti { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: var(--white); border: 1px solid color-mix(in srgb, var(--iris) 22%, var(--line)); color: var(--iris); box-shadow: 0 1px 2px rgba(30, 20, 80, .05); }
+.trust .ti svg { width: 21px; height: 21px; }
+.where { justify-self: end; padding: 4px 9px; border-radius: 999px; font: 500 11.5px/1 var(--sans); }
+.where.pc { background: color-mix(in srgb, var(--iris) 10%, var(--white)); color: var(--iris); }
+.where.screen { display: inline-flex; align-items: center; gap: 6px; background: var(--paper-2); color: var(--ink-2); }
+.where.screen::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #ff5a5f; }
+.where.policy { background: var(--paper-2); color: var(--ink-2); }
+.trust h3 { grid-column: 1 / -1; margin-top: 12px; font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
+.trust p { grid-column: 1 / -1; color: var(--ink-2); font-size: 15px; }
 .privacy-more { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }
+.privacy-more .btn { gap: 8px; }
+.privacy-more .btn svg { width: 14px; height: 14px; transition: translate .25s cubic-bezier(.22,1,.36,1); }
+.privacy-more .btn:hover svg { translate: 2px 0; }
+.privacy .plain-fig figcaption { padding-top: 4px; }
 
 /* Pilot: the invitation written as the ticket note this page drafted, with the form as its Publish side. */
 .pilot { padding-block: 112px 130px; }
@@ -739,11 +752,13 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
    without support or with reduced motion, everything simply shows. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    .feature .copy, .scard, .realapp-row figure, .trust, .final-note {
+    .feature .copy, .scard, .realapp-row figure, .trust li, .final-note {
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
     /* The real app: the Review window rises and grows into place as it comes up; the three smaller
        windows follow one after another, left to right. */
+    .trust li:nth-child(even) { animation-range: entry 6% entry calc(6% + 160px); }
+    .privacy .plain-fig .frame-fig { animation: win-up linear both; animation-timeline: view(); animation-range: entry 0% entry 50%; transform-origin: 50% 100%; }
     .realapp > .frame-fig { animation: win-up linear both; animation-timeline: view(); animation-range: entry 0% entry 70%; transform-origin: 50% 100%; }
     .realapp-row figure:nth-child(2) { animation-range: entry 8% entry calc(8% + 160px); }
     .realapp-row figure:nth-child(3) { animation-range: entry 16% entry calc(16% + 160px); }
