@@ -2287,7 +2287,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-29, A-30, A-31/B-57, design-system §13, D-06 (from ST-126: `layout.pane-padding-narrow` 16 under `rail-narrow-below`, then the shell's `MinWidth` 960; at 960 with the 24 padding All sessions' columns need 656 px of 646)
 - **Blocked By:** none
 - **Laptop:** Yes (fonts, round ends, icon coverage)
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. Tokens v0.7.0 with the "client" overrides (web and site layouts unchanged; their colours follow), Icons.xaml (A-29), the spacing scale in the frame, rail, banners and strip (A-30), the type roles with line heights (A-31), banner and chip colours, D-06 (MinWidth 960). Laptop: Segoe UI Variable faces, Radius.pill 999 corners, Fluent and MDL2 coverage (design system 15). Left for their tickets: `layout.hud-height` 40 (ST-134, with the pill), the rest of the text-role sweep, the motion helper (ST-128 onward).
 
 ### **ST-128 · Buttons and focus rings: seven styles, compact size, states, shortcut hint pattern**
 - **Findings:** A-13, A-32/B-02, B-01, B-03 to B-07, B-53, A-14/B-08/E-22, B-32
