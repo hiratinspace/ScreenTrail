@@ -78,6 +78,8 @@ public sealed class OnboardingWizard(
     private bool _testDone;
     private string? _testRefused;
 
+    private string? _toolsRefused;
+
     /// <summary>What the step says when the service refused the test session and gave no reason of its own.</summary>
     public const string TestNotStarted = "The test session did not start. Check that ScreenTrail's tray icon says it is connected, then try again.";
 
@@ -135,6 +137,7 @@ public sealed class OnboardingWizard(
     {
         OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "microphone") =>
             "Without the microphone, sessions are drafted without narration, from screenshots alone. Fix it now or later in Windows Settings.",
+        OnboardingStep.Tools when _toolsRefused is { } notSaved => notSaved,
         OnboardingStep.TryIt when !_testDone && _testRefused is { } refused => refused,
         OnboardingStep.TryIt when _testDone => "The draft is on its way. It opens in Review when it is ready, usually within a minute.",
         OnboardingStep.Done => "ScreenTrail starts when you open a remote session. Look for the pill.",
@@ -177,6 +180,32 @@ public sealed class OnboardingWizard(
                     ? new PermissionRow(l.Capability, l.Label, false, "Not checked.", null)
                     : new PermissionRow(l.Capability, l.Label, check.State == "ok", check.Message, check.FixLink);
             })];
+    }
+
+    /// <summary>What the Tools step says when Continue could not save the choices, before the service's reason.</summary>
+    public const string ToolsNotSaved = "Your remote tools were not saved.";
+
+    /// <summary>
+    /// Continue. On the Tools step it saves the choices first: the step used to have its own Save beside
+    /// Continue, and Continue alone silently dropped an unticked tool (review findings C-O5, E-09). If the
+    /// save fails the wizard stays on the step and says why. Returns whether the wizard moved on.
+    /// </summary>
+    public async Task<bool> ContinueAsync(CancellationToken ct = default)
+    {
+        if (!CanContinue)
+        {
+            return false;
+        }
+
+        if (Step == OnboardingStep.Tools && Capture.HasUnsavedEdits && !await Capture.SaveAsync(ct).ConfigureAwait(false))
+        {
+            _toolsRefused = Capture.Problem is { Length: > 0 } why ? $"{ToolsNotSaved} {why}" : $"{ToolsNotSaved} Try again.";
+            return false;
+        }
+
+        _toolsRefused = null;
+        Next();
+        return true;
     }
 
     public void Next()

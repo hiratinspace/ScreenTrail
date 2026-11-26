@@ -33,6 +33,63 @@ public sealed class OnboardingWizardTests
     }
 
     [Fact]
+    public async Task ContinueOnRemoteToolsSavesTheChoices()
+    {
+        // Review findings C-O5 and E-09: the step had its own Save, and Continue alone dropped an unticked
+        // tool without a word.
+        var capture = new FakeCapture();
+        var wizard = await AtToolsAsync(capture);
+
+        wizard.Capture.SetTool("rdp", false);
+        Assert.True(await wizard.ContinueAsync());
+
+        Assert.Equal(OnboardingStep.Connect, wizard.Step);
+        Assert.Equal(["rdp"], Assert.Single(capture.Saved).DisabledTools);
+    }
+
+    [Fact]
+    public async Task ContinueWithNothingChangedDoesNotSave()
+    {
+        var capture = new FakeCapture();
+        var wizard = await AtToolsAsync(capture);
+
+        Assert.True(await wizard.ContinueAsync());
+
+        Assert.Equal(OnboardingStep.Connect, wizard.Step);
+        Assert.Empty(capture.Saved);
+    }
+
+    [Fact]
+    public async Task AFailedSaveStaysOnTheStepAndSaysWhy()
+    {
+        var capture = new FakeCapture { Refusal = "The capture service is not running." };
+        var wizard = await AtToolsAsync(capture);
+
+        wizard.Capture.SetTool("rdp", false);
+        Assert.False(await wizard.ContinueAsync());
+
+        Assert.Equal(OnboardingStep.Tools, wizard.Step);
+        Assert.Equal($"{OnboardingWizard.ToolsNotSaved} The capture service is not running.", wizard.Note);
+
+        capture.Refusal = null;
+        Assert.True(await wizard.ContinueAsync());
+        Assert.Equal(OnboardingStep.Connect, wizard.Step);
+    }
+
+    private static async Task<OnboardingWizard> AtToolsAsync(FakeCapture capture)
+    {
+        var wizard = Wizard(capture: capture);
+        wizard.Next();
+        wizard.Skip();
+        await wizard.LoadStepAsync();
+        Assert.Equal(OnboardingStep.Permissions, wizard.Step);
+        wizard.Next();
+        await wizard.LoadStepAsync();
+        Assert.Equal(OnboardingStep.Tools, wizard.Step);
+        return wizard;
+    }
+
+    [Fact]
     public async Task ActivationWaitsForTheDeviceOrAnExplicitLater()
     {
         var device = new FakeDevice();
@@ -279,11 +336,11 @@ public sealed class OnboardingWizardTests
     internal static OnboardingWizard WizardFor(IReadOnlyList<CapabilityStatus> checks) =>
         Wizard(capabilities: new FakeCapabilities { Checks = checks });
 
-    private static OnboardingWizard Wizard(FakeDevice? device = null, FakeCapabilities? capabilities = null, FakeIntegrations? integrations = null, FakeTestSession? session = null, Action<DateTimeOffset>? finished = null) =>
+    private static OnboardingWizard Wizard(FakeDevice? device = null, FakeCapabilities? capabilities = null, FakeIntegrations? integrations = null, FakeTestSession? session = null, Action<DateTimeOffset>? finished = null, FakeCapture? capture = null) =>
         new(
             new ActivationPanel(device ?? new FakeDevice(), "TECH-LAPTOP"),
             capabilities ?? new FakeCapabilities(),
-            new CapturePanel(new FakeCapture()),
+            new CapturePanel(capture ?? new FakeCapture()),
             new IntegrationsPanel(integrations ?? new FakeIntegrations()),
             session ?? new FakeTestSession(),
             finished ?? (_ => { }));
@@ -324,7 +381,19 @@ public sealed class OnboardingWizardTests
         public Task<CaptureSnapshot?> LoadAsync(CancellationToken ct = default) =>
             Task.FromResult<CaptureSnapshot?>(new CaptureSnapshot(new Shared.Settings.CaptureSettings(), [new ToolChoice("rdp", "Remote Desktop")], [], false, 120));
 
-        public Task<string?> SaveAsync(Shared.Settings.CaptureSettings settings, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        public string? Refusal { get; set; }
+
+        public List<Shared.Settings.CaptureSettings> Saved { get; } = [];
+
+        public Task<string?> SaveAsync(Shared.Settings.CaptureSettings settings, CancellationToken ct = default)
+        {
+            if (Refusal is null)
+            {
+                Saved.Add(settings);
+            }
+
+            return Task.FromResult(Refusal);
+        }
     }
 
     private sealed class FakeIntegrations : IIntegrationsGateway

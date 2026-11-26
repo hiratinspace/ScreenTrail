@@ -144,8 +144,15 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [RelayCommand]
     private async Task NextAsync()
     {
-        _wizard.Next();
-        await LoadAsync().ConfigureAwait(true);
+        // On Remote tools, Continue saves the choices; a failed save stays on the step and says why.
+        if (await _wizard.ContinueAsync().ConfigureAwait(true))
+        {
+            await LoadAsync().ConfigureAwait(true);
+        }
+        else
+        {
+            Refresh();
+        }
     }
 
     [RelayCommand]
@@ -177,13 +184,6 @@ public sealed partial class OnboardingViewModel : ObservableObject
         {
             _ = Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
         }
-    }
-
-    [RelayCommand]
-    private async Task SaveToolsAsync()
-    {
-        _ = await _wizard.Capture.SaveAsync().ConfigureAwait(true);
-        Refresh();
     }
 
     [RelayCommand]
