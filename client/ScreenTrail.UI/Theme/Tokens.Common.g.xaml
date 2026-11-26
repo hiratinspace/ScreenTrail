@@ -95,4 +95,5 @@
     <sys:Double x:Key="Focus.offset">1</sys:Double>
     <sys:Double x:Key="Border.width">1</sys:Double>
     <Thickness x:Key="Thickness.border">1</Thickness>
+    <Thickness x:Key="Thickness.focus">2</Thickness>
 </ResourceDictionary>

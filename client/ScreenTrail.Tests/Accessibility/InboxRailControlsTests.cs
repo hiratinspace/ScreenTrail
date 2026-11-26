@@ -73,10 +73,16 @@ public sealed class InboxRailControlsTests
         Assert.Equal("3", (string?)ring.Attribute("BorderThickness"));
         Assert.Equal("{DynamicResource Brush.shell.accent}", (string?)ring.Attribute("BorderBrush"));
 
-        foreach (var key in new[] { "Rail.Search", "Rail.GroupToggle", "Rail.FootItem", "Rail.Link" })
+        foreach (var key in new[] { "Rail.GroupToggle", "Rail.FootItem", "Rail.Link" })
         {
             Assert.Equal("{StaticResource FocusRing.Rail}", Setter(Style(key), "FocusVisualStyle"));
         }
+
+        // The search box is a text field: a 2 px shell.accent edge over its own (review finding B-09), and the
+        // outer ring only in high contrast, as every field.
+        Assert.Equal("{DynamicResource FocusVisual.input}", Setter(Style("Rail.Search"), "FocusVisualStyle"));
+        var edge = Style("Rail.Search").Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + "Name") == "FocusEdge");
+        Assert.Equal("{DynamicResource Brush.shell.accent}", (string?)edge.Attribute("BorderBrush"));
     }
 
     [Fact]

@@ -53,6 +53,10 @@ function wpfColors(t, theme) {
       `    <DropShadowEffect x:Key="Elevation.${name}" Color="${e[theme].color.toUpperCase()}" BlurRadius="${e.blur}" ShadowDepth="${e.depth}" Direction="270" Opacity="${e[theme].opacity}" />`,
     );
   }
+  // A text field's keyboard ring (design system 10.2, review finding B-09): none in light and dark, where the
+  // field's own 2 px accent edge shows focus; the high contrast dictionary draws one, because there the edge
+  // alone was too faint to see on a scaled screen (ST-084).
+  lines.push('    <Style x:Key="FocusVisual.input" />');
   lines.push('</ResourceDictionary>');
   return lines.join('\n');
 }
@@ -109,6 +113,7 @@ function wpfCommon(shared) {
   lines.push(`    <sys:Double x:Key="Focus.offset">${t.focus.offset}</sys:Double>`);
   lines.push(`    <sys:Double x:Key="Border.width">${t.border.width}</sys:Double>`);
   lines.push(`    <Thickness x:Key="Thickness.border">${t.border.width}</Thickness>`);
+  lines.push(`    <Thickness x:Key="Thickness.focus">${t.focus.width}</Thickness>`);
   lines.push('</ResourceDictionary>');
   return lines.join('\n');
 }

@@ -459,10 +459,36 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Input / Search: default and error; the validation message is a Text.Error line below, never a dialog.
-         Focus is the accent outline thickening to 2 px, and from the keyboard the focus ring outside it too
-         (Spec §3): on a scaled screen in high contrast the thickened outline alone was too faint to see,
-         since the system's frame and highlight colours are close in luminance (ST-084, the laptop's run). -->
+    <!-- Input / Search (design system 10.2). The validation message is a line below, never a dialog. Focus is
+         a 2 px accent edge drawn over the 1 px one, so the text never moves (review finding B-09: the border
+         thickened from 1 to 2 and the text shifted 1 px right and down), and no second ring sits outside it.
+         High contrast keeps a ring too (FocusVisual.input, from the theme's dictionary): there the edge alone
+         was too faint on a scaled screen, since the frame and highlight colours are close in luminance
+         (ST-084, the laptop's run). One template serves every text field; the styles set its colours. -->
+    <ControlTemplate x:Key="Input.Template" TargetType="TextBox">
+        <Grid>
+            <Border x:Name="Chrome"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="{DynamicResource Radius.control}"
+                    SnapsToDevicePixels="True">
+                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </Border>
+            <Border x:Name="FocusEdge"
+                    BorderBrush="{DynamicResource Brush.accent.primary}"
+                    BorderThickness="{DynamicResource Thickness.focus}"
+                    CornerRadius="{DynamicResource Radius.control}"
+                    IsHitTestVisible="False"
+                    SnapsToDevicePixels="True"
+                    Visibility="Collapsed" />
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
     <Style x:Key="Input.Default" TargetType="TextBox">
         <Setter Property="Height" Value="{DynamicResource Layout.control-height}" />
         <Setter Property="Padding" Value="10,0" />
@@ -474,74 +500,33 @@
         <Setter Property="SelectionBrush" Value="{DynamicResource Brush.accent.primary}" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Chrome"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
+        <Setter Property="Template" Value="{StaticResource Input.Template}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+            </Trigger>
+            <!-- The focus fill is the rest fill: white in light, so the field does not change colour as well. -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
     <!-- Multiline: the note's own fields, which are prose and grow. Input.Default fixes a height and
          centres its content, which turns a three-line step into one clipped line. -->
     <Style x:Key="Input.Multiline" BasedOn="{StaticResource Input.Default}" TargetType="TextBox">
         <Setter Property="Height" Value="Auto" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
-        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Padding" Value="10,8" />
         <Setter Property="AcceptsReturn" Value="True" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="VerticalContentAlignment" Value="Top" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Chrome"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Top" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
     <!-- In place (Spec v0.6.0 §5 S3, "The note is edited in place as it will land"): the note's own text,
          read as the ticket will show it. At rest it is the text on the pane inside a faint 1 px edge
@@ -555,35 +540,21 @@
         <Setter Property="Padding" Value="8,4" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Chrome"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Top" />
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+            </Trigger>
+        </Style.Triggers>
+</Style>
 
     <!-- A step's frame on its row (Spec v0.6.0 §5 S3): the thumbnail is the button. Its edge is the control
          edge, so the picture reads as something to press, and hover and press tint it like a chip. -->
@@ -625,26 +596,33 @@
         <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="PasswordBox">
-                    <Border x:Name="Chrome"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
-                    </Border>
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="FocusEdge"
+                                BorderBrush="{DynamicResource Brush.accent.primary}"
+                                BorderThickness="{DynamicResource Thickness.focus}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="True"
+                                Visibility="Collapsed" />
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                            <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
@@ -2213,23 +2191,33 @@
         <Setter Property="SelectionBrush" Value="{DynamicResource Brush.shell.accent}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Rail}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Chrome"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
-                    </Border>
+                    <!-- Focus as the panes' fields show it (review finding B-09): a 2 px edge over the 1 px one, in
+                         the frame's accent, so the query does not shift as the caret arrives. -->
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
+                        </Border>
+                        <Border x:Name="FocusEdge"
+                                BorderBrush="{DynamicResource Brush.shell.accent}"
+                                BorderThickness="{DynamicResource Thickness.focus}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="True"
+                                Visibility="Collapsed" />
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.shell.accent}" />
-                            <Setter TargetName="Chrome" Property="BorderThickness" Value="2" />
+                            <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
