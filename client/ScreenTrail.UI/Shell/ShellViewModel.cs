@@ -303,7 +303,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case PaneAction.History:
                 _historyPane ??= _history?.Invoke();
                 Content = _historyPane ?? "History arrives when the capture service answers.";
-                if (_historyPane is History.HistoryViewModel list)
+                if (_historyPane is History.HistoryViewModel list && step.RefreshHistory)
                 {
                     _ = list.RefreshAsync(_closing);
                 }

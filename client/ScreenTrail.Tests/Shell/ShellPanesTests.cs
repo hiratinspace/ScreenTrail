@@ -74,6 +74,29 @@ public sealed class ShellPanesTests
     }
 
     [Fact]
+    public void AllSessionsIsReadOnEntryAndWhenASessionStartsOrEndsOnly()
+    {
+        // Review finding D-22: every event the service sent rebuilt the table, so a technician selecting
+        // sessions while another one recorded lost the selection and the scroll position each time.
+        var panes = new ShellPanes();
+
+        Assert.True(panes.Next(Snapshot(ShellView.History)).RefreshHistory);
+        Assert.False(panes.Next(Snapshot(ShellView.History)).RefreshHistory);
+
+        Assert.True(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.Recording, "s2"))).RefreshHistory);
+        Assert.False(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.Paused, "s2"))).RefreshHistory);
+        Assert.False(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.Suppressed, "s2"))).RefreshHistory);
+        Assert.False(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.Recording, "s2"))).RefreshHistory);
+        Assert.True(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.DraftReady, "s2"))).RefreshHistory);
+
+        // The service coming back reads it again, as does entering the view afresh.
+        Assert.False(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.DraftReady, "s2")) with { Connection = ServiceConnection.Unavailable }).RefreshHistory);
+        Assert.True(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.DraftReady, "s2"))).RefreshHistory);
+        _ = panes.Next(Snapshot(ShellView.Settings));
+        Assert.True(panes.Next(Snapshot(ShellView.History, Capture(CaptureStates.DraftReady, "s2"))).RefreshHistory);
+    }
+
+    [Fact]
     public void LeavingSettingsAndComingBackKeepsWhatIsPending()
     {
         // Spec, Settings layout (owner decision): one Save bar for the page, and leaving Settings keeps the

@@ -37,7 +37,7 @@ public enum PaneAction
 /// The session the Review pane was for has gone (it was discarded), so the pane is let go of now, while
 /// another view shows, rather than kept for a return that would show a note that no longer exists.
 /// </param>
-public sealed record PaneStep(PaneAction Action, string? SessionId = null, bool LoadSettings = false, bool KeepEdits = false, bool ReleaseReview = false);
+public sealed record PaneStep(PaneAction Action, string? SessionId = null, bool LoadSettings = false, bool KeepEdits = false, bool ReleaseReview = false, bool RefreshHistory = false);
 
 /// <summary>
 /// Which pane the shell shows, and when it may ask the service for anything (ST-070).
@@ -61,6 +61,9 @@ public sealed class ShellPanes
     private bool _reviewHadDraft;
     private bool _reviewFailed;
     private ServiceConnection? _connection;
+
+    /// <summary>What All sessions was last read for: the session and whether it was being recorded or had ended.</summary>
+    private (string? Session, string? State)? _historyRead;
 
     /// <summary>The view the content area belongs to now, or null before the first snapshot.</summary>
     public ShellView? View => _view;
@@ -124,7 +127,14 @@ public sealed class ShellPanes
                 return new PaneStep(PaneAction.None);
 
             case ShellView.History:
-                return new PaneStep(PaneAction.History, ReleaseReview: release);
+                // Read when the view is entered, when the service comes back, and when a session starts or
+                // ends; not on every event the service sends. Each read rebuilt the table, which cleared the
+                // selection and scrolled to the top while another session recorded (review finding D-22).
+                // Moving between recording, paused and a privacy pause changes nothing the table shows.
+                var historyKey = (snapshot.Capture?.SessionId, Resting(snapshot.Capture?.State));
+                var refresh = entering || reconnected || _historyRead != historyKey;
+                _historyRead = historyKey;
+                return new PaneStep(PaneAction.History, ReleaseReview: release, RefreshHistory: refresh);
 
             case ShellView.Settings:
                 // Spec, Settings layout (owner decision): leaving Settings keeps the changes pending, so
@@ -153,6 +163,10 @@ public sealed class ShellPanes
         snapshot.Capture is { } capture
         && capture.SessionId == sessionId
         && capture.State is CaptureStates.DraftReady or CaptureStates.DraftFailed;
+
+    /// <summary>The capture state as All sessions sees it: recording, paused and suppressed are one state.</summary>
+    private static string? Resting(string? state) =>
+        state is CaptureStates.Recording or CaptureStates.Paused or CaptureStates.Suppressed ? CaptureStates.Recording : state;
 }
 
 /// <summary>The shell's status line (Spec §5 S1's tooltip wording), from the store's snapshot.</summary>
