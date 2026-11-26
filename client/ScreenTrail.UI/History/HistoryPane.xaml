@@ -120,7 +120,7 @@
                                     VerticalAlignment="Top"
                                     Style="{StaticResource Icon}"
                                     Foreground="{DynamicResource Brush.accent.primary}"
-                                    Text="&#xE946;" />
+                                    Text="{StaticResource Icon.Info}" />
                     <StackPanel Grid.Column="1">
                         <TextBlock Style="{StaticResource Text.Body}"
                                    TextWrapping="Wrap"
@@ -186,7 +186,7 @@
                                                 AutomationProperties.Name="Publish not confirmed">
                                     <StackPanel Orientation="Horizontal">
                                         <controls:Glyph Style="{StaticResource Icon}"
-                                                        FontSize="{DynamicResource Size.xs}"
+                                                        FontSize="{DynamicResource Icon.sm}"
                                                         Foreground="{DynamicResource Brush.state.paused}"
                                                         Text="{x:Static local:HistoryRow.NotConfirmedGlyph}" />
                                         <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="{Binding NotConfirmedLabel}" />
@@ -214,7 +214,7 @@
                     <Ellipse Fill="{DynamicResource Brush.bg.selected}" />
                     <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                                     Foreground="{DynamicResource Brush.accent.primary}"
-                                    Text="&#xE81C;" />
+                                    Text="{StaticResource Icon.History}" />
                 </Grid>
                 <TextBlock Margin="0,16,0,0"
                            HorizontalAlignment="Center"

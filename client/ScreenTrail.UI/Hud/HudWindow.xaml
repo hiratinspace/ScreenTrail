@@ -155,7 +155,7 @@
                             ToolTip="{Binding RedactionSpoken}"
                             Visibility="{Binding ShowRedactions, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xEA18;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Shield}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Typography.NumeralAlignment="Tabular"
@@ -170,7 +170,7 @@
                             ToolTip="{Binding MicTooltip}"
                             Visibility="{Binding ShowMic, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="&#xE720;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{StaticResource Icon.Mic}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding MicText}"
@@ -182,7 +182,7 @@
                             ToolTip="{Binding CloudTooltip}"
                             Visibility="{Binding ShowCloud, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="&#xE753;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{StaticResource Icon.Cloud}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding CloudText}"
@@ -198,7 +198,7 @@
                             ToolTip="{Binding MarkButton.Tooltip}"
                             AutomationProperties.Name="{Binding MarkButton.Spoken}"
                             Visibility="{Binding ShowMarkControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="&#xE7C1;" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Flag}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
@@ -214,7 +214,7 @@
                             ToolTip="{Binding StopButton.Tooltip}"
                             AutomationProperties.Name="{Binding StopButton.Spoken}"
                             Visibility="{Binding ShowStopControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="&#xE71A;" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Stop}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"

@@ -212,7 +212,7 @@
                                 AutomationProperties.Name="Company mapping">
                             <StackPanel>
                                 <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE7BA;" />
+                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Warning}" />
                                     <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="KB article not sent yet" />
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
@@ -258,7 +258,7 @@
                                 AutomationProperties.Name="Check the ticket first">
                             <StackPanel>
                                 <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE9CE;" />
+                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Unknown}" />
                                     <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="Not confirmed" />
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
@@ -321,7 +321,7 @@
                                     AutomationProperties.Name="Open next"
                                     AutomationProperties.AcceleratorKey="Enter">
                                 <StackPanel Orientation="Horizontal">
-                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="&#xE72A;" />
+                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Forward}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open next" />
                                     <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
                                 </StackPanel>

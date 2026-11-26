@@ -62,7 +62,7 @@
                             IsHitTestVisible="False"
                             Style="{StaticResource Icon}"
                             Foreground="{DynamicResource Brush.shell.muted}"
-                            Text="&#xE721;" />
+                            Text="{StaticResource Icon.Search}" />
             <TextBlock Margin="32,0,12,0"
                        VerticalAlignment="Center"
                        Panel.ZIndex="1"
@@ -126,7 +126,7 @@
                                               AutomationProperties.HelpText="Shows or hides the older sessions.">
                                     <StackPanel Orientation="Horizontal">
                                         <controls:Glyph Style="{StaticResource Icon}"
-                                                        FontSize="{DynamicResource Size.xs}"
+                                                        FontSize="{DynamicResource Icon.sm}"
                                                         Foreground="{DynamicResource Brush.shell.muted}"
                                                         Text="{Binding Chevron}" />
                                         <TextBlock Margin="8,0,0,0"

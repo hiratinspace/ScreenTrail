@@ -11,6 +11,11 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
                     xmlns:theme="clr-namespace:ScreenTrail.UI.Theme">
+    <!-- The icons by concept (design system 8): here, so every window, harness and test that loads the
+         components has them too. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Icons.xaml" />
+    </ResourceDictionary.MergedDictionaries>
 
     <!-- Focus ring: 2 px accent just outside the control; WPF shows FocusVisualStyle for keyboard focus only. -->
     <Style x:Key="FocusRing">
@@ -92,7 +97,7 @@
     </Style>
     <!-- An empty or waiting pane: a large icon in a soft circle, one line of what is going on. -->
     <Style x:Key="EmptyState.Icon" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.hero}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
@@ -1342,7 +1347,7 @@
         </Style.Triggers>
     </Style>
     <Style x:Key="Badge.StateGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding StatusTone}" Value="Accent">
@@ -2190,7 +2195,7 @@
         </Style.Triggers>
     </Style>
     <Style x:Key="Rail.BadgeGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding BadgeTone}" Value="Published">

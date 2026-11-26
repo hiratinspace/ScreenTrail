@@ -30,6 +30,7 @@
     <None Include="..\ScreenTrail.UI\Theme\Tokens.*.xaml" Link="Theme\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <!-- The component styles and the pill, so a test can hold every resource the pill asks for to one that exists (INV-4). -->
     <None Include="..\ScreenTrail.UI\Theme\Components.xaml" Link="Theme\Components.xaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\ScreenTrail.UI\Theme\Icons.xaml" Link="Theme\Icons.xaml" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\ScreenTrail.UI\Hud\HudWindow.xaml" Link="Hud\HudWindow.xaml" CopyToOutputDirectory="PreserveNewest" />
     <!-- The shipped icons, so a test can hold each tray state and theme to its own icon with every frame (ST-016). -->
     <None Include="..\ScreenTrail.UI\Assets\app.ico" Link="Brand\app.ico" CopyToOutputDirectory="PreserveNewest" />

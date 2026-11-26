@@ -27,7 +27,7 @@ public sealed partial class PillResourcesTests
 
         var defined = new HashSet<string>(StringComparer.Ordinal);
         defined.UnionWith(Keys(XDocument.Parse(pill)));
-        foreach (var file in new[] { "Tokens.Common.g.xaml", "Components.xaml", theme })
+        foreach (var file in new[] { "Tokens.Common.g.xaml", "Components.xaml", "Icons.xaml", theme })
         {
             defined.UnionWith(Keys(XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", file))));
         }

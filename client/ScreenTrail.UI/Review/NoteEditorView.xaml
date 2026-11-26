@@ -102,7 +102,7 @@
                     CornerRadius="28">
                 <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                            Foreground="{DynamicResource Brush.state.danger}"
-                           Text="&#xE7BA;" />
+                           Text="{StaticResource Icon.Warning}" />
             </Border>
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"
@@ -134,7 +134,7 @@
                     CornerRadius="28">
                 <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                            Foreground="{DynamicResource Brush.accent.primary}"
-                           Text="&#xE895;" />
+                           Text="{StaticResource Icon.Sync}" />
             </Border>
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"
@@ -255,8 +255,8 @@
                                                                 VerticalAlignment="Top"
                                                                 Style="{StaticResource Icon}"
                                                                 Foreground="{DynamicResource Brush.confidence.low}"
-                                                                FontSize="{DynamicResource Size.sm}"
-                                                                Text="&#xE7BA;" />
+                                                                FontSize="{DynamicResource Icon.sm}"
+                                                                Text="{StaticResource Icon.Warning}" />
                                                 <TextBlock Grid.Column="1"
                                                            Margin="8,0,0,0"
                                                            Style="{StaticResource Text.Body}"
@@ -318,9 +318,9 @@
                                                                 <!-- Under the picture: shows while it loads, covered once it arrives. -->
                                                                 <controls:Glyph HorizontalAlignment="Center"
                                                                                 Style="{StaticResource Icon}"
-                                                                                FontSize="{DynamicResource Size.lg}"
+                                                                                FontSize="{DynamicResource Icon.control}"
                                                                                 Foreground="{DynamicResource Brush.text.muted}"
-                                                                                Text="&#xEB9F;" />
+                                                                                Text="{StaticResource Icon.Photo}" />
                                                                 <!-- The picture and its masks in the frame's own pixels, scaled together,
                                                                      so a mask covers the same part at every size. -->
                                                                 <Viewbox Stretch="Uniform">
@@ -375,7 +375,7 @@
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </StackPanel.Style>
-                                                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Size.sm}" Text="&#xEA18;" />
+                                                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Shield}" />
                                                             <TextBlock Margin="4,0,0,0" Style="{StaticResource Text.Muted}" Text="{Binding MaskedLabel}" />
                                                         </StackPanel>
                                                     </WrapPanel>
@@ -522,7 +522,7 @@
                             AutomationProperties.Name="{Binding AllScreenshotsName}"
                             AutomationProperties.AcceleratorKey="Alt+2">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Size.sm}" Text="&#xEB9F;" />
+                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Photo}" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="All screenshots" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Muted}" Text="{Binding StripHeader}" />
                             <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+2" />

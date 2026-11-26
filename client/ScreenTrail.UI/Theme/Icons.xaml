@@ -1,0 +1,44 @@
+<!-- Every icon the client draws, by concept (design system 8, review finding A-29). Segoe Fluent Icons,
+     falling back to Segoe MDL2 Assets on Windows 10 (Font.icon): only codepoints both fonts hold. XAML and C#
+     name a concept here and never type a codepoint, so one glyph means one thing everywhere. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <sys:String x:Key="Icon.Warning">&#xE7BA;</sys:String>
+    <sys:String x:Key="Icon.Info">&#xE946;</sys:String>
+    <sys:String x:Key="Icon.Check">&#xE73E;</sys:String>
+    <sys:String x:Key="Icon.Close">&#xE711;</sys:String>
+    <sys:String x:Key="Icon.Unknown">&#xE9CE;</sys:String>
+    <sys:String x:Key="Icon.Pause">&#xE769;</sys:String>
+    <sys:String x:Key="Icon.Play">&#xE768;</sys:String>
+    <sys:String x:Key="Icon.Stop">&#xE71A;</sys:String>
+    <sys:String x:Key="Icon.Flag">&#xE7C1;</sys:String>
+    <sys:String x:Key="Icon.Hide">&#xED1A;</sys:String>
+    <sys:String x:Key="Icon.Shield">&#xEA18;</sys:String>
+    <sys:String x:Key="Icon.Lock">&#xE72E;</sys:String>
+    <sys:String x:Key="Icon.Mic">&#xE720;</sys:String>
+    <sys:String x:Key="Icon.Cloud">&#xE753;</sys:String>
+    <sys:String x:Key="Icon.Sync">&#xE895;</sys:String>
+    <sys:String x:Key="Icon.ChevronDown">&#xE70D;</sys:String>
+    <sys:String x:Key="Icon.ChevronUp">&#xE70E;</sys:String>
+    <sys:String x:Key="Icon.ChevronRight">&#xE76C;</sys:String>
+    <sys:String x:Key="Icon.ChevronLeft">&#xE76B;</sys:String>
+    <sys:String x:Key="Icon.Search">&#xE721;</sys:String>
+    <sys:String x:Key="Icon.Settings">&#xE713;</sys:String>
+    <sys:String x:Key="Icon.List">&#xE8FD;</sys:String>
+    <sys:String x:Key="Icon.Diagnostic">&#xE9D9;</sys:String>
+    <sys:String x:Key="Icon.History">&#xE81C;</sys:String>
+    <sys:String x:Key="Icon.Document">&#xE8A5;</sys:String>
+    <sys:String x:Key="Icon.Photo">&#xEB9F;</sys:String>
+    <sys:String x:Key="Icon.Camera">&#xE722;</sys:String>
+    <sys:String x:Key="Icon.Send">&#xE724;</sys:String>
+    <sys:String x:Key="Icon.Link">&#xE71B;</sys:String>
+    <sys:String x:Key="Icon.OpenExternal">&#xE8A7;</sys:String>
+    <sys:String x:Key="Icon.Edit">&#xE70F;</sys:String>
+    <sys:String x:Key="Icon.Delete">&#xE74D;</sys:String>
+    <sys:String x:Key="Icon.Stopwatch">&#xE916;</sys:String>
+    <sys:String x:Key="Icon.Copy">&#xE8C8;</sys:String>
+    <sys:String x:Key="Icon.More">&#xE712;</sys:String>
+    <sys:String x:Key="Icon.Forward">&#xE72A;</sys:String>
+    <sys:String x:Key="Icon.Back">&#xE72B;</sys:String>
+</ResourceDictionary>

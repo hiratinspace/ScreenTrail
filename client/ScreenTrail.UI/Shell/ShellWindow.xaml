@@ -44,7 +44,7 @@
                             CornerRadius="28">
                         <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                                    Foreground="{DynamicResource Brush.accent.primary}"
-                                   Text="&#xE8A5;" />
+                                   Text="{StaticResource Icon.Document}" />
                     </Border>
                     <TextBlock Margin="0,16,0,0"
                                HorizontalAlignment="Center"
@@ -169,7 +169,7 @@
                             AutomationProperties.Name="All sessions"
                             AutomationProperties.HelpText="Every session in a table: select several to discard them, or one marked Not confirmed to mark it as published.">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE8FD;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.List}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="All sessions" />
                         </StackPanel>
                     </Button>
@@ -178,7 +178,7 @@
                             CommandParameter="Settings"
                             AutomationProperties.Name="Settings">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE713;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Settings}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Settings" />
                         </StackPanel>
                     </Button>
@@ -187,7 +187,7 @@
                             AutomationProperties.Name="Diagnostics"
                             AutomationProperties.HelpText="What's being captured, in a window of its own.">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE9D9;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Diagnostic}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Diagnostics" />
                         </StackPanel>
                     </Button>

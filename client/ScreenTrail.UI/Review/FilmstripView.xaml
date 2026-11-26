@@ -27,7 +27,7 @@
                                    Style="{StaticResource Icon}"
                                    FontSize="{DynamicResource Icon.lg}"
                                    Foreground="{DynamicResource Brush.text.muted}"
-                                   Text="&#xEB9F;" />
+                                   Text="{StaticResource Icon.Photo}" />
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
                     </Grid>
                     <Border.Style>

@@ -155,7 +155,7 @@
                                              GroupName="NoteType"
                                              AutomationProperties.Name="{x:Static core:PublishPanel.InternalLabel}">
                                     <StackPanel Orientation="Horizontal">
-                                        <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Size.sm}" VerticalAlignment="Center" Text="&#xE72E;" />
+                                        <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.sm}" VerticalAlignment="Center" Text="{StaticResource Icon.Lock}" />
                                         <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="{x:Static core:PublishPanel.InternalLabel}" />
                                     </StackPanel>
                                 </RadioButton>
@@ -227,7 +227,7 @@
                 AutomationProperties.Name="Check the ticket first">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE9CE;" />
+                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Unknown}" />
                     <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="Not confirmed" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0"
