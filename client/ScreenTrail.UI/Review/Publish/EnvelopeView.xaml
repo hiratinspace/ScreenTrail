@@ -10,8 +10,9 @@
          rounding, Also the other destinations as chips. The subject line, Discard and Publish sit above
          these, in the Review pane's header, so Publish lines up with the title the way Send does. -->
     <UserControl.Resources>
-        <!-- The line's name in the left column: quiet, and the same width on every line so the values align. -->
-        <Style x:Key="Envelope.Label" BasedOn="{StaticResource Text.Muted}" TargetType="TextBlock">
+        <!-- The line's name in the left column: a label, not a hint (review finding A-31), and the same width
+             on every line so the values align. -->
+        <Style x:Key="Envelope.Label" BasedOn="{StaticResource Text.Label}" TargetType="TextBlock">
             <Setter Property="Width" Value="{DynamicResource Layout.envelope-label}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextWrapping" Value="NoWrap" />
@@ -55,7 +56,7 @@
                                 Visibility="{Binding TicketChipVisibility}"
                                 AutomationProperties.Name="{Binding ToValue}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
+                                <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
                                 <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" TextWrapping="NoWrap" Text="{Binding TicketRest}" />
                             </StackPanel>
                         </Border>
@@ -228,7 +229,7 @@
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
                     <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Unknown}" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="Not confirmed" />
+                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.BodyStrong}" Text="Not confirmed" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0"
                            Style="{StaticResource Text.Body}"
