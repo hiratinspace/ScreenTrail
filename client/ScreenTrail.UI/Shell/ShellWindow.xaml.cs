@@ -96,12 +96,17 @@ public partial class ShellWindow : Window
         };
     }
 
-    /// <summary>The rail's width for a frame this wide, from the tokens.</summary>
+    /// <summary>
+    /// The rail's width and the pane's padding for a frame this wide, from the tokens: under
+    /// layout.rail-narrow-below both narrow, so the window fits a half snap on a 1920 monitor at its 960
+    /// minimum (review finding D-06) with All sessions' columns unscrolled.
+    /// </summary>
     private void FitRail(double frameWidth)
     {
         var breakpoint = TryFindResource("Layout.rail-narrow-below") is double below ? below : 0;
         var wide = Core.History.RailLayout.IsWide(frameWidth, breakpoint);
         RailFrame.SetResourceReference(WidthProperty, wide ? "Layout.rail-width" : "Layout.rail-width-narrow");
+        Pane.SetResourceReference(MarginProperty, wide ? "Padding.pane" : "Padding.pane-narrow");
     }
 
     /// <summary>Once the pane has drawn, focus its first control; a pane still loading waits for the next.</summary>

@@ -211,9 +211,9 @@ public sealed class OnboardingControlsTests
         var capped = window.Descendants(Wpf + "ColumnDefinition").Where(c => (string?)c.Attribute("MaxWidth") == "{DynamicResource Layout.content-max-width}").ToList();
         Assert.Equal(2, capped.Count);
 
-        // The wizard opens no larger than the shell's own minimum (1024 by 680), so it fits any screen the
+        // The wizard opens no larger than the shell's own minimum (960 by 680), so it fits any screen the
         // shell does, and its own minimum leaves the page 600 beside the 280 frame.
-        Assert.True(double.Parse((string)window.Attribute("Width")!, System.Globalization.CultureInfo.InvariantCulture) <= 1024);
+        Assert.True(double.Parse((string)window.Attribute("Width")!, System.Globalization.CultureInfo.InvariantCulture) <= 960);
         Assert.True(double.Parse((string)window.Attribute("Height")!, System.Globalization.CultureInfo.InvariantCulture) <= 680);
         Assert.Equal("880", (string?)window.Attribute("MinWidth"));
         Assert.Equal("560", (string?)window.Attribute("MinHeight"));
