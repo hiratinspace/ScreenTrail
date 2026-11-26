@@ -466,26 +466,79 @@
          was too faint on a scaled screen, since the frame and highlight colours are close in luminance
          (ST-084, the laptop's run). One template serves every text field; the styles set its colours. -->
     <ControlTemplate x:Key="Input.Template" TargetType="TextBox">
+        <!-- Two rows, the field and its error line: a grid, so a tall multiline field still stretches. -->
         <Grid>
-            <Border x:Name="Chrome"
-                    Background="{TemplateBinding Background}"
-                    BorderBrush="{TemplateBinding BorderBrush}"
-                    BorderThickness="{TemplateBinding BorderThickness}"
-                    CornerRadius="{DynamicResource Radius.control}"
-                    SnapsToDevicePixels="True">
-                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
-            </Border>
-            <Border x:Name="FocusEdge"
-                    BorderBrush="{DynamicResource Brush.accent.primary}"
-                    BorderThickness="{DynamicResource Thickness.focus}"
-                    CornerRadius="{DynamicResource Radius.control}"
-                    IsHitTestVisible="False"
-                    SnapsToDevicePixels="True"
-                    Visibility="Collapsed" />
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
+                <Border x:Name="Chrome"
+                        MinHeight="{TemplateBinding MinHeight}"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{DynamicResource Radius.control}"
+                        SnapsToDevicePixels="True">
+                    <Grid>
+                        <!-- The example in an empty field (theme:Field.Placeholder, review finding B-13): where the
+                             text starts, in text.muted, gone once anything is typed. Drawn, not read: the field's
+                             label and help text say what it is for. -->
+                        <TextBlock x:Name="Placeholder"
+                                   Margin="{TemplateBinding Padding}"
+                                   Padding="2,0,0,0"
+                                   VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                   Foreground="{DynamicResource Brush.text.muted}"
+                                   IsHitTestVisible="False"
+                                   Text="{TemplateBinding theme:Field.Placeholder}"
+                                   TextTrimming="CharacterEllipsis"
+                                   Visibility="Collapsed" />
+                        <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Grid>
+                </Border>
+                <Border x:Name="FocusEdge"
+                        BorderBrush="{DynamicResource Brush.accent.primary}"
+                        BorderThickness="{DynamicResource Thickness.focus}"
+                        CornerRadius="{DynamicResource Radius.control}"
+                        IsHitTestVisible="False"
+                        SnapsToDevicePixels="True"
+                        Visibility="Collapsed" />
+                <!-- A field that is wrong looks wrong (theme:Field.Error or HasError, review finding B-12), over the
+                     focus edge so it stays red while the technician fixes it. -->
+                <Border x:Name="ErrorEdge"
+                        BorderBrush="{DynamicResource Brush.state.danger}"
+                        BorderThickness="{DynamicResource Thickness.focus}"
+                        CornerRadius="{DynamicResource Radius.control}"
+                        IsHitTestVisible="False"
+                        SnapsToDevicePixels="True"
+                        Visibility="Collapsed" />
+            </Grid>
+            <!-- The error line, 4 below its field: the warning glyph 12 and the words, so it is not red alone. -->
+            <StackPanel x:Name="ErrorLine" Grid.Row="1" Margin="0,4,0,0" Orientation="Horizontal">
+                <controls:Glyph Style="{StaticResource Icon}"
+                                VerticalAlignment="Top"
+                                Margin="0,2,4,0"
+                                FontSize="{DynamicResource Icon.sm}"
+                                Foreground="{DynamicResource Brush.state.danger}"
+                                Text="{StaticResource Icon.Warning}" />
+                <TextBlock Style="{StaticResource Text.Error}" Text="{TemplateBinding theme:Field.Error}" />
+            </StackPanel>
         </Grid>
         <ControlTemplate.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter TargetName="Placeholder" Property="Visibility" Value="Visible" />
+            </Trigger>
             <Trigger Property="IsKeyboardFocused" Value="True">
                 <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="theme:Field.HasError" Value="True">
+                <Setter TargetName="ErrorEdge" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="theme:Field.Error" Value="{x:Null}">
+                <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="theme:Field.Error" Value="">
+                <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -507,6 +560,10 @@
         <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
         <Setter Property="Template" Value="{StaticResource Input.Template}" />
         <Style.Triggers>
+            <!-- The error is said with the field: its UI Automation item status. -->
+            <Trigger Property="theme:Field.HasError" Value="True">
+                <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+            </Trigger>
             <!-- Hover darkens the edge and leaves the fill (review finding B-10): a grey fill is what the
                  disabled look is made of, so a hovered field looked switched off. -->
             <Trigger Property="IsMouseOver" Value="True">
@@ -580,9 +637,6 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="Input.Error" BasedOn="{StaticResource Input.Default}" TargetType="TextBox">
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-    </Style>
     <!-- The typed confirmations: a phrase to copy exactly, so it is set in the monospace face. -->
     <Style x:Key="Input.Mono" BasedOn="{StaticResource Input.Default}" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{DynamicResource Font.mono}" />
@@ -1090,6 +1144,11 @@
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" MinHeight="{TemplateBinding MinHeight}">
                         <ToggleButton x:Name="Toggle"
                                       Style="{StaticResource ComboBox.Toggle}"
                                       Background="{TemplateBinding Background}"
@@ -1123,8 +1182,35 @@
                                 </ScrollViewer>
                             </Border>
                         </Popup>
+                        <Border x:Name="ErrorEdge"
+                                BorderBrush="{DynamicResource Brush.state.danger}"
+                                BorderThickness="{DynamicResource Thickness.focus}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="True"
+                                Visibility="Collapsed" />
+                    </Grid>
+                    <StackPanel x:Name="ErrorLine" Grid.Row="1" Margin="0,4,0,0" Orientation="Horizontal">
+                        <controls:Glyph Style="{StaticResource Icon}"
+                                        VerticalAlignment="Top"
+                                        Margin="0,2,4,0"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Foreground="{DynamicResource Brush.state.danger}"
+                                        Text="{StaticResource Icon.Warning}" />
+                        <TextBlock Style="{StaticResource Text.Error}" Text="{TemplateBinding theme:Field.Error}" />
+                    </StackPanel>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="theme:Field.HasError" Value="True">
+                            <Setter TargetName="ErrorEdge" Property="Visibility" Value="Visible" />
+                            <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+                        </Trigger>
+                        <Trigger Property="theme:Field.Error" Value="{x:Null}">
+                            <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="theme:Field.Error" Value="">
+                            <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
                         <!-- A combo is a button too, so hover fills it as well as darkening the edge (design
                              system 10.2), and a press darkens the fill (the toggle's own trigger). -->
                         <Trigger Property="IsMouseOver" Value="True">
