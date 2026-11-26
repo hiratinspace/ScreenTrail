@@ -490,7 +490,10 @@
         </ControlTemplate.Triggers>
     </ControlTemplate>
     <Style x:Key="Input.Default" TargetType="TextBox">
-        <Setter Property="Height" Value="{DynamicResource Layout.control-height}" />
+        <!-- A minimum, not a height (review finding B-11): with the Windows text size applied (design system
+             11) a fixed 32 clipped the line. Centred where a fixed height used to centre it. -->
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Padding" Value="10,0" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
@@ -523,8 +526,7 @@
     <!-- Multiline: the note's own fields, which are prose and grow. Input.Default fixes a height and
          centres its content, which turns a three-line step into one clipped line. -->
     <Style x:Key="Input.Multiline" BasedOn="{StaticResource Input.Default}" TargetType="TextBox">
-        <Setter Property="Height" Value="Auto" />
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
         <Setter Property="Padding" Value="10,8" />
         <Setter Property="AcceptsReturn" Value="True" />
         <Setter Property="TextWrapping" Value="Wrap" />
@@ -588,7 +590,8 @@
 
     <!-- Password box: the same chrome as a text box (Integrations' private key and API key). -->
     <Style TargetType="PasswordBox">
-        <Setter Property="Height" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Padding" Value="10,0" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
@@ -2192,7 +2195,8 @@
 
     <!-- The rail's search: a field on the frame, its edge in shell.muted (3:1 and more on shell.bg). -->
     <Style x:Key="Rail.Search" TargetType="TextBox">
-        <Setter Property="Height" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Padding" Value="32,0,12,0" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />

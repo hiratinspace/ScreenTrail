@@ -58,6 +58,15 @@ public sealed class InputFocusTests
         Assert.DoesNotContain(hover.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Background");
     }
 
+    [Fact]
+    public void AFieldHasAMinimumHeightSoALargerTextSizeDoesNotClipIt()
+    {
+        // Review finding B-11.
+        Assert.Equal("{DynamicResource Layout.control-height}", Setter("Input.Default", "MinHeight"));
+        Assert.Null(Setter("Input.Default", "Height"));
+        Assert.Null(Setter("Rail.Search", "Height"));
+    }
+
     private static string? Setter(string key, string property) =>
         (string?)Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key)
             .Elements(Wpf + "Setter").SingleOrDefault(s => (string?)s.Attribute("Property") == property)?.Attribute("Value");
