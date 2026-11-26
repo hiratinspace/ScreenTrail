@@ -242,6 +242,11 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .events-box { position: relative; margin-top: 64px; }
 /* Held while the ribbon draws (home.ts sets its top and the section's extra height). */
 .session-held .session-pin { position: sticky; }
+/* A short window: tighter rows, so the held timeline ends above the pill. */
+@media (min-width: 701px) and (max-height: 780px) {
+  .events-box { margin-top: 40px; }
+  .events-box .events { row-gap: 56px; }
+}
 .events { position: relative; margin: 0; padding: 0; list-style: none; counter-reset: ev; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 84px; column-gap: 32px; }
 .ribbon { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
 .ribbon .band, .ribbon .track { fill: none; stroke: var(--brand-ribbon-band); stroke-linejoin: round; stroke-linecap: round; }

@@ -139,10 +139,11 @@ test('the session ribbon reaches its events in order as the page scrolls', async
   // Before the section, nothing is reached; each scroll reaches more, always from the first one on.
   expect((await reached()).some(Boolean)).toBe(false);
   let count = 0;
-  // From the box's top at the window's foot to its last event a little above the middle.
+  // Through the whole section, from its top at the window's foot to its foot 30% down the window
+  // (held on a desktop, so measured on the section, which does not move while the timeline holds).
   for (const f of [0.1, 0.4, 0.7, 1]) {
     await events.evaluate((el, f) => {
-      const r = el.getBoundingClientRect();
+      const r = el.closest('section')!.getBoundingClientRect();
       const from = r.top + scrollY - innerHeight, to = r.bottom + scrollY - innerHeight * 0.3;
       scrollTo({ top: from + (to - from) * f, behavior: 'instant' });
     }, f);
@@ -153,7 +154,8 @@ test('the session ribbon reaches its events in order as the page scrolls', async
     count = now.filter(Boolean).length;
     expect(now.indexOf(false) === -1 || now.slice(now.indexOf(false)).every((r) => !r)).toBe(true);
   }
-  expect(count).toBe(8);
+  // The last redraw can land a frame after the scroll on a busy machine.
+  await expect.poll(async () => (await reached()).filter(Boolean).length).toBe(8);
 });
 
 test('the session section holds still while its ribbon draws', async ({ page }, info) => {
@@ -178,7 +180,7 @@ test('the session section holds still while its ribbon draws', async ({ page }, 
   expect(start.reached).toBeLessThanOrEqual(1);
   expect(mid.reached).toBeGreaterThan(start.reached);
   expect(mid.reached).toBeLessThan(8);
-  expect(end.reached).toBe(8);
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('#events .ev.reached').length)).toBe(8);
 });
 
 test('with reduced motion, every session event shows at full strength', async ({ page }) => {

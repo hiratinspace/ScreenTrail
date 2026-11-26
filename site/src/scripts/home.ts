@@ -442,7 +442,8 @@ if (eventsBox && ribbon && sessionEl && sessionPin) {
     held = live && !column && need <= room - 48;
     if (!held) return;
     holdFor = Math.round(innerHeight * 1.1);
-    holdTop = headH + Math.round((room - need) / 2);
+    // Close under the header (40px), not centred: the space left over goes below, where the pill floats.
+    holdTop = headH + Math.min(40, Math.round((room - need) / 2));
     padTop = parseFloat(getComputedStyle(sessionEl).paddingTop) || 0;
     const natural = sessionEl.offsetHeight;
     html.classList.add('session-held');
