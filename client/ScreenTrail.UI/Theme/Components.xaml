@@ -695,6 +695,8 @@
 
     <!-- Check box: an 18 px rounded box with a drawn tick, filled with the accent when on. -->
     <Style TargetType="CheckBox">
+        <!-- Its own width, not the card's, so the focus ring hugs the box and label (review finding B-19). -->
+        <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
@@ -797,6 +799,8 @@
     <!-- Radio: an 18 px circle; on is an accent disc around a dot in the on-accent colour, with the same
          states as the check box (design system 10.3, review finding B-18). -->
     <Style TargetType="RadioButton">
+        <!-- Its own width, not the card's, so the focus ring hugs the box and label (review finding B-19). -->
+        <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />

@@ -53,6 +53,15 @@ public sealed class ChoiceStatesTests
         Assert.Equal("{DynamicResource Layout.choice-mark}", (string?)mark.Attribute("Width"));
     }
 
+    [Theory]
+    [InlineData("CheckBox")]
+    [InlineData("RadioButton")]
+    public void AChoiceIsAsWideAsItsLabelSoItsRingHugsIt(string type)
+    {
+        // Review finding B-19: stretched to the card, the ring ran 664 px around one short line.
+        Assert.Contains(Implicit(type).Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "HorizontalAlignment" && (string?)s.Attribute("Value") == "Left");
+    }
+
     internal static XElement Implicit(string type) =>
         Components().Elements(Wpf + "Style").Single(s => s.Attribute(X + "Key") is null && (string?)s.Attribute("TargetType") == type);
 
