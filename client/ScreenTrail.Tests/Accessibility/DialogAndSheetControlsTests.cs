@@ -106,6 +106,28 @@ public sealed class DialogAndSheetControlsTests
         Assert.Equal(expected, ScreenTrail.Core.Shell.WindowFit.MaxHeight(workArea, scale), 3);
 
     [Fact]
+    public void ADialogWithNoOwnerIsCentredOnTheMonitorUnderThePointerAndKeptInside()
+    {
+        // Review finding D-08: the second monitor, to the right of a 1920 wide primary.
+        Assert.Equal((1920 + 750, 300), ScreenTrail.Core.Shell.WindowFit.Centre(1920, 0, 1920, 1040, 420, 440));
+
+        // Larger than the area: its top-left corner stays on it.
+        Assert.Equal((1920, 0), ScreenTrail.Core.Shell.WindowFit.Centre(1920, 0, 400, 300, 420, 440));
+    }
+
+    [Fact]
+    public void ADialogWithNoOwnerHasATaskbarButtonAndStaysOnTop()
+    {
+        var code = File.ReadAllText(Source("Shell", "ConfirmWindow.xaml") + ".cs");
+        var alone = code[code.IndexOf("private static bool Show(", StringComparison.Ordinal)..];
+        alone = alone[alone.IndexOf("else", StringComparison.Ordinal)..alone.IndexOf("return dialog.ShowDialog()", StringComparison.Ordinal)];
+
+        Assert.Contains("dialog.ShowInTaskbar = true;", alone, StringComparison.Ordinal);
+        Assert.Contains("dialog.Topmost = true;", alone, StringComparison.Ordinal);
+        Assert.Contains("CentreUnderThePointerOnce", alone, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheDiagnosticsPanelClosesWithEscAndSaysItsStateWithAGlyph()
     {
         var panel = Load("Diagnostics", "DiagnosticsWindow.xaml");

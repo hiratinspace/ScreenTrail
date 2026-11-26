@@ -18,4 +18,12 @@ public static class WindowFit
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(scale);
         return Math.Max(0, (workAreaHeight / scale) - WorkAreaMargin);
     }
+
+    /// <summary>
+    /// Where a window of this size goes to sit in the middle of a work area, all in device pixels, kept
+    /// inside it when it is the larger. For a dialog with no window to centre on: the tray's, on the
+    /// monitor under the pointer rather than the primary one (review finding D-08).
+    /// </summary>
+    public static (int X, int Y) Centre(int areaLeft, int areaTop, int areaWidth, int areaHeight, int width, int height) =>
+        (areaLeft + Math.Max(0, (areaWidth - width) / 2), areaTop + Math.Max(0, (areaHeight - height) / 2));
 }
