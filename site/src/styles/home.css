@@ -278,15 +278,26 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 
 /* How it works: four stages, each beside a live mock of the app. */
 .stages { padding-block: 112px; }
-.stages { counter-reset: stage; }
 .stages > h2 { margin-bottom: 16px; }
-/* Four stages, numbered as the session ribbon numbers its moments, each mock framed on a lavender stage.
+/* Four stages, each tagged with its moment in the session, each mock framed on a lavender stage.
    They alternate sides, so the four read as a sequence rather than one block repeated. */
-.feature { counter-increment: stage; display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 80px; align-items: center; padding: 64px 0; }
+.feature { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: 80px; align-items: center; padding: 64px 0; }
 .feature:nth-of-type(even) { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); }
 .feature:nth-of-type(even) .copy { order: 2; }
 .feature h3 { font-size: clamp(22px, 2.1vw, 26px); line-height: 1.2; text-wrap: balance; }
-.feature .copy > h3::before { content: counter(stage, decimal-leading-zero); display: block; margin-bottom: 14px; font: 500 13px/1 var(--mono); letter-spacing: .02em; color: var(--iris); font-variant-numeric: tabular-nums; }
+/* Each stage carries the moment it happens in the sample session, as the pill shows it: its signal,
+   its state and the session time (the times are the session ribbon's). */
+.stage-tag { justify-self: start; display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 5px 0 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--line-2); box-shadow: 0 1px 2px rgba(30, 20, 80, .05); font: 500 13px/1 var(--sans); color: var(--ink); }
+.stage-tag time { margin-left: 4px; padding: 5px 7px; border-radius: 999px; background: var(--paper-2); font: 500 12px/1 var(--mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.stage-tag i { position: relative; flex: none; width: 8px; height: 8px; border-radius: 50%; }
+.stage-tag[data-s='rec'] i { background: #ff5a5f; box-shadow: 0 0 0 3px color-mix(in srgb, #ff5a5f 18%, transparent); }
+.stage-tag[data-s='paused'] i { width: 12px; height: 12px; border-radius: 3px; background: #f5a524; }
+.stage-tag[data-s='paused'] i::after { content: ''; position: absolute; left: 3.5px; right: 3.5px; top: 3px; bottom: 3px; border-left: 1.5px solid var(--ink); border-right: 1.5px solid var(--ink); }
+.stage-tag[data-s='drafting'] i { background: var(--iris); box-shadow: 0 0 0 3px color-mix(in srgb, var(--iris) 18%, transparent); }
+.stage-tag[data-s='published'] { background: var(--iris); border-color: var(--iris); color: #fff; }
+.stage-tag[data-s='published'] time { background: rgba(255, 255, 255, .16); color: #fff; }
+.stage-tag[data-s='published'] i { width: 12px; height: 12px; border-radius: 0; }
+.stage-tag[data-s='published'] i::after { content: ''; position: absolute; left: 2px; top: 1px; width: 4px; height: 7px; border: solid #fff; border-width: 0 1.8px 1.8px 0; transform: rotate(40deg); }
 .mock-stage { padding: clamp(24px, 3vw, 40px); border-radius: 20px; background: var(--band-deep); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--iris) 9%, transparent); }
 .feature .copy { display: grid; gap: 16px; align-content: center; }
 .feature .copy p { color: var(--ink-2); font-size: 17px; max-width: 42ch; }
