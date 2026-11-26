@@ -1413,7 +1413,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Padding" Value="12" />
     </Style>
     <Style x:Key="Banner.Warning" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
@@ -1430,7 +1430,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Padding" Value="16,12,12,12" />
         <Setter Property="MaxWidth" Value="440" />
         <Setter Property="Effect">
             <Setter.Value>
@@ -1549,7 +1549,7 @@
          and not as a toast. No shadow: the frame and the pill are the only things that float. -->
     <Style x:Key="SaveBar" TargetType="Border">
         <Setter Property="Margin" Value="0,12,0,0" />
-        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Padding" Value="16,12" />
         <Setter Property="MinHeight" Value="52" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />

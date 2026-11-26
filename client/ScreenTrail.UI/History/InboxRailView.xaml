@@ -94,7 +94,7 @@
                     <TextBlock Style="{StaticResource Text.FrameMuted}"
                                Text="{Binding Notice}"
                                controls:LiveRegion.Setting="Polite" />
-                    <Button Margin="-4,8,0,0"
+                    <Button Margin="0,8,0,0"
                             Style="{StaticResource Rail.Link}"
                             Content="Clear search"
                             Command="{Binding ClearSearchCommand}"

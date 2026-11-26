@@ -15,7 +15,6 @@ Hud/HudWindow.xaml	Padding	0,6	2
 Review/FilmstripView.xaml	Colour	#40FFFFFF	2
 Review/FilmstripView.xaml	Colour	#60000000	2
 Review/FilmstripView.xaml	Colour	#FFFFFFFF	2
-Review/FilmstripView.xaml	Margin	20,18,14,0	1
 Review/FilmstripView.xaml	Margin	3	1
 Review/FilmstripView.xaml	Margin	6	1
 Review/NoteEditorView.xaml	BorderThickness	2,0,0,0	1
@@ -26,8 +25,6 @@ Review/Publish/PublishPane.xaml	BorderThickness	0,0,0,4	1
 Settings/SettingsPane.xaml	Height	8	1
 Settings/SettingsPane.xaml	Width	8	1
 Shell/ShellWindow.xaml	CornerRadius	28	1
-Shell/ShellWindow.xaml	Margin	0,0,10,0	1
-Shell/ShellWindow.xaml	Padding	32,28	1
 Theme/Components.xaml	BorderThickness	2	6
 Theme/Components.xaml	BorderThickness	3	2
 Theme/Components.xaml	CornerRadius	1	1
@@ -64,10 +61,8 @@ Theme/Components.xaml	Padding	10,6	3
 Theme/Components.xaml	Padding	10,7	1
 Theme/Components.xaml	Padding	12,0	5
 Theme/Components.xaml	Padding	14,0	1
-Theme/Components.xaml	Padding	14,10	2
 Theme/Components.xaml	Padding	14,6,10,6	1
 Theme/Components.xaml	Padding	16,0,6,0	1
-Theme/Components.xaml	Padding	16,10	1
 Theme/Components.xaml	Padding	6	1
 Theme/Components.xaml	Width	12	3
 Theme/Components.xaml	Width	20	1

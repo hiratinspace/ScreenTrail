@@ -88,7 +88,7 @@
                                           Gap="{StaticResource GapTemplate}" />
     </UserControl.Resources>
 
-    <Grid Margin="20,18,14,0">
+    <Grid Margin="24,16,16,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
