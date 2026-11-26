@@ -74,6 +74,19 @@ public sealed class ButtonStatesTests
         Assert.Equal("{DynamicResource Layout.button-min-width-compact}", Setter(compact, "MinWidth"));
     }
 
+    [Fact]
+    public void ADestructiveDialogConfirmsWithTheSolidDangerButton()
+    {
+        // Review finding B-05: the outline was weaker than the safe button beside it.
+        var solid = Style("Button.DangerSolid");
+        Assert.Equal("{DynamicResource Brush.danger.fill}", Setter(solid, "Background"));
+        Assert.Equal("{DynamicResource Brush.text.on-accent}", Setter(solid, "Foreground"));
+        Assert.Equal("{DynamicResource Brush.danger.fill.hover}", Setter(Trigger(solid, "IsPressed"), "Background"));
+
+        var code = File.ReadAllText(Path.Combine(Ui(), "Shell", "ConfirmWindow.xaml.cs"));
+        Assert.Contains("ConfirmTone.Danger ? \"Button.DangerSolid\"", code, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("Review/NoteEditorView.xaml", "{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}")]
     [InlineData("Review/NoteEditorView.xaml", "{Binding UndoDeleteCommand}")]

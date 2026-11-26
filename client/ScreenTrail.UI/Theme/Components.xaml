@@ -262,6 +262,32 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- DangerSolid: the confirm button of a destructive dialog only (Discard session, Delete everything),
+         once it can be pressed. The decisive act was a thin red outline beside the safe button, weaker than
+         it (review finding B-05); benchmarks fill it. The safe button beside it is Secondary and keeps the
+         initial focus. Until the phrase is typed it has the shared disabled look. In high contrast the fill
+         is Highlight and the words HighlightText. -->
+    <Style x:Key="Button.DangerSolid" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Brush.danger.fill}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.danger.fill.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.danger.fill.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill.hover}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
     <!-- Chip: a small rounded button inside content, like a step's "frame 2". 28 px is the hit-target floor. -->
     <Style x:Key="Chip" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
