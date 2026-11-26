@@ -47,6 +47,17 @@ public sealed class InputFocusTests
         Assert.Equal("{DynamicResource FocusVisual.input}", Setter("Input.Default", "FocusVisualStyle"));
     }
 
+    [Fact]
+    public void HoverDarkensAFieldsEdgeAndLeavesItsFill()
+    {
+        // Review finding B-10: the hover fill was the tone of the disabled look.
+        var hover = Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "Input.Default")
+            .Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsMouseOver");
+
+        Assert.Equal("{DynamicResource Brush.text.muted}", (string?)hover.Elements(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "BorderBrush").Attribute("Value"));
+        Assert.DoesNotContain(hover.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Background");
+    }
+
     private static string? Setter(string key, string property) =>
         (string?)Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key)
             .Elements(Wpf + "Setter").SingleOrDefault(s => (string?)s.Attribute("Property") == property)?.Attribute("Value");

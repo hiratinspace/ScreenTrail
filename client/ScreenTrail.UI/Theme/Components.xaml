@@ -504,8 +504,10 @@
         <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
         <Setter Property="Template" Value="{StaticResource Input.Template}" />
         <Style.Triggers>
+            <!-- Hover darkens the edge and leaves the fill (review finding B-10): a grey fill is what the
+                 disabled look is made of, so a hovered field looked switched off. -->
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
             </Trigger>
             <!-- The focus fill is the rest fill: white in light, so the field does not change colour as well. -->
             <Trigger Property="IsKeyboardFocused" Value="True">
@@ -619,7 +621,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
@@ -1006,7 +1008,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToggleButton">
-                    <Border Background="{TemplateBinding Background}"
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource Radius.control}"
@@ -1023,6 +1026,11 @@
                               StrokeStartLineCap="Round"
                               StrokeEndLineCap="Round" />
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -1114,8 +1122,11 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <!-- A combo is a button too, so hover fills it as well as darkening the edge (design
+                             system 10.2), and a press darkens the fill (the toggle's own trigger). -->
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Toggle" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocusWithin" Value="True">
                             <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
