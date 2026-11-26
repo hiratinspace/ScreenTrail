@@ -705,6 +705,11 @@
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
         <Setter Property="Template">
             <Setter.Value>
+                <!-- Design system 10.3 (review finding B-18): an 18 px box, radius 4, with every state a
+                     Windows check box has. Off: hover darkens the edge and tints the fill, pressed is bg.pressed.
+                     On: accent, hover and pressed step darker. The tick is the icon font's check, 12 in
+                     text.on-accent. Disabled is the disabled triple, and the tick stays so a locked setting
+                     still says which way it is set. -->
                 <ControlTemplate TargetType="CheckBox">
                     <Grid Background="Transparent">
                         <Grid.ColumnDefinitions>
@@ -712,26 +717,23 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Border x:Name="Box"
-                                Width="18"
-                                Height="18"
+                                Width="{DynamicResource Layout.choice-mark}"
+                                Height="{DynamicResource Layout.choice-mark}"
                                 VerticalAlignment="Center"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="4"
+                                BorderThickness="{DynamicResource Thickness.border}"
+                                CornerRadius="{DynamicResource Radius.sm}"
                                 SnapsToDevicePixels="True">
                             <Grid>
-                                <Path x:Name="Tick"
-                                      Width="10"
-                                      Height="8"
-                                      Data="M0.5,4 L3.5,7 L9.5,0.5"
-                                      Stretch="Fill"
-                                      Stroke="{DynamicResource Brush.text.on-accent}"
-                                      StrokeThickness="2"
-                                      StrokeStartLineCap="Round"
-                                      StrokeEndLineCap="Round"
-                                      StrokeLineJoin="Round"
-                                      Visibility="Collapsed" />
+                                <controls:Glyph x:Name="Tick"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Style="{StaticResource Icon}"
+                                                FontSize="{DynamicResource Icon.sm}"
+                                                Foreground="{DynamicResource Brush.text.on-accent}"
+                                                Text="{StaticResource Icon.Check}"
+                                                Visibility="Collapsed" />
                                 <Rectangle x:Name="Dash"
                                            Width="8"
                                            Height="2"
@@ -748,6 +750,9 @@
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.text.secondary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.accent.primary}" />
@@ -767,14 +772,20 @@
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.accent.primary.hover}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.hover}" />
                         </MultiTrigger>
-                        <!-- Disabled: the box goes neutral and the tick stays, so a locked setting still says
-                             which way it is set. -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                        </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-                            <Setter TargetName="Tick" Property="Stroke" Value="{DynamicResource Brush.text.muted}" />
-                            <Setter TargetName="Dash" Property="Fill" Value="{DynamicResource Brush.text.muted}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                            <Setter TargetName="Tick" Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                            <Setter TargetName="Dash" Property="Fill" Value="{DynamicResource Brush.text.disabled}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -783,7 +794,8 @@
         </Setter>
     </Style>
 
-    <!-- Radio: an 18 px circle; on is an accent ring around a dot in the on-accent colour. -->
+    <!-- Radio: an 18 px circle; on is an accent disc around a dot in the on-accent colour, with the same
+         states as the check box (design system 10.3, review finding B-18). -->
     <Style TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
@@ -801,7 +813,7 @@
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <Grid Width="18" Height="18" VerticalAlignment="Center">
+                        <Grid Width="{DynamicResource Layout.choice-mark}" Height="{DynamicResource Layout.choice-mark}" VerticalAlignment="Center">
                             <Ellipse x:Name="Ring"
                                      Fill="{TemplateBinding Background}"
                                      Stroke="{TemplateBinding BorderBrush}"
@@ -822,16 +834,35 @@
                             <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.bg.hover}" />
                             <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.text.secondary}" />
                         </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.bg.pressed}" />
+                        </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.accent.primary}" />
                             <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.accent.primary}" />
                             <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="IsMouseOver" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.accent.primary.hover}" />
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.accent.primary.hover}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsChecked" Value="True" />
+                                <Condition Property="IsPressed" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                        </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.bg.raised}" />
-                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.border.strong}" />
-                            <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Brush.text.muted}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource Brush.bg.disabled}" />
+                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.border.subtle}" />
+                            <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Brush.text.disabled}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>

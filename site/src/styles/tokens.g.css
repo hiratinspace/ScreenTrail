@@ -123,6 +123,11 @@
   --layout-field: 240px;
   --layout-field-narrow: 160px;
   --layout-dropdown-max-height: 320px;
+  --layout-choice-mark: 18px;
+  --layout-segment-height: 26px;
+  --layout-slider-thumb: 16px;
+  --layout-track-height: 4px;
+  --layout-meter-width: 160px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;
