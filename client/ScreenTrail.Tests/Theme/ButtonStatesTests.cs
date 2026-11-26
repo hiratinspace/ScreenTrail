@@ -110,6 +110,17 @@ public sealed class ButtonStatesTests
         Assert.Equal("{x:Null}", (string?)unset.Attribute("Value"));
     }
 
+    [Fact]
+    public void SettingsHasOneFilledButtonAndItIsSave()
+    {
+        // Review finding B-04 (design system 1.2 rule 1, one Primary per window): Install update was filled
+        // as well as the Save bar's Save. Activate stays Primary: it is the only action on its page.
+        var updates = XDocument.Load(Path.Combine(Ui(), "Update", "UpdatesPane.xaml"));
+
+        var install = Assert.Single(updates.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Install update");
+        Assert.Equal("{StaticResource Button.Secondary}", (string?)install.Attribute("Style"));
+    }
+
     [Theory]
     [InlineData("Review/NoteEditorView.xaml", "{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}")]
     [InlineData("Review/NoteEditorView.xaml", "{Binding UndoDeleteCommand}")]
