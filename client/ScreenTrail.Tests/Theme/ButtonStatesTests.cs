@@ -88,6 +88,29 @@ public sealed class ButtonStatesTests
     }
 
     [Theory]
+    [InlineData("Button.Danger")]
+    [InlineData("Button.DangerSolid")]
+    public void ADestructiveButtonLeadsWithTheDeleteIcon(string key)
+    {
+        // Review finding B-06: in high contrast, red is gone and Delete everything looked like Export.
+        Assert.Equal("{StaticResource Icon.Delete}", Setter(Style(key), "theme:ButtonIcon.Leading"));
+    }
+
+    [Fact]
+    public void TheButtonTemplateDrawsTheLeadingIconOnlyWhenOneIsSet()
+    {
+        var template = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", "Components.xaml")).Root!
+            .Elements(Wpf + "ControlTemplate").Single(t => (string?)t.Attribute(X + "Key") == "Button.Template");
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+
+        var leading = Assert.Single(template.Descendants(controls + "Glyph"));
+        Assert.Equal("{TemplateBinding theme:ButtonIcon.Leading}", (string?)leading.Attribute("Text"));
+        Assert.Equal("{TemplateBinding Foreground}", (string?)leading.Attribute("Foreground"));
+        var unset = Assert.Single(template.Descendants(Wpf + "Trigger"), t => (string?)t.Attribute("Property") == "theme:ButtonIcon.Leading");
+        Assert.Equal("{x:Null}", (string?)unset.Attribute("Value"));
+    }
+
+    [Theory]
     [InlineData("Review/NoteEditorView.xaml", "{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}")]
     [InlineData("Review/NoteEditorView.xaml", "{Binding UndoDeleteCommand}")]
     [InlineData("Settings/Integrations/IntegrationsPane.xaml", "{Binding DataContext.UnmapCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}")]

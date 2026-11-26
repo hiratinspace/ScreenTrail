@@ -144,11 +144,29 @@
                 BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="{DynamicResource Radius.control}"
                 SnapsToDevicePixels="True">
-            <ContentPresenter Margin="{TemplateBinding Padding}"
-                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                              RecognizesAccessKey="True" />
+            <!-- A grid, not a stack panel, so a label in a narrow button is still measured to its room and trims. -->
+            <Grid Margin="{TemplateBinding Padding}"
+                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!-- The leading icon (theme:ButtonIcon.Leading), in the label's colour; not there when unset. -->
+                <controls:Glyph x:Name="Leading"
+                                Grid.Column="0"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource Icon}"
+                                Foreground="{TemplateBinding Foreground}"
+                                Text="{TemplateBinding theme:ButtonIcon.Leading}" />
+                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True" />
+            </Grid>
         </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="theme:ButtonIcon.Leading" Value="{x:Null}">
+                <Setter TargetName="Leading" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </ControlTemplate.Triggers>
     </ControlTemplate>
 
     <!-- What every button shares. Not used on its own: a button is one of the styles below. -->
@@ -244,6 +262,7 @@
          throughout (review finding B-01: built on Secondary, the label went grey at the click). Built on
          the base, so no Secondary trigger can leak into it. -->
     <Style x:Key="Button.Danger" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="theme:ButtonIcon.Leading" Value="{StaticResource Icon.Delete}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -268,6 +287,7 @@
          initial focus. Until the phrase is typed it has the shared disabled look. In high contrast the fill
          is Highlight and the words HighlightText. -->
     <Style x:Key="Button.DangerSolid" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="theme:ButtonIcon.Leading" Value="{StaticResource Icon.Delete}" />
         <Setter Property="Background" Value="{DynamicResource Brush.danger.fill}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
