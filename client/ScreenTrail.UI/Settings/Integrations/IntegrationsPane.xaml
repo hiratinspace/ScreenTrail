@@ -135,19 +135,30 @@
                 </controls:Repeater>
 
                 <Border Margin="0,12,0,12" Height="1" Background="{DynamicResource Brush.border.subtle}" />
-                <TextBlock Style="{StaticResource Text.Label}" Text="Map a company by hand" />
+                <TextBlock Style="{StaticResource Text.BodyStrong}" Text="Map a company by hand" />
+                <!-- One label per field (review findings B-13, E-26): one label over a box and a combo said
+                     nothing about either. -->
                 <Grid Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBox Grid.Column="0"
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,0,4" Style="{StaticResource Text.Label}" Text="Company in ConnectWise" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,4" Style="{StaticResource Text.Label}" Text="Company in Hudu" />
+                    <TextBox Grid.Row="1"
+                             Grid.Column="0"
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewPsaCompany, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Company name in the PSA"
+                             theme:Field.Placeholder="Exactly as ConnectWise names it"
+                             AutomationProperties.Name="Company in ConnectWise"
                              AutomationProperties.HelpText="Exactly as ConnectWise names it" />
-                    <ComboBox Grid.Column="1"
+                    <ComboBox Grid.Row="1"
+                              Grid.Column="1"
                               Margin="8,0,0,0"
                               ItemsSource="{Binding Companies}"
                               SelectedItem="{Binding NewDocCompany}"
@@ -159,7 +170,8 @@
                             </Style>
                         </ComboBox.ItemContainerStyle>
                     </ComboBox>
-                    <Button Grid.Column="2"
+                    <Button Grid.Row="1"
+                            Grid.Column="2"
                             Margin="8,0,0,0"
                             Style="{StaticResource Button.Secondary}"
                             Content="Map"
