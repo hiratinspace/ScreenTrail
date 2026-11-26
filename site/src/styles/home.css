@@ -557,7 +557,8 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .trust h3 { grid-column: 1 / -1; margin-top: 12px; font-weight: 500; font-size: 17px; letter-spacing: -0.01em; }
 .trust p { grid-column: 1 / -1; color: var(--ink-2); font-size: 15px; }
 .privacy-more { margin-top: 24px; display: flex; flex-wrap: wrap; gap: 10px; }
-.privacy-more .btn { gap: 8px; }
+/* One link now, as wide as the cards above it: the label left, the arrow right. */
+.privacy-more .btn { width: 100%; justify-content: space-between; gap: 8px; height: 50px; padding: 0 20px; border-radius: 12px; }
 .privacy-more .btn svg { width: 14px; height: 14px; transition: translate .25s cubic-bezier(.22,1,.36,1); }
 .privacy-more .btn:hover svg { translate: 2px 0; }
 .privacy .plain-fig figcaption { padding-top: 4px; }
