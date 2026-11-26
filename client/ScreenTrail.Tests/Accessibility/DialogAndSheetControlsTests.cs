@@ -81,6 +81,30 @@ public sealed class DialogAndSheetControlsTests
         Assert.Equal("True", (string?)close.Attribute("IsCancel"));
     }
 
+    [Theory]
+    [InlineData("Shell", "ShortcutSheet.xaml")]
+    [InlineData("Diagnostics", "DiagnosticsWindow.xaml")]
+    public void TheSheetAndThePanelScrollAboveAFooterThatStaysOnScreen(string folder, string file)
+    {
+        // Review finding D-07: both grew past a 1080p screen at 150% and Close went under the taskbar. Each
+        // is capped at its work area (FitToWorkArea, in its code) and its rows scroll; Close is outside the scroll.
+        var root = Load(folder, file);
+        var code = File.ReadAllText(Source(folder, file) + ".cs");
+        Assert.Contains("Theme.FitToWorkArea.Apply(this);", code, StringComparison.Ordinal);
+
+        var scroll = Assert.Single(root.Descendants(Wpf + "ScrollViewer"));
+        Assert.Equal("Auto", (string?)scroll.Attribute("VerticalScrollBarVisibility"));
+        var close = Assert.Single(root.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Close");
+        Assert.DoesNotContain(close.Ancestors(), a => a.Name == Wpf + "ScrollViewer");
+    }
+
+    [Theory]
+    [InlineData(1032, 1.5, 640)]
+    [InlineData(1040, 1.0, 992)]
+    [InlineData(2112, 2.0, 1008)]
+    public void TheCapIsTheWorkAreaLess48(int workArea, double scale, double expected) =>
+        Assert.Equal(expected, ScreenTrail.Core.Shell.WindowFit.MaxHeight(workArea, scale), 3);
+
     [Fact]
     public void TheDiagnosticsPanelClosesWithEscAndSaysItsStateWithAGlyph()
     {

@@ -100,6 +100,7 @@ public partial class DiagnosticsWindow : Window
     public DiagnosticsWindow(CoreShell.DiagnosticsPanel panel)
     {
         InitializeComponent();
+        Theme.FitToWorkArea.Apply(this);
         DataContext = new DiagnosticsViewModel(panel);
     }
 
