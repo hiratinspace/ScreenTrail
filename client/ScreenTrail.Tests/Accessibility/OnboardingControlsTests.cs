@@ -1,3 +1,6 @@
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace ScreenTrail.Tests.Accessibility;
@@ -48,9 +51,13 @@ public sealed class OnboardingControlsTests
         // piece and never stretched.
         var box = template.Elements(Wpf + "Viewbox").Single();
         Assert.Equal("Uniform", (string?)box.Attribute("Stretch"));
+        // The grid is the file's viewBox, read from the file: the rename to ScreenTrail made the word longer,
+        // and a width typed in by hand kept the old one (and the old outlines) for a week.
         var grid = box.Elements(Wpf + "Canvas").Single();
-        Assert.Equal("330.4", (string?)grid.Attribute("Width"));
-        Assert.Equal("96", (string?)grid.Attribute("Height"));
+        var viewBox = Regex.Match(Brand("lockup-horizontal-on-navy.svg"), "viewBox=\"0 0 ([\\d.]+) ([\\d.]+)\"");
+        Assert.True(viewBox.Success);
+        Assert.Equal(viewBox.Groups[1].Value, (string?)grid.Attribute("Width"));
+        Assert.Equal(viewBox.Groups[2].Value, (string?)grid.Attribute("Height"));
 
         // Every fill is a token, so the mark follows the theme and high contrast; none is a brand hex.
         var fills = template.Descendants(Wpf + "Path").Select(p => (string?)p.Attribute("Fill")).ToList();
@@ -87,6 +94,10 @@ public sealed class OnboardingControlsTests
         var words = paths.Where(p => (string?)p.Attribute("Data") is { Length: > 1000 }).ToList();
         Assert.Equal(2, words.Count);
         Assert.All(words, p => Assert.StartsWith("F1 M", (string?)p.Attribute("Data"), StringComparison.Ordinal));
+
+        // And they are the file's own glyphs, placed by the file's transform: the outlines once spelt
+        // "ScreenTail" under a comment that said "ScreenTrail", on the first screen of setup.
+        Assert.Equal(WordmarkFromBrandFile(svg), words.Select(p => (string)p.Attribute("Data")!).ToList());
 
         var underside = (string?)paths.First(p => p.Attribute("Clip") is not null).Attribute("Clip");
         Assert.Contains("<path d=\"" + Spaced(underside!) + "\"/></clipPath>", svg, StringComparison.Ordinal);
@@ -222,6 +233,66 @@ public sealed class OnboardingControlsTests
 
     /// <summary>XAML's "M60,4 L54,16" as the SVG writes it, "M60 4 L54 16".</summary>
     private static string Spaced(string data) => data.Replace(',', ' ');
+
+    /// <summary>
+    /// The wordmark's paths from the brand file, moved out of its font units into the lockup's grid by the
+    /// group's own translate and scale (and each glyph run's own translate), at two decimals, as WPF path
+    /// data that fills nonzero. The file uses absolute M, L, Q, H, V and Z only.
+    /// </summary>
+    private static List<string> WordmarkFromBrandFile(string svg)
+    {
+        var group = Regex.Match(svg, "<g transform=\"translate\\(([-\\d.]+) ([-\\d.]+)\\) scale\\(([\\d.]+)\\)\">(.*?)</g>", RegexOptions.Singleline);
+        Assert.True(group.Success);
+        var dx = double.Parse(group.Groups[1].Value, CultureInfo.InvariantCulture);
+        var dy = double.Parse(group.Groups[2].Value, CultureInfo.InvariantCulture);
+        var scale = double.Parse(group.Groups[3].Value, CultureInfo.InvariantCulture);
+
+        string Number(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+
+        var result = new List<string>();
+        foreach (Match path in Regex.Matches(group.Groups[4].Value, "<path(?: transform=\"translate\\(([-\\d.]+) 0\\)\")? d=\"([^\"]*)\""))
+        {
+            var run = path.Groups[1].Success ? double.Parse(path.Groups[1].Value, CultureInfo.InvariantCulture) : 0;
+            var tokens = Regex.Matches(path.Groups[2].Value, "[MLQHVZ]|-?\\d*\\.?\\d+").Select(t => t.Value).ToList();
+            var data = new StringBuilder("F1 ");
+            var command = ' ';
+            for (var i = 0; i < tokens.Count;)
+            {
+                if (tokens[i] is ['M' or 'L' or 'Q' or 'H' or 'V' or 'Z'])
+                {
+                    command = tokens[i++][0];
+                    data.Append(command);
+                    continue;
+                }
+
+                if (!char.IsLetter(data[^1]))
+                {
+                    data.Append(' ');
+                }
+
+                var x = (double.Parse(tokens[i], CultureInfo.InvariantCulture) + run) * scale + dx;
+                switch (command)
+                {
+                    case 'H':
+                        data.Append(Number(x));
+                        i++;
+                        break;
+                    case 'V':
+                        data.Append(Number(double.Parse(tokens[i], CultureInfo.InvariantCulture) * scale + dy));
+                        i++;
+                        break;
+                    default:
+                        data.Append(Number(x)).Append(' ').Append(Number(double.Parse(tokens[i + 1], CultureInfo.InvariantCulture) * scale + dy));
+                        i += 2;
+                        break;
+                }
+            }
+
+            result.Add(data.ToString());
+        }
+
+        return result;
+    }
 
     private static XElement Frame() =>
         Load("Onboarding", "OnboardingWindow.xaml").Elements(Wpf + "Grid").Single().Elements(Wpf + "Border").Single();
