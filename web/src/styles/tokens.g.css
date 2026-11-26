@@ -129,6 +129,9 @@
   --layout-track-height: 4px;
   --layout-meter-width: 160px;
   --layout-badge-height: 20px;
+  --layout-empty-disc: 56px;
+  --layout-empty-disc-rail: 40px;
+  --layout-empty-max-width: 400px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;

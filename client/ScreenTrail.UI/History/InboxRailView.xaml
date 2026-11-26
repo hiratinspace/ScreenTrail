@@ -90,8 +90,28 @@
                       VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="0,0,0,8">
                 <!-- Nothing to list: asking, not answered, no sessions yet, or nothing matches the search. -->
-                <StackPanel Margin="16,8,16,8" Visibility="{Binding NoticeVisibility}">
-                    <TextBlock Style="{StaticResource Text.FrameMuted}"
+                <!-- The rail's empty state (review finding A-08): the empty state's parts at 40 and 20, left
+                     aligned with the rows' words, 24 below the search; the sentence in body text, not fine print. -->
+                <!-- In line with the rows' words: the rail's 8 inset, then the row's 12. -->
+                <Border Margin="8,24,16,8" Padding="12,0,0,0" Visibility="{Binding NoticeVisibility}">
+                <StackPanel>
+                    <Border Style="{StaticResource EmptyState.Disc.Rail}">
+                        <controls:Glyph>
+                            <controls:Glyph.Style>
+                                <Style BasedOn="{StaticResource EmptyState.Icon.Rail}" TargetType="controls:Glyph">
+                                    <Setter Property="Text" Value="{StaticResource Icon.History}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ClearSearchVisibility}" Value="Visible">
+                                            <Setter Property="Text" Value="{StaticResource Icon.Search}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:Glyph.Style>
+                        </controls:Glyph>
+                    </Border>
+                    <TextBlock Margin="0,12,0,0"
+                               Style="{StaticResource Text.Body}"
+                               TextWrapping="Wrap"
                                Text="{Binding Notice}"
                                controls:LiveRegion.Setting="Polite" />
                     <Button Margin="0,8,0,0"
@@ -100,6 +120,7 @@
                             Command="{Binding ClearSearchCommand}"
                             Visibility="{Binding ClearSearchVisibility}" />
                 </StackPanel>
+                </Border>
 
                 <controls:Repeater ItemsSource="{Binding Groups}">
                     <controls:Repeater.ItemTemplate>

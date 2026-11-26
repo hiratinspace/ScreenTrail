@@ -71,11 +71,8 @@
                     Margin="32,0"
                     VerticalAlignment="Center"
                     Visibility="{Binding DraftFailed, Converter={StaticResource Visible}}">
-            <Border Width="56"
-                    Height="56"
-                    HorizontalAlignment="Center"
-                    Background="{DynamicResource Brush.bg.danger}"
-                    CornerRadius="28">
+            <!-- A failure keeps its danger tint: it is a state to act on, not an empty pane. -->
+            <Border Style="{StaticResource EmptyState.Disc}" Background="{DynamicResource Brush.bg.danger}">
                 <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                            Foreground="{DynamicResource Brush.state.danger}"
                            Text="{StaticResource Icon.Warning}" />
@@ -103,14 +100,8 @@
                     Margin="32,0"
                     VerticalAlignment="Center"
                     Visibility="{Binding DraftPending, Converter={StaticResource Visible}}">
-            <Border Width="56"
-                    Height="56"
-                    HorizontalAlignment="Center"
-                    Background="{DynamicResource Brush.bg.selected}"
-                    CornerRadius="28">
-                <controls:Glyph Style="{StaticResource EmptyState.Icon}"
-                           Foreground="{DynamicResource Brush.accent.primary}"
-                           Text="{StaticResource Icon.Sync}" />
+            <Border Style="{StaticResource EmptyState.Disc}">
+                <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.Sync}" />
             </Border>
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"

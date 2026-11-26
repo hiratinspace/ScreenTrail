@@ -31,31 +31,12 @@
              Keyed and chosen by ShellContentTemplateSelector: a keyless string template here would also
              draw every button label in every pane. -->
         <DataTemplate x:Key="Shell.Message" DataType="{x:Type sys:String}">
-            <Border MaxWidth="560"
-                    Margin="0,0,0,48"
-                    Padding="32"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Style="{StaticResource Card}">
-                <StackPanel>
-                    <Border Width="56"
-                            Height="56"
-                            HorizontalAlignment="Center"
-                            Background="{DynamicResource Brush.bg.selected}"
-                            CornerRadius="28">
-                        <controls:Glyph Style="{StaticResource EmptyState.Icon}"
-                                   Foreground="{DynamicResource Brush.accent.primary}"
-                                   Text="{StaticResource Icon.Document}" />
-                    </Border>
-                    <TextBlock Margin="0,16,0,0"
-                               HorizontalAlignment="Center"
-                               Style="{StaticResource Text.Body}"
-                               TextAlignment="Center"
-                               TextWrapping="Wrap"
-                               Text="{Binding}"
-                               controls:LiveRegion.Setting="Polite" />
-                </StackPanel>
-            </Border>
+            <StackPanel Style="{StaticResource EmptyState}">
+                <Border Style="{StaticResource EmptyState.Disc}">
+                    <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.Document}" />
+                </Border>
+                <TextBlock Style="{StaticResource EmptyState.Message}" Text="{Binding}" controls:LiveRegion.Setting="Polite" />
+            </StackPanel>
         </DataTemplate>
         <shell:ShellContentTemplateSelector x:Key="Shell.Content" Message="{StaticResource Shell.Message}" />
 

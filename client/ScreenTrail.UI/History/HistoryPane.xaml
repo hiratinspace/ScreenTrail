@@ -31,7 +31,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="History.Empty" BasedOn="{StaticResource Card}" TargetType="Border">
+        <Style x:Key="History.Empty" BasedOn="{StaticResource EmptyState}" TargetType="StackPanel">
             <Setter Property="Visibility" Value="Collapsed" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Rows.Count}" Value="0">
@@ -183,35 +183,18 @@
         </DataGrid>
 
         <!-- Nothing yet: the same sentence the count line says, as the screen's content. -->
-        <Border Grid.Row="1"
-                MaxWidth="560"
-                Margin="0,0,0,40"
-                Padding="32"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Style="{StaticResource History.Empty}">
-            <StackPanel>
-                <Grid Width="56" Height="56" HorizontalAlignment="Center">
-                    <Ellipse Fill="{DynamicResource Brush.bg.selected}" />
-                    <controls:Glyph Style="{StaticResource EmptyState.Icon}"
-                                    Foreground="{DynamicResource Brush.accent.primary}"
-                                    Text="{StaticResource Icon.History}" />
-                </Grid>
-                <TextBlock Margin="0,16,0,0"
-                           HorizontalAlignment="Center"
-                           Style="{StaticResource Text.Body}"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           Text="{Binding Status}"
-                           controls:LiveRegion.Setting="Polite" />
-                <Button Margin="0,8,0,0"
-                        HorizontalAlignment="Center"
-                        Style="{StaticResource Button.Link}"
-                        Content="Clear filters"
-                        Command="{Binding ClearFiltersCommand}"
-                        Visibility="{Binding ClearFiltersVisibility}" />
-            </StackPanel>
-        </Border>
+        <StackPanel Grid.Row="1" Style="{StaticResource History.Empty}">
+            <Border Style="{StaticResource EmptyState.Disc}">
+                <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.History}" />
+            </Border>
+            <TextBlock Style="{StaticResource EmptyState.Message}" Text="{Binding Status}" controls:LiveRegion.Setting="Polite" />
+            <Button Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource Button.Link}"
+                    Content="Clear filters"
+                    Command="{Binding ClearFiltersCommand}"
+                    Visibility="{Binding ClearFiltersVisibility}" />
+        </StackPanel>
 
         <Grid Grid.Row="2" Margin="0,16,0,0">
             <Grid.RowDefinitions>
