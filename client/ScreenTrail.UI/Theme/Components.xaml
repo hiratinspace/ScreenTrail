@@ -196,6 +196,13 @@
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
             </Trigger>
+            <!-- Secondary's pressed trigger turns the label text.secondary, and this style inherits it: the
+                 red label went grey at the click on the most certain button in the app (review finding B-01).
+                 Pressed keeps the danger fill and the red label. -->
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+            </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />

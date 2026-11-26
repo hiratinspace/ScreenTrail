@@ -87,6 +87,17 @@ public sealed class DiscardControlsTests
         Assert.Equal("{StaticResource Text.Error}", (string?)reason.Attribute("Style"));
     }
 
+    [Fact]
+    public void TheDangerButtonStaysRedWhenPressed()
+    {
+        // Review finding B-01: Button.Danger is based on Button.Secondary, whose pressed trigger turns the
+        // label text.secondary, so the red label went grey at the click. Its own pressed trigger wins.
+        var danger = Load("Theme", "Components.xaml").Elements(Wpf + "Style").Single(e => (string?)e.Attribute(XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + "Key") == "Button.Danger");
+        var pressed = Assert.Single(danger.Descendants(Wpf + "Trigger"), t => (string?)t.Attribute("Property") == "IsPressed");
+
+        Assert.Contains(pressed.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Foreground" && (string?)s.Attribute("Value") == "{DynamicResource Brush.state.danger}");
+    }
+
     [Theory]
     [InlineData("Review", "ReviewPane.xaml")]
     [InlineData("History", "HistoryPane.xaml")]
