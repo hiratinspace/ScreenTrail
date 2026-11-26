@@ -65,6 +65,30 @@ public partial class HudWindow : Window
         }
 
         SourceInitialized += OnSourceInitialized;
+        SizeChanged += KeepTheAnchoredEdge;
+    }
+
+    /// <summary>
+    /// A pill on the right of its monitor grows leftward, keeping its right edge, and none runs off the
+    /// work area (review finding D-16). Not animated (design system 9.3). The saved position is the drag's
+    /// alone, so a width change is never written to shell.json.
+    /// </summary>
+    private void KeepTheAnchoredEdge(object sender, SizeChangedEventArgs e)
+    {
+        if (!e.WidthChanged || e.PreviousSize.Width <= 0 || !IsLoaded)
+        {
+            return;
+        }
+
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        var area = Forms.Screen.FromHandle(handle).WorkingArea;
+        var scale = VisualTreeHelper.GetDpi(this).DpiScaleX;
+        Left = HudPlacement.LeftAfterResize(Left, e.PreviousSize.Width, e.NewSize.Width, area.Left / scale, area.Right / scale);
     }
 
     private HudViewModel? Model => DataContext as HudViewModel;

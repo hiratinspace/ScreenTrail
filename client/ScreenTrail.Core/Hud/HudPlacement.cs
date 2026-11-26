@@ -50,4 +50,20 @@ public static class HudPlacement
 
         return false;
     }
+
+    /// <summary>
+    /// Where the pill's left edge goes when its width changes (review finding D-16). Its words change from
+    /// a timer to "Paused: press Ctrl+Alt+P to resume", and buttons come and go, so it grows and shrinks. It
+    /// grew rightward only, and a pill docked at the top right ran off the screen. One in the right half of
+    /// its monitor now keeps its right edge and grows leftward; one in the left half keeps its left edge.
+    /// A pill that was inside the monitor's work area stays inside it. One placed across two monitors, which
+    /// people do on purpose (<see cref="IsOnScreen"/>), is not pulled onto one. All in one unit, the window's own.
+    /// </summary>
+    public static double LeftAfterResize(double left, double oldWidth, double newWidth, double areaLeft, double areaRight)
+    {
+        var rightAnchored = left + (oldWidth / 2) >= (areaLeft + areaRight) / 2;
+        var next = rightAnchored ? left + oldWidth - newWidth : left;
+        var inside = left >= areaLeft && left + oldWidth <= areaRight;
+        return inside ? Math.Clamp(next, areaLeft, Math.Max(areaLeft, areaRight - newWidth)) : next;
+    }
 }
