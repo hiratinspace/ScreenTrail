@@ -22,6 +22,7 @@ public partial class App : Application, IDisposable
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ToolTipTiming.Apply();
 
         // The product was ScreenTail until 2026-11-17: %LOCALAPPDATA%\ScreenTail comes across before
         // anything here reads shell.json or the pipe token. The service does the same at its start.

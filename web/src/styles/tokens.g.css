@@ -134,6 +134,7 @@
   --layout-empty-max-width: 400px;
   --layout-toast-min-width: 280px;
   --layout-toast-max-width: 420px;
+  --layout-tooltip-max-width: 320px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;

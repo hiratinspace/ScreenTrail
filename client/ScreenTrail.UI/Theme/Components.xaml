@@ -1583,29 +1583,44 @@
     </Style>
 
     <!-- Tool tip: a small raised surface that wraps, in the app's type rather than the system's. -->
+    <!-- Tooltip (design system 10.6, review finding B-28): a level 2 surface, radius 4, 8 at the sides and
+         4 above and below, Caption size in text.primary, at most 320 wide and wrapping. The popup shadow is on
+         an empty border behind the words (never on the one holding them, which would lose ClearType), inside
+         a transparent margin it draws into; the offsets put the tip 4 below its control, left edges aligned.
+         The system's own shadow is off. Timing (600 ms to show) is ToolTipTiming's. -->
     <Style TargetType="ToolTip">
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="MaxWidth" Value="360" />
+        <Setter Property="MaxWidth" Value="{DynamicResource Layout.tooltip-max-width}" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="Placement" Value="Bottom" />
+        <Setter Property="HorizontalOffset" Value="-8" />
+        <Setter Property="VerticalOffset" Value="4" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ToolTip">
-                    <Border Padding="10,6"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="{DynamicResource Radius.control}">
-                        <ContentPresenter>
-                            <ContentPresenter.Resources>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="TextWrapping" Value="Wrap" />
-                                </Style>
-                            </ContentPresenter.Resources>
-                        </ContentPresenter>
-                    </Border>
+                    <Grid Margin="8,0,8,12">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Radius.sm}"
+                                Effect="{DynamicResource Elevation.popup}" />
+                        <Border Padding="8,4"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{DynamicResource Thickness.border}"
+                                CornerRadius="{DynamicResource Radius.sm}"
+                                RenderOptions.ClearTypeHint="Enabled">
+                            <ContentPresenter>
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                        </Border>
+                    </Grid>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
