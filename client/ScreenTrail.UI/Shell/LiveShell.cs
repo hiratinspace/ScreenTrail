@@ -403,6 +403,7 @@ public sealed class LiveShell : IAsyncDisposable
             };
             _window = window;
             _windowRestore = new WindowRestore(window);
+            ShellPlacement.Attach(window, _preferences);
         }
 
         _windowRestore!.Bring(_window);
