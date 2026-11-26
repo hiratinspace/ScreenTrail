@@ -122,6 +122,7 @@
   --layout-keycap-height: 20px;
   --layout-field: 240px;
   --layout-field-narrow: 160px;
+  --layout-dropdown-max-height: 320px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;

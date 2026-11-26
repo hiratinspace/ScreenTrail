@@ -1071,17 +1071,12 @@
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource Radius.control}"
                             SnapsToDevicePixels="True">
-                        <Path Width="10"
-                              Height="6"
-                              Margin="0,0,12,0"
-                              HorizontalAlignment="Right"
-                              VerticalAlignment="Center"
-                              Data="M0.5,0.5 L5,5 L9.5,0.5"
-                              Stretch="Fill"
-                              Stroke="{DynamicResource Brush.text.secondary}"
-                              StrokeThickness="1.5"
-                              StrokeStartLineCap="Round"
-                              StrokeEndLineCap="Round" />
+                        <!-- The chevron is the icon font's, 12 px, 12 from the right (review finding B-17). -->
+                        <controls:Glyph Margin="0,0,12,0"
+                                        HorizontalAlignment="Right"
+                                        Style="{StaticResource Icon}"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Text="{StaticResource Icon.ChevronDown}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsPressed" Value="True">
@@ -1092,36 +1087,45 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- A choice in the open list (design system 10.2): 32 high, radius 4, 8 px sides. Hover is bg.hover;
+         the chosen one is bg.selected with a check at the right, not an Iris bar (review finding B-17). -->
     <Style TargetType="ComboBoxItem">
-        <Setter Property="Padding" Value="10,6" />
-        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.control-compact}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ComboBoxItem">
-                    <Grid>
-                        <Border x:Name="Chrome" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </Border>
-                        <Rectangle x:Name="Indicator"
-                                   Width="3"
-                                   Height="16"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   RadiusX="1.5"
-                                   RadiusY="1.5"
-                                   Fill="{DynamicResource Brush.accent.primary}"
-                                   Visibility="Collapsed" />
-                    </Grid>
+                    <Border x:Name="Chrome"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="{DynamicResource Radius.sm}"
+                            Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0" VerticalAlignment="Center" />
+                            <controls:Glyph x:Name="Check"
+                                            Grid.Column="1"
+                                            Margin="8,0,0,0"
+                                            Style="{StaticResource Icon}"
+                                            FontSize="{DynamicResource Icon.sm}"
+                                            Foreground="{DynamicResource Brush.accent.primary}"
+                                            Text="{StaticResource Icon.Check}"
+                                            Visibility="Hidden" />
+                        </Grid>
+                    </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsHighlighted" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
-                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1138,6 +1142,7 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="MaxDropDownHeight" Value="{DynamicResource Layout.dropdown-max-height}" />
         <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
         <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
         <Setter Property="Template">
@@ -1155,7 +1160,8 @@
                                       BorderBrush="{TemplateBinding BorderBrush}"
                                       BorderThickness="{TemplateBinding BorderThickness}"
                                       IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
-                        <ContentPresenter Margin="11,4,34,4"
+                        <!-- 12 from the left, where a text box's text starts, and clear of the chevron. -->
+                        <ContentPresenter Margin="12,0,40,0"
                                           HorizontalAlignment="Left"
                                           VerticalAlignment="Center"
                                           IsHitTestVisible="False"
@@ -1163,25 +1169,43 @@
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
+                        <!-- The open list is a level 2 surface (design system 6, review finding B-17): the popup
+                             shadow on an empty sibling border, never on the one holding text (it would lose
+                             ClearType), inside 24 px of transparent margin the shadow draws into. The offsets put
+                             the list 4 below the field, its left edge on the field's. No shadow in high contrast. -->
                         <Popup x:Name="PART_Popup"
                                AllowsTransparency="True"
                                Focusable="False"
+                               HorizontalOffset="-24"
                                IsOpen="{TemplateBinding IsDropDownOpen}"
                                Placement="Bottom"
-                               PopupAnimation="None">
-                            <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
-                                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                                    Margin="0,4,0,0"
-                                    Padding="4"
-                                    Background="{DynamicResource Brush.bg.surface}"
-                                    BorderBrush="{DynamicResource Brush.border.strong}"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource Radius.card}">
-                                <ScrollViewer SnapsToDevicePixels="True">
-                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
-                                </ScrollViewer>
-                            </Border>
+                               PopupAnimation="None"
+                               VerticalOffset="-20">
+                            <Grid Margin="24">
+                                <Border Background="{DynamicResource Brush.bg.surface}"
+                                        CornerRadius="{DynamicResource Radius.card}"
+                                        Effect="{DynamicResource Elevation.popup}" />
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Padding="4"
+                                        Background="{DynamicResource Brush.bg.surface}"
+                                        BorderBrush="{DynamicResource Brush.border.strong}"
+                                        BorderThickness="{DynamicResource Thickness.border}"
+                                        CornerRadius="{DynamicResource Radius.card}">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
                         </Popup>
+                        <!-- Open, the field takes the 2 px accent edge; closed, focus is the ring alone. -->
+                        <Border x:Name="FocusEdge"
+                                BorderBrush="{DynamicResource Brush.accent.primary}"
+                                BorderThickness="{DynamicResource Thickness.focus}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                IsHitTestVisible="False"
+                                SnapsToDevicePixels="True"
+                                Visibility="Collapsed" />
                         <Border x:Name="ErrorEdge"
                                 BorderBrush="{DynamicResource Brush.state.danger}"
                                 BorderThickness="{DynamicResource Thickness.focus}"
@@ -1217,8 +1241,8 @@
                             <Setter TargetName="Toggle" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
                             <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
                         </Trigger>
-                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
