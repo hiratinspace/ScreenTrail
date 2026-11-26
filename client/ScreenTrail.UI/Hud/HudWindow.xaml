@@ -67,7 +67,7 @@
         <Style x:Key="Hud.Segment" TargetType="Border">
             <Setter Property="Margin" Value="8,0,0,0" />
             <Setter Property="Padding" Value="8,0,0,0" />
-            <Setter Property="Height" Value="{DynamicResource Icon.nav}" />
+            <Setter Property="Height" Value="{DynamicResource Icon.lg}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.line}" />
             <Setter Property="BorderThickness" Value="1,0,0,0" />

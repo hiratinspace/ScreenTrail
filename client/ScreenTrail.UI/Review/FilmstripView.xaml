@@ -25,7 +25,7 @@
                     <Grid>
                         <controls:Glyph HorizontalAlignment="Center"
                                    Style="{StaticResource Icon}"
-                                   FontSize="{DynamicResource Icon.nav}"
+                                   FontSize="{DynamicResource Icon.lg}"
                                    Foreground="{DynamicResource Brush.text.muted}"
                                    Text="&#xEB9F;" />
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />

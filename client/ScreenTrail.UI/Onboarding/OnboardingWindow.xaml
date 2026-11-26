@@ -45,7 +45,7 @@
         <DataTemplate x:Key="Onboarding.StepRow">
             <Border x:Name="Row"
                     Margin="0,0,0,4"
-                    Padding="12,0"
+                    Padding="{StaticResource Padding.control}"
                     MinHeight="{DynamicResource Layout.row-height}"
                     Background="Transparent"
                     BorderBrush="Transparent"

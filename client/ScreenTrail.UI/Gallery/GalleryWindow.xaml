@@ -177,7 +177,7 @@
                 </Border>
 
                 <TextBlock Text="Card / modal panel" />
-                <Border Margin="0,6,0,14" Style="{StaticResource Card}" Width="420" HorizontalAlignment="Left">
+                <Border Margin="0,6,0,14" Style="{StaticResource Card}" Width="{StaticResource Layout.dialog-width}" HorizontalAlignment="Left">
                     <StackPanel>
                         <TextBlock Style="{StaticResource Text.SectionHeading}" Text="Discard this session?" />
                         <TextBlock Margin="0,6,0,10" Style="{StaticResource Text.Secondary}" Text="This deletes the draft, screenshots and transcript from this device now. It can't be undone." />

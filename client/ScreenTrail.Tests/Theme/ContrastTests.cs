@@ -126,6 +126,20 @@ public class ContrastTests
         Assert.True(ratio > 1.0, $"{theme}: {border} is the same colour as {background}, so it draws nothing");
     }
 
+    [Theory]
+    [InlineData("dark")]
+    [InlineData("light")]
+    public void ADisabledLabelAndFillAreTheirOwnColours(string theme)
+    {
+        // v0.7.0: disabled by colour, not opacity, so it reads the same on every background. WCAG 1.4.3
+        // exempts inactive components from contrast, so they are held only to showing at all on a card.
+        foreach (var name in Tokens.RootElement.GetProperty("contrast").GetProperty("disabled").EnumerateArray())
+        {
+            var ratio = ContrastRatio(Hex(theme, name.GetString()!), Hex(theme, "bg.surface"));
+            Assert.True(ratio > 1.0, $"{theme}: {name.GetString()} is the same colour as bg.surface");
+        }
+    }
+
     public static TheoryData<string, string, string> ControlEdgePairs
     {
         get
@@ -352,7 +366,7 @@ public class ContrastTests
         // adds it has to decide which it is.
         var contrast = Tokens.RootElement.GetProperty("contrast");
         var classified = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var list in new[] { "text", "backgrounds", "indicators", "structural", "control_edges", "shell_text", "shell_backgrounds", "shell_indicators", "shell_structural", "shell_decorative" })
+        foreach (var list in new[] { "text", "backgrounds", "indicators", "structural", "disabled", "control_edges", "shell_text", "shell_backgrounds", "shell_indicators", "shell_structural", "shell_decorative" })
         {
             foreach (var name in contrast.GetProperty(list).EnumerateArray())
             {
@@ -397,7 +411,7 @@ public class ContrastTests
         // Spec §2.1: "one accent only". Anything else that looks like an accent must be a state colour.
         var names = Tokens.RootElement.GetProperty("color").EnumerateObject().Select(c => c.Name).ToList();
 
-        Assert.Equal(["accent.primary", "accent.primary.hover"], names.Where(n => n.StartsWith("accent.", StringComparison.Ordinal)));
+        Assert.Equal(["accent.primary", "accent.primary.hover", "accent.primary.pressed"], names.Where(n => n.StartsWith("accent.", StringComparison.Ordinal)));
     }
 
     [Theory]

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         Title="What's being captured right now?"
-        Width="420"
+        Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
         Style="{StaticResource Window.Base}">

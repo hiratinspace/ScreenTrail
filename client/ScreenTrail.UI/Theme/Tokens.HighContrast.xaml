@@ -91,5 +91,35 @@
     <Color x:Key="Token.shell.offline">{x:Static SystemColors.GrayTextColor}</Color>
     <SolidColorBrush x:Key="Brush.shell.offline" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
     <sys:String x:Key="Token.theme">high-contrast</sys:String>
-    <sys:Boolean x:Key="Token.elevation.enabled">False</sys:Boolean>
+    <!-- v0.7.0 (the premium review's design system): the new tints are the window colour, as the others are;
+         the new edges and marks are the text colours, so high contrast shows a kind by its border and words. -->
+    <Color x:Key="Token.bg.info">{x:Static SystemColors.WindowColor}</Color>
+    <SolidColorBrush x:Key="Brush.bg.info" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <Color x:Key="Token.bg.disabled">{x:Static SystemColors.WindowColor}</Color>
+    <SolidColorBrush x:Key="Brush.bg.disabled" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <Color x:Key="Token.border.success">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.border.success" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <Color x:Key="Token.border.warning">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.border.warning" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <Color x:Key="Token.border.danger">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.border.danger" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <Color x:Key="Token.text.disabled">{x:Static SystemColors.GrayTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.text.disabled" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
+    <Color x:Key="Token.accent.primary.pressed">{x:Static SystemColors.HotTrackColor}</Color>
+    <SolidColorBrush x:Key="Brush.accent.primary.pressed" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+    <Color x:Key="Token.brand.frame">{x:Static SystemColors.WindowColor}</Color>
+    <SolidColorBrush x:Key="Brush.brand.frame" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <Color x:Key="Token.brand.on-frame">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.brand.on-frame" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <Color x:Key="Token.state.redacted">{x:Static SystemColors.WindowTextColor}</Color>
+    <SolidColorBrush x:Key="Brush.state.redacted" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
+    <Color x:Key="Token.danger.fill">{x:Static SystemColors.HighlightColor}</Color>
+    <SolidColorBrush x:Key="Brush.danger.fill" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <Color x:Key="Token.danger.fill.hover">{x:Static SystemColors.HotTrackColor}</Color>
+    <SolidColorBrush x:Key="Brush.danger.fill.hover" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
+    <Color x:Key="Token.shell.pressed">{x:Static SystemColors.WindowColor}</Color>
+    <SolidColorBrush x:Key="Brush.shell.pressed" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
+    <!-- No shadows in high contrast: a floating surface is told apart by its WindowFrame outline. -->
+    <x:Null x:Key="Elevation.popup" />
+    <x:Null x:Key="Elevation.float" />
 </ResourceDictionary>

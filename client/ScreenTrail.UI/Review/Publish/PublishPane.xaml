@@ -141,7 +141,7 @@
                                             </Grid.RowDefinitions>
                                             <!-- State colours are indicators (Spec §2.1): the glyph takes it, the words stay text.primary. -->
                                             <TextBlock Grid.Column="0"
-                                                       Width="{DynamicResource Icon.nav}"
+                                                       Width="{DynamicResource Icon.lg}"
                                                        Margin="0,0,12,0"
                                                        VerticalAlignment="Center"
                                                        FontWeight="{DynamicResource Weight.semibold}"
