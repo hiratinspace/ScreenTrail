@@ -236,7 +236,7 @@ public sealed partial class PrivacyViewModel : ObservableObject
     partial void OnRetentionDaysChanged(int value) => Field(() =>
     {
         _panel.RetentionDays = value;
-        RetentionLabel = Describe(value);
+        RetentionLabel = PrivacyPanel.RetentionLine(value);
     });
 
     partial void OnTelemetryChanged(bool value) => Field(() => _panel.Telemetry = value);
@@ -308,7 +308,7 @@ public sealed partial class PrivacyViewModel : ObservableObject
         RetentionDays = days;
         RetentionMaximum = maximum;
         RetentionEditable = !_panel.RetentionLocked;
-        RetentionLabel = Describe(days);
+        RetentionLabel = PrivacyPanel.RetentionLine(days);
         LockedBecause = _panel.LockedBecause;
         LockedDetail = _panel.LockedDetail;
         LocalOnlyLockVisibility = _panel.LocalOnlyLocked ? Visibility.Visible : Visibility.Collapsed;
@@ -339,8 +339,4 @@ public sealed partial class PrivacyViewModel : ObservableObject
         CanAddProcess = _panel.CanAddProcess;
         Counted();
     }
-
-    /// <summary>Spec §5 S6: the slider says what is deleted and what is kept.</summary>
-    private static string Describe(int days) =>
-        $"Screenshots, transcript and notes of sessions older than {days} day{(days == 1 ? string.Empty : "s")} are deleted; the audit log is kept.";
 }

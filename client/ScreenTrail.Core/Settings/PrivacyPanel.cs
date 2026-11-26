@@ -51,6 +51,15 @@ public interface IPrivacyGateway
 /// </summary>
 public sealed class PrivacyPanel(IPrivacyGateway gateway)
 {
+    /// <summary>
+    /// What the retention slider says (Spec §5 S6), matching what <c>RetentionJob</c> does: an aged session
+    /// loses its screenshots, timeline, transcript and screen text; its note, its row in All sessions and
+    /// the audit log stay. The line used to say the notes were deleted too, which an approver could check
+    /// on disk and find false (review finding X1, G17).
+    /// </summary>
+    public static string RetentionLine(int days) =>
+        $"Sessions older than {days} day{(days == 1 ? string.Empty : "s")} lose their screenshots, timeline, transcript and screen text. The note, the session's entry in All sessions and the audit log are kept.";
+
     private readonly IPrivacyGateway _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
     private readonly List<string> _patterns = [];
     private readonly List<string> _processes = [];
