@@ -2258,6 +2258,141 @@ code and Trusted Types; the copy held to the product as built.
 - Verify: the Site job in CI (`npm test`, `npm run build`, `npm run e2e` in `site/`)
 ---
 
+## Phase 8: Premium review (Epic: POLISH), 2026-11-26
+
+The no-code review of the client and installer against a Linear, Raycast and 1Password bar. Evidence, findings (ids A-xx to E-xx, C-xx, D-xx, R-xx), the design system ("Quiet instrument") and the build order are in `reports/2026-11-26-premium-review/` (git-ignored; REPORT.md section 5 is this list). Each ticket below is one row of that build order; the finding ids carry the exact change. "Laptop" means the ticket cannot close without the Windows laptop (`windows-checklist.md`). Owner decisions are REPORT.md section 6.
+
+### **ST-125 · Review bug fixes that need no design work**
+- **Epic/Feature:** POLISH
+- **Priority:** High
+- **Estimate:** 2
+- **Status:** Built (2026-11-26), PR open. C-O1 (the onboarding wordmark spelt "ScreenTail"), E-04 (diagnostics labelled dropped keystrokes "held"), B-33 (the inferred-step line clipped mid word), C-O5/E-09 (Continue on Remote tools dropped unsaved choices), X1 and R-04 (Privacy said notes were deleted and promised "minutes saved"), D-22 (All sessions rebuilt on every service event), D-23 (the coverage banner pushed the table down), D-24 (the strip toast moved the thumbnails), B-01 pressed label only (the Danger button went grey when pressed). Left for ST-139: restoring the All sessions selection across the reads that remain.
+
+**Acceptance Criteria:**
+- [x] Each finding has a test that fails on the old code where the Mac can run one (C-O1, E-04, B-33, C-O5, X1, D-22, D-24, B-01)
+- [ ] CI renders show the wordmark, the inferred line, Diagnostics and Privacy as described (Windows CI)
+
+**Agent brief**
+- Read: `reports/2026-11-26-premium-review/REPORT.md`, the findings files named above
+- Write: `client/`, Spec §9, this section
+- Verify: `dotnet test` (Mac), the Windows CI screenshots
+
+### **ST-126 · Window lifecycle bugs**
+- **Findings:** D-01, D-02, D-03, D-05, D-07, D-08, D-09, D-13, C-H1/D-16, D-04, D-06
+- **Blocked By:** none
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-127 · Tokens: design-system change log, generator emits `Radius.pill` 999, elevation, `Icons.xaml`, line heights, HC keys**
+- **Findings:** A-29, A-30, A-31/B-57, design-system §13
+- **Blocked By:** none
+- **Laptop:** Yes (fonts, round ends, icon coverage)
+- **Status:** Open
+
+### **ST-128 · Buttons and focus rings: seven styles, compact size, states, shortcut hint pattern**
+- **Findings:** A-13, A-32/B-02, B-01, B-03 to B-07, B-53, A-14/B-08/E-22, B-32
+- **Blocked By:** ST-127
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-129 · Inputs and choices: fields, error and placeholder, combo, check box, radio, chip, segmented, slider, meter**
+- **Findings:** B-09 to B-15, B-17 to B-19, A-18/B-20, A-19/B-21, B-23, B-30, B-13/E-26
+- **Blocked By:** ST-127
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-130 · Feedback and surfaces: Badge, Banner, EmptyState, Toast, Tooltip, KeyCap, scroll bar, ProgressRing, Skeleton, Save bar; dead styles removed**
+- **Findings:** A-02/B-24, B-25, A-11/A-12/B-26, A-08, A-28/B-27/D-18, B-28, B-31, A-33/B-29, B-46, B-16, B-22
+- **Blocked By:** ST-127
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-131 · One selection treatment and rows: rail, foot nav, Settings nav, onboarding steps, table, thumbnails, HC**
+- **Findings:** A-01, B-44, C-O3, A-03/D-25/E-27, A-04 to A-07, A-34, A-35/E-28, R-01
+- **Blocked By:** ST-127, ST-130
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-132 · Gallery state matrix and the missing renders**
+- **Findings:** B-56, C-H13, inventory gaps
+- **Blocked By:** ST-128 to ST-131
+- **Laptop:** No
+- **Status:** Open
+
+### **ST-133 · Words: one vocabulary, live hotkey text, durations helper**
+- **Findings:** E-01 to E-03, E-05 to E-08, E-11 to E-13, E-16 to E-18, glossary
+- **Blocked By:** none
+- **Laptop:** No
+- **Status:** Open
+
+### **ST-134 · Recording pill**
+- **Findings:** C-H2 to C-H12, D-17
+- **Blocked By:** ST-127, ST-128, ST-130, ST-133
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-135 · Tray menu and balloon wording**
+- **Findings:** C-T1 to C-T5, C-T7, D-31, E-13, E-14
+- **Blocked By:** ST-127, ST-133
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-136 · Review: envelope and receipt**
+- **Findings:** A-15 to A-17, A-20, E-27, A-23 to A-25
+- **Blocked By:** ST-128 to ST-131
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-137 · Review: timeline, enlarged frame, strip**
+- **Findings:** A-21/E-23/E-24, A-22, A-26, A-27, D-21, D-27
+- **Blocked By:** ST-128 to ST-131
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-138 · Note pane**
+- **Findings:** B-34/E-11, B-35, R-02, B-36 to B-38, E-10
+- **Blocked By:** ST-128 to ST-130, ST-133
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-139 · All sessions (including restoring the selection across reads, the rest of D-22)**
+- **Findings:** A-09, A-10, R-03, A-13 (Open)
+- **Blocked By:** ST-130, ST-131, ST-133
+- **Laptop:** No
+- **Status:** Open
+
+### **ST-140 · Settings**
+- **Findings:** B-12, B-39 to B-43, B-45, B-47 to B-49, E-15
+- **Blocked By:** ST-129, ST-130
+- **Laptop:** No
+- **Status:** Open
+
+### **ST-141 · Dialogs, shortcut sheet, diagnostics, access keys**
+- **Findings:** B-50 to B-52, B-54, B-55, D-12, E-20, E-21, E-25
+- **Blocked By:** ST-128, ST-130
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-142 · Onboarding and first run**
+- **Findings:** C-O2, C-O4, C-O6 to C-O8, D-30, C-T8, C-I4, C-I7
+- **Blocked By:** ST-130, ST-131, ST-134
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-143 · Identity, installer, toasts**
+- **Findings:** C-I1, C-I2/D-11, C-I3, C-I5, C-I6, C-T6/D-10
+- **Blocked By:** ST-126; owner: legal name and signing certificate
+- **Laptop:** Yes
+- **Status:** Open
+
+### **ST-144 · Speed, motion, text size**
+- **Findings:** D-19, D-20, D-26, D-28, D-29, D-32, D-14, D-15
+- **Blocked By:** ST-128 to ST-131
+- **Laptop:** Yes
+- **Status:** Open
+
+---
+
 ## Part C: Ordered plan (replaces the sprint plan, 2026-09-15)
 
 The v0.4 sprint plan stopped describing the build once tickets were taken out of order (ST-079 in "Sprint 14"
