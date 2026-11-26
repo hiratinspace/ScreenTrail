@@ -404,22 +404,25 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .flow-h.in { grid-column: 1; } .flow-h.core { grid-column: 3; text-align: center; } .flow-h.out { grid-column: 5; }
 .flow-list { grid-row: 2; margin: 0; padding: 0; list-style: none; display: grid; grid-auto-rows: minmax(0, 1fr); gap: 10px; }
 .flow-list.in { grid-column: 1; } .flow-list.out { grid-column: 5; }
-.flow-list li { position: relative; display: grid; align-content: center; padding: 0 16px; background: var(--white); border: 1px solid var(--line-2); border-radius: 3px; font: 500 17px/1.2 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
+.flow-list li { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; padding: 0 14px; background: var(--white); border: 1px solid color-mix(in srgb, var(--iris) 16%, var(--line)); border-radius: 10px; box-shadow: 0 1px 2px rgba(30, 20, 80, .05), 0 10px 22px -18px rgba(60, 30, 140, .45); font: 500 16.5px/1.2 var(--sans); letter-spacing: -0.01em; color: var(--ink); }
+/* A small icon tile: what kind of tool it is (no brand marks; the names belong to their owners). */
+.flow-list .fi { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: color-mix(in srgb, var(--iris) 10%, var(--white)); color: var(--iris); }
+.flow-list .fi svg { width: 17px; height: 17px; }
 .flow-list li small { display: block; margin-top: 3px; font: 400 13px/1.3 var(--sans); letter-spacing: 0; color: var(--ink-3); }
-.flow-list li::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--iris); box-shadow: 0 0 0 3px var(--paper); }
+.flow-list li::after { content: ''; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--iris); box-shadow: 0 0 0 3px var(--white); }
 .flow-list.in li::after { right: -4px; }
 .flow-list.out li::after { left: -4px; }
-.flow-list li.later { background: transparent; border-style: dashed; color: var(--ink-3); }
-.flow-list li.later::after { background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--ribbon), 0 0 0 3px var(--paper); }
+.flow-list li.later { background: color-mix(in srgb, var(--paper) 60%, var(--white)); border-style: dashed; border-color: var(--line-2); box-shadow: none; color: var(--ink-3); }
+.flow-list li.later .fi { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-3); }
+.flow-list li.later::after { background: var(--white); box-shadow: inset 0 0 0 1.5px var(--ribbon), 0 0 0 3px var(--white); }
 .wires { grid-row: 2; width: 100%; height: 100%; overflow: visible; }
 .wires.in { grid-column: 2; } .wires.out { grid-column: 4; }
 .wires path { stroke: var(--iris); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .wires path.later { stroke: var(--ribbon); stroke-dasharray: 5 4; }
-.flow-core { grid-column: 3; grid-row: 2; align-self: center; position: relative; display: grid; justify-items: center; gap: 6px; padding: 26px 22px 22px; background: var(--white); border: 1px solid var(--iris); text-align: center; }
-.flow-core::after { content: ''; position: absolute; inset: 10px -11px -11px 10px; border: 1px solid var(--line-2); z-index: -1; }
+.flow-core { grid-column: 3; grid-row: 2; align-self: center; position: relative; display: grid; justify-items: center; gap: 6px; padding: 28px 22px 22px; background: var(--white); border: 1px solid color-mix(in srgb, var(--iris) 70%, var(--white)); border-radius: 18px; box-shadow: 0 2px 4px rgba(30, 20, 80, .06), 0 30px 60px -30px rgba(70, 35, 170, .5); text-align: center; }
 .flow-core img { width: 44px; height: 44px; }
 .flow-name { font: 500 22px/1.2 var(--sans); letter-spacing: -0.02em; color: var(--ink); }
-.flow-core ul { margin: 12px 0 0; padding: 0; list-style: none; width: 100%; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); }
+.flow-core ul { margin: 12px 0 0; padding: 0; list-style: none; width: 100%; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid color-mix(in srgb, var(--iris) 14%, var(--line)); }
 .flow-core li { padding: 14px 8px 0; font: 500 15px/1.25 var(--sans); color: var(--ink); }
 .flow-core li + li { border-left: 1px solid var(--line); }
 .flow-core li small { display: block; margin-top: 3px; font: 400 13px/1.3 var(--sans); color: var(--ink-3); }
@@ -430,8 +433,24 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
        to spare), so a reader looking at the full diagram never sees one stop short of its dot. */
     .wires { animation: wire-draw linear both; animation-timeline: view(); animation-range: entry 45% entry calc(100% + 6vh); }
     .wires.out { animation-range: entry calc(100% + 4vh) entry calc(100% + 18vh); }
+    /* The cards come with the wires: the remote tools slide in from the left as each comes up, the core
+       settles as the incoming wires reach it, and each place it publishes to slides in from the right as
+       its wire gets there (on the diagram's own timeline, so they follow the outgoing wires). */
+    .flow { view-timeline: --flow block; }
+    .flow-list.in li { animation: card-in-l linear both; animation-timeline: view(); animation-range: entry 0% entry calc(100% + 12vh); }
+    .flow-core { animation: core-in linear both; animation-timeline: --flow; animation-range: entry 35% entry 95%; }
+    .flow-list.out li { animation: card-in-r linear both; animation-timeline: --flow; animation-range: entry calc(100% + var(--at) * 1vh) entry calc(100% + var(--at) * 1vh + 8vh); }
+    .flow-list.out li:nth-child(1) { --at: 2; } .flow-list.out li:nth-child(2) { --at: 5; }
+    .flow-list.out li:nth-child(3) { --at: 8; } .flow-list.out li:nth-child(4) { --at: 11; }
+    /* Stacked (no wires): each card simply arrives as it comes up. */
+    @media (max-width: 960px) {
+      .flow-list.out li { animation-timeline: view(); animation-range: entry 0% entry calc(100% + 12vh); }
+    }
   }
 }
+@keyframes card-in-l { from { opacity: .15; translate: -20px 0; animation-timing-function: cubic-bezier(.22,1,.36,1); } to { opacity: 1; translate: 0 0; } }
+@keyframes card-in-r { from { opacity: .15; translate: 20px 0; animation-timing-function: cubic-bezier(.22,1,.36,1); } to { opacity: 1; translate: 0 0; } }
+@keyframes core-in { from { opacity: .3; scale: .96; animation-timing-function: cubic-bezier(.22,1,.36,1); } to { opacity: 1; scale: 1; } }
 @keyframes wire-draw { from { clip-path: inset(-10px 100% -10px 0); } to { clip-path: inset(-10px 0 -10px 0); } }
 .stack-note { margin-top: 32px; font-size: 14px; color: var(--ink-3); max-width: 62ch; }
 
@@ -584,6 +603,9 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
   .flow-list.in::after, .flow-core::before { content: ''; position: absolute; left: 50%; top: calc(100% + 6px); height: 32px; border-left: 1.5px solid var(--iris); }
   .flow-core { justify-self: stretch; margin-right: 11px; }
   .feature .copy p, .points { max-width: 60ch; }
+  .flow-list li { gap: 9px; padding-inline: 10px; font-size: 15px; }
+  .flow-list .fi { width: 26px; height: 26px; border-radius: 7px; }
+  .flow-list .fi svg { width: 15px; height: 15px; }
   .mock-stage { padding: 12px; border-radius: 16px; }
   .feature { padding: 48px 0; }
   html:not(.js-scene) .scene-pin { grid-template-columns: minmax(0, 1fr); }
