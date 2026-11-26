@@ -108,7 +108,7 @@
                 Grid.Row="2"
                 Margin="0,24,0,0"
                 HorizontalAlignment="Right"
-                Style="{StaticResource Button.Primary}"
+                Style="{StaticResource Button.Secondary}"
                 Content="Close"
                 IsDefault="True"
                 IsCancel="True"

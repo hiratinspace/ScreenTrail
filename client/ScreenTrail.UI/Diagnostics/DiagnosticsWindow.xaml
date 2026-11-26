@@ -136,7 +136,7 @@
                     AutomationProperties.Name="Copy diagnostics to the clipboard" />
             <Button x:Name="CloseButton"
                     Grid.Column="2"
-                    Style="{StaticResource Button.Primary}"
+                    Style="{StaticResource Button.Secondary}"
                     Content="Close"
                     IsCancel="True"
                     Click="OnClose"

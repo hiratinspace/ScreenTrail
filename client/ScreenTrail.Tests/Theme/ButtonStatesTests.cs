@@ -122,6 +122,21 @@ public sealed class ButtonStatesTests
     }
 
     [Theory]
+    [InlineData("Shell/ShortcutSheet.xaml")]
+    [InlineData("Diagnostics/DiagnosticsWindow.xaml")]
+    public void AReadOnlyWindowClosesWithASecondaryButton(string file)
+    {
+        // Review finding B-53: a filled Close outranked "Copy diagnostics"; a window with nothing to commit
+        // needs no Primary (design system 1.2). Esc and Enter still close it.
+        var window = XDocument.Load(Path.Combine(Ui(), file));
+
+        var close = Assert.Single(window.Descendants(Wpf + "Button"), b => (string?)b.Attribute(X + "Name") == "CloseButton");
+        Assert.Equal("{StaticResource Button.Secondary}", (string?)close.Attribute("Style"));
+        Assert.Equal("True", (string?)close.Attribute("IsCancel"));
+        Assert.DoesNotContain(window.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Style") == "{StaticResource Button.Primary}");
+    }
+
+    [Theory]
     [InlineData("Review/NoteEditorView.xaml", "{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}")]
     [InlineData("Review/NoteEditorView.xaml", "{Binding UndoDeleteCommand}")]
     [InlineData("Settings/Integrations/IntegrationsPane.xaml", "{Binding DataContext.UnmapCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}")]
