@@ -876,14 +876,18 @@
     </Style>
 
     <!-- Segment: one choice of a segmented control (Spec v0.6.0 §5 S3, the envelope's As line). Radio
-         buttons in a Segment.Group, so the choice is visible and one key press away. The chosen one is the
-         selection tint with its words in semibold and a 2 px accent bar under them, so it is told by shape
-         and weight as well as colour; in high contrast the tint is the window colour and the bar and the
-         weight remain. -->
+         buttons in a Segment.Group, so the choice is visible and one key press away. Design system 10.3
+         (review findings A-19, B-21): the group is 32 high, radius 6, a 1 px border.strong edge and 2 inside;
+         each segment is 26 high, radius 4 (6 less the 2), 12 at the sides, so the corners nest. The chosen
+         one is the selection tint with its words in semibold text.primary, the others text.secondary: one
+         signal, no underline. In high contrast the tint is the window colour, so the chosen one keeps a 2 px
+         Highlight edge (Thickness.selected-edge). -->
     <Style x:Key="Segment.Group" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="Padding" Value="2" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
@@ -892,9 +896,9 @@
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.segment-height}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
@@ -902,33 +906,33 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="Chrome"
+                            MinHeight="{TemplateBinding MinHeight}"
                             Background="{TemplateBinding Background}"
-                            CornerRadius="{DynamicResource Radius.control}"
+                            BorderBrush="{DynamicResource Brush.accent.primary}"
+                            BorderThickness="0"
+                            CornerRadius="{DynamicResource Radius.sm}"
                             SnapsToDevicePixels="True">
-                        <Grid>
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                            <Border x:Name="Bar"
-                                    Height="{DynamicResource Focus.width}"
-                                    Margin="{DynamicResource Padding.control}"
-                                    VerticalAlignment="Bottom"
-                                    Background="{DynamicResource Brush.accent.primary}"
-                                    Visibility="Collapsed" />
-                        </Grid>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"
+                                          HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
-                            <Setter TargetName="Bar" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Chrome" Property="BorderThickness" Value="{DynamicResource Thickness.selected-edge}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
                             <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>

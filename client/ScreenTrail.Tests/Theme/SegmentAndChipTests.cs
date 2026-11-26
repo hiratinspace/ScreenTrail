@@ -12,6 +12,31 @@ public sealed class SegmentAndChipTests
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void ASegmentsCornersNestInsideItsGroup()
+    {
+        var group = Keyed("Segment.Group");
+        Assert.Equal("2", Setter(group, "Padding"));
+        Assert.Equal("{DynamicResource Radius.control}", Setter(group, "CornerRadius"));
+        Assert.Equal("{DynamicResource Brush.border.strong}", Setter(group, "BorderBrush"));
+
+        var chrome = Named(Keyed("Segment"), "Chrome");
+        Assert.Equal("{DynamicResource Radius.sm}", (string?)chrome.Attribute("CornerRadius"));
+    }
+
+    [Fact]
+    public void TheChosenSegmentIsTintedAndBoldWithNoUnderline()
+    {
+        var segment = Keyed("Segment");
+        Assert.DoesNotContain(segment.Descendants(), e => (string?)e.Attribute(X + "Name") == "Bar");
+        Assert.Equal("{DynamicResource Brush.text.secondary}", Setter(segment, "Foreground"));
+
+        var chosen = segment.Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsChecked").Elements(Wpf + "Setter").ToList();
+        Assert.Contains(chosen, s => (string?)s.Attribute("Value") == "{DynamicResource Brush.bg.selected}");
+        Assert.Contains(chosen, s => (string?)s.Attribute("Value") == "{DynamicResource Weight.semibold}");
+        Assert.Contains(chosen, s => (string?)s.Attribute("Value") == "{DynamicResource Thickness.selected-edge}");
+    }
+
+    [Fact]
     public void AChipsMarkIsASquareAndTheChipTintsWhenOn()
     {
         var chip = Keyed("CheckChip");
@@ -24,6 +49,16 @@ public sealed class SegmentAndChipTests
         var on = chip.Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsChecked");
         Assert.Contains(on.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Chrome" && (string?)s.Attribute("Value") == "{DynamicResource Brush.bg.selected}");
         Assert.Empty(chip.Descendants(Wpf + "Path"));
+    }
+
+    [Theory]
+    [InlineData("Tokens.Light.g.xaml", "0")]
+    [InlineData("Tokens.Dark.g.xaml", "0")]
+    [InlineData("Tokens.HighContrast.xaml", "2")]
+    public void OnlyHighContrastDrawsTheChosenSegmentsEdge(string file, string thickness)
+    {
+        var root = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", file)).Root!;
+        Assert.Equal(thickness, root.Elements(Wpf + "Thickness").Single(t => (string?)t.Attribute(X + "Key") == "Thickness.selected-edge").Value);
     }
 
     private static string? Setter(XElement style, string property) =>

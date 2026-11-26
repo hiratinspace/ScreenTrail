@@ -57,6 +57,9 @@ function wpfColors(t, theme) {
   // field's own 2 px accent edge shows focus; the high contrast dictionary draws one, because there the edge
   // alone was too faint to see on a scaled screen (ST-084).
   lines.push('    <Style x:Key="FocusVisual.input" />');
+  // A chosen segment's edge (design system 10.3, review finding B-21): none in light and dark, where its tint
+  // says it; 2 px Highlight in high contrast, where the tint is the window colour.
+  lines.push('    <Thickness x:Key="Thickness.selected-edge">0</Thickness>');
   lines.push('</ResourceDictionary>');
   return lines.join('\n');
 }
