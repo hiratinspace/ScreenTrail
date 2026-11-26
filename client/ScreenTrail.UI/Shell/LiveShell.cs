@@ -107,6 +107,9 @@ public sealed class LiveShell : IAsyncDisposable
     private volatile bool _disposed;
     private ShellWindow? _window;
 
+    /// <summary>How the shell window comes back from minimised (review finding D-05); made with the window.</summary>
+    private WindowRestore? _windowRestore;
+
     public LiveShell()
         : this(OpenAsync, new ShellPreferencesStore(ShellPreferencesStore.DefaultPath))
     {
@@ -207,7 +210,7 @@ public sealed class LiveShell : IAsyncDisposable
 
         if (_onboarding is { IsLoaded: true })
         {
-            _ = _onboarding.Activate();
+            new WindowRestore(_onboarding).Bring(_onboarding);
             return;
         }
 
@@ -396,10 +399,10 @@ public sealed class LiveShell : IAsyncDisposable
                 _window = null;
             };
             _window = window;
+            _windowRestore = new WindowRestore(window);
         }
 
-        _window.Show();
-        _ = _window.Activate();
+        _windowRestore!.Bring(_window);
     }
 
     /// <summary>
