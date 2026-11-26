@@ -136,6 +136,33 @@ public sealed class ButtonStatesTests
         Assert.DoesNotContain(window.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Style") == "{StaticResource Button.Primary}");
     }
 
+    [Fact]
+    public void ALinkIsUnderlinedOnlyUnderThePointerAndNeverFills()
+    {
+        // Review finding B-07: underlined at rest, a grey fill on hover, and only strings worked.
+        var link = Style("Button.Link");
+
+        Assert.Equal("0", Setter(link, "Padding"));
+        Assert.DoesNotContain(link.Descendants(), e => (string?)e.Attribute("TextDecorations") == "Underline");
+        Assert.DoesNotContain(link.Descendants(Wpf + "Trigger").Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Background");
+        Assert.Equal("{DynamicResource Brush.text.disabled}", Setter(Trigger(link, "IsEnabled"), "Foreground"));
+        Assert.Empty(link.Descendants(Wpf + "TextBlock"));
+        Assert.Single(link.Descendants(Wpf + "ContentPresenter"));
+    }
+
+    [Theory]
+    [InlineData("Review/Publish/PublishPane.xaml", "{Binding LinkText}")]
+    [InlineData("Review/Publish/EnvelopeView.xaml", "{Binding ChangeLabel}")]
+    public void AButtonThatReadsAsALinkIsTheLinkStyle(string file, string content)
+    {
+        // Two Ghost buttons painted accent by hand: they took Ghost's fill on hover and no underline.
+        var view = XDocument.Load(Path.Combine(Ui(), file));
+
+        var button = Assert.Single(view.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == content);
+        Assert.Equal("{StaticResource Button.Link}", (string?)button.Attribute("Style"));
+        Assert.Null(button.Attribute("Foreground"));
+    }
+
     [Theory]
     [InlineData("Review/NoteEditorView.xaml", "{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}")]
     [InlineData("Review/NoteEditorView.xaml", "{Binding UndoDeleteCommand}")]

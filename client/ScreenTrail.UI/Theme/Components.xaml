@@ -1581,12 +1581,16 @@
         </Setter>
     </Style>
 
-    <!-- A link that acts inside the screen (the Save bar's section name): accent words, underlined, with
-         the hit-target floor and the focus ring. -->
+    <!-- Link (design system 10.1, review finding B-07): accent words with no padding, no fill and no
+         underline at rest, so a sentence that holds one still reads as a sentence. Hover and pressed take
+         accent.primary.hover and the underline, never a fill; disabled is text.disabled. 28 high alone,
+         the hit-target floor. Any content works: a string is drawn by the presenter's TextBlock, which takes
+         the underline from the style below. The focus ring hugs the words, since there is no padding. -->
     <Style x:Key="Button.Link" TargetType="Button">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary}" />
@@ -1594,14 +1598,26 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.control}" SnapsToDevicePixels="True">
-                        <TextBlock VerticalAlignment="Center"
-                                   Foreground="{TemplateBinding Foreground}"
-                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
-                                   TextDecorations="Underline" />
+                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -1609,7 +1625,13 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary.hover}" />
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary.hover}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
         </Style.Triggers>
     </Style>

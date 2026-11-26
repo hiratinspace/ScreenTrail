@@ -71,8 +71,7 @@
                                    Text="{Binding MatchedFrom}" />
                         <StackPanel Orientation="Horizontal" Visibility="{Binding ChangeVisibility}">
                             <Button x:Name="ChangeButton"
-                                    Style="{StaticResource Button.Ghost}"
-                                    Foreground="{DynamicResource Brush.accent.primary}"
+                                    Style="{StaticResource Button.Link}"
                                     Content="{Binding ChangeLabel}"
                                     Command="{Binding ChangeTicketCommand}"
                                     AutomationProperties.Name="{Binding ChangeLabel}"
