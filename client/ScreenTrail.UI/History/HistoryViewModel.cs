@@ -230,13 +230,27 @@ public sealed partial class HistoryViewModel : ObservableObject
 
     public async Task RefreshAsync(CancellationToken ct = default)
     {
+        // The rows and the coverage counts are asked together and shown in one pass. Shown one after the
+        // other, the banner arrived after the table and pushed every row down about 72 px, often just as
+        // the pointer reached one (review finding D-23).
+        var from = HistoryFilters.From(Filter.Period, _time.GetUtcNow(), _zone);
+        var ask = ++_asks;
+        var coverage = _coverage is null ? Task.FromResult<CoverageReported?>(null) : _coverage(from, ct);
         var rows = await _load(ct).ConfigureAwait(true);
+        var reported = await coverage.ConfigureAwait(true);
+
         _all = rows is null ? null : [.. rows.OrderByDescending(r => r.StartedAt)];
         _quiet = true;
         OfferTools();
         _quiet = false;
+        if (_coverage is not null && ask == _asks)
+        {
+            _reported = reported;
+            _reportedFrom = from;
+        }
+
         Show();
-        await LoadCoverageAsync(ct).ConfigureAwait(true);
+        ShowCoverage();
     }
 
     /// <summary>
@@ -293,11 +307,14 @@ public sealed partial class HistoryViewModel : ObservableObject
         ShowCoverage();
     }
 
-    /// <summary>Another period counts from another start, so the service is asked again; until it answers there is no banner.</summary>
+    /// <summary>
+    /// Another period counts from another start, so the service is asked again. The banner for the period
+    /// before stays where it is until the answer replaces its words, so the table does not jump twice
+    /// (review finding D-23).
+    /// </summary>
     partial void OnPeriodChoiceChanged(FilterChoice<HistoryPeriod> value)
     {
         Show();
-        ShowCoverage();
         _ = LoadCoverageAsync(CancellationToken.None);
     }
 
