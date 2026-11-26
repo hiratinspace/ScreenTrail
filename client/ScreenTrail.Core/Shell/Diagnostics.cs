@@ -105,7 +105,7 @@ public sealed record Diagnostics(
             .Append("suppressed       ").AppendLine(Suppression ?? "no")
             .Append("redaction queue  ").AppendLine(RedactionBacklog.ToString(CultureInfo.InvariantCulture))
             .Append("frames dropped   ").AppendLine(FramesDropped.ToString(CultureInfo.InvariantCulture))
-            .Append("keystrokes held  ").AppendLine(KeystrokesDropped.ToString(CultureInfo.InvariantCulture))
+            .Append("typing ignored   ").AppendLine(KeystrokesDropped.ToString(CultureInfo.InvariantCulture))
             .Append("egress blocked   ").AppendLine(EgressBlocked.ToString(CultureInfo.InvariantCulture))
             .Append("hook fallbacks   ").AppendLine(NameHookRefusals?.ToString(CultureInfo.InvariantCulture) ?? DiagnosticsPanel.Unknown)
             .Append("cpu              ").AppendLine(DiagnosticsPanel.CpuValue(CpuPercent))
