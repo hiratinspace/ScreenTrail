@@ -156,6 +156,17 @@ public sealed record PublishResultRow(Destination Destination, string Label, Res
         _ => "Already published",
     };
 
+    /// <summary>
+    /// The badge's tone (design system 10.5): Success when it landed, Danger when it failed, Warning when it
+    /// may have landed or was already there and is worth a look. The word says it; the tone only agrees.
+    /// </summary>
+    public string BadgeTone => State switch
+    {
+        ResultState.Sent => "Success",
+        ResultState.Failed => "Danger",
+        _ => "Warning",
+    };
+
     /// <summary>The link's name for a screen reader: where it opens and which destination it is.</summary>
     public string LinkName => $"{LinkText}: {Label}";
 }

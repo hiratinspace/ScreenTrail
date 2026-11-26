@@ -7,7 +7,7 @@ Gallery/GalleryWindow.xaml	Margin	0,6,0,14	6
 Gallery/GalleryWindow.xaml	Margin	16,0,6,0	3
 Gallery/GalleryWindow.xaml	Margin	24,0,6,0	1
 Gallery/GalleryWindow.xaml	Margin	6	3
-Gallery/GalleryWindow.xaml	Margin	6,0,0,0	6
+Gallery/GalleryWindow.xaml	Margin	6,0,0,0	3
 Gallery/GalleryWindow.xaml	Padding	16,10	1
 Gallery/GalleryWindow.xaml	Width	280	2
 Hud/HudWindow.xaml	Margin	10,0,16,0	1
@@ -31,7 +31,7 @@ Shell/ShellWindow.xaml	CornerRadius	28	1
 Theme/Components.xaml	BorderThickness	2	1
 Theme/Components.xaml	BorderThickness	3	2
 Theme/Components.xaml	CornerRadius	10	1
-Theme/Components.xaml	CornerRadius	11	2
+Theme/Components.xaml	CornerRadius	11	1
 Theme/Components.xaml	CornerRadius	14	1
 Theme/Components.xaml	CornerRadius	16	1
 Theme/Components.xaml	CornerRadius	3	1

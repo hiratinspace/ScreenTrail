@@ -76,6 +76,7 @@
     <sys:Double x:Key="Layout.slider-thumb">16</sys:Double>
     <sys:Double x:Key="Layout.track-height">4</sys:Double>
     <sys:Double x:Key="Layout.meter-width">160</sys:Double>
+    <sys:Double x:Key="Layout.badge-height">20</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>

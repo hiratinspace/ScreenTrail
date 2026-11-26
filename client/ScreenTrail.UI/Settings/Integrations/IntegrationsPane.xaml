@@ -16,14 +16,16 @@
                         <TextBlock Style="{StaticResource Text.TileHeading}" Text="{Binding Title}" />
                         <ContentControl Margin="8,0,0,0"
                                         VerticalAlignment="Center"
-                                        Style="{StaticResource Badge.Published}"
+                                        Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Success"
                                         Content="Connected"
                                         Visibility="{Binding ConnectedBadgeVisibility}" />
                         <!-- In Connected's place when the last check failed (v0.7.1): the warning tint, so
                              the badge never says Connected over a credential that did not work. -->
                         <ContentControl Margin="8,0,0,0"
                                         VerticalAlignment="Center"
-                                        Style="{StaticResource Badge.Unconfirmed}"
+                                        Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Warning"
                                         Content="Check failed"
                                         Visibility="{Binding CheckFailedBadgeVisibility}" />
                     </StackPanel>
@@ -84,7 +86,8 @@
                                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="{Binding Title}" />
                                 <ContentControl Margin="8,0,0,0"
                                                 VerticalAlignment="Center"
-                                                Style="{StaticResource Badge.Published}"
+                                                Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Success"
                                                 Content="Connected"
                                                 Visibility="{Binding BadgeVisibility}" />
                             </StackPanel>

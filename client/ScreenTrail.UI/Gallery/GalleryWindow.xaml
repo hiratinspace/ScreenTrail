@@ -91,9 +91,10 @@
                 <TextBlock Text="Badges and state indicators" />
                 <StackPanel Style="{StaticResource Row}">
                     <ContentControl Content="Draft" Style="{StaticResource Badge}" />
-                    <ContentControl Margin="6,0,0,0" Content="Suggested" Style="{StaticResource Badge.Suggested}" />
-                    <ContentControl Margin="6,0,0,0" Content="Low confidence" Style="{StaticResource Badge.Confidence}" />
-                    <ContentControl Margin="6,0,0,0" Content="Published" Style="{StaticResource Badge.Published}" />
+                    <ContentControl Margin="8,0,0,0" Content="Suggested" Style="{StaticResource Badge}" theme:Badge.Tone="Accent" />
+                    <ContentControl Margin="8,0,0,0" Content="Low confidence" Style="{StaticResource Badge}" theme:Badge.Tone="Warning" theme:Badge.Glyph="{StaticResource Icon.Warning}" />
+                    <ContentControl Margin="8,0,0,0" Content="Published" Style="{StaticResource Badge}" theme:Badge.Tone="Success" theme:Badge.Glyph="{StaticResource Icon.Check}" />
+                    <ContentControl Margin="8,0,0,0" Content="Failed" Style="{StaticResource Badge}" theme:Badge.Tone="Danger" />
                     <Ellipse Margin="24,0,6,0" Style="{StaticResource StateDot}" />
                     <TextBlock Style="{StaticResource Text.Body}" Text="Recording" VerticalAlignment="Center" />
                     <Ellipse Margin="16,0,6,0" Fill="{DynamicResource Brush.state.paused}" Style="{StaticResource StateDot}" />

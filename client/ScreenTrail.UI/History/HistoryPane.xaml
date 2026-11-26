@@ -1,6 +1,7 @@
 <UserControl x:Class="ScreenTrail.UI.History.HistoryPane"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              xmlns:local="clr-namespace:ScreenTrail.UI.History"
              xmlns:core="clr-namespace:ScreenTrail.Core.History;assembly=ScreenTrail.Core"
@@ -172,25 +173,17 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
-                                <ContentControl Style="{StaticResource Badge.State}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <controls:Glyph Style="{StaticResource Badge.StateGlyph}" Text="{Binding StatusGlyph}" />
-                                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="{Binding Status}" />
-                                    </StackPanel>
+                                <ContentControl Style="{StaticResource Badge}" theme:Badge.Tone="{Binding StatusTone}" theme:Badge.Glyph="{Binding StatusGlyph}">
+                                    <TextBlock Text="{Binding Status}" />
                                 </ContentControl>
                                 <ContentControl Margin="8,0,0,0"
-                                                Padding="4,0,8,0"
-                                                Style="{StaticResource Badge.Unconfirmed}"
+                                                Style="{StaticResource Badge}"
+                                                theme:Badge.Tone="Warning"
+                                                theme:Badge.Glyph="{x:Static local:HistoryRow.NotConfirmedGlyph}"
                                                 Visibility="{Binding NotConfirmedVisibility}"
                                                 ToolTip="A publish of this session may have reached the ticket. Check the ticket, then publish again from Review or mark it as published."
                                                 AutomationProperties.Name="Publish not confirmed">
-                                    <StackPanel Orientation="Horizontal">
-                                        <controls:Glyph Style="{StaticResource Icon}"
-                                                        FontSize="{DynamicResource Icon.sm}"
-                                                        Foreground="{DynamicResource Brush.state.paused}"
-                                                        Text="{x:Static local:HistoryRow.NotConfirmedGlyph}" />
-                                        <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Text="{Binding NotConfirmedLabel}" />
-                                    </StackPanel>
+                                    <TextBlock Text="{Binding NotConfirmedLabel}" />
                                 </ContentControl>
                             </StackPanel>
                         </DataTemplate>

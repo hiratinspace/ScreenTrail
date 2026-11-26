@@ -53,7 +53,8 @@ public sealed class SettingsWordingControlsTests
 
         Assert.Contains(badges, b => (string?)b.Attribute("Content") == "Connected" && (string?)b.Attribute("Visibility") == "{Binding ConnectedBadgeVisibility}");
         Assert.Contains(badges, b => (string?)b.Attribute("Content") == "Check failed"
-            && (string?)b.Attribute("Style") == "{StaticResource Badge.Unconfirmed}"
+            && (string?)b.Attribute("Style") == "{StaticResource Badge}"
+            && (string?)b.Attribute(XNamespace.Get("clr-namespace:ScreenTrail.UI.Theme") + "Badge.Tone") == "Warning"
             && (string?)b.Attribute("Visibility") == "{Binding CheckFailedBadgeVisibility}");
     }
 

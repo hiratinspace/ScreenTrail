@@ -19,7 +19,7 @@ public sealed record HistoryRow(string Id, string Started, string Duration, stri
     public string StatusGlyph => Badge?.Glyph ?? string.Empty;
 
     /// <summary>Which hue the status badge's glyph and edge take (<see cref="StatusBadge.Tone"/>).</summary>
-    public string StatusTone => Badge?.Tone ?? "Muted";
+    public string StatusTone => Badge?.Tone ?? "Neutral";
 
     /// <summary>The Not confirmed badge's glyph.</summary>
     public static string NotConfirmedGlyph => StatusBadges.NotConfirmed.Glyph;

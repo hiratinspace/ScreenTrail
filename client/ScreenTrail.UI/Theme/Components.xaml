@@ -1578,97 +1578,79 @@
         </Setter>
     </Style>
 
-    <!-- Badge: pill, 11 px, uppercase off, a tinted fill with a border in the state's colour and the words
-         in text.primary. Variants: neutral, Suggested, Confidence, Published, Unconfirmed. -->
+    <!-- Badge (design system 10.5, review findings A-02, B-24): one style with a tone (theme:Badge.Tone), 20
+         high, a pill, 8 at the sides, a 1 px edge, an optional 12 px glyph 4 before the words
+         (theme:Badge.Glyph), and the words in Micro text.primary. Neutral is bg.info and border.subtle; each
+         other tone takes its tint, its soft border.* edge (not the full-strength state colour) and its glyph
+         colour. Not interactive, no hover. It replaces Badge.Suggested, .Confidence, .Published,
+         .Unconfirmed, .State and Rail.Badge, so one state is drawn one way wherever it is shown. -->
     <Style x:Key="Badge" TargetType="ContentControl">
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.info}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.badge-height}" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.control-compact}" />
         <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContentControl">
-                    <Border Background="{TemplateBinding Background}"
+                    <Border x:Name="Chrome"
+                            MinHeight="{TemplateBinding MinHeight}"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="11"
+                            BorderThickness="{DynamicResource Thickness.border}"
+                            CornerRadius="{DynamicResource Radius.pill}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <ContentPresenter VerticalAlignment="Center" />
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <controls:Glyph x:Name="Glyph"
+                                            Margin="0,0,4,0"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource Icon}"
+                                            FontSize="{DynamicResource Icon.sm}"
+                                            Foreground="{DynamicResource Brush.text.secondary}"
+                                            Text="{TemplateBinding theme:Badge.Glyph}" />
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </StackPanel>
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="theme:Badge.Glyph" Value="{x:Null}">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Glyph" Value="">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Tone" Value="Accent">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.accent.primary}" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Tone" Value="Success">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.success}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.success}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.published}" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Tone" Value="Warning">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.warning}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.warning}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Tone" Value="Danger">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                        </Trigger>
+                        <Trigger Property="theme:Badge.Tone" Value="Scope">
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.scope}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-    </Style>
-    <Style x:Key="Badge.Suggested" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-    </Style>
-    <Style x:Key="Badge.Confidence" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.confidence.low}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-    </Style>
-    <Style x:Key="Badge.Published" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.success}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.published}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-    </Style>
-    <!-- A publish that may have reached the ticket and was never confirmed: the warning tint and the
-         paused border the warning banner uses, so it reads as "look at this", not as done (Published's
-         green) and not as failed (danger). The words carry it; the colour only agrees with them. -->
-    <Style x:Key="Badge.Unconfirmed" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-    </Style>
-    <!-- A session's state on the content surfaces (the All sessions table, spec v0.6.9 S4): the rail's word
-         and glyph (StatusBadges), the state's tint and edge, and the glyph in the state's colour. The word
-         and the glyph say it; the hue only agrees, so high contrast and colour blindness read it the same.
-         Bound to a row with StatusTone (Accent, Published, Paused, Offline, Muted). -->
-    <Style x:Key="Badge.State" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="Padding" Value="4,0,8,0" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Accent">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Published">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.success}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.published}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Paused">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Offline">
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.offline}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-    <Style x:Key="Badge.StateGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Accent">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Published">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Paused">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StatusTone}" Value="Offline">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.offline}" />
-            </DataTrigger>
-        </Style.Triggers>
     </Style>
 
     <!-- The shell's capture state: the badge at body-adjacent size, because it is read, not glanced at. -->
@@ -2528,72 +2510,6 @@
         </Style.Triggers>
     </Style>
 
-    <!-- A row's state badge: the word in the row's body colour, a neutral edge, and the hue in its glyph. -->
-    <Style x:Key="Rail.Badge" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
-        <Setter Property="Padding" Value="4,0,8,0" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsOpen}" Value="True">
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-    <Style x:Key="Rail.BadgeGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding BadgeTone}" Value="Published">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.published}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding BadgeTone}" Value="Paused">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.paused}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding BadgeTone}" Value="Offline">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.offline}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding BadgeTone}" Value="Accent">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.accent}" />
-            </DataTrigger>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsOpen}" Value="True" />
-                    <Condition Binding="{Binding BadgeTone}" Value="Accent" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary}" />
-            </MultiDataTrigger>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsOpen}" Value="True" />
-                    <Condition Binding="{Binding BadgeTone}" Value="Muted" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-            </MultiDataTrigger>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsOpen}" Value="True" />
-                    <Condition Binding="{Binding BadgeTone}" Value="Published" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
-            </MultiDataTrigger>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsOpen}" Value="True" />
-                    <Condition Binding="{Binding BadgeTone}" Value="Paused" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-            </MultiDataTrigger>
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsOpen}" Value="True" />
-                    <Condition Binding="{Binding BadgeTone}" Value="Offline" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.offline}" />
-            </MultiDataTrigger>
-        </Style.Triggers>
-    </Style>
 
     <!-- A group's heading that opens and closes it (Earlier). -->
     <Style x:Key="Rail.GroupToggle" TargetType="ToggleButton">
