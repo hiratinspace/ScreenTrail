@@ -322,7 +322,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Forward}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open next" />
-                                    <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

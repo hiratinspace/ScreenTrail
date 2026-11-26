@@ -277,7 +277,7 @@
                                                         AutomationProperties.HelpText="{Binding VerificationTooltip}">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock VerticalAlignment="Center" Text="Looks right" />
-                                                        <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+C" />
+                                                        <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+C" />
                                                     </StackPanel>
                                                 </Button>
                                                 <Button Style="{StaticResource Button.Ghost}"
@@ -455,7 +455,7 @@
                         AutomationProperties.AcceleratorKey="Ctrl+Z">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Text="Undo" />
-                        <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Ctrl+Z" />
+                        <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Ctrl+Z" />
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -529,7 +529,7 @@
                             <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Photo}" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="All screenshots" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Muted}" Text="{Binding StripHeader}" />
-                            <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+2" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+2" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

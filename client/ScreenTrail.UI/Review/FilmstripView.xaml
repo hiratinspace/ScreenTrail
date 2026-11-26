@@ -209,8 +209,14 @@
                             Grid.Column="1"
                             Margin="12,0,0,0"
                             Style="{StaticResource Button.Secondary}"
-                            Content="Close  Esc"
-                            Command="{Binding CloseEnlargedCommand}" />
+                            Command="{Binding CloseEnlargedCommand}"
+                            AutomationProperties.Name="Close"
+                            AutomationProperties.AcceleratorKey="Esc">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Close" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Esc" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
                 <Grid Grid.Row="1" Margin="0,12,0,0">
@@ -314,19 +320,27 @@
                      8 px bottom margin was on the first button alone, so the row stretched the toggle 8 px
                      taller than its neighbour. The gap over the hint, when it wraps under them, is the hint's. -->
                 <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,12">
-                    <Button Margin="0,0,8,0"
+                    <Button x:Name="OcrText"
+                            Margin="0,0,8,0"
                             Height="{DynamicResource Layout.control-height}"
                             Style="{StaticResource Button.Secondary}"
-                            Content="OCR text  T"
                             Command="{Binding ToggleOcrTextCommand}"
-                            IsEnabled="{Binding Enlarged.HasOcrText}" />
+                            IsEnabled="{Binding Enlarged.HasOcrText}"
+                            AutomationProperties.Name="OCR text"
+                            AutomationProperties.AcceleratorKey="T">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="OCR text" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="T" />
+                        </StackPanel>
+                    </Button>
 
                     <!-- Danger styling, because the next drag destroys pixels for good. Spec §5 S3 asks
                          for a region-draw overlay and calls it destructive; the button says so before the
                          surface is even armed. -->
                     <ToggleButton x:Name="BlurMode"
                                   Height="{DynamicResource Layout.control-height}"
-                                  Content="Blur a region  B"
+                                  AutomationProperties.Name="Blur a region"
+                                  AutomationProperties.AcceleratorKey="B"
                                   Checked="OnBlurModeChanged"
                                   Unchecked="OnBlurModeChanged">
                         <ToggleButton.Style>
@@ -339,6 +353,10 @@
                                 </Style.Triggers>
                             </Style>
                         </ToggleButton.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Blur a region" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="B" />
+                        </StackPanel>
                     </ToggleButton>
 
                     <TextBlock Margin="12,8,0,0"

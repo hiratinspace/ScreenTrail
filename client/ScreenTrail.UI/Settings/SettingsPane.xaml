@@ -177,14 +177,20 @@
                             Content="Undo changes"
                             Command="{Binding UndoCommand}"
                             AutomationProperties.HelpText="Puts every section back to what was last saved. Esc does the same while the bar has focus." />
-                    <!-- The bar's one filled button, the key beside its word as Publish carries Ctrl+Enter. -->
+                    <!-- The bar's one filled button, the key beside its word as Publish carries Ctrl+Enter, and out of
+                         its name (review finding E-22: Narrator read "Save Ctrl+S"). -->
                     <Button Margin="8,0,0,0"
                             MinWidth="96"
                             Style="{StaticResource Button.Primary}"
-                            Content="Save   Ctrl+S"
                             Command="{Binding SaveCommand}"
+                            AutomationProperties.Name="Save"
                             AutomationProperties.AcceleratorKey="Ctrl+S"
-                            AutomationProperties.HelpText="{Binding BarName}" />
+                            AutomationProperties.HelpText="{Binding BarName}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Save" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Ctrl+S" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

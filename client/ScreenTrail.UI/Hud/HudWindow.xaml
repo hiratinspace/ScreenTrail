@@ -196,7 +196,8 @@
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding MarkCommand}"
                             ToolTip="{Binding MarkButton.Tooltip}"
-                            AutomationProperties.Name="{Binding MarkButton.Spoken}"
+                            AutomationProperties.Name="{Binding MarkButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding MarkButton.Hotkey}"
                             Visibility="{Binding ShowMarkControl, Converter={StaticResource Visible}}">
                         <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Flag}" />
                     </Button>
@@ -204,7 +205,8 @@
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding PauseOrResumeCommand}"
                             ToolTip="{Binding PauseButton.Tooltip}"
-                            AutomationProperties.Name="{Binding PauseButton.Spoken}"
+                            AutomationProperties.Name="{Binding PauseButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding PauseButton.Hotkey}"
                             Visibility="{Binding ShowPauseControl, Converter={StaticResource Visible}}">
                         <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{Binding PauseGlyph}" />
                     </Button>
@@ -212,7 +214,8 @@
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding StopCommand}"
                             ToolTip="{Binding StopButton.Tooltip}"
-                            AutomationProperties.Name="{Binding StopButton.Spoken}"
+                            AutomationProperties.Name="{Binding StopButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding StopButton.Hotkey}"
                             Visibility="{Binding ShowStopControl, Converter={StaticResource Visible}}">
                         <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Stop}" />
                     </Button>

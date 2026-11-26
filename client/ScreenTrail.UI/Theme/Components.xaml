@@ -871,21 +871,30 @@
         </Setter>
     </Style>
 
-    <!-- A shortcut beside the control it belongs to ("Ctrl+T"): small, quiet, outlined like a key cap. -->
+    <!-- A shortcut shown one of two ways, never typed into a button's Content with spaces (design system
+         10.1 and 10.5; review findings A-14, B-08, E-22). Inside the button it presses ("Publish  Ctrl+Enter",
+         "Save  Ctrl+S"): Text.KeyHint 8 after the label, in the label's colour. Beside a link or toggle it
+         belongs to ("Change  Ctrl+T", "Timeline  Alt+T"): a KeyCap 4 after the control. Either way the key
+         stays out of the control's AutomationProperties.Name and goes in AcceleratorKey, so Narrator reads
+         "Save", not "Save Ctrl+S". -->
     <Style x:Key="KeyCap" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.keycap-height}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
-        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.sm}" />
+        <Setter Property="Padding" Value="4,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.muted}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
-    <!-- The shortcut's words, in a key cap or inside the button it presses ("Publish  Ctrl+Enter"): the
-         foreground is inherited, so on the filled button it is the on-accent colour. -->
+    <!-- Micro (design system 3.2): 11/16 semibold. The foreground is inherited, so inside a filled button it
+         is the on-accent colour and inside a key cap the cap's. -->
     <Style x:Key="Text.KeyHint" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
-        <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.micro}" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>

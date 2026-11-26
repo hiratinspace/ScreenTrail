@@ -59,13 +59,13 @@ public sealed class NoteControlsTests
     [Fact]
     public void TheTwoButtonsUnderAnEnlargedScreenshotAreTheSameHeight()
     {
-        // "OCR text  T" is a Button.Secondary and "Blur a region  B" a Pill.Toggle. Both had the control
+        // "OCR text" is a Button.Secondary and "Blur a region" a Pill.Toggle. Both had the control
         // height as a minimum only, and the row's bottom margin was on one of them, so the row stretched
         // the other 8 px taller. Both now take the control height itself, and the same margin above and below.
         var strip = Load("Review", "FilmstripView.xaml");
 
-        var ocr = Assert.Single(Buttons(strip), b => (string?)b.Attribute("Content") == "OCR text  T");
-        var blur = Assert.Single(strip.Descendants(Wpf + "ToggleButton"), b => (string?)b.Attribute("Content") == "Blur a region  B");
+        var ocr = Assert.Single(Buttons(strip), b => (string?)b.Attribute("Command") == "{Binding ToggleOcrTextCommand}");
+        var blur = Assert.Single(strip.Descendants(Wpf + "ToggleButton"), b => (string?)b.Attribute(Xaml + "Name") == "BlurMode");
 
         Assert.Equal("{DynamicResource Layout.control-height}", (string?)ocr.Attribute("Height"));
         Assert.Equal("{DynamicResource Layout.control-height}", (string?)blur.Attribute("Height"));
