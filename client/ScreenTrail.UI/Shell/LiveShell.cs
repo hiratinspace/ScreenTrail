@@ -174,14 +174,24 @@ public sealed class LiveShell : IAsyncDisposable
     /// state. That is on purpose: an indicator that only appears once everything is working is absent
     /// precisely when a technician most needs to know something is wrong.
     /// </summary>
-    public async Task StartAsync(CancellationToken ct = default)
+    /// <param name="openWindow">
+    /// A start the technician asked for, from Start or a shortcut: the window opens at once, before the
+    /// service answers, and shows it is connecting (review finding D-03). Setup takes its place until it is done.
+    /// </param>
+    public async Task StartAsync(bool openWindow = false, CancellationToken ct = default)
     {
         _tray.Show(_state.Snapshot);
         ShowOrHideHud(_state.Snapshot);
+        var onboarded = _preferences.Load().OnboardedAt is not null;
+        if (openWindow && onboarded)
+        {
+            ShowWindow();
+        }
+
         await _connection.StartAsync(ct).ConfigureAwait(false);
 
         // ST-083: the first start runs setup. Finishing it is remembered; the tray runs it again on request.
-        if (_preferences.Load().OnboardedAt is null)
+        if (!onboarded)
         {
             ShowOnboarding();
         }
