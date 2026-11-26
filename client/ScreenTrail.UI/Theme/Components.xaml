@@ -341,6 +341,34 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- Icon (design system 10.1): a square button holding one glyph, 32 x 32 (compact 28 x 28), no fill or
+         edge at rest, the glyph 16 px in text.secondary. Its Content is the icon itself
+         (Content="{StaticResource Icon.Settings}"), drawn in the icon font. Every icon button has a ToolTip
+         and an AutomationProperties.Name, since the glyph says nothing to a screen reader. -->
+    <Style x:Key="Button.Icon" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.control}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Style.Triggers>
+            <Trigger Property="theme:Density.Compact" Value="True">
+                <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height-compact}" />
+                <Setter Property="Padding" Value="0" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 
     <!-- Chip: a small rounded button inside content, like a step's "frame 2". 28 px is the hit-target floor. -->
     <Style x:Key="Chip" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">

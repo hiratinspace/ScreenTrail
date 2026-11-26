@@ -59,7 +59,7 @@ public sealed class ButtonStatesTests
     [Fact]
     public void EveryButtonStyleIsBuiltOnTheBaseWithTheGridGeometry()
     {
-        foreach (var key in new[] { "Button.Secondary", "Button.Primary", "Button.Ghost", "Button.Danger" })
+        foreach (var key in new[] { "Button.Secondary", "Button.Primary", "Button.Ghost", "Button.Danger", "Button.DangerSolid", "Button.Icon" })
         {
             Assert.Equal("{StaticResource Button.Base}", (string?)Style(key).Attribute("BasedOn"));
         }
@@ -72,6 +72,17 @@ public sealed class ButtonStatesTests
         Assert.Equal("{DynamicResource Layout.control-height-compact}", Setter(compact, "MinHeight"));
         Assert.Equal("{DynamicResource Padding.control-compact}", Setter(compact, "Padding"));
         Assert.Equal("{DynamicResource Layout.button-min-width-compact}", Setter(compact, "MinWidth"));
+    }
+
+    [Fact]
+    public void AnIconButtonIsSquareAndStaysSquareWhenCompact()
+    {
+        var icon = Style("Button.Icon");
+
+        Assert.Equal("{DynamicResource Layout.control-height}", Setter(icon, "MinWidth"));
+        Assert.Equal("0", Setter(icon, "Padding"));
+        Assert.Equal("{DynamicResource Icon.control}", Setter(icon, "FontSize"));
+        Assert.Equal("{DynamicResource Layout.control-height-compact}", Setter(Trigger(icon, "theme:Density.Compact"), "MinWidth"));
     }
 
     [Fact]
