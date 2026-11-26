@@ -30,6 +30,21 @@ public sealed class SliderAndMeterTests
         Assert.Equal("{DynamicResource Brush.text.disabled}", (string?)disabled.Element(Wpf + "Setter")!.Attribute("Value"));
     }
 
+    [Fact]
+    public void TheMeterIsAThinGreenLineThatTurnsAmberWhenItClips()
+    {
+        var meter = Keyed("Meter.Level");
+        Assert.Equal("{DynamicResource Layout.meter-width}", Setter(meter, "Width"));
+        Assert.Equal("{DynamicResource Layout.track-height}", Setter(meter, "Height"));
+
+        var track = meter.Descendants(Wpf + "Border").First();
+        Assert.Null(track.Attribute("BorderThickness"));
+        Assert.Equal("{DynamicResource Brush.border.subtle}", (string?)track.Attribute("Background"));
+        var fill = meter.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(X + "Name") == "PART_Indicator");
+        Assert.Equal("{DynamicResource Brush.state.published}", (string?)fill.Attribute("Background"));
+        Assert.Contains(meter.Descendants(Wpf + "Setter"), s => (string?)s.Attribute("Value") == "{DynamicResource Brush.state.paused}");
+    }
+
     private static string? Setter(XElement style, string property) =>
         (string?)style.Elements(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == property).Attribute("Value");
 

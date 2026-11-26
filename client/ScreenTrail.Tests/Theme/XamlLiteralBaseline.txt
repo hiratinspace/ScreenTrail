@@ -30,12 +30,10 @@ Settings/SettingsPane.xaml	Width	8	1
 Shell/ShellWindow.xaml	CornerRadius	28	1
 Theme/Components.xaml	BorderThickness	2	1
 Theme/Components.xaml	BorderThickness	3	2
-Theme/Components.xaml	CornerRadius	1	1
 Theme/Components.xaml	CornerRadius	10	1
 Theme/Components.xaml	CornerRadius	11	2
 Theme/Components.xaml	CornerRadius	14	1
 Theme/Components.xaml	CornerRadius	16	1
-Theme/Components.xaml	CornerRadius	2	1
 Theme/Components.xaml	CornerRadius	3	1
 Theme/Components.xaml	CornerRadius	4	1
 Theme/Components.xaml	CornerRadius	6,0,0,0	1
@@ -45,7 +43,7 @@ Theme/Components.xaml	Height	12	2
 Theme/Components.xaml	Height	16	2
 Theme/Components.xaml	Height	20	2
 Theme/Components.xaml	Height	4	1
-Theme/Components.xaml	Height	8	2
+Theme/Components.xaml	Height	8	1
 Theme/Components.xaml	Margin	-3	3
 Theme/Components.xaml	Margin	0,0,0,1	1
 Theme/Components.xaml	Margin	0,0,5,0	1
@@ -68,6 +66,5 @@ Theme/Components.xaml	Padding	16,0,6,0	1
 Theme/Components.xaml	Padding	2	1
 Theme/Components.xaml	Padding	6	1
 Theme/Components.xaml	Width	12	2
-Theme/Components.xaml	Width	160	1
 Theme/Components.xaml	Width	20	1
 Theme/Components.xaml	Width	8	3

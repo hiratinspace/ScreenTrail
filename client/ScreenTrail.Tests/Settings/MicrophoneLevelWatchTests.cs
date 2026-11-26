@@ -46,6 +46,19 @@ public sealed class MicrophoneLevelWatchTests : IDisposable
     }
 
     [Fact]
+    public async Task AClippingVoiceIsSaidInWordsNotOnlyInAmber()
+    {
+        _levels.Reading = new(MicrophoneLevelStates.Listening, 0.97, null);
+        await using var watch = Watch();
+
+        await watch.SetWatchingAsync(true);
+        await WaitUntilAsync(() => watch.Level > 0);
+
+        Assert.True(watch.Clipping);
+        Assert.Equal(MicrophoneLevelWatch.TooLoud, watch.Status);
+    }
+
+    [Fact]
     public async Task OneRequestAtATimeWhileLookedAt()
     {
         await using var watch = Watch();

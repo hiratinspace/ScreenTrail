@@ -1688,25 +1688,31 @@
         <Setter Property="Fill" Value="{DynamicResource Brush.state.recording}" />
     </Style>
 
-    <!-- Meter.Level: the microphone's live level in Settings, Capture (ST-080 AC3, Spec §5 S5). A thin
-         track with the accent fill, as the wireframe draws it; not focusable, since there is nothing to
-         do with it. Its words are beside it, never only the bar. -->
+    <!-- Meter.Level: the microphone's live level in Settings, Capture (ST-080 AC3, Spec §5 S5). Design system
+         10.8 (review finding B-30): a 4 px line of radius 2 with no edge, the track border.subtle and the fill
+         state.published, amber (state.paused) while the voice clips (theme:Meter.Clipping). Not focusable,
+         since there is nothing to do with it; its words are beside it, never only the bar. -->
     <Style x:Key="Meter.Level" TargetType="ProgressBar">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="Minimum" Value="0" />
         <Setter Property="Maximum" Value="100" />
-        <Setter Property="Width" Value="160" />
-        <Setter Property="Height" Value="8" />
+        <Setter Property="Width" Value="{DynamicResource Layout.meter-width}" />
+        <Setter Property="Height" Value="{DynamicResource Layout.track-height}" />
         <Setter Property="OverridesDefaultStyle" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ProgressBar">
-                    <Border BorderBrush="{DynamicResource Brush.border.strong}" BorderThickness="1" Background="{DynamicResource Brush.bg.base}" CornerRadius="2">
+                    <Border Background="{DynamicResource Brush.border.subtle}" CornerRadius="{DynamicResource Radius.xs}">
                         <Grid x:Name="PART_Track">
-                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{DynamicResource Brush.accent.primary}" CornerRadius="1" />
+                            <Border x:Name="PART_Indicator" HorizontalAlignment="Left" Background="{DynamicResource Brush.state.published}" CornerRadius="{DynamicResource Radius.xs}" />
                         </Grid>
                     </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="theme:Meter.Clipping" Value="True">
+                            <Setter TargetName="PART_Indicator" Property="Background" Value="{DynamicResource Brush.state.paused}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
