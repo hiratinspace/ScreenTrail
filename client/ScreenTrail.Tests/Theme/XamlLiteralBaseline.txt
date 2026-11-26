@@ -31,7 +31,6 @@ Shell/ShellWindow.xaml	CornerRadius	28	1
 Theme/Components.xaml	BorderThickness	2	1
 Theme/Components.xaml	BorderThickness	3	2
 Theme/Components.xaml	CornerRadius	10	1
-Theme/Components.xaml	CornerRadius	11	1
 Theme/Components.xaml	CornerRadius	14	1
 Theme/Components.xaml	CornerRadius	16	1
 Theme/Components.xaml	CornerRadius	3	1
@@ -46,7 +45,6 @@ Theme/Components.xaml	Height	4	1
 Theme/Components.xaml	Height	8	1
 Theme/Components.xaml	Margin	-3	3
 Theme/Components.xaml	Margin	0,0,0,1	1
-Theme/Components.xaml	Margin	0,0,5,0	1
 Theme/Components.xaml	Margin	0,1	1
 Theme/Components.xaml	Margin	3	1
 Theme/Components.xaml	MaxWidth	360	1

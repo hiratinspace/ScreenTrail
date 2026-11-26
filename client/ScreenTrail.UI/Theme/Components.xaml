@@ -1779,27 +1779,27 @@
         <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
     </Style>
 
-    <!-- A change not yet saved: the iris dot and the words in text.primary on the iris tint, an accent
-         edge. Beside a card's heading it says "Changed"; in the nav it is the count. -->
+    <!-- A change not yet saved, beside a card's heading (design system 10.5 and issue 8, review finding B-25):
+         the Neutral badge with a 6 px text.secondary dot 4 before "Changed". Not Iris: on a page full of
+         pending changes, the Save bar's Primary button is the one Iris call. The nav's count is the plain
+         Neutral badge with the number alone. -->
     <Style x:Key="Badge.Changed" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ContentControl">
-                    <Border Background="{TemplateBinding Background}"
+                    <Border MinHeight="{TemplateBinding MinHeight}"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="1"
-                            CornerRadius="11"
+                            BorderThickness="{DynamicResource Thickness.border}"
+                            CornerRadius="{DynamicResource Radius.pill}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <StackPanel Orientation="Horizontal">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                             <Ellipse Width="6"
                                      Height="6"
-                                     Margin="0,0,5,0"
+                                     Margin="0,0,4,0"
                                      VerticalAlignment="Center"
-                                     Fill="{DynamicResource Brush.accent.primary}" />
+                                     Fill="{DynamicResource Brush.text.secondary}" />
                             <ContentPresenter VerticalAlignment="Center" />
                         </StackPanel>
                     </Border>
