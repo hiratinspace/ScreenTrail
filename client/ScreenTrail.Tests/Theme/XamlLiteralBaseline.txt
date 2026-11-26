@@ -1,6 +1,7 @@
 // Literal colours and sizes in ScreenTrail.UI's XAML where a design token belongs (ST-016).
 // Read by XamlLiteralRatchetTests, which fails if any count goes up or down. Do not edit by hand;
 // rewrite it with SCREENTRAIL_XAML_BASELINE=update (see the test's doc comment). file, kind, value, count.
+Gallery/GalleryWindow.xaml	Height	160	1
 Gallery/GalleryWindow.xaml	Margin	0,6,0,10	1
 Gallery/GalleryWindow.xaml	Margin	0,6,0,14	6
 Gallery/GalleryWindow.xaml	Margin	16,0,6,0	3
@@ -17,6 +18,7 @@ Review/FilmstripView.xaml	Colour	#60000000	2
 Review/FilmstripView.xaml	Colour	#FFFFFFFF	2
 Review/FilmstripView.xaml	Margin	3	1
 Review/FilmstripView.xaml	Margin	6	1
+Review/FilmstripView.xaml	Width	160	4
 Review/NoteEditorView.xaml	BorderThickness	2,0,0,0	1
 Review/NoteEditorView.xaml	CornerRadius	1.5	1
 Review/NoteEditorView.xaml	CornerRadius	28	2
@@ -50,6 +52,7 @@ Theme/Components.xaml	Margin	11,4,34,4	1
 Theme/Components.xaml	Margin	3	1
 Theme/Components.xaml	Margin	9,0	1
 Theme/Components.xaml	Margin	9,0,-9,0	1
+Theme/Components.xaml	MaxWidth	360	1
 Theme/Components.xaml	MinHeight	12	1
 Theme/Components.xaml	MinHeight	36	1
 Theme/Components.xaml	MinHeight	52	1
@@ -65,5 +68,6 @@ Theme/Components.xaml	Padding	14,6,10,6	1
 Theme/Components.xaml	Padding	16,0,6,0	1
 Theme/Components.xaml	Padding	6	1
 Theme/Components.xaml	Width	12	3
+Theme/Components.xaml	Width	160	1
 Theme/Components.xaml	Width	20	1
 Theme/Components.xaml	Width	8	3

@@ -11,6 +11,8 @@ public sealed class FieldLabelTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
 
+    private static readonly string[] FieldWidths = ["{DynamicResource Layout.field-narrow}", "{DynamicResource Layout.field}", "{DynamicResource Layout.field-wide}"];
+
     [Theory]
     [InlineData("Privacy", "PrivacyPane.xaml")]
     [InlineData("Integrations", "IntegrationsPane.xaml")]
@@ -26,6 +28,19 @@ public sealed class FieldLabelTests
 
         Assert.NotEmpty(fields);
         Assert.All(fields, f => Assert.Contains((string?)f.Attribute("AutomationProperties.Name"), labels));
+    }
+
+    [Theory]
+    [InlineData("Capture", "CapturePane.xaml")]
+    [InlineData("Privacy", "PrivacyPane.xaml")]
+    [InlineData("Activation", "ActivationPane.xaml")]
+    public void AFieldsWidthIsOneOfTheThreeFieldWidths(string folder, string file)
+    {
+        // Review finding B-15: 160, 240, 320 and 360 were four unrelated literals, so field ends did not line up.
+        var widths = Load(folder, file).Descendants().Where(e => e.Name.LocalName is "TextBox" or "ComboBox")
+            .Select(f => (string?)f.Attribute("Width")).Where(w => w is not null).ToList();
+
+        Assert.All(widths, w => Assert.Contains(w, FieldWidths));
     }
 
     [Fact]

@@ -53,7 +53,7 @@
                     <CheckBox Margin="16,0,0,0" Content="Set by your ScreenTrail owner" IsChecked="True" IsEnabled="False" />
                     <RadioButton Margin="24,0,0,0" Content="Internal" GroupName="GalleryNoteType" IsChecked="True" />
                     <RadioButton Margin="16,0,0,0" Content="Discussion" GroupName="GalleryNoteType" />
-                    <ComboBox Margin="24,0,0,0" Width="160" SelectedIndex="1">
+                    <ComboBox Margin="24,0,0,0" Width="{DynamicResource Layout.field-narrow}" SelectedIndex="1">
                         <ComboBoxItem Content="Low" />
                         <ComboBoxItem Content="Medium" />
                         <ComboBoxItem Content="High" />

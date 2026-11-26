@@ -52,7 +52,7 @@
                      box was blank, with its hint only in the help text a screen reader hears. -->
                 <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="App to exclude" />
                 <StackPanel Orientation="Horizontal">
-                    <TextBox Width="240"
+                    <TextBox Width="{DynamicResource Layout.field}"
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewProcess, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="keepass"
