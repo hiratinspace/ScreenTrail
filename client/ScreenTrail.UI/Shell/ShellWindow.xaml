@@ -112,8 +112,10 @@
                 <ContentControl.Style>
                     <Style BasedOn="{StaticResource Badge.Frame}" TargetType="ContentControl">
                         <Style.Triggers>
+                            <!-- Recording keeps a neutral edge (v0.7.0): a red outline read as an error field, and
+                                 the red dot, the word and the timer already say it. -->
                             <DataTrigger Binding="{Binding StatusTone}" Value="Recording">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.recording}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding StatusTone}" Value="Paused">
                                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.paused}" />

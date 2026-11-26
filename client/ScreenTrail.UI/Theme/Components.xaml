@@ -1438,7 +1438,8 @@
     <!-- Banner: inline at the top of a pane; info, warning and error. A tinted fill and a border in the
          kind's colour, and the kind always in words and a glyph too (Spec §7). -->
     <Style x:Key="Banner.Info" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
+        <!-- bg.info, not the selection tint (v0.7.0): the coverage banner looked like a selected row. -->
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.info}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
@@ -1446,11 +1447,12 @@
     </Style>
     <Style x:Key="Banner.Warning" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
+        <!-- A tinted edge, not the full state colour, which made a banner the loudest line on the screen. -->
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.warning}" />
     </Style>
     <Style x:Key="Banner.Error" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
     </Style>
 
     <!-- Toast: floats, so it is the one thing besides the pill with a shadow. -->
