@@ -196,15 +196,13 @@
 
                         <!-- ST-097 AC2: the article's company is not mapped, so ask once, here, and remember the
                              answer. Shown in place of Retry, which would only fail the same way. -->
-                        <Border Style="{StaticResource Banner.Warning}"
+                        <ContentControl Style="{StaticResource Banner}"
+                                theme:Banner.Tone="Warning"
+                                theme:Banner.Title="KB article not sent yet"
                                 Margin="0,4,0,12"
                                 Visibility="{Binding MappingVisibility}"
                                 AutomationProperties.Name="Company mapping">
                             <StackPanel>
-                                <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Warning}" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.BodyStrong}" Text="KB article not sent yet" />
-                                </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
                                            Text="{Binding MappingPrompt}"
                                            controls:LiveRegion.Setting="Polite" />
@@ -238,19 +236,18 @@
                                         Command="{Binding MapAndPublishCommand}"
                                         IsEnabled="{Binding CanMap}" />
                             </StackPanel>
-                        </Border>
+                        </ContentControl>
 
                         <!-- Something may already be on the ticket. Publish, Ctrl+Enter and Retry wait until the
                              technician ticks the box, which is in the tab order and spent on the next send. -->
-                        <Border Style="{StaticResource Banner.Warning}"
+                        <ContentControl Style="{StaticResource Banner}"
+                                theme:Banner.Tone="Warning"
+                                theme:Banner.Glyph="{StaticResource Icon.Unknown}"
+                                theme:Banner.Title="Not confirmed"
                                 Margin="0,4,0,12"
                                 Visibility="{Binding CheckTicketVisibility}"
                                 AutomationProperties.Name="Check the ticket first">
                             <StackPanel>
-                                <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Unknown}" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.BodyStrong}" Text="Not confirmed" />
-                                </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
                                            Text="{Binding CheckTicketPrompt}"
                                            controls:LiveRegion.Setting="Polite" />
@@ -261,7 +258,7 @@
                                     <TextBlock Style="{StaticResource Text.Body}" Text="{Binding CheckTicketLabel}" />
                                 </CheckBox>
                             </StackPanel>
-                        </Border>
+                        </ContentControl>
                         <Button Margin="0,0,0,12"
                                 Style="{StaticResource Button.Secondary}"
                                 HorizontalAlignment="Left"

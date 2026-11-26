@@ -1,6 +1,7 @@
 <Window x:Class="ScreenTrail.UI.Shell.ShellWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         xmlns:review="clr-namespace:ScreenTrail.UI.Review"
@@ -206,34 +207,31 @@
 
             <!-- Spec §5 S1: shown only when the service is not answering. A bar that is always there is a bar
                  nobody reads, including on the day it says something that matters. -->
-            <Border Grid.Row="0"
+            <ContentControl Grid.Row="0"
                     Margin="24,16,24,0"
-                    Style="{StaticResource Banner.Warning}"
+                    Style="{StaticResource Banner}"
+                    theme:Banner.Tone="Warning"
                     Visibility="{Binding BannerVisibility}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
-                               Margin="0,0,8,0"
-                               Style="{StaticResource Text.Body}"
-                               VerticalAlignment="Center"
-                               Text="⚠" />
-                    <TextBlock Grid.Column="1"
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Body}"
+                               TextWrapping="Wrap"
                                Text="{Binding Banner}"
                                controls:LiveRegion.Setting="Assertive" />
-                    <Button Grid.Column="2"
+                    <Button Grid.Column="1"
                             Margin="12,0,0,0"
                             Style="{StaticResource Button.Secondary}"
+                            theme:Density.Compact="True"
                             Content="Start"
                             Command="{Binding StartServiceCommand}"
                             AutomationProperties.Name="Start the capture service" />
                 </Grid>
-            </Border>
+            </ContentControl>
 
             <ContentControl x:Name="Pane"
                             Grid.Row="1"

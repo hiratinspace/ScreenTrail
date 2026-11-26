@@ -1700,24 +1700,105 @@
         </Setter>
     </Style>
 
-    <!-- Banner: inline at the top of a pane; info, warning and error. A tinted fill and a border in the
-         kind's colour, and the kind always in words and a glyph too (Spec §7). -->
-    <Style x:Key="Banner.Info" TargetType="Border">
-        <!-- bg.info, not the selection tint (v0.7.0): the coverage banner looked like a selected row. -->
+    <!-- Banner (design system 10.6, review findings A-11, A-12, B-26): inline at the top of what it is about.
+         One control with a tone (theme:Banner.Tone: Info, Success, Warning, Danger): radius 8, a 1 px soft
+         edge, 12 inside, the tone's 16 px glyph at the left with its top 2 below the first line's and 8
+         before the words, an optional Body strong title (theme:Banner.Title) 4 above the body, and the body
+         in text.primary. Info is bg.info with a text.secondary glyph, never the selection tint or Iris, so
+         it is not taken for a selected row. Warning's edge is border.warning, not the full amber. The glyph
+         is the icon font's, never a Unicode sign in the text face. No side stripe, no hover. Actions sit in
+         the content at the right or below. -->
+    <Style x:Key="Banner" TargetType="ContentControl">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.info}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
         <Setter Property="Padding" Value="12" />
-    </Style>
-    <Style x:Key="Banner.Warning" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-        <!-- A tinted edge, not the full state colour, which made a banner the loudest line on the screen. -->
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.warning}" />
-    </Style>
-    <Style x:Key="Banner.Error" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border x:Name="Chrome"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{DynamicResource Thickness.border}"
+                            CornerRadius="{DynamicResource Radius.card}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <controls:Glyph x:Name="Glyph"
+                                            Grid.Column="0"
+                                            Margin="0,2,8,0"
+                                            VerticalAlignment="Top"
+                                            Style="{StaticResource Icon}"
+                                            FontSize="{DynamicResource Icon.control}"
+                                            Foreground="{DynamicResource Brush.text.secondary}"
+                                            Text="{TemplateBinding theme:Banner.Glyph}" />
+                            <StackPanel Grid.Column="1">
+                                <TextBlock x:Name="Title"
+                                           Margin="0,0,0,4"
+                                           Style="{StaticResource Text.BodyStrong}"
+                                           TextWrapping="Wrap"
+                                           Text="{TemplateBinding theme:Banner.Title}" />
+                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="theme:Banner.Glyph" Value="{x:Null}">
+                            <Setter TargetName="Glyph" Property="Text" Value="{StaticResource Icon.Info}" />
+                        </Trigger>
+                        <Trigger Property="theme:Banner.Tone" Value="Success">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.success}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.success}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.published}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="theme:Banner.Tone" Value="Success" />
+                                <Condition Property="theme:Banner.Glyph" Value="{x:Null}" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Glyph" Property="Text" Value="{StaticResource Icon.Check}" />
+                        </MultiTrigger>
+                        <Trigger Property="theme:Banner.Tone" Value="Warning">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.warning}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.warning}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="theme:Banner.Tone" Value="Warning" />
+                                <Condition Property="theme:Banner.Glyph" Value="{x:Null}" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Glyph" Property="Text" Value="{StaticResource Icon.Warning}" />
+                        </MultiTrigger>
+                        <Trigger Property="theme:Banner.Tone" Value="Danger">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
+                            <Setter TargetName="Glyph" Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="theme:Banner.Tone" Value="Danger" />
+                                <Condition Property="theme:Banner.Glyph" Value="{x:Null}" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Glyph" Property="Text" Value="{StaticResource Icon.Warning}" />
+                        </MultiTrigger>
+                        <Trigger Property="theme:Banner.Glyph" Value="">
+                            <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="theme:Banner.Title" Value="{x:Null}">
+                            <Setter TargetName="Title" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- Toast: floats, so it is the one thing besides the pill with a shadow. -->

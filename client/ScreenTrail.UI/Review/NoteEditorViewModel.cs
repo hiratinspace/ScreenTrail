@@ -171,9 +171,15 @@ public sealed partial class StepRow : ObservableObject
     }
 }
 
-/// <param name="Glyph">Spec §7: the kind has a shape as well as a colour, so the two warnings are not
-/// distinguishable by colour alone.</param>
-public sealed record BannerRow(string Text, bool IsWarning, string Glyph, string Kind);
+/// <param name="Tone">The banner's tone, Warning or Info: its glyph gives the kind a shape as well as a
+/// colour (Spec §7), so the two are not told apart by colour alone.</param>
+/// <param name="Kind">"Warning" or "Note", said first to a screen reader.</param>
+public sealed record BannerRow(string Text, string Tone, string Kind)
+{
+    public bool IsWarning => Tone == "Warning";
+
+    public string Spoken => $"{Kind}: {Text}";
+}
 
 /// <summary>
 /// The note as it will land (ST-074, Spec v0.6.0 §5 S3): the session pane under the envelope.
@@ -761,8 +767,8 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     };
 
     private static BannerRow Row(Banner banner) => banner.Kind == BannerKind.Warning
-        ? new BannerRow(banner.Text, true, "⚠", "Warning")
-        : new BannerRow(banner.Text, false, "ⓘ", "Note");
+        ? new BannerRow(banner.Text, "Warning", "Warning")
+        : new BannerRow(banner.Text, "Info", "Note");
 
     private StepRow RowFor(NoteStep step)
     {

@@ -71,9 +71,9 @@
 
     <!-- No scroller of its own: the Settings page scrolls, and a second scroller inside it held the wheel. -->
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
-        <Border Style="{StaticResource Banner.Warning}" Margin="0,0,0,12" Visibility="{Binding NoticeVisibility}">
+        <ContentControl Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Margin="0,0,0,12" Visibility="{Binding NoticeVisibility}">
             <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding Notice}" controls:LiveRegion.Setting="Polite" />
-        </Border>
+        </ContentControl>
 
         <!-- What the backend lists beyond the two cards, by name: its Development demo (ST-090), named so
              nobody takes it for ConnectWise or Hudu, or a provider this version does not know. -->

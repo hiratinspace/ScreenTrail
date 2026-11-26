@@ -107,15 +107,18 @@
 
                 <TextBlock Text="Banners" />
                 <StackPanel Margin="0,6,0,14">
-                    <Border Style="{StaticResource Banner.Info}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="Drafted on this device only. Quality may be lower." />
-                    </Border>
-                    <Border Margin="0,8,0,0" Style="{StaticResource Banner.Warning}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="Capture started late or was interrupted. Some steps may be missing." />
-                    </Border>
-                    <Border Margin="0,8,0,0" Style="{StaticResource Banner.Error}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin." />
-                    </Border>
+                    <ContentControl Style="{StaticResource Banner}">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Drafted on this device only. Quality may be lower." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Success">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Published to ticket #48213." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Warning" theme:Banner.Title="Some steps may be missing">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Capture started late or was interrupted." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Danger">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin." />
+                    </ContentControl>
                 </StackPanel>
 
                 <TextBlock Text="Toast" />

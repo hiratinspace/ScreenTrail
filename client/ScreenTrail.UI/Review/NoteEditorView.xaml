@@ -52,40 +52,15 @@
                 <DataTemplate>
                     <!-- Announced from its words below: a Border has no automation peer, so a live region on it
                          reached no screen reader (ST-084). -->
-                    <Border Margin="0,0,0,8">
-                        <Border.Style>
-                            <Style TargetType="Border" BasedOn="{StaticResource Banner.Info}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <!-- A Grid, not a horizontal StackPanel: a StackPanel measures its children with
-                             infinite width, so TextWrapping never fires and the sentence is cut off at the
-                             pane edge mid-word. -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Style="{StaticResource Text.Body}"
-                                       Text="{Binding Glyph}"
-                                       Margin="0,0,8,0"
-                                       VerticalAlignment="Top" />
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Style="{StaticResource Text.Label}"
-                                           Text="{Binding Kind}" />
-                                <TextBlock Style="{StaticResource Text.Body}"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding Text}"
-                                           controls:LiveRegion.Setting="Polite" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <!-- The tone's glyph says which kind it is, so the 12 px "Warning" and "Note" words are gone
+                         (review finding B-26); a screen reader still hears the kind first (Spoken). -->
+                    <ContentControl Margin="0,0,0,8" Style="{StaticResource Banner}" theme:Banner.Tone="{Binding Tone}">
+                        <TextBlock Style="{StaticResource Text.Body}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding Text}"
+                                   AutomationProperties.Name="{Binding Spoken}"
+                                   controls:LiveRegion.Setting="Polite" />
+                    </ContentControl>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </controls:Repeater>
