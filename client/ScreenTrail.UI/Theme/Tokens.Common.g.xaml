@@ -80,6 +80,8 @@
     <sys:Double x:Key="Layout.empty-disc">56</sys:Double>
     <sys:Double x:Key="Layout.empty-disc-rail">40</sys:Double>
     <sys:Double x:Key="Layout.empty-max-width">400</sys:Double>
+    <sys:Double x:Key="Layout.toast-min-width">280</sys:Double>
+    <sys:Double x:Key="Layout.toast-max-width">420</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>

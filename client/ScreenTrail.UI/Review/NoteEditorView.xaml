@@ -401,9 +401,10 @@
         <!-- A screenshot deleted from a step's row (v0.6.8), or in the strip a moment ago: the strip's own
              five-second toast, here where the technician is looking, at the foot of the note and over it,
              so nothing moves when it comes and goes. Ctrl+Z is the same undo. -->
-        <Border Grid.Row="2"
-                Margin="24,0,24,12"
-                HorizontalAlignment="Left"
+        <!-- Bottom right of the pane, 24 from both edges (design system 10.6), over the note, not on step 1. -->
+        <ContentControl Grid.Row="2"
+                Margin="0,0,24,24"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Style="{StaticResource Toast}"
                 Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
@@ -425,7 +426,7 @@
                     </StackPanel>
                 </Button>
             </StackPanel>
-        </Border>
+        </ContentControl>
 
         <!-- Under the note (Spec v0.6.0 §5 S3): the masking count and the save state, "2 items masked, none
              left to review · Saved"; then the chords for this pane and the way to the whole strip. -->

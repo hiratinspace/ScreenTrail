@@ -46,7 +46,7 @@ public sealed class NoteControlsTests
         // Ctrl+Z is heard on the way down, before a text box takes it for its own undo.
         Assert.Equal("OnNoteKeyDown", (string?)note.Attribute("PreviewKeyDown"));
 
-        var toast = Assert.Single(note.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource Toast}");
+        var toast = Assert.Single(note.Descendants(Wpf + "ContentControl"), b => (string?)b.Attribute("Style") == "{StaticResource Toast}");
         Assert.Equal("{Binding HasUndoToast, Converter={StaticResource Visible}}", (string?)toast.Attribute("Visibility"));
         var words = Assert.Single(toast.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding UndoToast}");
         Assert.Equal("Assertive", (string?)words.Attribute(Controls + "LiveRegion.Setting"));
@@ -119,7 +119,7 @@ public sealed class NoteControlsTests
         // Review finding D-24: in the footer, the toast made the footer about 38 px taller for five seconds
         // and the thumbnails jumped twice. Over the strip's bottom edge nothing moves.
         var strip = Load("Review", "FilmstripView.xaml");
-        var toast = Assert.Single(strip.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Visibility") == "{Binding HasUndoToast, Converter={StaticResource Visible}}");
+        var toast = Assert.Single(strip.Descendants(Wpf + "ContentControl"), b => (string?)b.Attribute("Visibility") == "{Binding HasUndoToast, Converter={StaticResource Visible}}");
         var layer = toast.Parent!;
 
         Assert.Equal("StripToastLayer", (string?)layer.Attribute(Xaml + "Name"));

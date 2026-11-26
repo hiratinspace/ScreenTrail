@@ -1834,20 +1834,37 @@
         </Setter>
     </Style>
 
-    <!-- Toast: floats, so it is the one thing besides the pill with a shadow. -->
-    <Style x:Key="Toast" TargetType="Border">
+    <!-- Toast (design system 6 level 3 and 10.6, review findings A-28, B-27, D-18): bg.surface, a 1 px
+         border.strong edge, radius 8, 16 before the words and 12 elsewhere, 280 to 420 wide. The shadow is
+         Elevation.float (#0F1720 at 0.18, black at 0.50 in dark, none in high contrast) on an empty border
+         behind the content, never on the one holding the words and the Undo button, which would render them
+         to a bitmap and lose ClearType. -->
+    <Style x:Key="Toast" TargetType="ContentControl">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="16,12,12,12" />
-        <Setter Property="MaxWidth" Value="440" />
-        <Setter Property="Effect">
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.toast-min-width}" />
+        <Setter Property="MaxWidth" Value="{DynamicResource Layout.toast-max-width}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
             <Setter.Value>
-                <DropShadowEffect BlurRadius="24"
-                                  Direction="270"
-                                  Opacity="0.28"
-                                  ShadowDepth="6" />
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Border x:Name="Shadow"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Radius.card}"
+                                Effect="{DynamicResource Elevation.float}" />
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{DynamicResource Thickness.border}"
+                                CornerRadius="{DynamicResource Radius.card}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
@@ -1989,13 +2006,6 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
     </Style>
 
-    <!-- Status pill (HUD): 44 px, fully rounded, elevated -->
-    <Style x:Key="StatusPill" BasedOn="{StaticResource Toast}" TargetType="Border">
-        <Setter Property="Height" Value="{DynamicResource Layout.hud-height}" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.pill}" />
-        <Setter Property="Padding" Value="16,0,6,0" />
-        <Setter Property="MaxWidth" Value="720" />
-    </Style>
     <Style x:Key="Pill.Control" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="MinWidth" Value="{DynamicResource Layout.hud-control}" />

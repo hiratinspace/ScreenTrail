@@ -132,6 +132,8 @@
   --layout-empty-disc: 56px;
   --layout-empty-disc-rail: 40px;
   --layout-empty-max-width: 400px;
+  --layout-toast-min-width: 280px;
+  --layout-toast-max-width: 420px;
   --radius-xs: 2px;
   --radius-sm: 4px;
   --radius-control: 6px;

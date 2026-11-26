@@ -123,26 +123,12 @@
 
                 <TextBlock Text="Toast" />
                 <StackPanel Style="{StaticResource Row}">
-                    <Border Style="{StaticResource Toast}">
+                    <ContentControl Style="{StaticResource Toast}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource Text.Body}" Text="Draft ready: Printer offline · Acme Dental" VerticalAlignment="Center" />
-                            <Button Margin="12,0,0,0" Content="Review" Style="{StaticResource Button.Secondary}" />
+                            <TextBlock Style="{StaticResource Text.Body}" Text="Deleted frame 2" VerticalAlignment="Center" />
+                            <Button Margin="12,0,0,0" Content="Undo" Style="{StaticResource Button.Secondary}" theme:Density.Compact="True" />
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <TextBlock Text="Status pill (HUD)" />
-                <StackPanel Style="{StaticResource Row}">
-                    <Border Style="{StaticResource StatusPill}">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Style="{StaticResource StateDot}" />
-                            <TextBlock Margin="8,0,12,0" FontWeight="{DynamicResource Weight.semibold}" Style="{StaticResource Text.Body}" Text="12:41" VerticalAlignment="Center" />
-                            <TextBlock Margin="0,0,12,0" Style="{StaticResource Text.Secondary}" Text="▂▄▆ mic" VerticalAlignment="Center" />
-                            <TextBlock Margin="0,0,12,0" Style="{StaticResource Text.Secondary}" Text="⛨ 3 redacted" VerticalAlignment="Center" />
-                            <Button Content="‖ Pause" Style="{StaticResource Pill.Control}" />
-                            <Button Margin="6,0,0,0" Content="■ Stop" Style="{StaticResource Pill.Control}" />
-                        </StackPanel>
-                    </Border>
+                    </ContentControl>
                 </StackPanel>
 
                 <TextBlock Text="Table" />

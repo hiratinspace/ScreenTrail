@@ -139,9 +139,11 @@
              footer, which grew about 38 px while it showed and shrank back, so the thumbnails jumped twice
              (review finding D-24); the note pane's toast is overlaid the same way. -->
         <Grid x:Name="StripToastLayer" Grid.Row="1">
-            <Border HorizontalAlignment="Left"
+            <!-- The strip is narrower than a toast's 280, so this one takes the strip's width. -->
+            <ContentControl HorizontalAlignment="Left"
                     VerticalAlignment="Bottom"
                     Margin="0,0,8,8"
+                    MinWidth="0"
                     Style="{StaticResource Toast}"
                     Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
                 <StackPanel Orientation="Horizontal">
@@ -154,7 +156,7 @@
                             Content="Undo"
                             Command="{Binding UndoCommand}" />
                 </StackPanel>
-            </Border>
+            </ContentControl>
         </Grid>
 
         <!-- The chords that apply to this pane, on screen where they are used (Spec §5 S3). -->

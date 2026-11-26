@@ -7,7 +7,7 @@ Gallery/GalleryWindow.xaml	Margin	0,6,0,14	6
 Gallery/GalleryWindow.xaml	Margin	16,0,6,0	3
 Gallery/GalleryWindow.xaml	Margin	24,0,6,0	1
 Gallery/GalleryWindow.xaml	Margin	6	3
-Gallery/GalleryWindow.xaml	Margin	6,0,0,0	3
+Gallery/GalleryWindow.xaml	Margin	6,0,0,0	2
 Gallery/GalleryWindow.xaml	Padding	16,10	1
 Gallery/GalleryWindow.xaml	Width	280	2
 Hud/HudWindow.xaml	Margin	10,0,16,0	1
@@ -61,7 +61,6 @@ Theme/Components.xaml	Padding	10,8	1
 Theme/Components.xaml	Padding	12,0	5
 Theme/Components.xaml	Padding	14,0	1
 Theme/Components.xaml	Padding	14,6,10,6	1
-Theme/Components.xaml	Padding	16,0,6,0	1
 Theme/Components.xaml	Padding	2	1
 Theme/Components.xaml	Padding	6	1
 Theme/Components.xaml	Width	12	2
