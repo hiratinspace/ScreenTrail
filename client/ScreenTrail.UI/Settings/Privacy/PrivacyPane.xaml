@@ -118,7 +118,7 @@
                 <!-- Maximum binds before Value: until it does, the slider's top is WPF's 10, and a value bound first would be clamped and pushed back. -->
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <Slider Width="{DynamicResource Layout.slider-width}" Minimum="1" Maximum="{Binding RetentionMaximum}" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding RetentionDays}" IsEnabled="{Binding RetentionEditable}" AutomationProperties.Name="Retention in days" />
-                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding RetentionDays}" />
+                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Numeric}" Text="{Binding RetentionDays}" />
                     <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="days" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding RetentionLockVisibility}" />

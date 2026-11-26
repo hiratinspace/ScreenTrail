@@ -1463,6 +1463,10 @@
     </Style>
 
     <!-- Slider: a 4 px rounded track, the accent up to an 18 px thumb. Horizontal, as every slider here is. -->
+    <!-- The slider (design system 10.3, review finding B-23): a 4 px border.strong track of radius 2, the
+         accent fill left of a 16 px accent thumb with a 2 px bg.surface ring, so the thumb stands clear of the
+         fill. Hover and pressed step the thumb darker; it never changes size. Disabled, a setting the admin
+         set, the fill and the thumb are text.disabled, so a locked value is not drawn in Iris. -->
     <Style x:Key="Slider.Fill" TargetType="RepeatButton">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
@@ -1471,8 +1475,18 @@
             <Setter.Value>
                 <ControlTemplate TargetType="RepeatButton">
                     <Grid Background="Transparent">
-                        <Border Height="4" Margin="9,0,-9,0" VerticalAlignment="Center" Background="{DynamicResource Brush.accent.primary}" CornerRadius="2" />
+                        <Border x:Name="Fill"
+                                Height="{DynamicResource Layout.track-height}"
+                                Margin="8,0,-8,0"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource Brush.accent.primary}"
+                                CornerRadius="{DynamicResource Radius.xs}" />
                     </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Fill" Property="Background" Value="{DynamicResource Brush.text.disabled}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -1483,17 +1497,21 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Grid Width="18" Height="18" Background="Transparent">
-                        <Ellipse Fill="{DynamicResource Brush.bg.surface}" Stroke="{DynamicResource Brush.border.strong}" StrokeThickness="1" />
-                        <Ellipse x:Name="Core" Width="10" Height="10" Fill="{DynamicResource Brush.accent.primary}" />
-                    </Grid>
+                    <Ellipse x:Name="Knob"
+                             Width="{DynamicResource Layout.slider-thumb}"
+                             Height="{DynamicResource Layout.slider-thumb}"
+                             Fill="{DynamicResource Brush.accent.primary}"
+                             Stroke="{DynamicResource Brush.bg.surface}"
+                             StrokeThickness="2" />
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Core" Property="Width" Value="12" />
-                            <Setter TargetName="Core" Property="Height" Value="12" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource Brush.accent.primary.hover}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource Brush.accent.primary.pressed}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Core" Property="Fill" Value="{DynamicResource Brush.text.muted}" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource Brush.text.disabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1508,7 +1526,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Slider">
                     <Grid Background="Transparent">
-                        <Border Height="4" Margin="9,0" VerticalAlignment="Center" Background="{DynamicResource Brush.border.strong}" CornerRadius="2" />
+                        <Border Height="{DynamicResource Layout.track-height}" Margin="8,0" VerticalAlignment="Center" Background="{DynamicResource Brush.border.strong}" CornerRadius="{DynamicResource Radius.xs}" />
                         <Track x:Name="PART_Track">
                             <Track.DecreaseRepeatButton>
                                 <controls:PageButton Command="Slider.DecreaseLarge" Style="{StaticResource Slider.Fill}" />
