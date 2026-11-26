@@ -17,14 +17,47 @@
         <ResourceDictionary Source="Icons.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <!-- Focus ring: 2 px accent just outside the control; WPF shows FocusVisualStyle for keyboard focus only. -->
+    <!-- Focus ring: 2 px accent 3 px outside the control; WPF shows FocusVisualStyle for keyboard focus only.
+         Its radius is the control's plus the 3 px gap, so the ring runs parallel to the edge it circles
+         (design system 5, review finding B-32): 9 on the 6 px controls (Radius.control + 3). -->
     <Style x:Key="FocusRing">
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
                     <Rectangle Margin="-3"
-                               RadiusX="8"
-                               RadiusY="8"
+                               RadiusX="9"
+                               RadiusY="9"
+                               SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource Brush.accent.primary}"
+                               StrokeThickness="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- 7 on the 4 px shapes: check boxes, radio buttons and key caps (Radius.sm + 3). -->
+    <Style x:Key="FocusRing.Small">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               RadiusX="7"
+                               RadiusY="7"
+                               SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource Brush.accent.primary}"
+                               StrokeThickness="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Fully round on the pill shapes: toggles and pill toggles. A rectangle clamps the radius to half its
+         height, as a Border does for Radius.pill. -->
+    <Style x:Key="FocusRing.Pill">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               RadiusX="999"
+                               RadiusY="999"
                                SnapsToDevicePixels="True"
                                Stroke="{DynamicResource Brush.accent.primary}"
                                StrokeThickness="2" />
@@ -604,7 +637,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
@@ -694,7 +727,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
@@ -905,7 +938,7 @@
         <Setter Property="Height" Value="20" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Pill}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="controls:ToggleSwitch">
@@ -1703,7 +1736,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Pill}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template" Value="{StaticResource Button.Template}" />
         <Style.Triggers>
