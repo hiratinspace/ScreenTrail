@@ -104,6 +104,12 @@ public sealed class NoteControlsTests
         // The words beside the glyph, in confidence.low (never colour alone).
         Assert.Contains(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
         Assert.Contains(note.Descendants(Controls + "Glyph"), g => (string?)g.Attribute("Foreground") == "{DynamicResource Brush.confidence.low}");
+
+        // The words wrap on their own row: beside the buttons in a WrapPanel they were measured at infinite
+        // width and the narrow note cut them mid word (review finding B-33).
+        var line = note.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
+        Assert.Equal("Wrap", (string?)line.Attribute("TextWrapping"));
+        Assert.DoesNotContain(line.Ancestors(), e => e.Name == Wpf + "WrapPanel");
     }
 
     [Fact]
