@@ -110,6 +110,9 @@ public sealed class LiveShell : IAsyncDisposable
     /// <summary>How the shell window comes back from minimised (review finding D-05); made with the window.</summary>
     private WindowRestore? _windowRestore;
 
+    /// <summary>The one diagnostics panel, while it is open.</summary>
+    private Diagnostics.DiagnosticsWindow? _diagnostics;
+
     public LiveShell()
         : this(OpenAsync, new ShellPreferencesStore(ShellPreferencesStore.DefaultPath))
     {
@@ -740,7 +743,15 @@ public sealed class LiveShell : IAsyncDisposable
             return;
         }
 
-        _ = Diagnostics.DiagnosticsWindow.ShowLiveAsync(_connection);
+        // One panel (review finding D-09): asked again, the open one comes forward rather than another stacking on it.
+        if (_diagnostics is { IsLoaded: true } open)
+        {
+            new WindowRestore(open).Bring(open);
+            return;
+        }
+
+        _diagnostics = Diagnostics.DiagnosticsWindow.ShowLive(_connection, _window);
+        _diagnostics.Closed += (_, _) => _diagnostics = null;
     }
 
     /// <summary>

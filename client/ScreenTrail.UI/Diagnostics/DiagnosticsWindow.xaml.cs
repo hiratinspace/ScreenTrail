@@ -11,7 +11,7 @@ public partial class DiagnosticsWindow : Window
     /// <summary>
     /// The CI render only. A panel showing a literal is what this window used to do in production, and a
     /// panel that tells a customer "local-only: yes" from a constant is worse than no panel at all
-    /// (weaknesses P1-2). <see cref="ShowLiveAsync"/> is what the application uses.
+    /// (weaknesses P1-2). <see cref="ShowLive"/> is what the application uses.
     /// </summary>
     public DiagnosticsWindow()
         : this(Sample)
@@ -19,8 +19,11 @@ public partial class DiagnosticsWindow : Window
     }
 
     /// <summary>
-    /// Opens the panel with what the service says, or saying unknown on every row when it cannot be asked
-    /// (ST-085, T-152).
+    /// Opens the panel at once, saying it is asking, and fills it in with what the service says, or with
+    /// unknown on every row when it does not answer within <see cref="CoreShell.DiagnosticsPanel.RefreshEvery"/>
+    /// twice over (ST-085, T-152; review finding D-09: the window used to appear only once the service
+    /// answered, and never when it hung). <paramref name="over"/> is the shell window when it is open, which
+    /// the panel opens over; otherwise it opens on the monitor under the pointer.
     ///
     /// The question is asked every time the panel opens rather than cached, because the answer is what a
     /// technician turns the screen round and shows a customer, and a stale one is a claim about the
@@ -28,13 +31,46 @@ public partial class DiagnosticsWindow : Window
     /// <see cref="CoreShell.DiagnosticsPanel.RefreshEvery"/> while the panel is open, so CPU, memory and
     /// whether capture has eased off are live (ST-031), and not at all once it is closed.
     /// </summary>
-    public static async Task ShowLiveAsync(CaptureConnection connection)
+    public static DiagnosticsWindow ShowLive(CaptureConnection connection, Window? over)
     {
         ArgumentNullException.ThrowIfNull(connection);
-        var window = new DiagnosticsWindow(await AskAsync(connection).ConfigureAwait(true));
-        window.Refresh(connection);
+        var window = new DiagnosticsWindow(CoreShell.DiagnosticsPanel.Asking);
+        if (over is { IsLoaded: true, WindowState: not WindowState.Minimized })
+        {
+            window.Owner = over;
+            window.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        }
+        else
+        {
+            Theme.Placement.CentreUnderThePointer(window);
+        }
+
         window.Show();
         _ = window.Activate();
+        _ = window.FirstAnswerAsync(connection);
+        return window;
+    }
+
+    private async Task FirstAnswerAsync(CaptureConnection connection)
+    {
+        CoreShell.DiagnosticsPanel panel;
+        using (var patience = new CancellationTokenSource(CoreShell.DiagnosticsPanel.RefreshEvery * 2))
+        {
+            try
+            {
+                panel = await AskAsync(connection, patience.Token).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                panel = CoreShell.DiagnosticsPanel.Unanswered;
+            }
+        }
+
+        if (IsLoaded)
+        {
+            ((DiagnosticsViewModel)DataContext).Show(panel);
+            Refresh(connection);
+        }
     }
 
     private static async Task<CoreShell.DiagnosticsPanel> AskAsync(CaptureConnection connection, CancellationToken ct = default) =>

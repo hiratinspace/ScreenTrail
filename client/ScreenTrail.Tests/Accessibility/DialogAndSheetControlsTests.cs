@@ -124,7 +124,23 @@ public sealed class DialogAndSheetControlsTests
 
         Assert.Contains("dialog.ShowInTaskbar = true;", alone, StringComparison.Ordinal);
         Assert.Contains("dialog.Topmost = true;", alone, StringComparison.Ordinal);
-        Assert.Contains("CentreUnderThePointerOnce", alone, StringComparison.Ordinal);
+        Assert.Contains("Theme.Placement.CentreUnderThePointer(dialog);", alone, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DiagnosticsOpensAtOnceAndIsOnlyEverOneWindow()
+    {
+        // Review finding D-09: the panel waited for the service before anything appeared, with no time
+        // limit, and each click made another. It opens asking, gives up after twice the refresh, and the
+        // shell keeps the one that is open.
+        var code = File.ReadAllText(Source("Diagnostics", "DiagnosticsWindow.xaml") + ".cs");
+        var show = code[code.IndexOf("public static DiagnosticsWindow ShowLive(", StringComparison.Ordinal)..code.IndexOf("private async Task FirstAnswerAsync(", StringComparison.Ordinal)];
+        Assert.Contains("new DiagnosticsWindow(CoreShell.DiagnosticsPanel.Asking)", show, StringComparison.Ordinal);
+        Assert.True(show.IndexOf("window.Show();", StringComparison.Ordinal) < show.IndexOf("FirstAnswerAsync(connection)", StringComparison.Ordinal), "the window waits for the answer");
+        Assert.Contains("new CancellationTokenSource(CoreShell.DiagnosticsPanel.RefreshEvery * 2)", code[code.IndexOf("private async Task FirstAnswerAsync(", StringComparison.Ordinal)..], StringComparison.Ordinal);
+
+        var shell = File.ReadAllText(Source("Shell", "LiveShell.cs"));
+        Assert.Contains("if (_diagnostics is { IsLoaded: true } open)", shell, StringComparison.Ordinal);
     }
 
     [Fact]

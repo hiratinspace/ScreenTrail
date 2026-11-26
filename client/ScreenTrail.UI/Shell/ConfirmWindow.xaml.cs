@@ -119,50 +119,12 @@ public partial class ConfirmWindow : Window
             // of the monitor under the pointer, where the tray menu was, rather than the primary one.
             dialog.ShowInTaskbar = true;
             dialog.Topmost = true;
-            dialog.WindowStartupLocation = WindowStartupLocation.Manual;
-            dialog.SizeChanged += CentreUnderThePointerOnce;
+            Theme.Placement.CentreUnderThePointer(dialog);
         }
 
         return dialog.ShowDialog() == true;
     }
 
-    private static void CentreUnderThePointerOnce(object sender, SizeChangedEventArgs e)
-    {
-        var dialog = (Window)sender;
-        dialog.SizeChanged -= CentreUnderThePointerOnce;
-        var handle = new System.Windows.Interop.WindowInteropHelper(dialog).Handle;
-        if (handle == IntPtr.Zero || !GetWindowRect(handle, out var rect))
-        {
-            return;
-        }
-
-        // Device pixels throughout, so a monitor of another scale than the one the window was made on comes
-        // out right: Windows tells WPF of the new scale once the window has moved.
-        var area = System.Windows.Forms.Screen.FromPoint(System.Windows.Forms.Cursor.Position).WorkingArea;
-        var (x, y) = Core.Shell.WindowFit.Centre(area.Left, area.Top, area.Width, area.Height, rect.Right - rect.Left, rect.Bottom - rect.Top);
-        _ = SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SwpNoSize | SwpNoZOrder | SwpNoActivate);
-    }
-
-    private const uint SwpNoSize = 0x0001;
-    private const uint SwpNoZOrder = 0x0004;
-    private const uint SwpNoActivate = 0x0010;
-
-    [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
-    private struct NativeRect
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static extern bool GetWindowRect(IntPtr window, out NativeRect rect);
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
-    private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
 
     private void FocusStart()
     {
