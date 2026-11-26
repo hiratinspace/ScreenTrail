@@ -8,7 +8,7 @@
 
 /* Hero: it fills the first screen under the announcement and the header (98px together), so the next
    section starts below the fold at any window size. */
-.hero { position: relative; min-height: max(640px, calc(100svh - 98px)); display: grid; place-items: center; padding: 84px 0 96px; overflow: hidden; }
+.hero { position: relative; min-height: max(640px, calc(100svh - 98px)); display: grid; place-items: center; padding: 84px 0 96px; overflow: clip; view-timeline: --hero block; }
 .hero-copy { position: relative; z-index: 2; text-align: center; display: grid; justify-items: center; gap: 22px; max-width: 640px; margin-inline: auto; padding: 0 24px; }
 .hero h1 { font-size: clamp(38px, 5vw, 58px); line-height: 1.04; letter-spacing: -0.035em; }
 .hero h1 span { color: var(--iris); display: block; }
@@ -17,16 +17,39 @@
 .hero .actions .btn { height: 44px; padding: 0 18px; font-size: 15px; }
 .stage { display: inline-flex; align-items: center; gap: 8px; font: 500 12px/1 var(--mono); color: var(--ink-2); border: 1px solid var(--line-2); background: var(--white); padding: 7px 10px; border-radius: 999px; }
 .stage img { width: 16px; height: 16px; }
-.fig { position: absolute; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--white) 55%, transparent); }
+/* The six cards: one size, a header row (what, and when in the session) over the drawing, the same
+   padding in every one, and mirrored about the centre: three down each side at the same heights, the
+   middle pair set in a little, the bottom pair turned in under the buttons. Each side card keeps clear
+   of the copy's 612px column (306px either side of the centre) on any window. */
+.fig { position: absolute; display: flex; flex-direction: column; width: 200px; height: 140px; border: 1px solid var(--line-2); background: color-mix(in srgb, var(--white) 72%, transparent); }
 .fig::after { content: ''; position: absolute; inset: 6px -7px -7px 6px; border: 1px solid var(--line); z-index: -1; }
-.fig canvas { display: block; width: 100%; height: 100%; }
-.fig .tag { position: absolute; top: 8px; left: 9px; white-space: nowrap; }
-.f1 { left: 4%; top: 10%; width: 220px; height: 150px; }
-.f2 { left: 7%; top: 47%; width: 170px; height: 200px; }
-.f3 { right: 4%; top: 8%; width: 200px; height: 180px; }
-.f4 { right: 9%; top: 47%; width: 190px; height: 160px; }
-.f5 { left: 22%; top: 80%; width: 150px; height: 96px; }
-.f6 { right: 25%; top: 77%; width: 150px; height: 110px; }
+.fig.r::after { inset: 6px 6px -7px -7px; }
+.fig .tag { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 28px; padding: 0 11px; border-bottom: 1px solid var(--line); font-size: 11px; white-space: nowrap; }
+.fig .tag time { color: var(--ink-2); font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+.fig canvas { display: block; flex: 1 1 0; min-height: 0; width: 100%; }
+.f1, .f2, .f5 { right: auto; }
+.f1 { left: max(8px, min(4%, calc(50% - 506px))); top: 10%; }
+.f2 { left: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
+.f3 { right: max(8px, min(4%, calc(50% - 506px))); top: 10%; }
+.f4 { right: max(8px, min(7%, calc(50% - 506px))); top: 46%; }
+/* On load the six cards come in together, after the headline: a slow fade while each settles 16px in
+   toward the copy, the left side and the right side mirrored. Calm, not a sequence. Uses `translate`, so
+   it never fights the scroll-away drift's `transform`. Plain CSS, so a card shows without the script;
+   none of it with reduced motion. */
+.f1, .f2, .f5 { --dx: -16px; } .f3, .f4, .f6 { --dx: 16px; }
+.hero-figs .fig:nth-child(1) { --dx: -12px; } .hero-figs .fig:nth-child(2) { --dx: 12px; }
+@media (prefers-reduced-motion: no-preference) {
+  .hero .fig { animation: card-open 1.4s cubic-bezier(.22,1,.36,1) .35s both; }
+  /* What is inside follows just behind the card, overlapping, so the card is never seen empty: the
+     header and drawing start while the card is still faint and rise 6px into place as it settles. */
+  .hero .fig > * { animation: card-fill 1.3s cubic-bezier(.33,1,.68,1) .45s both; }
+}
+@keyframes card-fill { from { opacity: 0; translate: 0 6px; } to { opacity: 1; translate: 0 0; } }
+@keyframes card-open { from { opacity: 0; translate: var(--dx, 0) 0; } to { opacity: 1; translate: 0 0; } }
+/* At least 250px either side of the centre, clear of the buttons, and set from the hero's foot so the
+   frame behind them is never cut off on a short window. */
+.f5 { right: max(calc(50% + 250px), calc(78% - 200px)); left: auto; bottom: max(20px, 5%); }
+.f6 { left: max(calc(50% + 250px), calc(78% - 200px)); bottom: max(20px, 5%); }
 .hero-figs { display: none; }
 
 /* The wall of sessions */
@@ -392,12 +415,18 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .clockpill:not([data-s='rec']) .clk { color: var(--ribbon); }
 @keyframes blink { 50% { opacity: .25; } }
 
-@media (max-width: 1100px) { .f5, .f6 { display: none; } .f1, .f2 { left: 2%; } .f3, .f4 { right: 2%; } }
+@media (max-width: 1100px) {
+  .f5, .f6 { display: none; }
+  /* Four smaller cards still fit beside the copy at 1024px. */
+  .fig { width: 180px; height: 128px; }
+  .f1, .f2 { left: 8px; }
+  .f3, .f4 { right: 8px; }
+}
 @media (max-width: 960px) {
   .hero { min-height: calc(100svh - 98px); padding: 64px 0 40px; display: flex; flex-direction: column; justify-content: center; }
   .fig { display: none; }
   .hero-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 44px; padding: 0 24px; }
-  .hero-figs .fig { display: block; position: relative; inset: auto; width: auto; height: 130px; }
+  .hero-figs .fig { display: flex; position: relative; inset: auto; width: auto; height: 136px; }
   .feature, .setup, .privacy-grid { grid-template-columns: 1fr; gap: 36px; }
   .realapp-row { grid-template-columns: 1fr; }
   /* Stacked: the same path, top to bottom, with one straight wire between the three parts. */
@@ -477,15 +506,25 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
       animation: scene-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 160px;
     }
     .feature .mock { animation: scene-fade linear both; animation-timeline: view(); animation-range: entry 0% entry 200px; }
-    .hero-copy { animation: scene-leave linear both; animation-timeline: view(); animation-range: exit 0% exit 80%; }
-    .hero .fig { animation: scene-drift linear both; animation-timeline: view(block); animation-range: exit 0% exit 100%; }
-    .hero .f1, .hero .f2, .hero .f5 { animation-name: scene-drift-l; }
+    /* Leaving the hero: from the first scroll, the copy and the cards fade out slowly together over
+       most of the hero's height, the cards drifting up and away to their sides. On the hero's own
+       timeline (overflow: clip, so it is not a scroller of its own and the page's scroll drives it). */
+    .hero-copy { animation: scene-leave linear both; animation-timeline: --hero; animation-range: exit 0% exit 75%; }
+    .hero .fig {
+      animation: card-open 1.4s cubic-bezier(.22,1,.36,1) .35s both, scene-drift linear both;
+      animation-timeline: auto, --hero; animation-range: normal, exit 0% exit 75%;
+    }
+    .hero .f1, .hero .f2, .hero .f5 { animation-name: card-open, scene-drift-l; }
+    /* Arriving at the scene: it comes up slowly as it rises into view, settled by the time it pins. */
+    .js-scene .scene { view-timeline: --scene block; }
+    .js-scene .scene-copy, .js-scene .scene-stage, .js-scene .wall-note { animation: scene-arrive linear both; animation-timeline: --scene; animation-range: entry 0% entry 85vh; }
   }
 }
 /* Eased inside the keyframes: on a scroll timeline the animation's own timing is the scroll, so a
    linear keyframe moved at a constant speed and stopped dead. */
 @keyframes scene-rise { from { opacity: .25; transform: translateY(14px); animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; transform: none; } }
 @keyframes scene-fade { from { opacity: .25; animation-timing-function: cubic-bezier(.16,1,.3,1); } to { opacity: 1; } }
-@keyframes scene-leave { to { opacity: 0; transform: translateY(-60px) scale(.97); } }
-@keyframes scene-drift { to { opacity: 0; transform: translate(40px, -90px); } }
-@keyframes scene-drift-l { to { opacity: 0; transform: translate(-40px, -90px); } }
+@keyframes scene-leave { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translateY(-48px) scale(.98); } }
+@keyframes scene-drift { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(36px, -70px); } }
+@keyframes scene-drift-l { from { animation-timing-function: cubic-bezier(.45,0,.55,1); } to { opacity: 0; transform: translate(-36px, -70px); } }
+@keyframes scene-arrive { from { opacity: 0; transform: translateY(40px); animation-timing-function: cubic-bezier(.33,1,.68,1); } to { opacity: 1; transform: none; } }

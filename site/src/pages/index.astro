@@ -50,12 +50,14 @@ const tiles = widths.map((w, i) => {
   </div>
 
   <section class="hero" data-pill="rec" aria-labelledby="h-hero">
-    <div class="fig f1" aria-hidden="true"><canvas data-draw="windows"></canvas><span class="tag">#48213 · window</span></div>
-    <div class="fig f2" aria-hidden="true"><canvas data-draw="voice"></canvas><span class="tag">14:02:11 · voice</span></div>
-    <div class="fig f3" aria-hidden="true"><canvas data-draw="ribbon"></canvas><span class="tag">mark · drafting</span></div>
-    <div class="fig f4" aria-hidden="true"><canvas data-draw="note"></canvas><span class="tag">note · drafted</span></div>
-    <div class="fig f5" aria-hidden="true"><canvas data-draw="mask"></canvas><span class="tag">2 masked</span></div>
-    <div class="fig f6" aria-hidden="true"><canvas data-draw="clicks"></canvas><span class="tag">clicks</span></div>
+    <!-- One session around the headline, in the order it happens (the times are the session timeline's
+         below): down the left, along the bottom, up the right to the note. Mirrored pairs. -->
+    <div class="fig f1" aria-hidden="true"><span class="tag"><span>Remote session</span><time>13:54</time></span><canvas data-draw="windows"></canvas></div>
+    <div class="fig f2" aria-hidden="true"><span class="tag"><span>Your voice</span><time>13:58</time></span><canvas data-draw="voice"></canvas></div>
+    <div class="fig f5" aria-hidden="true"><span class="tag"><span>6 clicks</span><time>14:01</time></span><canvas data-draw="clicks"></canvas></div>
+    <div class="fig f6 r" aria-hidden="true"><span class="tag"><span>Key masked</span><time>14:02</time></span><canvas data-draw="mask"></canvas></div>
+    <div class="fig f4 r" aria-hidden="true"><span class="tag"><span>Drafting</span><time>14:04</time></span><canvas data-draw="ribbon"></canvas></div>
+    <div class="fig f3 r" aria-hidden="true"><span class="tag"><span>Note ready</span><time>14:05</time></span><canvas data-draw="note"></canvas></div>
 
     <div class="hero-copy">
       <span class="stage"><img src={glyphLight.src} alt="" width="16" height="16" />In development</span>
@@ -67,8 +69,8 @@ const tiles = widths.map((w, i) => {
       </div>
     </div>
     <div class="hero-figs" aria-hidden="true">
-      <div class="fig"><canvas data-draw="ribbon"></canvas><span class="tag">mark · drafting</span></div>
-      <div class="fig"><canvas data-draw="note"></canvas><span class="tag">note · drafted</span></div>
+      <div class="fig"><span class="tag"><span>Drafting</span><time>14:04</time></span><canvas data-draw="ribbon"></canvas></div>
+      <div class="fig r"><span class="tag"><span>Note ready</span><time>14:05</time></span><canvas data-draw="note"></canvas></div>
     </div>
   </section>
 

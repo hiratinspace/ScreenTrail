@@ -55,14 +55,15 @@ const IRIS = '#8f74dc';
 const FAINT = 'rgba(143,116,220,0.35)';
 const INK = '#141030';
 type Draw = (c: CanvasRenderingContext2D, w: number, h: number, t: number) => void;
+// Each drawing fills the card's body below its header, inset by the same P on every side.
+const P = 14;
 const draw: Record<string, Draw> = {
   voice(c, w, h, t) {
-    const n = 46, top = 28, bot = h - 14;
+    const n = 38, top = P, bot = h - P, mid = (top + bot) / 2;
     for (let i = 0; i < n; i++) {
-      const x = 12 + (w - 24) * i / (n - 1);
+      const x = P + (w - 2 * P) * i / (n - 1);
       const a = Math.sin(i * 0.33 + t * 1.4) * 0.5 + Math.sin(i * 0.11 - t * 0.7) * 0.5;
       const amp = (bot - top) / 2 * (0.15 + 0.85 * Math.abs(a));
-      const mid = (top + bot) / 2;
       c.strokeStyle = i % 2 ? FAINT : IRIS;
       c.beginPath(); c.moveTo(x, mid - amp); c.lineTo(x, mid + amp); c.stroke();
     }
@@ -70,7 +71,7 @@ const draw: Record<string, Draw> = {
   ribbon(c, w, h, t) {
     // The real mark as line art: both ribbon hooks hatched, the fold cross-hatched, a brighter band
     // sweeping along the ribbon, and a note being typed on the screen.
-    const s = Math.min(w - 36, h - 44) / 64, ox = (w - 64 * s) / 2, oy = (h - 64 * s) / 2 + 9;
+    const s = Math.min(w - 2 * P, h - 2 * P) / 64, ox = (w - 64 * s) / 2, oy = (h - 64 * s) / 2;
     const hook = new Path2D('M60 4 L54 16 H21 A5 5 0 0 0 21 26 H32 V38 H21 A17 17 0 0 1 21 4 Z');
     const fold = new Path2D('M16.17 19.71 L-10.04 29.05 L-8 64 L44 64 L44 19.71 Z');
     const sweep = (t * 14) % 150 - 75;
@@ -100,45 +101,49 @@ const draw: Record<string, Draw> = {
     c.restore();
   },
   windows(c, w, h, t) {
+    // Three remote windows stacked, the one in front outlined in Iris, a cursor moving in it.
+    const dx = 14, dy = 9, ww = w - 2 * P - 2 * dx, hh = h - 2 * P - 2 * dy;
     for (let k = 2; k >= 0; k--) {
-      const x = 26 + k * 16, y = 30 + k * 10, ww = w - 80, hh = h - 64;
+      const x = P + (2 - k) * dx, y = P + (2 - k) * dy;
       c.strokeStyle = k ? FAINT : IRIS;
       c.strokeRect(x + 0.5, y + 0.5, ww, hh);
-      c.beginPath(); c.moveTo(x, y + 10.5); c.lineTo(x + ww, y + 10.5); c.stroke();
+      c.beginPath(); c.moveTo(x, y + 9.5); c.lineTo(x + ww, y + 9.5); c.stroke();
     }
-    const px = 26 + (w - 80) * (0.25 + 0.5 * (Math.sin(t * 0.8) * 0.5 + 0.5));
-    const py = 30 + (h - 64) * (0.45 + 0.25 * Math.sin(t * 1.3));
+    const fx = P + 2 * dx, fy = P + 2 * dy;
+    const px = fx + ww * (0.25 + 0.5 * (Math.sin(t * 0.8) * 0.5 + 0.5));
+    const py = fy + 12 + (hh - 26) * (0.5 + 0.4 * Math.sin(t * 1.3));
     c.fillStyle = INK; c.beginPath(); c.moveTo(px, py); c.lineTo(px + 7, py + 11); c.lineTo(px + 2, py + 9); c.lineTo(px, py + 14); c.closePath(); c.fill();
-    c.strokeStyle = IRIS; c.beginPath(); c.arc(px, py, 6 + (t * 6 % 6), 0, Math.PI * 2); c.stroke();
+    c.strokeStyle = IRIS; c.beginPath(); c.arc(px, py, 5 + (t * 6 % 6), 0, Math.PI * 2); c.stroke();
   },
   note(c, w, h, t) {
     // The output: a ticket note being written, three steps beside their screenshots, then stamped.
-    const x = 22, y = 30, nw = w - 44, nh = h - 46;
+    const x = P, y = P, nw = w - 2 * P - 5, nh = h - 2 * P - 5;
     c.strokeStyle = FAINT; c.strokeRect(x + 5.5, y + 5.5, nw, nh);
     c.clearRect(x, y, nw, nh);
     c.strokeStyle = IRIS; c.strokeRect(x + 0.5, y + 0.5, nw, nh);
-    c.beginPath(); c.moveTo(x, y + 14.5); c.lineTo(x + nw, y + 14.5); c.stroke();
-    c.fillStyle = IRIS; c.fillRect(x + 8, y + 6, nw * 0.34, 3);
-    const cycle = (t * 0.22 + 1.2) % 1.5, rows = 3, gap = (nh - 46) / rows;
+    c.beginPath(); c.moveTo(x, y + 12.5); c.lineTo(x + nw, y + 12.5); c.stroke();
+    c.fillStyle = IRIS; c.fillRect(x + 7, y + 5, nw * 0.34, 3);
+    const cycle = (t * 0.22 + 1.2) % 1.5, rows = 3, top = y + 20, gap = (nh - 20 - 18) / rows;
     for (let k = 0; k < rows; k++) {
-      const ly = y + 24 + k * gap, p = clamp(cycle * 3.4 - k * 0.9);
-      c.fillStyle = FAINT; c.fillRect(x + 8, ly, (nw - 50) * p, 2);
-      c.fillRect(x + 8, ly + 6, (nw - 76) * clamp(p * 1.6 - 0.6), 2);
-      if (p > 0.5) { c.strokeStyle = IRIS; c.strokeRect(x + nw - 30.5, ly - 2.5, 20, 13); }
+      const ly = top + k * gap, p = clamp(cycle * 3.4 - k * 0.9);
+      c.fillStyle = FAINT; c.fillRect(x + 7, ly, (nw - 44) * p, 2);
+      c.fillRect(x + 7, ly + 5, (nw - 66) * clamp(p * 1.6 - 0.6), 2);
+      if (p > 0.5) { c.strokeStyle = IRIS; c.strokeRect(x + nw - 25.5, ly - 2.5, 18, 10); }
     }
-    if (cycle > 1) { c.fillStyle = INK; c.fillRect(x + 8, y + nh - 16, nw - 16, 9); c.fillStyle = '#fff'; c.fillRect(x + 13, y + nh - 12.5, 14, 2); }
+    if (cycle > 1) { c.fillStyle = INK; c.fillRect(x + 7, y + nh - 14, nw - 14, 8); c.fillStyle = '#fff'; c.fillRect(x + 11, y + nh - 11, 14, 2); }
   },
-  mask(c, w, _h, t) {
-    const gx = 16, gy = 12;
-    for (let i = 0; i < gx; i++) for (let j = 0; j < 5; j++) {
-      const x = 12 + i * (w - 24) / (gx - 1), y = 30 + j * gy;
-      const masked = i > 4 && i < 12 && j === 2;
+  mask(c, w, h, t) {
+    // A screen's text as dots; the middle run of one line is a password, painted over.
+    const gx = 15, gy = 5, sx = (w - 2 * P) / (gx - 1), sy = (h - 2 * P) / (gy - 1);
+    for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) {
+      const x = P + i * sx, y = P + j * sy;
+      const masked = i > 3 && i < 11 && j === 2;
       c.fillStyle = masked ? INK : ((i + j + Math.floor(t * 2)) % 7 ? FAINT : IRIS);
-      if (masked) c.fillRect(x - 4, y - 3, 9, 6); else c.fillRect(x - 1, y - 1, 2, 2);
+      if (masked) c.fillRect(x - sx / 2, y - 3, sx + 0.5, 6); else c.fillRect(x - 1, y - 1, 2, 2);
     }
   },
   clicks(c, w, h, t) {
-    const pts = [[0.15, 0.75], [0.3, 0.45], [0.48, 0.62], [0.62, 0.35], [0.8, 0.55], [0.88, 0.3]].map(([a, b]) => [a! * w, 20 + b! * (h - 26)] as const);
+    const pts = [[0, 0.8], [0.2, 0.4], [0.4, 0.65], [0.6, 0.3], [0.8, 0.55], [1, 0.15]].map(([a, b]) => [P + 4 + a! * (w - 2 * P - 8), P + 4 + b! * (h - 2 * P - 8)] as const);
     c.strokeStyle = FAINT; c.beginPath(); pts.forEach(([x, y], i) => (i ? c.lineTo(x, y) : c.moveTo(x, y))); c.stroke();
     pts.forEach(([x, y], i) => { c.fillStyle = i === pts.length - 1 ? INK : IRIS; c.beginPath(); c.arc(x, y, 2.5, 0, Math.PI * 2); c.fill(); });
     const [lx, ly] = pts[pts.length - 1]!;
