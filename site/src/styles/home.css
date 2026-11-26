@@ -274,6 +274,15 @@ html:not(.js-scene) .scene-note { grid-column: 2; grid-row: 5 / span 4; margin-t
 .js-ribbon .ev:not(.reached) .knot { border-color: var(--line-2); box-shadow: 0 1px 2px rgba(30, 20, 80, .04); color: var(--ink-3); background: var(--white); }
 .js-ribbon .ev:not(.reached) .knot svg { color: var(--ink-3); }
 .js-ribbon .ev:not(.reached) h3, .js-ribbon .ev:not(.reached) p { opacity: .32; translate: 0 6px; }
+/* Reached: the knot springs up and a soft Iris ring pulses out of it, so the scroll is felt at each
+   moment; the latest one stays lit until the band reaches the next. */
+.js-ribbon .knot { position: relative; }
+.js-ribbon .knot::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; opacity: 0; }
+.js-ribbon .ev.reached .knot { animation: knot-pop .65s cubic-bezier(.34, 1.56, .64, 1); }
+.js-ribbon .ev.reached .knot::after { animation: knot-ring .9s cubic-bezier(.22, 1, .36, 1); }
+.js-ribbon .ev.current:not(.end) .knot { background: color-mix(in srgb, var(--iris) 11%, var(--white)); }
+@keyframes knot-pop { 0% { scale: 1; } 38% { scale: 1.14; } 100% { scale: 1; } }
+@keyframes knot-ring { from { opacity: 1; box-shadow: 0 0 0 0 color-mix(in srgb, var(--iris) 45%, transparent); } to { opacity: 0; box-shadow: 0 0 0 14px color-mix(in srgb, var(--iris) 0%, transparent); } }
 .ev q, .tl-row .what q { quotes: '\201C' '\201D'; }
 
 /* How it works: four stages, each beside a live mock of the app. */

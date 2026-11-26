@@ -523,7 +523,14 @@ if (eventsBox && ribbon && sessionEl && sessionPin) {
       el.style.strokeDasharray = '1 1';
       el.style.strokeDashoffset = String(1 - g);
     });
-    evs.forEach((ev, i) => ev.classList.toggle('reached', f >= (at[i] ?? 1) - 0.004));
+    let current = -1;
+    evs.forEach((ev, i) => {
+      const r = f >= (at[i] ?? 1) - 0.004;
+      ev.classList.toggle('reached', r);
+      if (r) current = i;
+    });
+    // The latest moment the band has reached stays lit until the next one is.
+    evs.forEach((ev, i) => ev.classList.toggle('current', i === current && f < 1));
   };
   if (live) steps.push(() => { const f = read0(); return () => write(f); });
   addEventListener('resize', drawRibbon);
