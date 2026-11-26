@@ -194,90 +194,158 @@ figs.forEach((o) => figVisible.observe(o.el));
 addEventListener('resize', () => { figs.forEach(sizeFig); paint(performance.now()); });
 
 /* ---------- The pinned scene: scroll runs four beats ----------
-   0 to .2 the problem wall; .22 to .44 every tile gets its note (the tally counts them, 38 to 46);
-   .46 to .66 the tiles fly together while the note for #48213 comes up (.52) and is written (.58 to
-   .76); .78 the last caption and .8 published, held to the end so it is read before the page moves on.
+   The problem week is read on the way in, so the scene moves from the first scroll after it pins.
+   .02 to .34 a now line runs down each day, Monday to Friday, and every session it passes gets its note
+   (the tally counts them, 38 to 46). It stops on Friday's #48213. .35 to .43 the rest of the week
+   steps back; .38 to .52 #48213's tile opens in place into its note, written as it opens (.38 to .51).
+   .75 the last caption and .77 published, held to the end so it is read before the page moves on.
+   The captions change at .02, .38 and .75, so the three after the first are on screen equally long.
    With reduced motion, or without this script, the section is the still layout in home.css. */
 const sceneEl = byId('scene');
 const wall = byId('wall');
 const stageEl = byId('stage');
 const tallyEl = byId('tally');
 const noteEl = byId('scene-note');
-if (sceneEl && wall && stageEl && tallyEl && noteEl) {
-  const tiles = Array.from(wall.children) as HTMLElement[];
+const playhead = byId('playhead');
+const phLabel = byId('ph-label');
+if (sceneEl && wall && stageEl && tallyEl && noteEl && playhead && phLabel) {
+  const tiles = Array.from(wall.querySelectorAll<HTMLElement>('.tile'));
+  const dayEls = Array.from(wall.querySelectorAll<HTMLElement>('.day'));
+  const colEls = dayEls.map((d) => d.querySelector<HTMLElement>('.col')!);
+  const target = wall.querySelector<HTMLElement>('.tile.this') ?? tiles[tiles.length - 1]!;
+  // The calendar: 08:00 to 17:30. Each session goes at its start, as tall as it ran, but never shorter
+  // than its words need (a missed note has two lines) and never over the one before: a session is
+  // moved down instead. Done here, not in the markup, because the CSP forbids inline styles; with
+  // reduced motion too, it is still a calendar. top[] and bottom of #48213 are shares of the day.
+  const DAY0 = 8 * 60, SPAN = 9.5 * 60;
+  const dayOf = tiles.map((t) => dayEls.indexOf(t.closest<HTMLElement>('.day')!));
+  const top: number[] = [];
+  let weekEnd = 1;
+  wall.classList.add('cal');
+  const place = () => {
+    const h = colEls[0]?.clientHeight || 440;
+    let prevDay = -1, floor = 0;
+    tiles.forEach((t, i) => {
+      if (dayOf[i] !== prevDay) { prevDay = dayOf[i]!; floor = 0; }
+      const want = (Number(t.dataset.dur) / SPAN) * h;
+      const tall = Math.max(want, t.classList.contains('bad') ? 38 : 22);
+      const y = Math.max(((Number(t.dataset.start) - DAY0) / SPAN) * h, floor);
+      floor = y + tall + 4;
+      top[i] = y / h;
+      t.style.top = `${y.toFixed(1)}px`;
+      t.style.height = `${tall.toFixed(1)}px`;
+      if (t === target) weekEnd = (y + tall) / h;
+    });
+  };
+  place();
+  // Without the scroll scene (reduced motion) the calendar still follows a resize.
+  if (reduce) addEventListener('resize', place);
+  const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(Math.floor(m % 60)).padStart(2, '0')}`;
   const caps = Array.from(document.querySelectorAll<HTMLElement>('.cap'));
   const noteParts = Array.from(noteEl.querySelectorAll<HTMLElement>('.sn-body h3, .sn-body .ln'));
   const stamp = noteEl.querySelector<HTMLElement>('.sn-stamp');
-  let offsets: [number, number][] = [];
+  let cols: { x: number; y: number; w: number; h: number }[] = [];
+  // The note's transform at the start (on the tile) and at the end (open, fitted to the stage).
+  let from = { x: 0, y: 0, s: 1 };
+  let to = { x: 0, y: 0, s: 1 };
   let lastBeat = -1;
-  let wallFit = 1;
-  let noteFit = 1;
+  let lastLabel = '';
   let pinned = false;
   // A window too short to hold the scene (a phone on its side) gets the still layout instead.
   const short = matchMedia('(max-height: 600px)');
   const measure = () => {
-    tiles.forEach((t) => { t.style.transform = ''; });
     wall.style.transform = '';
+    noteEl.style.transform = '';
     // The wall and the note are scaled down to the room the stage has, so on any screen the whole
     // beat is inside the pinned view: nothing runs under the caption or off the bottom.
     const room = stageEl.clientHeight;
-    wallFit = clamp(room / Math.max(1, wall.offsetHeight), 0.4, 1);
-    noteFit = clamp(room / Math.max(1, noteEl.offsetHeight), 0.4, 1);
+    const wallFit = clamp(room / Math.max(1, wall.offsetHeight), 0.4, 1);
+    const noteFit = clamp(room / Math.max(1, noteEl.offsetHeight), 0.4, 1);
     // Scaled from the top of the stage, where an overflowing box starts; one that fits stays centred.
     wall.classList.toggle('scaled', wallFit < 1);
     noteEl.classList.toggle('scaled', noteFit < 1);
     if (wallFit < 1) wall.style.transform = `scale(${wallFit.toFixed(4)})`;
-    const st = stageEl.getBoundingClientRect();
-    const cx = st.left + st.width / 2, cy = st.top + st.height / 2;
-    offsets = tiles.map((t) => {
-      const r = t.getBoundingClientRect();
-      return [(cx - (r.left + r.width / 2)) / wallFit, (cy - (r.top + r.height / 2)) / wallFit];
+    // Each day's column, in the wall's own (unscaled) pixels, for the now line. From the boxes on screen
+    // (offsetLeft would count from a day mid-way through its entrance, which has a transform).
+    const wb = wall.getBoundingClientRect();
+    cols = colEls.map((c) => {
+      const r = c.getBoundingClientRect(), day = c.closest<HTMLElement>('.day')!;
+      const lift = new DOMMatrixReadOnly(getComputedStyle(day).transform === 'none' ? undefined : getComputedStyle(day).transform).m42;
+      return { x: (r.left - wb.left) / wallFit - wall.clientLeft, y: (r.top - wb.top) / wallFit - lift - wall.clientTop, w: r.width / wallFit, h: r.height / wallFit };
     });
+    const n = noteEl.getBoundingClientRect();
+    const r = target.getBoundingClientRect();
+    // A small copy of the note, as wide as the tile and on its spot, so it is never stretched.
+    from = { x: r.left - n.left, y: r.top - n.top, s: r.width / n.width };
+    to = { x: (n.width * (1 - noteFit)) / 2, y: 0, s: noteFit };
   };
   const read: Step = () => {
     if (!pinned) return;
     const r = sceneEl.getBoundingClientRect();
-    const p = clamp(-r.top / Math.max(1, r.height - innerHeight + 60));
+    // 0 the moment the scene pins under the 60px header, 1 when it lets go.
+    const p = clamp((60 - r.top) / Math.max(1, r.height - innerHeight + 60));
     return () => write(p);
   };
   const tick = () => read()?.();
   const write = (p: number) => {
-    const beat = p < 0.2 ? 0 : p < 0.5 ? 1 : p < 0.78 ? 2 : 3;
-    // The tiles are their own layers only while they fly.
-    wall.classList.toggle('flying', p > 0.42 && p < 0.72);
+    // The three captions after the first hold for an even share of the scroll. The last is also read
+    // while the section scrolls away (about an eighth of the pin), so .38 and .75 give each a third.
+    const beat = p < 0.02 ? 0 : p < 0.38 ? 1 : p < 0.75 ? 2 : 3;
+    wall.classList.toggle('opening', p > 0.32 && p < 0.57);
     if (beat !== lastBeat) {
       lastBeat = beat;
       // Only what is seen changes: all four captions stay readable to assistive technology.
       caps.forEach((c, i) => c.classList.toggle('on', i === beat));
     }
+    // The now line: how far through the week (0 Monday 08:00, 1 Friday as #48213 ends). It runs down
+    // each day from 08:00 to 17:00, then on to the next; Friday stops at the end of #48213.
+    const sweep = clamp((p - 0.02) / 0.32);
+    const u = Math.min(sweep * 5, 4.9999);
+    const d = Math.floor(u);
+    // How far down the day the line is (a share of 08:00 to 17:30); Friday stops at #48213's foot.
+    const at = (u - d) * (d === 4 ? weekEnd : 1);
+    const minute = DAY0 + at * SPAN;
+    const col = cols[d];
+    if (col) {
+      playhead.style.width = `${col.w}px`;
+      playhead.style.transform = `translate(${col.x.toFixed(1)}px, ${(col.y + col.h * at).toFixed(1)}px)`;
+    }
+    // The rest of the week steps back once the line has stopped; the line goes with it.
+    const back = ease(clamp((p - 0.35) / 0.08));
+    playhead.style.opacity = String(clamp(p / 0.02) * (1 - back));
+    dayEls.forEach((el, i) => el.classList.toggle('now', i === d && p > 0.01 && back < 1));
+    // Once the note is opening, the calendar card itself steps back so the note stands on it alone.
+    wall.classList.toggle('open', back > 0.5);
     // The tally is the count of tiles that have their note, so the number and the wall always agree.
     let written = 0;
-    let order = 0;
-    tiles.forEach((t) => {
-      const isBad = t.classList.contains('bad');
-      const healed = p > 0.22 + (isBad ? 0.03 + order++ * 0.024 : Number(t.dataset.r) * 0.16);
+    tiles.forEach((t, i) => {
+      // A session gets its note once the line has reached it.
+      const healed = p > 0.02 && (dayOf[i]! < d || (dayOf[i] === d && top[i]! < at));
       t.classList.toggle('healed', healed);
-      if (!isBad || healed) written++;
+      if (healed || !t.classList.contains('bad')) written++;
+      t.style.opacity = t === target ? '' : back ? String(1 - 0.82 * back) : '';
     });
+    const label = hhmm(minute);
+    if (label !== lastLabel) { lastLabel = label; phLabel.textContent = label; }
     tallyEl.textContent = String(written);
     tallyEl.classList.toggle('full', written === tiles.length);
-    tiles.forEach((t, i) => {
-      const q = ease(clamp((p - 0.46 - Number(t.dataset.r) * 0.05) / 0.15));
-      const off = offsets[i];
-      if (!off) return;
-      t.style.transform = q ? `translate(${off[0] * q}px, ${off[1] * q}px) scale(${1 - 0.75 * q})` : '';
-      t.style.opacity = q ? String(1 - q) : '';
-    });
-    const n = ease(clamp((p - 0.52) / 0.1));
-    noteEl.style.opacity = String(n);
-    noteEl.style.transform = `scale(${((0.6 + 0.4 * n) * noteFit).toFixed(4)})`;
-    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.58 - i * 0.02) / 0.04).toFixed(3)));
-    stamp?.classList.toggle('on', p > 0.8);
+    // #48213 opens in place: the note starts on its tile's box and grows to its own.
+    const g = ease(clamp((p - 0.38) / 0.14));
+    // The tile hands over to the note in the first part of the move, so neither is ever seen empty.
+    const hand = clamp(g / 0.2);
+    target.style.opacity = g > 0 ? String(1 - hand) : '';
+    noteEl.style.opacity = String(hand);
+    const x = from.x + (to.x - from.x) * g, y = from.y + (to.y - from.y) * g, s = from.s + (to.s - from.s) * g;
+    noteEl.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(4)})`;
+    // It is written while it opens: the last line lands just after it has settled.
+    noteParts.forEach((el, i) => el.style.setProperty('--o', clamp((p - 0.38 - i * 0.012) / 0.03).toFixed(3)));
+    stamp?.classList.toggle('on', p > 0.77);
   };
   const still = () => {
-    tiles.forEach((t) => { t.style.transform = ''; t.style.opacity = ''; t.classList.remove('healed'); });
+    tiles.forEach((t) => { t.style.opacity = ''; t.classList.remove('healed'); });
+    dayEls.forEach((el) => el.classList.remove('now'));
     wall.style.transform = '';
-    wall.classList.remove('scaled', 'flying');
+    wall.classList.remove('scaled', 'opening', 'open');
     noteEl.classList.remove('scaled');
     noteEl.style.opacity = '';
     noteEl.style.transform = '';
@@ -288,7 +356,16 @@ if (sceneEl && wall && stageEl && tallyEl && noteEl) {
   };
   const arrange = () => {
     pinned = !short.matches;
-    document.documentElement.classList.toggle('js-scene', pinned);
+    const html = document.documentElement;
+    // Switching between the still and pinned layouts (on load, or a resize across the breakpoint) is
+    // not a caption change: without this the three hidden captions would visibly fade out on top of
+    // the shown one. Transitions come back once that frame has painted.
+    if (html.classList.contains('js-scene') !== pinned) {
+      html.classList.add('scene-switch');
+      requestAnimationFrame(() => requestAnimationFrame(() => html.classList.remove('scene-switch')));
+    }
+    html.classList.toggle('js-scene', pinned);
+    place();
     if (pinned) { measure(); tick(); } else still();
   };
   if (!reduce) {
@@ -331,11 +408,55 @@ if (pill && pillLabel && pillClock && lastRow) {
   tick();
 }
 
-/* ---------- The session ribbon: the logo's band threaded through the events ---------- */
+/* ---------- The session ribbon: the logo's band threaded through the events ----------
+   A faint track carries the whole route; the Iris band draws along it as the events scroll up, and
+   each event is reached (its knot ringed, its text brought up) as the band gets to it. Where the
+   whole timeline fits in the window, the section holds still once it is all in view and the scroll
+   draws the band (over the first 85% of the hold; the rest is the finished ribbon, read before the
+   page moves on). Where it does not fit (a phone's column) the band draws as the events scroll up,
+   whole when the last is a little above the middle. Without the script, or with reduced motion, the
+   band is whole and every event is shown. */
 const eventsBox = byId('events');
 const ribbon = byId<SVGSVGElement>('ribbon');
-if (eventsBox && ribbon) {
+const sessionEl = byId('session');
+const sessionPin = byId('session-pin');
+if (eventsBox && ribbon && sessionEl && sessionPin) {
   const NS = 'http://www.w3.org/2000/svg';
+  const evs = Array.from(eventsBox.querySelectorAll<HTMLElement>('.ev'));
+  const live = !reduce;
+  if (live) document.documentElement.classList.add('js-ribbon');
+  let band: SVGPathElement | null = null;
+  let folds: { el: SVGPathElement; a: number; b: number }[] = [];
+  let at: number[] = []; // where each knot sits along the band, as a share of its length
+  let span = { y0: 0, y1: 0 }; // the first and last knots' heights in the box
+  let lastDrawn = -1;
+  const html = document.documentElement;
+  let held = false, holdTop = 0, holdFor = 0, padTop = 0;
+  // Hold the section still while the band draws, when all of it fits below the header.
+  const layoutHold = (column: boolean) => {
+    sessionEl.style.height = '';
+    sessionPin.style.top = '';
+    html.classList.remove('session-held');
+    const headH = document.querySelector('header')?.offsetHeight ?? 0;
+    const room = innerHeight - headH, need = sessionPin.offsetHeight;
+    held = live && !column && need <= room - 48;
+    if (!held) return;
+    holdFor = Math.round(innerHeight * 1.1);
+    // Close under the header (40px), not centred: the space left over goes below, where the pill floats.
+    holdTop = headH + Math.min(40, Math.round((room - need) / 2));
+    padTop = parseFloat(getComputedStyle(sessionEl).paddingTop) || 0;
+    const natural = sessionEl.offsetHeight;
+    html.classList.add('session-held');
+    sessionPin.style.top = `${holdTop}px`;
+    sessionEl.style.height = `${natural + holdFor}px`;
+  };
+  const path = (cls: string, dd: string, w: number) => {
+    const el = document.createElementNS(NS, 'path');
+    el.setAttribute('class', cls);
+    el.setAttribute('d', dd);
+    el.setAttribute('stroke-width', String(w));
+    return el;
+  };
   const drawRibbon = () => {
     const box = eventsBox.getBoundingClientRect();
     const pts = Array.from(eventsBox.querySelectorAll('.knot')).map((k) => {
@@ -344,28 +465,74 @@ if (eventsBox && ribbon) {
     });
     if (pts.length < 2) return;
     const first = pts[0]!, lastPt = pts[pts.length - 1]!;
-    const column = Math.abs(pts[1]!.x - first.x) < 4, W = column ? 6 : 10, edge = box.width + 6;
+    const column = Math.abs(pts[1]!.x - first.x) < 4, W = column ? 4 : 6, edge = box.width + 6;
+    layoutHold(column);
     const k = Math.max(16, Math.min(80, (innerWidth - box.right - 8) / 0.75));
     let d = column ? `M ${first.x} ${first.y - 40}` : `M ${-box.left} ${first.y}`;
     d += ` L ${first.x} ${first.y}`;
-    const folds: string[] = [];
+    // The route so far at each knot and around each turn, to measure where they fall along it.
+    const knotD = [d];
+    const foldD: { from: string; seg: string }[] = [];
     for (let i = 1; i < pts.length; i++) {
       const a = pts[i - 1]!, b = pts[i]!;
-      if (column || Math.abs(a.y - b.y) < 4) { d += ` L ${b.x} ${b.y}`; continue; }
+      if (column || Math.abs(a.y - b.y) < 4) { d += ` L ${b.x} ${b.y}`; knotD.push(d); continue; }
       const turn = `C ${edge + k} ${a.y} ${edge + k} ${b.y} ${edge} ${b.y}`;
-      d += ` L ${edge} ${a.y} ${turn} L ${b.x} ${b.y}`;
-      folds.push(`M ${edge} ${a.y} ${turn}`);
+      d += ` L ${edge} ${a.y}`;
+      foldD.push({ from: d, seg: `M ${edge} ${a.y} ${turn}` });
+      d += ` ${turn} L ${b.x} ${b.y}`;
+      knotD.push(d);
     }
     if (!column) d += ` L ${-box.left} ${lastPt.y}`;
-    const path = (cls: string, dd: string) => {
-      const el = document.createElementNS(NS, 'path');
-      el.setAttribute('class', cls);
-      el.setAttribute('d', dd);
-      el.setAttribute('stroke-width', String(W));
-      return el;
-    };
-    ribbon.replaceChildren(path('band', d), ...folds.map((f) => path('fold', f)));
+    const track = path('track', d, W);
+    band = path('band', d, W);
+    const foldEls = foldD.map((f) => path('fold', f.seg, W));
+    ribbon.replaceChildren(track, band, ...foldEls);
+    // Lengths, measured on a scratch path in the drawing.
+    const probe = path('probe', d, W);
+    ribbon.append(probe);
+    const len = (dd: string) => { probe.setAttribute('d', dd); return probe.getTotalLength(); };
+    const total = len(d) || 1;
+    at = knotD.map((dd) => len(dd) / total);
+    folds = foldD.map((f, i) => { const a = len(f.from) / total; return { el: foldEls[i]!, a, b: a + foldEls[i]!.getTotalLength() / total }; });
+    probe.remove();
+    [band, ...foldEls].forEach((el) => el.setAttribute('pathLength', '1'));
+    span = { y0: first.y, y1: lastPt.y };
+    lastDrawn = -1;
+    if (live) write(read0());
   };
+  // How far the band has come. Held: through the hold. Not held: it starts as the first knot passes
+  // 78% down the window and is whole when the last knot is at 48%.
+  const read0 = () => {
+    if (held) {
+      // How far into the hold: the timeline's own top would be at holdTop when it starts.
+      const into = holdTop - (sessionEl.getBoundingClientRect().top + padTop);
+      return clamp(into / (holdFor * 0.85));
+    }
+    const top = eventsBox.getBoundingClientRect().top;
+    const start = innerHeight * 0.78 - (top + span.y0);
+    const run = span.y1 - span.y0 + innerHeight * 0.3;
+    return clamp(start / Math.max(1, run));
+  };
+  const write = (f: number) => {
+    if (!band || Math.abs(f - lastDrawn) < 0.0005) return;
+    lastDrawn = f;
+    band.style.strokeDasharray = '1 1';
+    band.style.strokeDashoffset = String(1 - f);
+    folds.forEach(({ el, a, b }) => {
+      const g = clamp((f - a) / Math.max(0.0001, b - a));
+      el.style.strokeDasharray = '1 1';
+      el.style.strokeDashoffset = String(1 - g);
+    });
+    let current = -1;
+    evs.forEach((ev, i) => {
+      const r = f >= (at[i] ?? 1) - 0.004;
+      ev.classList.toggle('reached', r);
+      if (r) current = i;
+    });
+    // The latest moment the band has reached stays lit until the next one is.
+    evs.forEach((ev, i) => ev.classList.toggle('current', i === current && f < 1));
+  };
+  if (live) steps.push(() => { const f = read0(); return () => write(f); });
   addEventListener('resize', drawRibbon);
   drawRibbon();
   void document.fonts?.ready.then(drawRibbon);

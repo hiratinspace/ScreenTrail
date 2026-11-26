@@ -20,7 +20,10 @@ import panel from '../assets/screens/panel.png';
 import { site } from '../site.config';
 import { choices, limits } from '../../worker/pilot';
 
-// The pinned scene's wall: a week of 46 sessions. Red tiles are the notes that never got written.
+// The pinned scene's wall: a week of 46 sessions, Monday to Friday, each day's sessions in time order.
+// Red tiles are the notes that never got written. The week ends on Friday's #48213 at 13:54, the
+// session the timeline below tells. Each session has a start and a length in minutes; home.ts places it
+// on the calendar.
 const bad: Record<number, [string, string]> = {
   4: ['Note', '"Fixed it."'],
   9: ['No time entry', '0:40 not billed'],
@@ -31,22 +34,32 @@ const bad: Record<number, [string, string]> = {
   37: ['No time entry', '1:15 not billed'],
   42: ['No note', 'escalated blind'],
 };
-const widths = ['w2','w1','w3','w2','w4','w1','w2','w3','w1','w4','w2','w3','w1','w2','w3','w4','w1','w2','w2','w3','w4','w1','w3','w2','w1','w2','w4','w3','w1','w2','w3','w1','w4','w2','w3','w1','w2','w4','w2','w1','w3','w2','w4','w1','w3','w2'];
-const tiles = widths.map((w, i) => {
-  const b = bad[i];
-  return {
-    cls: b ? 'w4 bad' : w,
-    id: `#${48170 + i * 7}`,
-    bad: b,
-    time: `${(i % 5) + 1}:${String((i * 13) % 60).padStart(2, '0')}`,
-    r: (((i * 37) % 46) / 46).toFixed(3),
-  };
+const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+// What each session was about: the topic of the note ScreenTrail writes for it. The week's last is #48213.
+const topics = ['VPN reconnect', 'MFA reset', 'New user setup', 'Disk full', 'Wi-Fi drops', 'Drive access', 'Teams audio', 'Password reset', 'Laptop setup', 'Backup failed', 'Slow PC', 'Scan to email', 'License assigned', 'Mailbox rules', 'Driver update', 'Outlook profile', 'Firewall rule', 'App crash', 'Monitor setup', 'Cert warning', 'Phone pairing', 'Calendar sharing', 'Printer queue'];
+const perDay = [10, 9, 9, 9, 9];
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+let n = 0;
+const days = perDay.map((count, d) => {
+  const start = 8 * 60 + 5 + ((d * 17) % 25);
+  const end = d === 4 ? 13 * 60 + 54 : 16 * 60 + 40 - ((d * 23) % 30);
+  const tiles = Array.from({ length: count }, (_, k) => {
+    const i = n++;
+    const last = d === 4 && k === count - 1;
+    const minute = Math.round(start + ((end - start) * k) / (count - 1)) + (last || k === 0 ? 0 : ((i * 7) % 9) - 4);
+    // How long it ran, in minutes: never into the next session; a missed note is long enough for its reason.
+    const room = (end - start) / (count - 1) - 7;
+    const dur = Math.round(Math.min(room, bad[i] ? 44 : 18 + ((i * 13) % 22)));
+    const topic = last ? 'Printer offline' : topics[(i * 5) % topics.length]!;
+    return { i, id: `#${48213 - (45 - i) * 7}`, time: hhmm(minute), start: minute, dur, logged: `0:${String(dur).padStart(2, '0')}`, topic, bad: bad[i], last };
+  });
+  return { name: dayNames[d]!, tiles };
 });
 ---
 <Base title={site.name}>
   <div class="clockpill" id="clockpill" data-s="rec" role="presentation">
     <span class="st" aria-hidden="true"><span class="sig"></span><span class="pre">Sample session</span><span class="lab" id="cp-label">Recording</span><span class="clk" id="cp-clock">00:00</span></span>
-    <a href="#pilot">Pilot form</a>
+    <a href="#pilot">Pilot form<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
   </div>
 
   <section class="hero" data-pill="rec" aria-labelledby="h-hero">
@@ -85,12 +98,21 @@ const tiles = widths.map((w, i) => {
       </div>
       <div class="scene-stage" id="stage" aria-hidden="true">
         <div class="wall" id="wall">
-          {tiles.map((t) => (
-            <div class={`tile ${t.cls}`} data-r={t.r}>
-              <span class="a">{t.bad ? (<><span class="k">{t.bad[0]}</span><b>{t.bad[1]}</b></>) : (<><span>{t.id}</span><span>{t.time}</span></>)}</span>
-              <span class="b"><span>{t.id}</span><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg>{t.bad ? 'Published · note + time' : 'Published'}</span></span>
+          <div class="hours"><span>08</span><span>10</span><span>12</span><span>14</span><span>16</span></div>
+          {days.map((d) => (
+            <div class="day">
+              <span class="dh">{d.name}</span>
+              <div class="col">
+                {d.tiles.map((t) => (
+                  <div class={`tile${t.bad ? ' bad' : ''}${t.last ? ' this' : ''}`} data-day={d.name} data-time={t.time} data-start={t.start} data-dur={t.dur}>
+                    <span class="a">{t.bad ? (<><span class="row"><span class="k">{t.bad[0]}</span><span>{t.time}</span></span><b>{t.bad[1]}</b></>) : (<><span>{t.time}</span><span>{t.id}</span></>)}</span>
+                    <span class="b"><span class="st"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 6.5l2.5 2.5L10 3.5"/></svg><span class="tp">{t.topic}</span></span><span class="lg">{t.logged}</span></span>
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
+          <div class="playhead" id="playhead"><span id="ph-label">08:00</span></div>
         </div>
         <article class="scene-note" id="scene-note">
           <div class="sn-head"><span class="chip"><b>#48213</b> Printer offline · Acme Dental</span><span class="chip on">Internal note</span><span class="chip">Time <b>15</b> min</span></div>
@@ -98,9 +120,23 @@ const tiles = widths.map((w, i) => {
             <h3>Problem</h3>
             <div class="ln"><span></span><span>Nothing would print from the reception workstation; jobs sat in the queue.</span><span></span></div>
             <h3>Steps</h3>
-            <div class="ln"><span>1.</span><span>Found the Print Spooler service stopped.</span><span class="shot"></span></div>
-            <div class="ln"><span>2.</span><span>Started the service and set it to restart automatically on failure.</span><span class="shot"></span></div>
-            <div class="ln"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><span class="shot"></span></div>
+            <!-- Each step beside the screenshot it happened on, at its time in the session (13:54 to 14:05);
+                 step 2's password is painted over, as it was on screen. Drawn, not photographed. -->
+            <div class="ln st"><span>1.</span><span>Found the Print Spooler service stopped.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Services</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Name</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="36">Plug and Play</text><text class="w-mute" x="104" y="36">Running</text>
+<rect class="w-badrow" x="4" y="40" width="152" height="13" rx="2"/><text class="w-bad b" x="8" y="49">Print Spooler</text><text class="w-bad" x="104" y="49">Stopped</text>
+<text class="w-t" x="8" y="62">Remote Registry</text><text class="w-mute" x="104" y="62">Manual</text>
+<text class="w-t" x="8" y="74">Windows Update</text><text class="w-mute" x="104" y="74">Running</text>
+<path class="w-cursor" d="M92 47l0 11 3-3 2 5 2-1-2-5h4z"/></svg><figcaption>13:57</figcaption></figure></div>
+            <div class="ln st"><span>2.</span><span>Started the service and set it to restart automatically on failure.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Print Spooler Properties</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-tab on" x="8" y="23">General</text><text class="w-tab" x="40" y="23">Log On</text><text class="w-tab" x="70" y="23">Recovery</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="38">Startup type</text><rect class="w-field" x="62" y="31" width="90" height="10" rx="2"/><text class="w-t" x="66" y="38.5">Automatic</text><path class="w-ctl" d="M144 35l2 2 2-2"/>
+<text class="w-t" x="8" y="52">Log on as</text><rect class="w-field" x="62" y="45" width="90" height="10" rx="2"/><rect class="w-mask" x="64" y="47" width="64" height="6" rx="1"/><text class="w-masktext" x="131" y="52">masked</text>
+<text class="w-t" x="8" y="66">On failure</text><rect class="w-field" x="62" y="59" width="90" height="10" rx="2"/><text class="w-t" x="66" y="66.5">Restart the service</text>
+<rect class="w-btn" x="118" y="74" width="34" height="11" rx="2"/><text class="w-btntext" x="135" y="81.5" text-anchor="middle">Start</text></svg><figcaption>14:02 · masked</figcaption></figure></div>
+            <div class="ln st"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><figure class="sshot"><svg class="shot-svg" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Reception printer</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Document</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-mute" x="8" y="38">Queue cleared, 0 documents</text>
+<path class="w-ghost" d="M8 46h96M8 55h80M8 64h88"/>
+<rect class="w-toast" x="62" y="68" width="92" height="16" rx="3"/><path class="w-okmark" d="M68 76l2.5 2.5L75 73.5"/><text class="w-toasttext" x="79" y="79">Test page printed</text></svg><figcaption>14:04</figcaption></figure></div>
             <h3>Result</h3>
             <div class="ln"><span></span><span>Printing works again from the reception PC.</span><span></span></div>
           </div>
@@ -112,20 +148,22 @@ const tiles = widths.map((w, i) => {
   </section>
 
   <section class="session wrap" data-pill="rec" id="session" aria-labelledby="h-session">
+    <div class="session-pin" id="session-pin">
     <h2 id="h-session">One session, start to ticket.</h2>
     <p class="sub mt">Ten minutes on a stuck print queue at Acme Dental. Everything ScreenTrail keeps is tied to the moment it happened, and threads through to the note.</p>
     <div class="events-box" id="events">
     <svg class="ribbon" id="ribbon" aria-hidden="true"></svg>
     <ol class="events">
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4" fill="#FF6B6B"/></svg>13:54</span><h3>Recording starts</h3><p>The ScreenConnect window comes forward, and its title is matched to ticket #48213.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v2"/></svg>13:58</span><h3>You talk it through</h3><p><q>Nothing will print from reception.</q> Transcribed on the PC.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 2l9 5-4 1.2L6.5 13z"/></svg>14:01</span><h3>Clicks are logged</h3><p>Services, then Print Spooler: each click with the window it landed in.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10" rx="2"/><circle cx="8" cy="8" r="2.3"/></svg>14:02</span><h3>A frame is kept</h3><p>The screen showing the stopped service, masked, becomes screenshot 1.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 14.5V2M3.5 2h8l-1.6 3 1.6 3h-8"/></svg>14:03</span><h3>You mark a moment</h3><p><kbd>Ctrl+Alt+M</kbd> flags the restart-on-failure change as worth a step.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/></svg>14:04</span><h3>Stop and draft</h3><p><kbd>Ctrl+Alt+S</kbd> ends it after ten minutes. The draft, with Problem, Steps, Result and Follow-ups, is waiting.</p></li>
-      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></svg>14:20</span><h3>You check it</h3><p>Three steps confirmed, the one flagged step looked at, the time rounded up to 15 minutes.</p></li>
-      <li class="ev end"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 7.5l13-5.5-4 12-3-4.5zM7.5 9.5l7-7.5"/></svg>14:24</span><h3>Published</h3><p>Note and time entry in ConnectWise, the KB article in Hudu. Only because you chose to.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="4" fill="#FF6B6B"/></svg>13:54</span><h3><span class="kind start" aria-hidden="true">start</span>Recording starts</h3><p>The ScreenConnect window comes forward, and its title is matched to ticket #48213.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5.5" y="1.5" width="5" height="8" rx="2.5"/><path d="M3 8a5 5 0 0 0 10 0M8 13v2"/></svg>13:58</span><h3><span class="kind said" aria-hidden="true">said</span>You talk it through</h3><p><q>Nothing will print from reception.</q> Transcribed on the PC.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3 2l9 5-4 1.2L6.5 13z"/></svg>14:01</span><h3><span class="kind click" aria-hidden="true">click</span>Clicks are logged</h3><p>Services, then Print Spooler: each click with the window it landed in.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3" width="13" height="10" rx="2"/><circle cx="8" cy="8" r="2.3"/></svg>14:02</span><h3><span class="kind frame" aria-hidden="true">frame</span>A frame is kept</h3><p>The screen showing the stopped service, masked, becomes screenshot 1.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 14.5V2M3.5 2h8l-1.6 3 1.6 3h-8"/></svg>14:03</span><h3><span class="kind mark" aria-hidden="true">mark</span>You mark a moment</h3><p><kbd>Ctrl+Alt+M</kbd> flags the restart-on-failure change as worth a step.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="4" width="8" height="8" rx="1.5" fill="currentColor"/></svg>14:04</span><h3><span class="kind draft" aria-hidden="true">draft</span>Stop and draft</h3><p><kbd>Ctrl+Alt+S</kbd> ends it after ten minutes. The draft, with Problem, Steps, Result and Follow-ups, is waiting.</p></li>
+      <li class="ev"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2.5 8.5l3.5 3.5 7.5-8"/></svg>14:20</span><h3><span class="kind check" aria-hidden="true">check</span>You check it</h3><p>Three steps confirmed, the one flagged step looked at, the time rounded up to 15 minutes.</p></li>
+      <li class="ev end"><span class="knot"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 7.5l13-5.5-4 12-3-4.5zM7.5 9.5l7-7.5"/></svg>14:24</span><h3><span class="kind sent" aria-hidden="true">sent</span>Published</h3><p>Note and time entry in ConnectWise, the KB article in Hudu. Only because you chose to.</p></li>
     </ol>
+    </div>
     </div>
   </section>
 
@@ -134,6 +172,7 @@ const tiles = widths.map((w, i) => {
 
     <article class="feature" data-pill="rec" aria-labelledby="h-f1">
       <div class="copy">
+        <span class="stage-tag" data-s="rec" aria-hidden="true"><i></i>Recording<time>13:54</time></span>
         <h3 id="h-f1">Capture starts with the remote tool.</h3>
         <p>Bring a ScreenConnect or Remote Desktop window to the front and the pill appears. Every click, every screen change and every spoken line goes onto one timeline. Switch to email and the screenshots stop until the remote tool is back in front.</p>
         <dl class="points">
@@ -143,6 +182,7 @@ const tiles = widths.map((w, i) => {
           <div><dt>Voice</dt><dd>The technician's microphone, transcribed on the PC</dd></div>
         </dl>
       </div>
+      <div class="mock-stage">
       <div class="mock" data-replay aria-hidden="true">
         <div class="mock-bar"><span>session · ScreenConnect · #48213</span><span class="pill"><i class="dot"></i>Recording <span class="tm" data-clock>02:17</span></span></div>
         <ol class="mock-body tl">
@@ -156,10 +196,12 @@ const tiles = widths.map((w, i) => {
         </ol>
         <div class="progress"><i class="on"></i><i></i><i></i><i></i></div>
       </div>
+      </div>
     </article>
 
     <article class="feature" data-pill="paused" aria-labelledby="h-f2">
       <div class="copy">
+        <span class="stage-tag" data-s="paused" aria-hidden="true"><i></i>Paused<time>14:02</time></span>
         <h3 id="h-f2">Secrets are masked before anything is kept.</h3>
         <p>When a password field has focus, capture pauses and the pill says so. Every screenshot is read on the PC, and the passwords, card numbers and keys it finds are painted out before the frame is stored or sent.</p>
         <dl class="points">
@@ -168,6 +210,7 @@ const tiles = widths.map((w, i) => {
           <div><dt>Exclude</dt><dd>Apps on the exclusion list are not captured at all</dd></div>
         </dl>
       </div>
+      <div class="mock-stage">
       <div class="mock" data-replay aria-hidden="true">
         <div class="mock-bar"><span>screenshot 2 · before it is stored</span><span class="pill"><i class="pz"></i>Paused: sensitive field</span></div>
         <div class="mock-body">
@@ -186,10 +229,12 @@ const tiles = widths.map((w, i) => {
         </div>
         <div class="progress"><i class="on"></i><i class="on"></i><i></i><i></i></div>
       </div>
+      </div>
     </article>
 
     <article class="feature" data-pill="drafting" aria-labelledby="h-f3">
       <div class="copy">
+        <span class="stage-tag" data-s="drafting" aria-hidden="true"><i></i>Drafting<time>14:04</time></span>
         <h3 id="h-f3">A draft to read, not a blank box to fill.</h3>
         <p>When the session stops, the note is waiting: Problem, Steps, Result and Follow-ups, each step beside the screenshot it happened on. The ticket is picked from the remote window's title and the time entry is filled in. A step drawn only from the screen, with nothing said about it, is marked for a second look.</p>
         <dl class="points">
@@ -198,6 +243,7 @@ const tiles = widths.map((w, i) => {
           <div><dt>Adapt</dt><dd>Picks up a few habits from your edits, such as past tense or shorter steps</dd></div>
         </dl>
       </div>
+      <div class="mock-stage">
       <div class="mock" data-replay aria-hidden="true">
         <div class="mock-bar"><span>review · draft</span><span>3 steps · 3 screenshots</span></div>
         <div class="mock-body note">
@@ -209,19 +255,33 @@ const tiles = widths.map((w, i) => {
           <h3 class="i0">Problem</h3>
           <div class="ln i1"><span></span><span>Nothing would print from the reception workstation; jobs sat in the queue.</span><span></span></div>
           <h3 class="i2">Steps</h3>
-          <div class="ln i3"><span>1.</span><span>Found the Print Spooler service stopped.</span><span class="shot"></span></div>
-          <div class="ln flag i4"><span>2.</span><span>Started the service and set it to restart automatically on failure. <span class="badge warn sm">Inferred from screen only</span></span><span class="shot"></span></div>
-          <div class="ln i5"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><span class="shot"></span></div>
+          <div class="ln i3"><span>1.</span><span>Found the Print Spooler service stopped.</span><span class="shot"><svg class="shot-svg mini" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Services</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Name</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="36">Plug and Play</text><text class="w-mute" x="104" y="36">Running</text>
+<rect class="w-badrow" x="4" y="40" width="152" height="13" rx="2"/><text class="w-bad b" x="8" y="49">Print Spooler</text><text class="w-bad" x="104" y="49">Stopped</text>
+<text class="w-t" x="8" y="62">Remote Registry</text><text class="w-mute" x="104" y="62">Manual</text>
+<text class="w-t" x="8" y="74">Windows Update</text><text class="w-mute" x="104" y="74">Running</text>
+<path class="w-cursor" d="M92 47l0 11 3-3 2 5 2-1-2-5h4z"/></svg></span></div>
+          <div class="ln flag i4"><span>2.</span><span>Started the service and set it to restart automatically on failure. <span class="badge warn sm">Inferred from screen only</span></span><span class="shot"><svg class="shot-svg mini" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Print Spooler Properties</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-tab on" x="8" y="23">General</text><text class="w-tab" x="40" y="23">Log On</text><text class="w-tab" x="70" y="23">Recovery</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-t" x="8" y="38">Startup type</text><rect class="w-field" x="62" y="31" width="90" height="10" rx="2"/><text class="w-t" x="66" y="38.5">Automatic</text><path class="w-ctl" d="M144 35l2 2 2-2"/>
+<text class="w-t" x="8" y="52">Log on as</text><rect class="w-field" x="62" y="45" width="90" height="10" rx="2"/><rect class="w-mask" x="64" y="47" width="64" height="6" rx="1"/><text class="w-masktext" x="131" y="52">masked</text>
+<text class="w-t" x="8" y="66">On failure</text><rect class="w-field" x="62" y="59" width="90" height="10" rx="2"/><text class="w-t" x="66" y="66.5">Restart the service</text>
+<rect class="w-btn" x="118" y="74" width="34" height="11" rx="2"/><text class="w-btntext" x="135" y="81.5" text-anchor="middle">Start</text></svg></span></div>
+          <div class="ln i5"><span>3.</span><span>Cleared the stuck queue and printed a test page.</span><span class="shot"><svg class="shot-svg mini" viewBox="0 0 160 90" aria-hidden="true"><rect class="w-frame" x=".5" y=".5" width="159" height="89" rx="4"/><path class="w-bar" d="M1 4.5a4 4 0 0 1 4-4h150a4 4 0 0 1 4 4V13H1z"/><text class="w-title" x="7" y="9.5">Reception printer</text><path class="w-ctl" d="M136 7h5M145 5h4v4h-4zM153 5l4 4M157 5l-4 4"/><text class="w-head" x="8" y="23">Document</text><text class="w-head" x="104" y="23">Status</text><path class="w-rule" d="M6 26h148"/>
+<text class="w-mute" x="8" y="38">Queue cleared, 0 documents</text>
+<path class="w-ghost" d="M8 46h96M8 55h80M8 64h88"/>
+<rect class="w-toast" x="62" y="68" width="92" height="16" rx="3"/><path class="w-okmark" d="M68 76l2.5 2.5L75 73.5"/><text class="w-toasttext" x="79" y="79">Test page printed</text></svg></span></div>
           <h3 class="i6">Result</h3>
           <div class="ln i7"><span></span><span>Printing works again from the reception PC.</span><span></span></div>
           <div class="note-foot"><span class="publish">Publish <kbd>Ctrl+Enter</kbd></span></div>
         </div>
         <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
       </div>
+      </div>
     </article>
 
     <article class="feature" data-pill="published" aria-labelledby="h-f4">
       <div class="copy">
+        <span class="stage-tag" data-s="published" aria-hidden="true"><i></i>Published<time>14:24</time></span>
         <h3 id="h-f4">One press, and it lands where it belongs.</h3>
         <p>Publish sends the note and the time entry to the ConnectWise ticket, and the article to Hudu as a draft under the right company. The receipt says what landed, with a link to each.</p>
         <dl class="points">
@@ -230,6 +290,7 @@ const tiles = widths.map((w, i) => {
           <div><dt>Offline</dt><dd>A session recorded offline is drafted once the connection is back</dd></div>
         </dl>
       </div>
+      <div class="mock-stage">
       <div class="mock" data-replay aria-hidden="true">
         <div class="mock-bar"><span>review · published</span><span>14:24</span></div>
         <div class="mock-body">
@@ -241,21 +302,22 @@ const tiles = widths.map((w, i) => {
         </div>
         <div class="progress"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></div>
       </div>
+      </div>
     </article>
   </section>
 
   <section class="realapp wrap" aria-labelledby="h-real">
     <h2 id="h-real">The real app, not a mock-up.</h2>
     <p class="sub">The screens a technician works in, shown here with sample tickets and companies.</p>
-    <figure class="frame-fig">
-      <span class="tag">review · sample data</span>
-      <div class="pan"><Image src={review} widths={[760, 1136, 1520, 2272, 2528]} sizes="(max-width: 700px) 760px, (max-width: 1264px) calc(100vw - 94px), 1106px" loading="lazy" alt="The ScreenTrail Review screen: the drafted note for ticket 48213, Printer offline: print spooler stopped, with Problem and Steps beside their screenshots, the ticket matched from the ScreenConnect window title, a 15-minute time entry and a Publish button." /></div>
+    <figure class="frame-fig win big">
+      <div class="win-bar" aria-hidden="true"><img src={mark.src} alt="" width="16" height="16" /><span class="win-title">ScreenTrail · Review</span><span class="win-note">Sample data</span><span class="win-ctl" aria-hidden="true"><svg viewBox="0 0 30 10"><path d="M1 5h7"/><rect x="12.5" y="1.5" width="6" height="6" rx="1"/><path d="M23 1.5l6 6M29 1.5l-6 6"/></svg></span></div>
+      <div class="pan"><Image src={review} widths={[760, 1136, 1520, 2272, 2528]} sizes="(max-width: 700px) 760px, (max-width: 1264px) calc(100vw - 64px), 1136px" quality={92} loading="lazy" alt="The ScreenTrail Review screen: the drafted note for ticket 48213, Printer offline: print spooler stopped, with Problem and Steps beside their screenshots, the ticket matched from the ScreenConnect window title, a 15-minute time entry and a Publish button." /></div>
     </figure>
     <p class="pan-hint">Swipe the screen sideways to see all of it.</p>
     <div class="realapp-row">
-      <figure><div class="frame-fig"><span class="tag">receipt</span><Image src={receipt} widths={[334, 668, 1002, 1240]} sizes="(max-width: 960px) calc(100vw - 94px), 334px" loading="lazy" alt="The receipt after publishing to ticket 48213: the ticket note, the time entry and the KB article each marked Sent, with a link to open each one." /></div><figcaption>The receipt: what landed, with a link to each.</figcaption></figure>
-      <figure><div class="frame-fig"><span class="tag">all sessions</span><Image src={sessions} widths={[334, 668, 1002, 1240]} sizes="(max-width: 960px) calc(100vw - 94px), 334px" loading="lazy" alt="All sessions: each session's start time, duration and status (Partial capture, Draft, Published, Discarded, Not confirmed), with filters for status, tool and time." /></div><figcaption>Every session, by status, tool and time.</figcaption></figure>
-      <figure><div class="frame-fig"><span class="tag">settings</span><Image src={settings} widths={[334, 668, 1002, 1240]} sizes="(max-width: 960px) calc(100vw - 94px), 334px" loading="lazy" alt="Settings: the device activated, the remote tools that start a session (ScreenConnect and Remote Desktop on, AnyDesk off)." /></div><figcaption>Settings: which remote tools start a session.</figcaption></figure>
+      <figure><div class="frame-fig win"><div class="win-bar" aria-hidden="true"><img src={mark.src} alt="" width="16" height="16" /><span class="win-title">ScreenTrail · Receipt</span><span class="win-ctl" aria-hidden="true"><svg viewBox="0 0 30 10"><path d="M1 5h7"/><rect x="12.5" y="1.5" width="6" height="6" rx="1"/><path d="M23 1.5l6 6M29 1.5l-6 6"/></svg></span></div><Image src={receipt} widths={[360, 720, 1080, 1240]} sizes="(max-width: 960px) calc(100vw - 64px), 360px" quality={92} loading="lazy" alt="The receipt after publishing to ticket 48213: the ticket note, the time entry and the KB article each marked Sent, with a link to open each one." /></div><figcaption><b>Receipt</b>What landed, with a link to each.</figcaption></figure>
+      <figure><div class="frame-fig win"><div class="win-bar" aria-hidden="true"><img src={mark.src} alt="" width="16" height="16" /><span class="win-title">ScreenTrail · All sessions</span><span class="win-ctl" aria-hidden="true"><svg viewBox="0 0 30 10"><path d="M1 5h7"/><rect x="12.5" y="1.5" width="6" height="6" rx="1"/><path d="M23 1.5l6 6M29 1.5l-6 6"/></svg></span></div><Image src={sessions} widths={[360, 720, 1080, 1240]} sizes="(max-width: 960px) calc(100vw - 64px), 360px" quality={92} loading="lazy" alt="All sessions: each session's start time, duration and status (Partial capture, Draft, Published, Discarded, Not confirmed), with filters for status, tool and time." /></div><figcaption><b>All sessions</b>Every session, by status, tool and time.</figcaption></figure>
+      <figure><div class="frame-fig win"><div class="win-bar" aria-hidden="true"><img src={mark.src} alt="" width="16" height="16" /><span class="win-title">ScreenTrail · Settings</span><span class="win-ctl" aria-hidden="true"><svg viewBox="0 0 30 10"><path d="M1 5h7"/><rect x="12.5" y="1.5" width="6" height="6" rx="1"/><path d="M23 1.5l6 6M29 1.5l-6 6"/></svg></span></div><Image src={settings} widths={[360, 720, 1080, 1240]} sizes="(max-width: 960px) calc(100vw - 64px), 360px" quality={92} loading="lazy" alt="Settings: the device activated, the remote tools that start a session (ScreenConnect and Remote Desktop on, AnyDesk off)." /></div><figcaption><b>Settings</b>Which remote tools start a session.</figcaption></figure>
     </div>
   </section>
 
@@ -267,11 +329,11 @@ const tiles = widths.map((w, i) => {
       <h3 class="flow-h core">Runs on</h3>
       <h3 class="flow-h out">Publishes to</h3>
       <ul class="flow-list in">
-        <li>ScreenConnect</li>
-        <li>Splashtop</li>
-        <li>Remote Desktop</li>
-        <li>TeamViewer</li>
-        <li>AnyDesk</li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5" stroke-linecap="round"/></svg></span><span>ScreenConnect</span></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5" stroke-linecap="round"/></svg></span><span>Splashtop</span></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5" stroke-linecap="round"/></svg></span><span>Remote Desktop</span></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5" stroke-linecap="round"/></svg></span><span>TeamViewer</span></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><rect x="1.75" y="2.5" width="12.5" height="8.5" rx="1.5"/><path d="M5.5 13.5h5M8 11v2.5" stroke-linecap="round"/></svg></span><span>AnyDesk</span></li>
       </ul>
       <svg class="wires in" viewBox="0 0 100 320" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M0 28 C 55 28, 45 160, 100 160"/><path d="M0 94 C 55 94, 45 160, 100 160"/><path d="M0 160 C 55 160, 45 160, 100 160"/><path d="M0 226 C 55 226, 45 160, 100 160"/><path d="M0 292 C 55 292, 45 160, 100 160"/></svg>
       <div class="flow-core">
@@ -284,10 +346,10 @@ const tiles = widths.map((w, i) => {
       </div>
       <svg class="wires out" viewBox="0 0 100 320" preserveAspectRatio="none" fill="none" aria-hidden="true"><path d="M0 160 C 55 160, 45 36.25, 100 36.25"/><path d="M0 160 C 55 160, 45 118.75, 100 118.75"/><path class="later" d="M0 160 C 55 160, 45 201.25, 100 201.25"/><path class="later" d="M0 160 C 55 160, 45 283.75, 100 283.75"/></svg>
       <ul class="flow-list out">
-        <li>ConnectWise PSA<small>note and time entry</small></li>
-        <li>Hudu<small>KB article</small></li>
-        <li class="later">HaloPSA<small>planned</small></li>
-        <li class="later">Your next tool<small>tell us in the pilot</small></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v1.75a1.75 1.75 0 0 0 0 3.5v1.75A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5V9.75a1.75 1.75 0 0 0 0-3.5z"/><path d="M6 6.5h4M6 9.5h3" stroke-linecap="round"/></svg></span><span>ConnectWise PSA<small>note and time entry</small></span></li>
+        <li><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M3 2.75h7.5a1.5 1.5 0 0 1 1.5 1.5v9.25H4.5A1.5 1.5 0 0 1 3 12z"/><path d="M3 12a1.5 1.5 0 0 1 1.5-1.5H12M6 5.5h3.5" stroke-linecap="round"/></svg></span><span>Hudu<small>KB article</small></span></li>
+        <li class="later"><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h9A1.5 1.5 0 0 1 14 4.5v1.75a1.75 1.75 0 0 0 0 3.5v1.75A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5V9.75a1.75 1.75 0 0 0 0-3.5z"/><path d="M6 6.5h4M6 9.5h3" stroke-linecap="round"/></svg></span><span>HaloPSA<small>planned</small></span></li>
+        <li class="later"><span class="fi"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9"/></svg></span><span>Your next tool<small>tell us in the pilot</small></span></li>
       </ul>
     </div>
     <p class="stack-note">Built for MSPs on ConnectWise and Hudu. The ConnectWise and Hudu connections are built to their published APIs; their first checks against live accounts are part of the pilot. Product names belong to their owners, and no endorsement is implied.</p>
@@ -297,14 +359,23 @@ const tiles = widths.map((w, i) => {
     <div class="setup-copy">
       <h2 id="h-setup">Three steps per technician.</h2>
       <p class="sub">One installer per technician PC. Your ScreenTrail owner connects ConnectWise and Hudu once in the web admin, and the app's setup guide walks each technician through the rest.</p>
+      <dl class="points roles">
+        <div><dt>Owner</dt><dd>Connects ConnectWise and Hudu once, in the web admin</dd></div>
+        <div><dt>Technician</dt><dd>The three steps, with the app's setup guide</dd></div>
+      </dl>
     </div>
-    <ol class="steps">
-      <li class="stepbox"><span class="num" aria-hidden="true">1</span><div><h3>Install on each technician's PC</h3><p>One installer for the app and its capture service.</p></div></li>
-      <li class="stepbox"><span class="num" aria-hidden="true">2</span><div><h3>Activate with an invite code</h3><p>Your ScreenTrail owner invites each technician; the code works once, on one PC.</p>
-        <div class="code"><span class="fn">Setup · Activate</span>Invite code <em>XXXXX-XXXXX-XXXXX-XXXXX</em></div></div></li>
-      <li class="stepbox"><span class="num" aria-hidden="true">3</span><div><h3>Pick the remote tools</h3><p>Choose which tools start a session. The ConnectWise and Hudu connection is already there.</p>
-        <div class="code"><span class="fn">Setup · Remote tools</span><span class="cbo"><span class="cb on"></span>ScreenConnect</span><span class="cbo"><span class="cb on"></span>Remote Desktop</span><span class="cbo"><span class="cb"></span>AnyDesk</span></div></div></li>
-    </ol>
+    <div class="steps-wrap">
+      <i class="rail" aria-hidden="true"><i></i></i>
+      <ol class="steps">
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M2.5 12.5v1h11v-1"/></svg></span><div class="scard"><h3>Install on each technician's PC</h3><p>One installer for the app and its capture service.</p>
+          <div class="mini install" aria-hidden="true"><span class="file-ic"><img src={mark.src} alt="" width="18" height="18" /></span><span class="fname">ScreenTrail Setup<small>App and capture service</small></span><span class="istate"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>Installed</span><i class="ibar"><i></i></i></div></div></li>
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="10.5" r="3"/><path d="M7.6 8.4L13.5 2.5M11 5l2 2M9.3 6.7l1.5 1.5"/></svg></span><div class="scard"><h3>Activate with an invite code</h3><p>Your ScreenTrail owner invites each technician; the code works once, on one PC.</p>
+          <div class="mini invite" aria-hidden="true"><span class="mlabel">Invite code</span><span class="cells"><b>XXXXX</b><b>XXXXX</b><b>XXXXX</b><b>XXXXX</b></span><span class="mbtn">Activate</span></div></div></li>
+        <li class="stepbox"><span class="sicon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="5" rx="2.5"/><circle cx="11.5" cy="5" r="1.2" fill="currentColor"/><rect x="1.5" y="8.5" width="13" height="5" rx="2.5"/><circle cx="4.5" cy="11" r="1.2"/></svg></span><div class="scard"><h3>Pick the remote tools</h3><p>Choose which tools start a session. The ConnectWise and Hudu connection is already there.</p>
+          <div class="mini tools" aria-hidden="true"><span class="tog on">ScreenConnect<i></i></span><span class="tog on">Remote Desktop<i></i></span><span class="tog">AnyDesk<i></i></span><span class="mnote"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg>ConnectWise and Hudu connected by your owner</span></div></div></li>
+      </ol>
+      <div class="ready"><span class="sicon done" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3 3 7-7"/></svg></span><p><b>Ready.</b> The next remote session starts capture on its own.</p></div>
+    </div>
   </section>
 
   <MaskBand label="masked on the PC" />
@@ -314,20 +385,19 @@ const tiles = widths.map((w, i) => {
     <div class="privacy-grid">
       <div>
         <ul class="trust">
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg><h3>No always-on capture</h3><p>Only while a remote tool is in front, with the pill on screen the whole time.</p></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 5h16M4 19h10"/></svg><h3>Secrets masked on the PC</h3><p>Passwords, card numbers and keys it reads are painted out before storage.</p></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg><h3>Voice stays local</h3><p>Transcribed on the PC. The end user's voice is not recorded.</p></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z"/></svg><h3>A local-only switch</h3><p>Nothing is sent for drafting; your ScreenTrail owner can lock it on.</p></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><h3>Encrypted at rest</h3><p>Sessions in an encrypted store; PSA credentials in an encrypted vault.</p></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg><h3>Kept as long as you say</h3><p>Retention set by the MSP; discarding a session deletes its captures.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg></span><span class="where screen">On screen</span><h3>No always-on capture</h3><p>Only while a remote tool is in front, with the pill on screen the whole time.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="9" width="16" height="6" rx="1"/><path d="M4 5h16M4 19h10"/></svg></span><span class="where pc">On the PC</span><h3>Secrets masked on the PC</h3><p>Passwords, card numbers and keys it reads are painted out before storage.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></span><span class="where pc">On the PC</span><h3>Voice stays local</h3><p>Transcribed on the PC. The end user's voice is not recorded.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 3l7 3v6c0 4-3 7.5-7 9-4-1.5-7-5-7-9V6z"/></svg></span><span class="where policy">Your policy</span><h3>A local-only switch</h3><p>Nothing is sent for drafting; your ScreenTrail owner can lock it on.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span><span class="where pc">On the PC</span><h3>Encrypted at rest</h3><p>Sessions in an encrypted store; PSA credentials in an encrypted vault.</p></li>
+          <li><span class="ti"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><span class="where policy">Your policy</span><h3>Kept as long as you say</h3><p>Retention set by the MSP; discarding a session deletes its captures.</p></li>
         </ul>
         <div class="privacy-more">
-          <a class="btn btn-line" href="/security/">How ScreenTrail handles data</a>
-          <a class="btn btn-line" href={`${site.repo}/tree/main/docs/security`}>Read the privacy pack on GitHub</a>
+          <a class="btn btn-line" href="/security/">How ScreenTrail handles data<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h9M8.5 4.5L12 8l-3.5 3.5"/></svg></a>
         </div>
       </div>
       <figure class="plain-fig">
-        <div class="frame-fig"><Image src={panel} width={404} height={585} widths={[404, 808]} sizes="404px" loading="lazy" alt="What's being captured right now: capturing ScreenConnect, local-only on, nothing suppressed, the redaction queue, frames dropped, egress blocked, the policy in force, and a Copy diagnostics button." /></div>
+        <div class="frame-fig win"><div class="win-bar" aria-hidden="true"><img src={mark.src} alt="" width="16" height="16" /><span class="win-title">ScreenTrail · What's being captured</span><span class="win-ctl" aria-hidden="true"><svg viewBox="0 0 30 10"><path d="M1 5h7"/><rect x="12.5" y="1.5" width="6" height="6" rx="1"/><path d="M23 1.5l6 6M29 1.5l-6 6"/></svg></span></div><Image src={panel} width={380} height={550} widths={[380, 760, 808]} sizes="380px" quality={92} loading="lazy" alt="What's being captured right now: capturing ScreenConnect, local-only on, nothing suppressed, the redaction queue, frames dropped, egress blocked, the policy in force, and a Copy diagnostics button." /></div>
         <figcaption>Any technician can open "What's being captured right now?" from the tray.</figcaption>
       </figure>
     </div>
@@ -338,14 +408,14 @@ const tiles = widths.map((w, i) => {
     <p class="sub mt">You have just followed a session. Here is its draft. The follow-up is yours.</p>
     <article class="final-note" aria-labelledby="h-become">
       <div class="fn-main note">
-        <div class="fn-head"><h3 id="h-become">Become a pilot MSP</h3><span class="chip">To: you · internal note</span></div>
+        <div class="fn-head"><h3 id="h-become">Become a pilot MSP</h3><span class="fn-chips"><span class="chip on">Internal note</span><span class="chip">To: you</span><span class="chip">Draft <b>14:24</b></span></span></div>
         <div class="fn-sec"><h4>Problem</h4><p>Technicians write notes from memory after the session. Steps go missing, time goes unbilled, and the fix is never written up for the next person.</p></div>
         <div class="fn-sec"><h4>Steps</h4>
           <ol>
-            <li>Followed the session: the screen, the clicks and the technician's voice.</li>
-            <li>Masked passwords, keys and card numbers on the PC.</li>
-            <li>Drafted the note, the time entry and a KB article.</li>
-            <li>Waited for a person to check it and publish.</li>
+            <li><time>13:54</time><span>Followed the session: the screen, the clicks and the technician's voice.</span></li>
+            <li><time>14:02</time><span>Masked passwords, keys and card numbers on the PC.</span></li>
+            <li><time>14:04</time><span>Drafted the note, the time entry and a KB article.</span></li>
+            <li><time>14:20</time><span>Waited for a person to check it and publish.</span></li>
           </ol>
         </div>
         <div class="fn-sec"><h4>Targets for the pilot</h4>

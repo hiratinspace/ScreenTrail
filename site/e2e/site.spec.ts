@@ -132,6 +132,64 @@ test('with reduced motion, all four scene messages show', async ({ page }) => {
   }
 });
 
+test('the session ribbon reaches its events in order as the page scrolls', async ({ page }) => {
+  await page.goto('/');
+  const events = page.locator('#events');
+  const reached = () => page.locator('#events .ev').evaluateAll((els) => els.map((e) => e.classList.contains('reached')));
+  // Before the section, nothing is reached; each scroll reaches more, always from the first one on.
+  expect((await reached()).some(Boolean)).toBe(false);
+  let count = 0;
+  // Through the whole section, from its top at the window's foot to its foot 30% down the window
+  // (held on a desktop, so measured on the section, which does not move while the timeline holds).
+  for (const f of [0.1, 0.4, 0.7, 1]) {
+    await events.evaluate((el, f) => {
+      const r = el.closest('section')!.getBoundingClientRect();
+      const from = r.top + scrollY - innerHeight, to = r.bottom + scrollY - innerHeight * 0.3;
+      scrollTo({ top: from + (to - from) * f, behavior: 'instant' });
+    }, f);
+    // The band is redrawn on the next frame after a scroll.
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    const now = await reached();
+    expect(now.filter(Boolean).length).toBeGreaterThanOrEqual(count);
+    count = now.filter(Boolean).length;
+    expect(now.indexOf(false) === -1 || now.slice(now.indexOf(false)).every((r) => !r)).toBe(true);
+  }
+  // The last redraw can land a frame after the scroll on a busy machine.
+  await expect.poll(async () => (await reached()).filter(Boolean).length).toBe(8);
+});
+
+test('the session section holds still while its ribbon draws', async ({ page }, info) => {
+  test.skip(info.project.name === 'phone', 'on a phone the timeline is too tall to hold, so it draws as it scrolls');
+  await page.goto('/');
+  const at = async (into: number) => {
+    await page.locator('#session').evaluate((el, into) => {
+      // The timeline's top meets its held position at holdStart; scroll a share of the hold past it.
+      const pin = el.querySelector<HTMLElement>('#session-pin')!;
+      const holdStart = el.getBoundingClientRect().top + scrollY + parseFloat(getComputedStyle(el).paddingTop) - parseFloat(pin.style.top);
+      scrollTo({ top: holdStart + innerHeight * 1.1 * into, behavior: 'instant' });
+    }, into);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    return page.evaluate(() => ({
+      top: Math.round(document.querySelector('#h-session')!.getBoundingClientRect().top),
+      reached: document.querySelectorAll('#events .ev.reached').length,
+    }));
+  };
+  const start = await at(0.02), mid = await at(0.45), end = await at(0.95);
+  expect(Math.abs(mid.top - start.top)).toBeLessThanOrEqual(1);
+  expect(Math.abs(end.top - start.top)).toBeLessThanOrEqual(1);
+  expect(start.reached).toBeLessThanOrEqual(1);
+  expect(mid.reached).toBeGreaterThan(start.reached);
+  expect(mid.reached).toBeLessThan(8);
+  await expect.poll(() => page.evaluate(() => document.querySelectorAll('#events .ev.reached').length)).toBe(8);
+});
+
+test('with reduced motion, every session event shows at full strength', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  const opacities = await page.locator('#events .ev h3').evaluateAll((els) => els.map((e) => getComputedStyle(e).opacity));
+  expect(opacities).toEqual(Array(8).fill('1'));
+});
+
 test('a text page keeps its side margins', async ({ page }) => {
   await page.goto('/security/');
   const left = await page.locator('.page-head h1').evaluate((el) => el.getBoundingClientRect().left);
