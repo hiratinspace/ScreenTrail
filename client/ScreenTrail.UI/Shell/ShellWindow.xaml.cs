@@ -618,7 +618,11 @@ public partial class ShellWindow : Window
         // from #86 to #228, which WPF refuses as the window is built, and nothing built it to find out (#281).
         await DialogsAsync(
             ("panel", () => new Diagnostics.DiagnosticsWindow()),
-            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)));
+            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)),
+
+            // The headline's other two states (inventory 1.2): capture suppressed, and out of scope.
+            ("panel-paused", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Suppression = "a password field has focus" })),
+            ("panel-not-capturing", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Scope = "Not capturing: Outlook is not a remote-support tool" })));
         await SitePanelAsync(() => new Diagnostics.DiagnosticsWindow());
 
         // Read by CI, which fails the step on anything but zero.

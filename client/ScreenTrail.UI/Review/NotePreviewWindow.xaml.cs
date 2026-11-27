@@ -96,9 +96,13 @@ public partial class NotePreviewWindow : Window
 
             // v0.4.1 Q4: the pane says what happened and offers Retry; the screenshots and transcript stay.
             ("draft-failed", fixture with { Draft = null }),
+
+            // On its way from the backend (ST-013), not failed (inventory 1.2: unrendered). Drawn when
+            // the name says so, below.
+            ("draft-pending", fixture with { Draft = null }),
         })
         {
-            Pane.DataContext = new NoteEditorViewModel(session, retryDraft: _ => Task.CompletedTask);
+            Pane.DataContext = new NoteEditorViewModel(session, retryDraft: _ => Task.CompletedTask, draftPending: name == "draft-pending");
             foreach (var theme in RenderThemes.All)
             {
                 RenderThemeApplier.Apply(theme, Application.Current.Resources);
