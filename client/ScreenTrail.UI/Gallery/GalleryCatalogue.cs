@@ -84,6 +84,6 @@ internal static class GalleryCatalogue
         ("Info", null, "Drafted on this device only. Quality may be lower."),
         ("Success", null, "Published to ticket #48213."),
         ("Warning", "Some steps may be missing", "Capture started late or was interrupted."),
-        ("Danger", null, "ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin."),
+        ("Danger", null, "ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin."),
     ];
 }

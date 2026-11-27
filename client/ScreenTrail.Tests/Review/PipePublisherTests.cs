@@ -331,7 +331,7 @@ public sealed class PipePublisherTests : IAsyncDisposable
         // S-135: the activation card had the same second ask. A used or expired code costs one call.
         var backend = new ActivationBackend(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
         {
-            Content = JsonContent.Create(new { error = "invite_expired", message = "That code has expired. Ask your ScreenTrail owner for a new invite." }),
+            Content = JsonContent.Create(new { error = "invite_expired", message = "That code has expired. Ask your ScreenTrail admin for a new invite." }),
         });
         _ = await PublisherAsync(backend.Commands());
         var device = new PipeDevice(_connection!);
@@ -339,7 +339,7 @@ public sealed class PipePublisherTests : IAsyncDisposable
         var answer = await device.ActivateAsync("KX7PM-4R2WQ", "TECH", TestContext.Current.CancellationToken);
 
         Assert.Null(answer.TenantName);
-        Assert.Equal("That code has expired. Ask your ScreenTrail owner for a new invite.", answer.Refusal);
+        Assert.Equal("That code has expired. Ask your ScreenTrail admin for a new invite.", answer.Refusal);
         Assert.Equal(1, backend.Calls);
     }
 
@@ -386,7 +386,7 @@ public sealed class PipePublisherTests : IAsyncDisposable
         // pane already uses; the service answers both from the same commands class.
         _ = await PublisherAsync();
         var settings = new PipeIntegrations(_connection!);
-        _backend.Details = [new IntegrationDetailRow("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin.")];
+        _backend.Details = [new IntegrationDetailRow("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin.")];
         _backend.Companies = [new CompanyChoiceRow("7", "Acme Dental")];
 
         var rows = await settings.ListAsync(TestContext.Current.CancellationToken);
@@ -549,7 +549,7 @@ public sealed class PipePublisherTests : IAsyncDisposable
         public IReadOnlyList<IntegrationDetailRow> Details { get; set; } = [];
 
         /// <summary>The backend's 403 <c>owner_only</c> sentence, which every store and remove from a device gets.</summary>
-        public const string OwnerOnly = "Your ScreenTrail owner manages this connection in the web admin. Ask them to connect or change it there.";
+        public const string OwnerOnly = "Your ScreenTrail admin manages this connection in the web admin. Ask them to connect or change it there.";
 
         /// <summary>Every store and remove that reached the backend, each refused.</summary>
         public List<string> Refused { get; } = [];

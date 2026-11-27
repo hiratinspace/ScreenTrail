@@ -109,7 +109,7 @@ public sealed class IntegrationsPanelTests
         // The badge says Connected; the line under it does not say it again (Spec v0.7.1).
         Assert.Equal("Connected", panel.ConnectWise.Badge);
         Assert.Equal("Not checked yet", panel.ConnectWise.Status);
-        Assert.Equal("Your ScreenTrail owner manages this connection in the web admin.", panel.ConnectWise.OwnerLine);
+        Assert.Equal("Your ScreenTrail admin manages this connection in the web admin.", panel.ConnectWise.OwnerLine);
         Assert.Equal(IntegrationCard.OwnerManages, panel.ConnectWise.OwnerLine);
     }
 
@@ -125,7 +125,7 @@ public sealed class IntegrationsPanelTests
             Assert.Equal("Not connected", card.Status);
             Assert.Null(card.Badge);
             Assert.False(card.CheckFailed);
-            Assert.Equal("Not connected. Your ScreenTrail owner connects it in the web admin.", card.OwnerLine);
+            Assert.Equal("Not connected. Your ScreenTrail admin connects it in the web admin.", card.OwnerLine);
         });
     }
 
@@ -233,7 +233,7 @@ public sealed class IntegrationsPanelTests
         var gateway = new FakeIntegrations
         {
             Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
-            Check = new CheckOutcome(false, "ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin."),
+            Check = new CheckOutcome(false, "ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin."),
         };
         var panel = new IntegrationsPanel(gateway);
         await panel.LoadAsync();
@@ -242,19 +242,19 @@ public sealed class IntegrationsPanelTests
 
         Assert.False(outcome.Ok);
 
-        // Spec v0.6.15: the backend already asks the technician to ask the ScreenTrail owner, in the web
+        // Spec v0.6.15: the backend already asks the technician to ask the ScreenTrail admin, in the web
         // admin, so the card says just that. (Was: "Press Change and enter a new key.")
-        Assert.Equal("ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin.", panel.ConnectWise.CheckResult);
+        Assert.Equal("ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin.", panel.ConnectWise.CheckResult);
         Assert.False(panel.ConnectWise.CheckOk);
         Assert.Equal(["connectwise"], gateway.Checked);
     }
 
     [Theory]
-    [InlineData("Hudu rejected the API key. Update it in Settings → Integrations.", "Hudu rejected the API key. Ask your ScreenTrail owner to update it in the web admin.")]
-    [InlineData("The site did not answer. Check the site address in Settings → Integrations.", "The site did not answer. Ask your ScreenTrail owner to check the site address in the web admin.")]
-    [InlineData("The stored credential could not be opened. Enter it again in Settings → Integrations.", "The stored credential could not be opened. Ask your ScreenTrail owner to enter it again in the web admin.")]
-    [InlineData("Enter the provider's public address in Settings → Integrations.", "Ask your ScreenTrail owner to enter the provider's public address in the web admin.")]
-    [InlineData(" in Settings → Integrations.", "Ask your ScreenTrail owner to fix it in the web admin.")]
+    [InlineData("Hudu rejected the API key. Update it in Settings → Integrations.", "Hudu rejected the API key. Ask your ScreenTrail admin to update it in the web admin.")]
+    [InlineData("The site did not answer. Check the site address in Settings → Integrations.", "The site did not answer. Ask your ScreenTrail admin to check the site address in the web admin.")]
+    [InlineData("The stored credential could not be opened. Enter it again in Settings → Integrations.", "The stored credential could not be opened. Ask your ScreenTrail admin to enter it again in the web admin.")]
+    [InlineData("Enter the provider's public address in Settings → Integrations.", "Ask your ScreenTrail admin to enter the provider's public address in the web admin.")]
+    [InlineData(" in Settings → Integrations.", "Ask your ScreenTrail admin to fix it in the web admin.")]
     [InlineData("HaloPSA did not answer. Try again in a minute.", "HaloPSA did not answer. Try again in a minute.")]
     [InlineData("Connected to https://na.myconnectwise.net.", "Connected to https://na.myconnectwise.net.")]
     public void OnTheIntegrationsPageNothingSendsTheTechnicianToTheIntegrationsPage(string fromTheBackend, string onThePage)
@@ -265,15 +265,15 @@ public sealed class IntegrationsPanelTests
     }
 
     [Theory]
-    [InlineData("ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin.")]
-    [InlineData("Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin.")]
-    [InlineData("The stored credential could not be opened, so it was not used. Ask your ScreenTrail owner to connect it again in the web admin.")]
-    [InlineData("The Hudu site answered with a redirect, and ScreenTrail does not follow redirects. Ask your ScreenTrail owner to check the site address in the web admin.")]
-    [InlineData("The ConnectWise site is on a private network, and ScreenTrail only calls public addresses. Ask your ScreenTrail owner to enter the provider's public address in the web admin.")]
+    [InlineData("ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin.")]
+    [InlineData("Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin.")]
+    [InlineData("The stored credential could not be opened, so it was not used. Ask your ScreenTrail admin to connect it again in the web admin.")]
+    [InlineData("The Hudu site answered with a redirect, and ScreenTrail does not follow redirects. Ask your ScreenTrail admin to check the site address in the web admin.")]
+    [InlineData("The ConnectWise site is on a private network, and ScreenTrail only calls public addresses. Ask your ScreenTrail admin to enter the provider's public address in the web admin.")]
     public void TheBackendsCredentialWordsAlreadyAskTheOwnerAndAreKept(string fromTheBackend)
     {
         // Integration credentials are the owner's (2026-11-15): the backend's words for a credential that
-        // needs fixing ask the technician to ask the ScreenTrail owner, in the web admin, and never send them
+        // needs fixing ask the technician to ask the ScreenTrail admin, in the web admin, and never send them
         // to Settings, where nothing can be changed. The page keeps those words as they are.
         Assert.Equal(fromTheBackend, IntegrationNames.OnThisPage(fromTheBackend));
     }
@@ -299,11 +299,11 @@ public sealed class IntegrationsPanelTests
         var panel = new IntegrationsPanel(gateway);
         await panel.LoadAsync();
 
-        Assert.Equal("Hudu rejected the API key. Ask your ScreenTrail owner to update it in the web admin.", panel.Hudu.LastError);
+        Assert.Equal("Hudu rejected the API key. Ask your ScreenTrail admin to update it in the web admin.", panel.Hudu.LastError);
         Assert.True(panel.Hudu.CheckFailed);
         Assert.Equal(IntegrationCard.CheckFailedBadge, panel.Hudu.Badge);
         Assert.DoesNotContain("Connected", panel.Hudu.Status, StringComparison.Ordinal);
-        Assert.Equal("The site did not answer. Ask your ScreenTrail owner to check the site address in the web admin.", Assert.Single(panel.Others).LastError);
+        Assert.Equal("The site did not answer. Ask your ScreenTrail admin to check the site address in the web admin.", Assert.Single(panel.Others).LastError);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public sealed class IntegrationsPanelTests
             Rows =
             [
                 new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, checkedAt, null),
-                new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, checkedAt, "Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin."),
+                new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, checkedAt, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
             ],
         };
         var panel = new IntegrationsPanel(gateway);
@@ -346,7 +346,7 @@ public sealed class IntegrationsPanelTests
         var gateway = new FakeIntegrations
         {
             Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, older, null)],
-            Check = new CheckOutcome(false, "Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin."),
+            Check = new CheckOutcome(false, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
         };
         var panel = new IntegrationsPanel(gateway, now);
         await panel.LoadAsync();

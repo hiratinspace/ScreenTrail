@@ -24,7 +24,7 @@ public sealed partial class CredentialWordingTests
             .Select(l => $"{Path.GetFileName(l.file)}:{l.at + 1}: {l.text}")
             .ToList();
 
-        Assert.True(found.Count == 0, "Ask the ScreenTrail owner to fix it in the web admin instead:\n" + string.Join('\n', found));
+        Assert.True(found.Count == 0, "Ask the ScreenTrail admin to fix it in the web admin instead:\n" + string.Join('\n', found));
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public sealed partial class CredentialWordingTests
     [Theory]
     [InlineData("Map it in Settings → Integrations, then publish the article again.")]
     [InlineData("Fix it now or later in Windows Settings.")]
-    [InlineData("Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin.")]
+    [InlineData("Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin.")]
     public void TheCheckLeavesMappingsWindowsAndTheOwnersWordsAlone(string text) =>
         Assert.False(SendsToSettingsForACredential(text));
 

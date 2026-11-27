@@ -241,7 +241,7 @@ public sealed class OnboardingWizardTests
     [Fact]
     public void ConnectSaysTheOwnerConnectsTheIntegrations()
     {
-        Assert.Equal("Your ScreenTrail owner connects ConnectWise and Hudu in the web admin. You can publish once they have.", OnboardingWizard.ConnectByOwner);
+        Assert.Equal("Your ScreenTrail admin connects ConnectWise and Hudu in the web admin. You can publish once they have.", OnboardingWizard.ConnectByOwner);
         Assert.DoesNotContain('—', OnboardingWizard.ConnectByOwner);
         Assert.DoesNotContain('!', OnboardingWizard.ConnectByOwner);
     }

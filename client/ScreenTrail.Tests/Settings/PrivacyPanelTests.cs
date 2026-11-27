@@ -47,7 +47,7 @@ public sealed class PrivacyPanelTests
         Assert.Equal(3, panel.RetentionDays);
         Assert.True(panel.RetentionLocked);
         // Spec v0.7.1: one wording for every locked setting, and the policy's id only in the tool tip.
-        Assert.Equal("Set by your ScreenTrail owner", panel.LockedBecause);
+        Assert.Equal("Set by your ScreenTrail admin", panel.LockedBecause);
         Assert.DoesNotContain("p20260925", panel.LockedBecause, StringComparison.Ordinal);
         Assert.Equal("Set in the web admin. Policy p20260925, if support asks.", panel.LockedDetail);
         Assert.False(panel.Telemetry);

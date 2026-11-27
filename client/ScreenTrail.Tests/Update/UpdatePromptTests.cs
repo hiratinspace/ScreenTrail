@@ -75,7 +75,7 @@ public sealed class UpdatePromptTests
         Assert.Equal(UpdatesPanel.LockedNote, panel.ChannelNote);
 
         // Spec v0.7.1: the same words as every other locked setting.
-        Assert.Equal("Set by your ScreenTrail owner", panel.ChannelNote);
+        Assert.Equal("Set by your ScreenTrail admin", panel.ChannelNote);
         Assert.False(await panel.ChooseAsync(UpdateChannel.Stable, TestContext.Current.CancellationToken));
         Assert.Single(gateway.Chosen);
     }
