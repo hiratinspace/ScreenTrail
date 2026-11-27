@@ -1089,7 +1089,8 @@
                                         Background="{DynamicResource Brush.bg.surface}"
                                         BorderBrush="{DynamicResource Brush.border.strong}"
                                         BorderThickness="{DynamicResource Thickness.border}"
-                                        CornerRadius="{DynamicResource Radius.card}">
+                                        CornerRadius="{DynamicResource Radius.card}"
+                                        RenderOptions.ClearTypeHint="Enabled">
                                     <ScrollViewer SnapsToDevicePixels="True">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                     </ScrollViewer>

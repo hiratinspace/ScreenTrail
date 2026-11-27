@@ -118,6 +118,28 @@ public sealed partial class PillResourcesTests
     private static partial Regex StaticLookup();
 
     /// <summary>
+    /// Review finding D-17: WPF drops to greyscale text in a transparent window, so each opaque surface on
+    /// one asks for ClearType back: the pill and its card, the combo box's list and the tooltip.
+    /// </summary>
+    [Fact]
+    public void TheOpaqueSurfacesOnTransparentWindowsAskForClearType()
+    {
+        const string Hint = "RenderOptions.ClearTypeHint";
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        foreach (var name in new[] { "Pill", "Card" })
+        {
+            Assert.Equal("Enabled", (string?)pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name).Attribute(Hint));
+        }
+
+        var components = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", "Components.xaml"));
+        var popup = components.Descendants().Single(e => e.Name.LocalName == "Popup" && (string?)e.Attribute(X + "Name") == "PART_Popup");
+        Assert.Equal("True", (string?)popup.Attribute("AllowsTransparency"));
+        Assert.Contains(popup.Descendants(), e => e.Name.LocalName == "Border" && e.Element(e.Name.Namespace + "ScrollViewer") is not null && (string?)e.Attribute(Hint) == "Enabled");
+        var tip = components.Root!.Elements().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute("TargetType") == "ToolTip" && e.Attribute(X + "Key") is null);
+        Assert.Contains(tip.Descendants(), e => e.Name.LocalName == "Border" && (string?)e.Attribute(Hint) == "Enabled");
+    }
+
+    /// <summary>
     /// Review finding C-H6 (less the shadow, which waits for a Windows check): the pill is 40 tall with a
     /// 1 px border.strong edge, 2 px in high contrast, and so is its card's; the 32 px buttons still fit.
     /// </summary>
