@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using ScreenTrail.Core.Hud;
 
 namespace ScreenTrail.Tests.Hud;
 
@@ -115,6 +116,27 @@ public sealed partial class PillResourcesTests
 
     [GeneratedRegex(@"\{StaticResource\s+(?<key>[^}\s]+)\s*\}")]
     private static partial Regex StaticLookup();
+
+    /// <summary>
+    /// Review finding C-H3: the state mark is drawn (dot, ring, progress ring) or is an icon looked up by
+    /// name. Every icon a state can carry has its trigger in the pill, and no state text goes into the mark.
+    /// </summary>
+    [Fact]
+    public void EveryStateIconHasItsTriggerAndTheMarkTypesNoCharacter()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var style = pill.Descendants().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute(X + "Key") == "Hud.ToneGlyph");
+        var triggered = style.Descendants().Where(e => e.Name.LocalName == "DataTrigger" && (string?)e.Attribute("Binding") == "{Binding StateGlyph}")
+            .Select(e => (string?)e.Attribute("Value")).ToList();
+
+        foreach (var icon in new[] { HudGlyphs.Pause, HudGlyphs.Lock, HudGlyphs.Hide, HudGlyphs.Unknown })
+        {
+            Assert.Contains(icon, triggered);
+        }
+
+        var mark = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "StateGlyphText");
+        Assert.Null(mark.Attribute("Text"));
+    }
 
     private static IEnumerable<string> Keys(XDocument document) =>
         document.Descendants().Select(e => e.Attribute(X + "Key")?.Value).OfType<string>();

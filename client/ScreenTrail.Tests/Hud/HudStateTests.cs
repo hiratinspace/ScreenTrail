@@ -21,7 +21,7 @@ public sealed class HudStateTests
         Assert.Equal(HudTone.Recording, hud.State.Tone);
         Assert.Equal("Recording", hud.State.Text);
         Assert.Equal("12:41", hud.Timer);
-        Assert.Equal("●", hud.State.Glyph);
+        Assert.Equal(HudGlyphs.Dot, hud.State.Glyph);
     }
 
     /// <summary>
@@ -255,7 +255,31 @@ public sealed class HudStateTests
         var hud = HudState.For(Capture(state));
 
         Assert.DoesNotContain("unknown", hud.State.Text, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEqual("?", hud.State.Glyph);
+        Assert.NotEqual(HudGlyphs.Unknown, hud.State.Glyph);
+    }
+
+    /// <summary>
+    /// Review finding C-H3: each state's mark is a vector shape or a Fluent icon by concept, never a text
+    /// character. Auto-paused is the lock, not a second pause symbol beside the Pause button.
+    /// </summary>
+    [Theory]
+    [InlineData(CaptureStates.Recording, null, HudGlyphs.Dot)]
+    [InlineData(CaptureStates.Paused, CaptureReasons.User, HudGlyphs.Pause)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.PasswordField, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.SensitiveContext, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.ExcludedApp, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.ElevatedWindow, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.OutOfScope, HudGlyphs.Hide)]
+    [InlineData(CaptureStates.Finalizing, null, HudGlyphs.Busy)]
+    [InlineData(CaptureStates.DraftPending, null, HudGlyphs.Busy)]
+    [InlineData(CaptureStates.Idle, null, HudGlyphs.Ring)]
+    [InlineData(CaptureStates.DraftReady, null, HudGlyphs.Ring)]
+    [InlineData(CaptureStates.DraftFailed, null, HudGlyphs.Ring)]
+    [InlineData("a_state_from_a_newer_service", null, HudGlyphs.Unknown)]
+    public void EachStateHasAVectorOrIconMarkAndNoTextSymbol(string state, string? reason, string glyph)
+    {
+        Assert.Equal(glyph, HudState.For(Capture(state, reason: reason)).State.Glyph);
+        Assert.Equal(HudGlyphs.Unknown, HudState.For(null).State.Glyph);
     }
 
     public static TheoryData<string> EveryStateTheServiceSends

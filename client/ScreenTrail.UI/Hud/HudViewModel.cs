@@ -138,7 +138,14 @@ public sealed partial class HudViewModel : ObservableObject
 
     public bool ShowTimer => Snapshot.Timer is not null;
 
+    /// <summary>The state's mark (HudGlyphs): a drawn shape, or the icon the pill looks up by name.</summary>
     public string StateGlyph => Snapshot.State.Glyph;
+
+    public bool ShowDot => Snapshot.State.Glyph == HudGlyphs.Dot;
+
+    public bool ShowRing => Snapshot.State.Glyph == HudGlyphs.Ring;
+
+    public bool ShowBusy => Snapshot.State.Glyph == HudGlyphs.Busy;
 
     public string? StateTooltip => Snapshot.State.Tooltip;
 
@@ -283,6 +290,9 @@ public sealed partial class HudViewModel : ObservableObject
         OnPropertyChanged(nameof(Timer));
         OnPropertyChanged(nameof(ShowTimer));
         OnPropertyChanged(nameof(StateGlyph));
+        OnPropertyChanged(nameof(ShowDot));
+        OnPropertyChanged(nameof(ShowRing));
+        OnPropertyChanged(nameof(ShowBusy));
         OnPropertyChanged(nameof(StateTooltip));
         OnPropertyChanged(nameof(SpokenState));
         OnPropertyChanged(nameof(Announcement));

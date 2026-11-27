@@ -72,6 +72,7 @@
     <sys:Double x:Key="Layout.field-narrow">160</sys:Double>
     <sys:Double x:Key="Layout.dropdown-max-height">320</sys:Double>
     <sys:Double x:Key="Layout.choice-mark">18</sys:Double>
+    <sys:Double x:Key="Layout.state-dot">8</sys:Double>
     <sys:Double x:Key="Layout.segment-height">26</sys:Double>
     <sys:Double x:Key="Layout.slider-thumb">16</sys:Double>
     <sys:Double x:Key="Layout.track-height">4</sys:Double>

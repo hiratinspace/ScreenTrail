@@ -24,8 +24,30 @@
              render asserts each variant's token colour is actually on the pill, which is what caught it. -->
         <Style x:Key="Hud.ToneGlyph" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
+            <Setter Property="FontSize" Value="{DynamicResource Icon.control}" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="Visibility" Value="Collapsed" />
             <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
             <Style.Triggers>
+                <!-- The state's icon by concept (HudGlyphs, review finding C-H3); hidden for the drawn marks. -->
+                <DataTrigger Binding="{Binding StateGlyph}" Value="Icon.Pause">
+                    <Setter Property="Text" Value="{DynamicResource Icon.Pause}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StateGlyph}" Value="Icon.Lock">
+                    <Setter Property="Text" Value="{DynamicResource Icon.Lock}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StateGlyph}" Value="Icon.Hide">
+                    <Setter Property="Text" Value="{DynamicResource Icon.Hide}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding StateGlyph}" Value="Icon.Unknown">
+                    <Setter Property="Text" Value="{DynamicResource Icon.Unknown}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding Tone}" Value="Recording">
                     <Setter Property="Foreground" Value="{DynamicResource Brush.shell.recording}" />
                 </DataTrigger>
@@ -101,11 +123,27 @@
 
                     <!-- The state segment. Glyph and words both, so it reads with no colour at all (Spec §7),
                          which matters more here than anywhere: this is the indicator INV-4 is about. -->
-                    <TextBlock x:Name="StateGlyphText"
-                               Style="{StaticResource Hud.ToneGlyph}"
-                               FontSize="{DynamicResource Size.lg}"
-                               Text="{Binding StateGlyph}"
-                               ToolTip="{Binding StateTooltip}" />
+                    <!-- In a 16 px box (design system 10.10): recording an 8 px dot and not recording an 8 px
+                         ring, drawn as vectors; finishing and drafting the progress ring; otherwise the
+                         state's Fluent icon (review finding C-H3). -->
+                    <Grid Width="{DynamicResource Icon.control}"
+                          Height="{DynamicResource Icon.control}"
+                          VerticalAlignment="Center"
+                          ToolTip="{Binding StateTooltip}">
+                        <Ellipse Width="{DynamicResource Layout.state-dot}"
+                                 Height="{DynamicResource Layout.state-dot}"
+                                 Fill="{DynamicResource Brush.shell.recording}"
+                                 Visibility="{Binding ShowDot, Converter={StaticResource Visible}}" />
+                        <Ellipse Width="{DynamicResource Layout.state-dot}"
+                                 Height="{DynamicResource Layout.state-dot}"
+                                 Stroke="{DynamicResource Brush.shell.muted}"
+                                 StrokeThickness="1"
+                                 Visibility="{Binding ShowRing, Converter={StaticResource Visible}}" />
+                        <Control Style="{DynamicResource ProgressRing}"
+                                 Foreground="{DynamicResource Brush.shell.muted}"
+                                 Visibility="{Binding ShowBusy, Converter={StaticResource Visible}}" />
+                        <controls:Glyph x:Name="StateGlyphText" Style="{StaticResource Hud.ToneGlyph}" />
+                    </Grid>
 
                     <!-- One instrument in one order in every state (review finding C-H4, design system 10.10):
                          the state word in Body strong, then the session's clock in Body, frozen while paused.
