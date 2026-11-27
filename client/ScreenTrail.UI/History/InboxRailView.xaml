@@ -25,7 +25,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Rail.RowTitle}" Text="{Binding Title}" />
-                <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Rail.RowMeta}" Text="{Binding Age}" />
+                <!-- The age, compact ("40m"), in Caption with tabular figures, so the title keeps the room (A-34). -->
+                <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Rail.RowAge}" Text="{Binding Age}" />
                 <TextBlock Grid.Row="1"
                            Grid.Column="0"
                            Grid.ColumnSpan="2"
@@ -63,7 +64,9 @@
                             Style="{StaticResource Icon}"
                             Foreground="{DynamicResource Brush.shell.muted}"
                             Text="{StaticResource Icon.Search}" />
+            <!-- At 36, where the typed text starts (32 and 4 inside). -->
             <TextBlock Margin="32,0,12,0"
+                       Padding="4,0,0,0"
                        VerticalAlignment="Center"
                        Panel.ZIndex="1"
                        IsHitTestVisible="False"
@@ -198,36 +201,29 @@
                     <controls:Repeater.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="0,16,0,0" Visibility="{Binding Visibility}">
-                                <!-- The heading: words and the count, or for Earlier a toggle that opens it. Muted, so it reads as a
-                                     label over the rows and not as one more row; groups sit 16 apart, rows 4. -->
-                                <!-- In line with the rows' words: the rail's 8 inset, then the row's 12. -->
-                                <StackPanel Margin="8,0,16,4"
-                                            Orientation="Horizontal"
-                                            Visibility="{Binding HeaderTextVisibility}">
-                                    <TextBlock Margin="12,0,0,0"
-                                               Style="{StaticResource Text.FrameMuted}"
-                                               FontSize="{DynamicResource Size.sm}"
-                                               FontWeight="{DynamicResource Weight.semibold}"
-                                               Text="{Binding Name}" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.FrameMuted}" Text="{Binding CountText}" />
-                                </StackPanel>
-                                <ToggleButton Margin="12,0,16,4"
-                                              Style="{StaticResource Rail.GroupToggle}"
+                                <!-- The heading: words and the count, or for Earlier a toggle that opens it, the chevron after the
+                                     count. Muted, so it reads as a label over the rows and not as one more row; groups sit 16 apart,
+                                     rows 2. Every label starts where the rows' titles do (Rail.GroupHeader). -->
+                                <Border Style="{StaticResource Rail.GroupHeader}" Visibility="{Binding HeaderTextVisibility}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Rail.GroupLabel}" Text="{Binding Name}" />
+                                        <TextBlock Style="{StaticResource Rail.GroupCount}" Text="{Binding CountText}" />
+                                    </StackPanel>
+                                </Border>
+                                <ToggleButton Style="{StaticResource Rail.GroupToggle}"
                                               IsChecked="{Binding IsExpanded}"
                                               Visibility="{Binding ToggleVisibility}"
                                               AutomationProperties.Name="{Binding Heading}"
                                               AutomationProperties.HelpText="Shows or hides the older sessions.">
                                     <StackPanel Orientation="Horizontal">
-                                        <controls:Glyph Style="{StaticResource Icon}"
+                                        <TextBlock Style="{StaticResource Rail.GroupLabel}" Text="{Binding Name}" />
+                                        <TextBlock Style="{StaticResource Rail.GroupCount}" Text="{Binding CountText}" />
+                                        <controls:Glyph Margin="4,0,0,0"
+                                                        VerticalAlignment="Center"
+                                                        Style="{StaticResource Icon}"
                                                         FontSize="{DynamicResource Icon.sm}"
                                                         Foreground="{DynamicResource Brush.shell.muted}"
                                                         Text="{Binding Chevron}" />
-                                        <TextBlock Margin="8,0,0,0"
-                                                   Style="{StaticResource Text.FrameMuted}"
-                                                   FontSize="{DynamicResource Size.sm}"
-                                                   FontWeight="{DynamicResource Weight.semibold}"
-                                                   Text="{Binding Name}" />
-                                        <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.FrameMuted}" Text="{Binding CountText}" />
                                     </StackPanel>
                                 </ToggleButton>
                                 <ListBox Style="{StaticResource Rail.List}"

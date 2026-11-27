@@ -60,6 +60,11 @@ function wpfColors(t, theme) {
   // A chosen segment's edge (design system 10.3, review finding B-21): none in light and dark, where its tint
   // says it; 2 px Highlight in high contrast, where the tint is the window colour.
   lines.push('    <Thickness x:Key="Thickness.selected-edge">0</Thickness>');
+  // A selected row's edge (design system 12, review findings A-35, E-28): clear in light and dark, where the
+  // fill and the bar say it; Highlight in high contrast, where both are the window colour. A token and not
+  // the system flag, so a render with the high-contrast dictionary draws what high contrast does.
+  lines.push('    <Color x:Key="Token.selection.edge">#00000000</Color>');
+  lines.push('    <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />');
   // A scroll bar's thumb at rest (design system 10.8, review findings A-33, B-29): 4 wide, 8 while the pointer
   // is over its track; high contrast keeps it 8 at all times.
   lines.push('    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>');
@@ -106,6 +111,8 @@ function wpfCommon(shared) {
     `    <Thickness x:Key="Padding.control-compact">${t.layout['control-padding-x-compact']},${t.layout['control-padding-y']}</Thickness>`,
     `    <Thickness x:Key="Padding.pane-narrow">${t.layout['pane-padding-narrow']}</Thickness>`,
     `    <Thickness x:Key="Padding.rail-row">${t.layout['rail-row-padding-x']},${t.layout['rail-row-padding-y']}</Thickness>`,
+    // A search field: its text after the 16 px glyph 12 in and an 8 gap (design system 10.2).
+    `    <Thickness x:Key="Padding.search">${t.layout['search-text-inset']},0,${t.layout['control-padding-x']},0</Thickness>`,
   );
   // "pill" is 999: fully round at any height. A Border scales radii that overrun its sides down to fit, so a
   // 20 px badge and the 40 px pill both get true half circles from the one value (design system 5).

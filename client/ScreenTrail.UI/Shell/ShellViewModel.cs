@@ -96,7 +96,19 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string Status { get; set; } = "Connecting to the capture service…";
 
-    /// <summary>The status chip's dot and border colour, as the pill would show the state (<see cref="ShellStatus.Tone"/>).</summary>
+    /// <summary>The chip's words without the time, trimmed if they must be: "Recording · ScreenConnect" (<see cref="ShellStatus.ChipWords"/>).</summary>
+    [ObservableProperty]
+    public partial string StatusWords { get; set; } = "Connecting to the capture service…";
+
+    /// <summary>The chip's time in tabular figures, never trimmed, or nothing.</summary>
+    [ObservableProperty]
+    public partial string StatusTime { get; set; } = string.Empty;
+
+    /// <summary>The chip in full, for its tooltip and name: "Recording · ScreenConnect · 12:27".</summary>
+    [ObservableProperty]
+    public partial string StatusLine { get; set; } = "Connecting to the capture service…";
+
+    /// <summary>The status chip's dot colour, as the pill would show the state (<see cref="ShellStatus.Tone"/>).</summary>
     [ObservableProperty]
     public partial Core.Hud.HudTone StatusTone { get; set; } = Core.Hud.HudTone.Idle;
 
@@ -262,7 +274,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <summary>The words first and the announcement's key after, so the region is announced with the new words.</summary>
     private void ShowStatus(ShellSnapshot snapshot)
     {
-        Status = ShellStatus.Describe(_clock.Show(snapshot));
+        var shown = _clock.Show(snapshot);
+        Status = ShellStatus.Describe(shown);
+        StatusWords = ShellStatus.ChipWords(shown);
+        StatusTime = ShellStatus.ChipTime(shown);
+        StatusLine = ShellStatus.ChipLine(shown);
         StatusTone = ShellStatus.Tone(snapshot);
         StatusAnnouncement = ShellStatus.Announcement(snapshot);
     }

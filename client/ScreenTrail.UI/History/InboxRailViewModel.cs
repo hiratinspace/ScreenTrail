@@ -67,7 +67,7 @@ public sealed partial class InboxRowViewModel : ObservableObject
     {
         Title = item.Title;
         Subtitle = item.Subtitle ?? string.Empty;
-        Age = item.Age;
+        Age = item.ShortAge;
         Meta = item.Meta;
         Badge = item.Badge ?? string.Empty;
 

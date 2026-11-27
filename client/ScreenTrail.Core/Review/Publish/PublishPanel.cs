@@ -551,8 +551,10 @@ public sealed class PublishPanel
         : null;
 
     /// <summary>
-    /// Time: what was captured and what rounding made of it ("12 min, rounded up to 15"), beside the field,
-    /// so the number is not mistaken for the time worked. Without a draft, the rounding alone.
+    /// Time: what rounding made of what was captured ("Rounded up from 12 min"), beside the field that
+    /// shows the rounded number, so the number is not mistaken for the time worked. Short enough to stay on
+    /// one line beside the field at 150% (review finding E-27: "rounded up to 15" orphaned the 15). Without a
+    /// draft, the rounding alone.
     /// </summary>
     public string TimeNote
     {
@@ -566,8 +568,8 @@ public sealed class PublishPanel
             var captured = draft.SuggestedTimeMinutes;
             var suggested = TimeEntryCalculator.SuggestMinutes(TimeSpan.FromMinutes(captured), _rounding);
             return suggested == captured ? $"{captured} min"
-                : suggested > captured ? $"{captured} min, rounded up to {suggested}"
-                : $"{captured} min, rounded down to {suggested}";
+                : suggested > captured ? $"Rounded up from {captured} min"
+                : $"Rounded down from {captured} min";
         }
     }
 

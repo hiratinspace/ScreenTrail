@@ -387,7 +387,7 @@ public partial class ShellWindow
             }
         }
 
-        state.OpenSession("s-1");
+        state.OpenSession("preview");
         earlier.IsExpanded = true;
         await EachThemeAsync("shell-rail-groups");
         earlier.IsExpanded = false;
@@ -464,7 +464,7 @@ public partial class ShellWindow
         table.SelectedItems.Clear();
 
         // Keyboard focus on the open row (the tab) and on the search.
-        state.OpenSession("s-1");
+        state.OpenSession("preview");
         await ThumbnailsAsync();
         foreach (var theme in RenderThemes.All)
         {
@@ -507,7 +507,7 @@ public partial class ShellWindow
         try
         {
             state.Navigate(ShellView.Review);
-            state.OpenSession("s-1");
+            state.OpenSession("preview");
             earlier.IsExpanded = true;
             await SettleAsync();
             Console.WriteLine($"  rail at the minimum: {RailFrame.ActualWidth} px");

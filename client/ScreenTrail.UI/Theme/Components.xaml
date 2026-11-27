@@ -1156,6 +1156,30 @@
     <!-- List box and its rows, wherever a view uses one without a style of its own (ticket matches, the
          transcript). Selection is a tint plus an accent bar at the left edge, so it survives high contrast,
          where the tint is the window colour. -->
+    <!-- The selection bar (design system 10.4, review finding A-01): one mark for every selected row, a 3 x 16
+         pill in brand.ribbon.band at the row's leading edge, centred, over the selected fill. Rows show it
+         by name (Indicator) when selected; it is never hit-tested. -->
+    <Style x:Key="SelectionBar" TargetType="Rectangle">
+        <Setter Property="Width" Value="3" />
+        <Setter Property="Height" Value="{DynamicResource Icon.control}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="RadiusX" Value="1.5" />
+        <Setter Property="RadiusY" Value="1.5" />
+        <Setter Property="Fill" Value="{DynamicResource Brush.brand.ribbon.band}" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="Visibility" Value="Collapsed" />
+    </Style>
+    <!-- And its edge (design system 12, review findings A-35, E-28): 2 px Highlight all round the selected row
+         in high contrast, nothing in light and dark. Rows show it by name (Edge) when selected. -->
+    <Style x:Key="SelectionEdge" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.selection.edge}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.selected-edge}" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Visibility" Value="Collapsed" />
+    </Style>
+
     <Style TargetType="ListBoxItem">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Padding" Value="10,6" />
@@ -1175,15 +1199,8 @@
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
-                        <Rectangle x:Name="Indicator"
-                                   Width="3"
-                                   Height="16"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   RadiusX="1.5"
-                                   RadiusY="1.5"
-                                   Fill="{DynamicResource Brush.accent.primary}"
-                                   Visibility="Collapsed" />
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="4" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -1192,6 +1209,7 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1608,19 +1626,10 @@
         </Setter>
     </Style>
 
-    <!-- The shell's capture state: the badge at body-adjacent size, because it is read, not glanced at. -->
-    <Style x:Key="Badge.Status" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-        <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-        <Setter Property="Padding" Value="10,3" />
-    </Style>
-
     <!-- State dot: colour as indicator (Spec §2.1 v0.4.2), always next to a text label -->
     <Style x:Key="StateDot" TargetType="Ellipse">
-        <Setter Property="Width" Value="10" />
-        <Setter Property="Height" Value="10" />
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Fill" Value="{DynamicResource Brush.state.recording}" />
     </Style>
@@ -1824,12 +1833,60 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
     </Style>
-    <!-- A nav row: 36 px, the selected one tinted with the accent bar at its left edge (the keyless row's),
-         and its name read with the count of its changes. -->
+    <!-- A nav row (design system 10.4, review finding B-44): 32 high whether or not it holds a count (the
+         20 px badge fits, so no row grows when a change appears), radius 6, 12 at the sides, rows 2 apart.
+         Its words in text.secondary at rest; selected, bg.selected with the selection bar and the name in
+         Body strong text.primary (Settings.NavLabel). Its name is read with the count of its changes. -->
     <Style x:Key="Settings.NavItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
-        <Setter Property="Padding" Value="14,6,10,6" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.nav-row-height}" />
+        <Setter Property="Height" Value="{DynamicResource Layout.nav-row-height}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
         <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+        <Setter Property="theme:Pressed.Track" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                        </Trigger>
+                        <Trigger Property="theme:Pressed.IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- A nav row's name: text.secondary at rest, Body strong text.primary on the selected row. -->
+    <Style x:Key="Settings.NavLabel" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+                <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- A change not yet saved, beside a card's heading (design system 10.5 and issue 8, review finding B-25):
@@ -2093,18 +2150,13 @@
                                                    Visibility="{Binding HeadersVisibility, ConverterParameter={x:Static DataGridHeadersVisibility.Row}, Converter={x:Static DataGrid.HeadersVisibilityConverter}, RelativeSource={RelativeSource AncestorType={x:Type DataGrid}}}" />
                             </SelectiveScrollingGrid>
                         </Border>
-                        <Rectangle x:Name="Indicator"
-                                   Width="3"
-                                   Height="{DynamicResource Icon.control}"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   RadiusX="1.5"
-                                   RadiusY="1.5"
-                                   Fill="{DynamicResource Brush.accent.primary}"
-                                   IsHitTestVisible="False"
-                                   Visibility="Collapsed" />
-                        <!-- Over the cells, the grid line along the row's bottom edge included. -->
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" />
+                        <!-- Over the cells, the grid line along the row's bottom edge included. Inside the selection
+                             edge by its width (0, or 2 in high contrast), where both are Highlight: drawn on the
+                             edge, focus on a selected row changed nothing on screen. -->
                         <Rectangle x:Name="FocusOutline"
+                                   Margin="{DynamicResource Thickness.selected-edge}"
                                    RadiusX="4"
                                    RadiusY="4"
                                    SnapsToDevicePixels="True"
@@ -2116,6 +2168,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="controls:RowFocus.Shown" Value="True">
                             <Setter TargetName="FocusOutline" Property="Visibility" Value="Visible" />
@@ -2132,15 +2185,6 @@
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
             </Trigger>
-            <!-- High contrast: the system's selection, and the outline in its text colour so it shows on it. -->
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
-                    <Condition Binding="{Binding Source={x:Static SystemParameters.HighContrast}}" Value="True" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.on-accent}" />
-            </MultiDataTrigger>
         </Style.Triggers>
     </Style>
     <Style x:Key="Table" TargetType="DataGrid">
@@ -2231,16 +2275,6 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Style.Triggers>
-                        <!-- The selection's fill is the row's. In high contrast the words take its text colour. -->
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
-                                <Condition Binding="{Binding Source={x:Static SystemParameters.HighContrast}}" Value="True" />
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                        </MultiDataTrigger>
-                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>
@@ -2374,26 +2408,51 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
     </Style>
 
-    <!-- The capture state on the frame (Spec §3, status chip): the words in shell.text, the dot and the
-         border in the shell.* colour of the state. -->
-    <Style x:Key="Badge.Frame" BasedOn="{StaticResource Badge.Status}" TargetType="ContentControl">
+    <!-- The capture state on the frame (Spec §3, status chip; design system 2.3, review finding A-03): a 28 px
+         pill, 12 at the sides, a border.strong edge in every state, Body words in shell.text. Its own
+         template, with no panel round the content, so the words can trim to the rail's width. -->
+    <Style x:Key="Rail.StatusChip" TargetType="ContentControl">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.bg}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.offline}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border MinHeight="{TemplateBinding MinHeight}"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{DynamicResource Thickness.border}"
+                            CornerRadius="{DynamicResource Radius.pill}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
-    <!-- The rail's search: a field on the frame, its edge in shell.muted (3:1 and more on shell.bg). -->
+    <!-- The rail's search (design system 10.2, review finding A-04): a field on the frame, lighter than its
+         ground as Windows 11 draws a field, never a grey well: bg.surface, its edge in shell.muted (3:1 and
+         more on shell.bg), text.muted under the pointer. The 16 px glyph sits 12 in, the text and the hint
+         at 36. -->
     <Style x:Key="Rail.Search" TargetType="TextBox">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Padding" Value="32,0,12,0" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.search}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="CaretBrush" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Brush.shell.accent}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
         <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <!-- Keyboard focus also takes the frame's ring, 4 outside on shell.bg, as on every rail control. The
@@ -2423,6 +2482,9 @@
                                 Visibility="Collapsed" />
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
+                        </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
                         </Trigger>
@@ -2450,11 +2512,15 @@
         </Setter>
     </Style>
 
-    <!-- A rail row. On the frame at rest; under the pointer shell.hover; the open session's row is the
-         pane's tab (see the note above the frame's styles). -->
+    <!-- A rail row. On the frame at rest; under the pointer shell.hover. The open session's row takes the one
+         selection (design system 10.4, review finding A-01): bg.surface with a 1 px border.subtle edge,
+         radius 6 on every corner, and the selection bar. It was a tab joined to the pane, with an Iris
+         outline and a 4 px band across its top. -->
     <Style x:Key="Rail.Row" TargetType="ListBoxItem">
-        <Setter Property="Margin" Value="8,0,0,4" />
-        <Setter Property="Padding" Value="12,8,16,8" />
+        <!-- 8 in from both of the rail's edges and 2 apart, 12,8 inside (design system 10.4, review finding A-05). -->
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.rail-row}" />
+        <Setter Property="theme:Pressed.Track" Value="True" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -2473,27 +2539,26 @@
                                 Padding="{TemplateBinding Padding}"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
-                                BorderThickness="1,1,0,1"
-                                CornerRadius="6,0,0,6"
+                                BorderThickness="{DynamicResource Thickness.border}"
+                                CornerRadius="{DynamicResource Radius.control}"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
-                        <Border x:Name="Band"
-                                Height="4"
-                                VerticalAlignment="Top"
-                                Background="{DynamicResource Brush.brand.ribbon.band}"
-                                CornerRadius="6,0,0,0"
-                                SnapsToDevicePixels="True"
-                                Visibility="Collapsed" />
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.shell.hover}" />
                         </Trigger>
+                        <Trigger Property="theme:Pressed.IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
+                        </Trigger>
                         <DataTrigger Binding="{Binding IsOpen}" Value="True">
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.base}" />
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.shell.accent}" />
-                            <Setter TargetName="Band" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
                         </DataTrigger>
                     </ControlTemplate.Triggers>
@@ -2502,7 +2567,7 @@
         </Setter>
     </Style>
 
-    <!-- A row's words: shell.text and shell.muted on the frame, text.primary and text.secondary on the tab. -->
+    <!-- A row's words: shell.text and shell.muted on the frame, text.primary and text.secondary on the open row's bg.surface. -->
     <Style x:Key="Rail.RowTitle" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
@@ -2525,6 +2590,17 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+    <!-- A row's age: the meta line's look in tabular figures, never trimmed (review finding A-34). -->
+    <Style x:Key="Rail.RowAge" BasedOn="{StaticResource Text.Numeric}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsOpen}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="Rail.RowMeta" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
@@ -2538,10 +2614,34 @@
     </Style>
 
 
-    <!-- A group's heading that opens and closes it (Earlier). -->
+    <!-- A rail group's heading (design system 10.4, review finding A-06): a 28 px row with a row's geometry,
+         8 in from the rail's edges, a 1 px clear edge and 12 inside, so its label starts at the same x as
+         every row's title (8 + 1 + 12). The label in the Label style in shell.muted, then the count in
+         Caption; for a group that opens and closes, the 12 px chevron after the count, so no label is pushed
+         right by it. -->
+    <Style x:Key="Rail.GroupHeader" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
+    </Style>
+    <Style x:Key="Rail.GroupLabel" BasedOn="{StaticResource Text.Label}" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
+    </Style>
+    <Style x:Key="Rail.GroupCount" BasedOn="{StaticResource Text.FrameMuted}" TargetType="TextBlock">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+    </Style>
+
+    <!-- A group's heading that opens and closes it (Earlier): the header's geometry, shell.hover under the pointer. -->
     <Style x:Key="Rail.GroupToggle" TargetType="ToggleButton">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="12,0" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="Background" Value="Transparent" />
@@ -2552,6 +2652,8 @@
                 <ControlTemplate TargetType="ToggleButton">
                     <Border Padding="{TemplateBinding Padding}"
                             Background="{TemplateBinding Background}"
+                            BorderBrush="Transparent"
+                            BorderThickness="{DynamicResource Thickness.border}"
                             CornerRadius="{DynamicResource Radius.control}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
@@ -2566,10 +2668,14 @@
         </Style.Triggers>
     </Style>
 
-    <!-- The rail's foot: All sessions, Settings, Diagnostics. Tag="Selected" marks the view the pane shows,
-         with shell.hover and a 3 px shell.accent bar at the left edge, so it is shape and not colour alone. -->
+    <!-- The rail's foot: All sessions, Settings, Diagnostics. Tag="Selected" marks the view the pane shows
+         with the one selection on the frame (design system 10.4, review finding A-01): bg.surface, the
+         selection bar and Body strong in text.primary, so it is shape and not colour alone, and no longer
+         the same grey as hover. -->
     <Style x:Key="Rail.FootItem" TargetType="Button">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
+        <!-- A nav row (design system 10.4, review finding A-07): 32 high from its own token, not the table's
+             row height, so the foot does not grow when rows do. -->
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.nav-row-height}" />
         <Setter Property="Padding" Value="12,0" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
@@ -2592,20 +2698,15 @@
                                               VerticalAlignment="Center"
                                               RecognizesAccessKey="True" />
                         </Border>
-                        <Rectangle x:Name="Indicator"
-                                   Width="3"
-                                   Height="16"
-                                   HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   RadiusX="1.5"
-                                   RadiusY="1.5"
-                                   Fill="{DynamicResource Brush.shell.accent}"
-                                   Visibility="Collapsed" />
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="Tag" Value="Selected">
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
                             <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -2615,6 +2716,9 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />

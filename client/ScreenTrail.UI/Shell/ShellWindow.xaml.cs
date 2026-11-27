@@ -514,7 +514,9 @@ public partial class ShellWindow : Window
 
     private static IReadOnlyList<SessionRow> SampleRows() =>
     [
-        new() { Id = "s-1", StartedAt = new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.Zero), DurationMs = 61_000, Status = "draft", Tool = "screenconnect", Frames = 7, FramesPurged = 1, Title = "Printer offline after the driver update", Ticket = "48213" },
+        // The session the Review renders open ("preview", the one the sample state records), so the rail
+        // shows its row selected beside its Review (review finding R-01: the row was "s-1", and no row was).
+        new() { Id = "preview", StartedAt = new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.Zero), DurationMs = 61_000, Status = "draft", Tool = "screenconnect", Frames = 7, FramesPurged = 1, Title = "Printer offline after the driver update", Ticket = "48213" },
         new() { Id = "s-2", StartedAt = new DateTimeOffset(2026, 9, 15, 14, 20, 0, TimeSpan.Zero), DurationMs = 3_720_000, Status = "published", Tool = "rdp", Frames = 25, FramesPurged = 0, Title = "Outlook keeps asking for the password", Ticket = "50117", Company = "Acme Dental" },
         new() { Id = "s-3", StartedAt = new DateTimeOffset(2026, 9, 15, 11, 5, 0, TimeSpan.Zero), DurationMs = 8_000, Status = "discarded", Tool = "screenconnect", Frames = 0, FramesPurged = 0 },
 
@@ -551,6 +553,14 @@ public partial class ShellWindow : Window
         {
             arrange();
             await ThumbnailsAsync();
+
+            // The open session's row is drawn selected beside its Review (review finding R-01): the sample
+            // rows once lacked the session the renders open, so no row was, and nothing said so.
+            if (name == "review" && !_model.Rail.Groups.SelectMany(g => g.Rows).Any(r => r.IsOpen))
+            {
+                throw new InvalidOperationException("shell-review: no rail row is the open session's.");
+            }
+
             foreach (var theme in Render.RenderThemes.All)
             {
                 Render.RenderThemeApplier.Apply(theme, Application.Current.Resources);

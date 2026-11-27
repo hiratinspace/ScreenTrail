@@ -253,15 +253,48 @@ public static class ShellStatus
     /// </summary>
     public static string Describe(ShellSnapshot snapshot)
     {
+        var (state, tool, elapsed) = Parts(snapshot);
+        return (tool, elapsed) switch
+        {
+            (not null, not null) => $"{state}: {tool} ({elapsed})",
+            (not null, null) => $"{state}: {tool}",
+            (null, not null) => $"{state} ({elapsed})",
+            _ => state,
+        };
+    }
+
+    /// <summary>
+    /// The status chip's words without the time (review findings A-03, D-25, E-27): "Recording ·
+    /// ScreenConnect". The chip trims these and never the time, which it sets apart in tabular figures, so
+    /// the chip neither wraps nor changes width as the seconds go by.
+    /// </summary>
+    public static string ChipWords(ShellSnapshot snapshot)
+    {
+        var (state, tool, _) = Parts(snapshot);
+        return tool is null ? state : $"{state} · {tool}";
+    }
+
+    /// <summary>The status chip's time, "12:27", or nothing when the state has none.</summary>
+    public static string ChipTime(ShellSnapshot snapshot) => Parts(snapshot).Elapsed ?? string.Empty;
+
+    /// <summary>The chip in full, for its tooltip and its name: "Recording · ScreenConnect · 12:27".</summary>
+    public static string ChipLine(ShellSnapshot snapshot)
+    {
+        var time = ChipTime(snapshot);
+        return time.Length == 0 ? ChipWords(snapshot) : $"{ChipWords(snapshot)} · {time}";
+    }
+
+    private static (string State, string? Tool, string? Elapsed) Parts(ShellSnapshot snapshot)
+    {
         ArgumentNullException.ThrowIfNull(snapshot);
         if (snapshot.Connection == ServiceConnection.Connecting)
         {
-            return Connecting;
+            return (Connecting, null, null);
         }
 
         if (snapshot.KnownCapture is not { } capture)
         {
-            return NotConnected;
+            return (NotConnected, null, null);
         }
 
         var state = capture.State switch
@@ -281,13 +314,6 @@ public static class ShellStatus
         var elapsed = capture.ElapsedMs is { } ms
             ? Clock(ms)
             : null;
-
-        return (tool, elapsed) switch
-        {
-            (not null, not null) => $"{state}: {tool} ({elapsed})",
-            (not null, null) => $"{state}: {tool}",
-            (null, not null) => $"{state} ({elapsed})",
-            _ => state,
-        };
+        return (state, tool, elapsed);
     }
 }

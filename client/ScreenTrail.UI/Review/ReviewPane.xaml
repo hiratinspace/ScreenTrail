@@ -64,7 +64,8 @@
                                        Style="{StaticResource Text.ScreenTitle}"
                                        TextTrimming="CharacterEllipsis"
                                        TextWrapping="NoWrap"
-                                       Text="{Binding Title}" />
+                                       Text="{Binding Title}"
+                                       ToolTip="{Binding Title}" />
 
                             <TextBlock Grid.Column="1"
                                        Margin="16,0,12,0"

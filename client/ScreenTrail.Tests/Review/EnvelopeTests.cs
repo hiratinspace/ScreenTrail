@@ -71,9 +71,9 @@ public sealed class EnvelopeTests
     }
 
     [Theory]
-    [InlineData(12, "12 min, rounded up to 15")]
+    [InlineData(12, "Rounded up from 12 min")]
     [InlineData(15, "15 min")]
-    [InlineData(31, "31 min, rounded up to 45")]
+    [InlineData(31, "Rounded up from 31 min")]
     public void TimeSaysWhatWasCapturedAndHowItWasRounded(long minutes, string expected)
     {
         var panel = Panel(draft: Draft() with { SuggestedTimeMinutes = minutes });
