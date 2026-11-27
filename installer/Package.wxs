@@ -163,7 +163,11 @@
                   Name="ScreenTrail"
                   Description="ScreenTrail: session notes from remote support"
                   Target="[INSTALLFOLDER]ScreenTrail.UI.exe"
-                  WorkingDirectory="INSTALLFOLDER" />
+                  WorkingDirectory="INSTALLFOLDER">
+          <!-- Review findings C-T6 and D-10: the app's identity (ToastContent.AppId), which the UI process
+               also says at start, so its toasts are ScreenTrail's and Windows lists it by name. -->
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="ScreenTrail.Client" />
+        </Shortcut>
         <RegistryValue Root="HKLM" Key="Software\ScreenTrail" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>

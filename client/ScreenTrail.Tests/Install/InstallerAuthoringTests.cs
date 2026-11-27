@@ -124,6 +124,17 @@ public sealed class InstallerAuthoringTests
         Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
     }
 
+    /// <summary>Review findings C-T6 and D-10: the Start menu shortcut carries the identity the UI's toasts use.</summary>
+    [Fact]
+    public void TheShortcutCarriesTheAppsToastIdentity()
+    {
+        var shortcut = Package().Descendants(Wix + "Shortcut").Single(s => (string?)s.Attribute("Id") == "UiShortcut");
+        var id = Assert.Single(shortcut.Elements(Wix + "ShortcutProperty"));
+        Assert.Equal("System.AppUserModel.ID", (string?)id.Attribute("Key"));
+        Assert.Equal(ScreenTrail.Core.Notifications.ToastContent.AppId, (string?)id.Attribute("Value"));
+        Assert.Contains("WindowsToasts.Identify()", File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs")), StringComparison.Ordinal);
+    }
+
     /// <summary>
     /// Review finding C-I1: Installed apps says what the product is, and Modify stays off. No link points
     /// at a placeholder address: a support link in a fleet's Installed apps that goes nowhere is worse than
