@@ -124,6 +124,21 @@ public sealed class InstallerAuthoringTests
         Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
     }
 
+    /// <summary>
+    /// Review finding C-I1: Installed apps says what the product is, and Modify stays off. No link points
+    /// at a placeholder address: a support link in a fleet's Installed apps that goes nowhere is worse than
+    /// none.
+    /// </summary>
+    [Fact]
+    public void InstalledAppsSaysWhatItIsAndLinksNowhereFake()
+    {
+        var properties = Package().Descendants(Wix + "Property").ToDictionary(p => (string)p.Attribute("Id")!, p => (string?)p.Attribute("Value"));
+        Assert.Equal("Session notes from remote support", properties["ARPCOMMENTS"]);
+        Assert.Equal("1", properties["ARPNOMODIFY"]);
+        var installer = File.ReadAllText(Repo.File("installer", "Package.wxs")) + File.ReadAllText(Repo.File("installer", "Bundle.wxs"));
+        Assert.DoesNotContain(".example", installer, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void UserDataIsRemovedOnUninstallAndNeverDuringAnUpgrade()
     {
