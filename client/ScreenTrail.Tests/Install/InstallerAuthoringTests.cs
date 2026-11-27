@@ -72,13 +72,34 @@ public sealed class InstallerAuthoringTests
             .Where(v => (string?)v.Attribute("Key") == InstalledFootprint.RunKey)
             .ToList();
 
-        var service = Assert.Single(run);
+        var service = Assert.Single(run, v => (string?)v.Attribute("Name") == InstalledFootprint.ServiceRunValue);
         Assert.Equal("HKLM", (string?)service.Attribute("Root"));
         Assert.Equal(InstalledFootprint.ServiceRunValue, (string?)service.Attribute("Name"));
         Assert.Equal($"\"[INSTALLFOLDER]{InstalledFootprint.ServiceExecutable}\"", (string?)service.Attribute("Value"));
 
         var loginStartup = File.ReadAllText(Repo.File("client", "ScreenTrail.Service", "Host", "LoginStartup.cs"));
         Assert.Contains($"ServiceValueName = \"{InstalledFootprint.ServiceRunValue}\"", loginStartup, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding C-I7, owner decision 4 (on): the UI starts at sign-in for every user from the
+    /// machine's Run key, in the background and saying it is the machine's start, so a silent deployment
+    /// shows the tray icon and setup. The two Run values are the only ones, and both are installed.
+    /// </summary>
+    [Fact]
+    public void TheUiStartsAtSignInForEveryUser()
+    {
+        var run = Package().Descendants(Wix + "RegistryValue")
+            .Where(v => (string?)v.Attribute("Key") == InstalledFootprint.RunKey)
+            .ToList();
+        Assert.Equal(2, run.Count);
+
+        var ui = Assert.Single(run, v => (string?)v.Attribute("Name") == InstalledFootprint.UiRunValue);
+        Assert.Equal("HKLM", (string?)ui.Attribute("Root"));
+        Assert.Equal(ScreenTrail.Core.Lifecycle.UiStart.MachineSignInCommand($"[INSTALLFOLDER]{InstalledFootprint.UiExecutable}"), (string?)ui.Attribute("Value"));
+
+        var component = (string?)ui.Parent!.Attribute("Id");
+        Assert.Contains(Package().Descendants(Wix + "ComponentRef"), r => (string?)r.Attribute("Id") == component);
     }
 
     [Fact]

@@ -16,6 +16,32 @@ public static class UiStart
     /// <summary>A start nobody asked to see: sign-in, Restart Manager.</summary>
     public const string BackgroundFlag = "--background";
 
+    /// <summary>
+    /// The start from the machine's Run value, which the installer writes for every user (review finding
+    /// C-I7). A technician who turned "Start UI at login" off in Settings cannot remove a machine value, so
+    /// the start reads their choice and ends quietly; see <see cref="StaysOutAtSignIn"/>.
+    /// </summary>
+    public const string MachineSignInFlag = "--at-sign-in";
+
+    /// <summary>The installer's machine Run value for the UI: in the background, and saying it is the machine's start.</summary>
+    public static string MachineSignInCommand(string executable)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executable);
+        return $"\"{executable}\" {BackgroundFlag} {MachineSignInFlag}";
+    }
+
+    /// <summary>
+    /// Whether a start ends at once: the machine's sign-in start, for a technician who turned "Start UI at
+    /// login" off. <paramref name="choice"/> is theirs as kept in the shell's preferences; null, never
+    /// chosen, is on, the default since owner decision 4. Any other start, Restart Manager's included,
+    /// goes ahead.
+    /// </summary>
+    public static bool StaysOutAtSignIn(IReadOnlyList<string> args, bool? choice)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+        return choice == false && args.Contains(MachineSignInFlag, StringComparer.OrdinalIgnoreCase);
+    }
+
     /// <summary>Whether a start with these arguments opens the window.</summary>
     public static bool OpensWindow(IReadOnlyList<string> args)
     {

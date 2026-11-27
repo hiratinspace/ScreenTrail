@@ -111,6 +111,20 @@
                      KeyPath="yes" />
     </Component>
 
+    <!-- Review finding C-I7, owner decision 4 (on): the UI starts at sign-in for whoever signs in, so a
+         silent deployment shows the tray icon and setup at the first sign-in, and a session can record.
+         In the background, and saying it is the machine's start: a technician who turns "Start UI at
+         login" off in Settings is not started (UiStart.StaysOutAtSignIn). The value's name is
+         InstalledFootprint.UiRunValue. -->
+    <Component Id="UiAtSignIn" Directory="INSTALLFOLDER" Guid="{3F0C2B8E-5D41-4A7B-9E36-1C8D7F2A6B94}">
+      <RegistryValue Root="HKLM"
+                     Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                     Name="ScreenTrail.UI"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]ScreenTrail.UI.exe&quot; --background --at-sign-in"
+                     KeyPath="yes" />
+    </Component>
+
     <!-- The backend's address, for every user of the machine: msiexec /i ScreenTrail.msi BACKENDURL=https://...
          An installed service reads it only from here, a key an ordinary user cannot change, and ignores
          SCREENTRAIL_BACKEND (DeploymentAddresses). The value already on the machine is read into a property of
@@ -151,6 +165,7 @@
     <Feature Id="ScreenTrail" Title="ScreenTrail">
       <ComponentGroupRef Id="Payload" />
       <ComponentRef Id="ServiceAtSignIn" />
+      <ComponentRef Id="UiAtSignIn" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="BackendAddress" />
     </Feature>

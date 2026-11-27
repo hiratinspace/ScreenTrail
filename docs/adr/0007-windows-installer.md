@@ -18,7 +18,9 @@ shape it:
 
 1. **The service is a per-user background process, not a Windows Service** (ADR-0003). Hooks and
    capture only work inside the signed-in user's session, so it starts from a Run key at sign-in. The
-   UI runs on demand, or at sign-in when the technician turns "Start UI at login" on.
+   UI runs on demand, and at sign-in from the machine's Run key too unless the technician turns "Start UI
+   at login" off (review finding C-I7, owner decision 4, 2026-11-27: on by default, so a silent
+   deployment shows the tray icon and setup at the first sign-in).
 2. **MSPs deploy with Intune and RMM agents**, which install as the system account, silently, and
    detect success by exit code and product code. A per-user install run that way lands in the system
    account's profile, where nobody ever runs it.

@@ -150,6 +150,14 @@ public partial class App : Application, IDisposable
             // for its window when it was asked for one (from Start, say), and exits; two copies made two tray
             // icons and two pills. A start at sign-in or by Restart Manager says --background and stays in
             // the tray; any other start opens the window.
+            // Review finding C-I7: the installer starts the UI at every sign-in from the machine's Run key; a
+            // technician who turned "Start UI at login" off is not started, and nothing shows.
+            if (Core.Lifecycle.UiStart.StaysOutAtSignIn(e.Args, new Core.Shell.ShellPreferencesStore(Core.Shell.ShellPreferencesStore.DefaultPath).Load().StartAtSignIn))
+            {
+                Shutdown(0);
+                return;
+            }
+
             var opensWindow = Core.Lifecycle.UiStart.OpensWindow(e.Args);
             if (Shell.SingleInstance.Take(opensWindow) is not { } instance)
             {

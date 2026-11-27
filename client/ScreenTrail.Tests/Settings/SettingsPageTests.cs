@@ -60,19 +60,20 @@ public sealed class SettingsPageTests
         var startAtLogin = new List<bool>();
         var (page, capture, privacy, gateways, updates) = await LoadedAsync(startAtLogin.Add);
 
-        capture.StartUiAtLogin = true;
+        // On by default (review finding C-I7), so the change is turning it off.
+        capture.StartUiAtLogin = false;
         privacy.Telemetry = true;
         updates.Choose(UpdateChannel.Pilot);
         Assert.Equal(3, page.PendingCount);
 
         Assert.True(await page.SaveAsync());
 
-        Assert.True(gateways.Capture.Saved!.StartUiAtLogin);
+        Assert.False(gateways.Capture.Saved!.StartUiAtLogin);
         Assert.True(gateways.Privacy.Saved!.Telemetry);
         Assert.Equal(UpdateChannel.Pilot, gateways.Updates.Chosen);
 
         // Capture's save path includes the shell's Run key, as its own Save button did.
-        Assert.Equal([true], startAtLogin);
+        Assert.Equal([false], startAtLogin);
         Assert.False(page.HasPendingChanges);
         Assert.Equal(SaveBarState.Hidden, page.State);
         Assert.Empty(page.Failures);

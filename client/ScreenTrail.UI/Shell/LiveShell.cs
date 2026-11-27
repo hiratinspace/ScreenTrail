@@ -388,7 +388,7 @@ public sealed class LiveShell : IAsyncDisposable
                     new ActivationViewModel(new ActivationPanel(new PipeDevice(_connection), Environment.MachineName)),
                     new CaptureViewModel(
                         new CapturePanel(new PipeCapture(_connection)),
-                        enabled => Task.FromResult(StartAtLogin.Apply(enabled)),
+                        enabled => Task.FromResult(StartAtLogin.Apply(enabled, _preferences)),
                         // Each request waits for a round trip through this dispatcher, so a window that
                         // has hung asks for nothing and the service closes the microphone by itself.
                         new MicrophoneLevelWatch(
