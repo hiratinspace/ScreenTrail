@@ -111,22 +111,39 @@
                     Visibility="{Binding CanTryDraftingAgain, Converter={StaticResource Visible}}" />
         </StackPanel>
 
-        <!-- ST-013: a draft queued for the backend is on its way, not failed, so there is no Retry. The
-             failed pane's shape in a calm tone: the content row, under the title and the banners. -->
-        <StackPanel Grid.Row="2"
-                    Margin="32,0"
-                    VerticalAlignment="Center"
+        <!-- ST-013: a draft queued for the backend is on its way, not failed, so there is no Retry. Review
+             finding B-37: not an Iris disc with a still glyph (Iris is not for empty-state art, and nothing
+             said work was under way) but where the note will be, a 20 px progress ring and the words in
+             Body, then the note's shape in skeleton (a line at 60% and two steps, bg.hover, radius 4). The
+             ring and the blocks appear after 300 ms, and the ring holds still with reduce motion. -->
+        <StackPanel x:Name="DraftPendingPane"
+                    Grid.Row="2"
+                    Margin="24,16,24,0"
+                    VerticalAlignment="Top"
                     Visibility="{Binding DraftPending, Converter={StaticResource Visible}}">
-            <Border Style="{StaticResource EmptyState.Disc}">
-                <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.Sync}" />
-            </Border>
-            <TextBlock Margin="0,16,0,0"
-                       Style="{StaticResource Text.SectionHeading}"
-                       HorizontalAlignment="Center"
-                       TextAlignment="Center"
-                       TextWrapping="Wrap"
-                       controls:LiveRegion.Setting="Polite"
-                       Text="{Binding DraftPendingMessage}" />
+            <StackPanel Orientation="Horizontal">
+                <Control x:Name="DraftingRing"
+                         Width="{DynamicResource Icon.lg}"
+                         Height="{DynamicResource Icon.lg}"
+                         VerticalAlignment="Center"
+                         Style="{StaticResource ProgressRing}"
+                         Foreground="{DynamicResource Brush.accent.primary}" />
+                <TextBlock Margin="8,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Body}"
+                           TextWrapping="Wrap"
+                           controls:LiveRegion.Setting="Polite"
+                           Text="{Binding DraftPendingMessage}" />
+            </StackPanel>
+            <Grid Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource Skeleton}" />
+            </Grid>
+            <Border Margin="0,16,0,0" Height="{DynamicResource Layout.control-height}" Style="{StaticResource Skeleton}" />
+            <Border Margin="0,8,0,0" Height="{DynamicResource Layout.control-height}" Style="{StaticResource Skeleton}" />
         </StackPanel>
 
         <ScrollViewer x:Name="NoteScroll"

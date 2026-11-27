@@ -515,7 +515,7 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     public bool DraftPending { get; }
 
     /// <summary>What the pane says instead of an editor while the draft is on its way.</summary>
-    public string DraftPendingMessage { get; } = "Drafting this session. The note appears here when it arrives.";
+    public string DraftPendingMessage { get; } = "Drafting the note. It appears here when it arrives.";
 
     public IReadOnlyList<BannerRow> Banners { get; }
 

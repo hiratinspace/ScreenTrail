@@ -247,4 +247,22 @@ public sealed class NoteControlsTests
         var code = File.ReadAllText(Path.Combine(Review.EnvelopeLayoutTests.Ui(), "Review", "NoteEditorViewModel.cs"));
         Assert.Contains("public const double NarrowBelow = 560;", code, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding B-37: a draft on its way is a 20 px progress ring and the words in Body where the note
+    /// will be, then the note's shape in skeleton, not an Iris disc with a still glyph.
+    /// </summary>
+    [Fact]
+    public void ADraftOnItsWayIsARingAndTheNotesShapeInSkeleton()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var pane = note.Descendants(Wpf + "StackPanel").Single(p => (string?)p.Attribute(Xaml + "Name") == "DraftPendingPane");
+        Assert.DoesNotContain(pane.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource EmptyState.Disc}");
+
+        var ring = pane.Descendants(Wpf + "Control").Single(c => (string?)c.Attribute(Xaml + "Name") == "DraftingRing");
+        Assert.Equal("{StaticResource ProgressRing}", (string?)ring.Attribute("Style"));
+        Assert.Equal("{DynamicResource Icon.lg}", (string?)ring.Attribute("Width"));
+        Assert.Contains(pane.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding DraftPendingMessage}" && (string?)t.Attribute("Style") == "{StaticResource Text.Body}");
+        Assert.Equal(3, pane.Descendants(Wpf + "Border").Count(b => (string?)b.Attribute("Style") == "{StaticResource Skeleton}"));
+    }
 }
