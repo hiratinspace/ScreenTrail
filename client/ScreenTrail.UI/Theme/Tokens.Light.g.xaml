@@ -165,5 +165,7 @@
     <Thickness x:Key="Thickness.selected-edge">0</Thickness>
     <Color x:Key="Token.selection.edge">#00000000</Color>
     <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />
+    <Color x:Key="Token.skeleton.edge">#00000000</Color>
+    <SolidColorBrush x:Key="Brush.skeleton.edge" Color="Transparent" />
     <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>
 </ResourceDictionary>
