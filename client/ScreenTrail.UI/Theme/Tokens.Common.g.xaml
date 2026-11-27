@@ -40,7 +40,7 @@
     <sys:Double x:Key="Layout.control-padding-x">12</sys:Double>
     <sys:Double x:Key="Layout.row-height">36</sys:Double>
     <sys:Double x:Key="Layout.control-height">32</sys:Double>
-    <sys:Double x:Key="Layout.hud-height">44</sys:Double>
+    <sys:Double x:Key="Layout.hud-height">40</sys:Double>
     <sys:Double x:Key="Layout.hud-min-width">240</sys:Double>
     <sys:Double x:Key="Layout.hud-word-max">200</sys:Double>
     <sys:Double x:Key="Layout.hit-target-min">28</sys:Double>

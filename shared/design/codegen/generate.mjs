@@ -60,6 +60,9 @@ function wpfColors(t, theme) {
   // A chosen segment's edge (design system 10.3, review finding B-21): none in light and dark, where its tint
   // says it; 2 px Highlight in high contrast, where the tint is the window colour.
   lines.push('    <Thickness x:Key="Thickness.selected-edge">0</Thickness>');
+  // A floating surface's edge, the pill and its card (design system 10.10, review finding C-H6): 1 px
+  // border.strong in light and dark; 2 px WindowFrame in high contrast, where there is no shadow to lift it.
+  lines.push('    <Thickness x:Key="Thickness.float-edge">1</Thickness>');
   // A selected row's edge (design system 12, review findings A-35, E-28): clear in light and dark, where the
   // fill and the bar say it; Highlight in high contrast, where both are the window colour. A token and not
   // the system flag, so a render with the high-contrast dictionary draws what high contrast does.

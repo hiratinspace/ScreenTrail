@@ -117,6 +117,38 @@ public sealed partial class PillResourcesTests
     [GeneratedRegex(@"\{StaticResource\s+(?<key>[^}\s]+)\s*\}")]
     private static partial Regex StaticLookup();
 
+    /// <summary>
+    /// Review finding C-H6 (less the shadow, which waits for a Windows check): the pill is 40 tall with a
+    /// 1 px border.strong edge, 2 px in high contrast, and so is its card's; the 32 px buttons still fit.
+    /// </summary>
+    [Fact]
+    public void ThePillIs40TallWithAStrongEdgeThatHighContrastDoubles()
+    {
+        var theme = Path.Combine(AppContext.BaseDirectory, "Theme");
+        double Height(string key) => double.Parse(XDocument.Load(Path.Combine(theme, "Tokens.Common.g.xaml")).Root!.Elements()
+            .Single(e => (string?)e.Attribute(X + "Key") == key).Value, System.Globalization.CultureInfo.InvariantCulture);
+        string Edge(string file) => XDocument.Load(Path.Combine(theme, file)).Root!.Elements()
+            .Single(e => (string?)e.Attribute(X + "Key") == "Thickness.float-edge").Value;
+
+        Assert.Equal(40, Height("Layout.hud-height"));
+        Assert.Equal("1", Edge("Tokens.Light.g.xaml"));
+        Assert.Equal("1", Edge("Tokens.Dark.g.xaml"));
+        Assert.Equal("2", Edge("Tokens.HighContrast.xaml"));
+
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        foreach (var name in new[] { "Pill", "Card" })
+        {
+            var surface = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
+            Assert.Equal("{DynamicResource Brush.border.strong}", (string?)surface.Attribute("BorderBrush"));
+            Assert.Equal("{DynamicResource Thickness.float-edge}", (string?)surface.Attribute("BorderThickness"));
+        }
+
+        // 40 less the 2 px high contrast edge both sides and the padding above and below holds a 32 px button.
+        var frame = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "Pill");
+        var padding = ((string)frame.Attribute("Padding")!).Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        Assert.True(40 - (2 * 2) - padding[1] - padding[3] >= Height("Layout.hud-control"), "The pill's buttons do not fit inside it.");
+    }
+
     /// <summary>Review finding C-H9, amendment 24: Stop sits 8 from Pause, the other buttons 4 apart.</summary>
     [Fact]
     public void StopSitsFurtherFromPauseThanTheOtherButtonsSitApart()

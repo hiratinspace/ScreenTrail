@@ -109,9 +109,13 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- v0.6.0 (Spec §5 S2): part of the frame. shell.bg with an outline, Layout.hud-height tall, fully
-             rounded. No ribbon cap (review finding C-H5): the pill's curve cut it into a wedge that read as a
-             rendering glitch, and Iris on a status control breaks the brand's one job. -->
+        <!-- v0.6.0 (Spec §5 S2): part of the frame. shell.bg, fully rounded, Layout.hud-height (40) tall. No
+             ribbon cap (review finding C-H5): the pill's curve cut it into a wedge that read as a rendering
+             glitch, and Iris on a status control breaks the brand's one job. The edge is 1 px border.strong
+             (C-H6): shell.muted was the loudest line on the pill in dark; high contrast draws 2 px WindowFrame.
+             2 above and below, not design system 10.10's 4: 40 less a 1 px edge and 4 + 4 leaves 30, under the
+             32 px buttons. The float shadow waits for a Windows check (its margin must be click-through on a
+             layered window), so it is not drawn yet. -->
         <Border x:Name="Pill"
                 Grid.Row="0"
                 HorizontalAlignment="Left"
@@ -119,9 +123,9 @@
                 MinWidth="{DynamicResource Layout.hud-min-width}"
                 CornerRadius="{DynamicResource Radius.pill}"
                 Background="{DynamicResource Brush.shell.bg}"
-                BorderBrush="{DynamicResource Brush.shell.muted}"
-                BorderThickness="1"
-                Padding="12,4,4,4"
+                BorderBrush="{DynamicResource Brush.border.strong}"
+                BorderThickness="{DynamicResource Thickness.float-edge}"
+                Padding="12,2,4,2"
                 MouseLeftButtonDown="OnPillMouseDown"
                 MouseRightButtonUp="OnPillRightClick">
             <Grid>
@@ -278,7 +282,7 @@
                 CornerRadius="{DynamicResource Radius.float}"
                 Background="{DynamicResource Brush.shell.bg}"
                 BorderBrush="{DynamicResource Brush.border.strong}"
-                BorderThickness="1"
+                BorderThickness="{DynamicResource Thickness.float-edge}"
                 Visibility="{Binding Expanded, Converter={StaticResource Visible}}">
             <StackPanel>
                 <TextBlock Margin="0,0,0,8"
