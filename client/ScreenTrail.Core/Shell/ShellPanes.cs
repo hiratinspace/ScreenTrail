@@ -217,7 +217,8 @@ public static class ShellStatus
         return snapshot.KnownCapture?.State switch
         {
             CaptureStates.Recording => HudTone.Recording,
-            CaptureStates.Paused or CaptureStates.Suppressed or CaptureStates.Finalizing => HudTone.Paused,
+            // Finishing up has no hue, as on the pill (review finding C-H12).
+            CaptureStates.Paused or CaptureStates.Suppressed => HudTone.Paused,
             _ => HudTone.Idle,
         };
     }

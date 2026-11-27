@@ -259,6 +259,19 @@ public sealed class HudStateTests
     }
 
     /// <summary>
+    /// Review finding C-H12: finishing up after Stop is the turning ring with no hue. It was amber with a
+    /// still ellipsis for up to 20 seconds, which said "something needs you" and looked frozen.
+    /// </summary>
+    [Fact]
+    public void FinishingUpTurnsInNoHue()
+    {
+        var hud = HudState.For(Capture(CaptureStates.Finalizing));
+        Assert.Equal(HudTone.Idle, hud.State.Tone);
+        Assert.Equal(HudGlyphs.Busy, hud.State.Glyph);
+        Assert.Equal("Finishing up", hud.State.Text);
+    }
+
+    /// <summary>
     /// Review finding C-H3: each state's mark is a vector shape or a Fluent icon by concept, never a text
     /// character. Auto-paused is the lock, not a second pause symbol beside the Pause button.
     /// </summary>

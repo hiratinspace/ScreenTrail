@@ -142,7 +142,7 @@ internal static class HudPreview
 
         // Review finding C-H13: every state the pill has words for, not only the spec's list. The pill is
         // put away between sessions (INV-4), but these words exist and are shown while it is up.
-        yield return ("finishing", For(CaptureStates.Finalizing), HudTone.Paused);
+        yield return ("finishing", For(CaptureStates.Finalizing), HudTone.Idle);
         yield return ("not-recording", For(CaptureStates.Idle), HudTone.Idle);
         yield return ("draft-ready", For(CaptureStates.DraftReady), HudTone.Idle);
         yield return ("draft-failed", For(CaptureStates.DraftFailed), HudTone.Idle);

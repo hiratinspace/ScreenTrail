@@ -18,7 +18,7 @@ public sealed class StateCopyTests
     [InlineData(CaptureStates.Recording, HudTone.Recording)]
     [InlineData(CaptureStates.Paused, HudTone.Paused)]
     [InlineData(CaptureStates.Suppressed, HudTone.Paused)]
-    [InlineData(CaptureStates.Finalizing, HudTone.Paused)]
+    [InlineData(CaptureStates.Finalizing, HudTone.Idle)]
     [InlineData(CaptureStates.Idle, HudTone.Idle)]
     [InlineData(CaptureStates.DraftReady, HudTone.Idle)]
     [InlineData("new_state", HudTone.Idle)]

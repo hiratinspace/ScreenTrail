@@ -267,7 +267,9 @@ public static class HudState
             // pressed anything, and a pill that just says "paused" invites them to look for what they did.
             CaptureStates.Suppressed => Suppressed(capture),
 
-            CaptureStates.Finalizing => new HudSegment(HudTone.Paused, HudGlyphs.Busy, "Finishing up"),
+            // No hue (review finding C-H12): amber says "something needs you", and nothing does while the
+            // last screenshots are masked. The turning ring says it is working, not frozen.
+            CaptureStates.Finalizing => new HudSegment(HudTone.Idle, HudGlyphs.Busy, "Finishing up"),
 
             CaptureStates.Idle => new HudSegment(HudTone.Idle, HudGlyphs.Ring, "Not recording"),
 
