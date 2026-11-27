@@ -2177,6 +2177,56 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- A table's column header (ST-084, review finding A-10): keyed so a number column's header can be
+         right aligned over its figures (HorizontalContentAlignment). -->
+    <Style x:Key="Table.Header" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Height" Value="{DynamicResource Layout.row-height}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <!-- Spec §3 makes the table sortable, and a header is how it sorts. WPF's headers take no
+             focus, so sorting needed the mouse (ST-084); focusable, Space or Enter sorts. -->
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="TextWrapping" Value="NoWrap" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- The filler WPF adds after the last column is no column and sorts nothing. -->
+            <DataTrigger Binding="{Binding Column, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="IsEnabled" Value="False" />
+            </DataTrigger>
+            <!-- The ring is cut off at the table's top edge, so the focused header is drawn in
+                 the accent with its words in the accent's text colour, as high contrast draws a
+                 selection: an underline alone was too faint on a scaled screen (ST-084). -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="Table" TargetType="DataGrid">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
@@ -2193,58 +2243,7 @@
         <Setter Property="EnableRowVirtualization" Value="True" />
         <Setter Property="RowBackground" Value="Transparent" />
         <Setter Property="AlternatingRowBackground" Value="Transparent" />
-        <Setter Property="ColumnHeaderStyle">
-            <Setter.Value>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-                    <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-                    <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
-                    <Setter Property="Padding" Value="12,0" />
-                    <Setter Property="Height" Value="{DynamicResource Layout.row-height}" />
-                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                    <!-- Spec §3 makes the table sortable, and a header is how it sorts. WPF's headers take no
-                         focus, so sorting needed the mouse (ST-084); focusable, Space or Enter sorts. -->
-                    <Setter Property="Focusable" Value="True" />
-                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="DataGridColumnHeader">
-                                <Border Padding="{TemplateBinding Padding}"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}">
-                                    <ContentPresenter VerticalAlignment="Center">
-                                        <ContentPresenter.Resources>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                                <Setter Property="TextWrapping" Value="NoWrap" />
-                                            </Style>
-                                        </ContentPresenter.Resources>
-                                    </ContentPresenter>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <!-- The filler WPF adds after the last column is no column and sorts nothing. -->
-                        <DataTrigger Binding="{Binding Column, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
-                            <Setter Property="Focusable" Value="False" />
-                            <Setter Property="IsEnabled" Value="False" />
-                        </DataTrigger>
-                        <!-- The ring is cut off at the table's top edge, so the focused header is drawn in
-                             the accent with its words in the accent's text colour, as high contrast draws a
-                             selection: an underline alone was too faint on a scaled screen (ST-084). -->
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Setter.Value>
-        </Setter>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource Table.Header}" />
         <Setter Property="RowStyle" Value="{StaticResource Table.Row}" />
         <Setter Property="CellStyle">
             <Setter.Value>

@@ -279,6 +279,22 @@ public static class InboxRail
         return new InboxItem(row, group, title, age, meta, badge, spoken, subtitle, ShortAge(row.StartedAt, now, zone));
     }
 
+    /// <summary>
+    /// Which session a row is, on one line, for the All sessions table (review finding R-03): the rail's
+    /// own fields in its order, then the tool, "Acme Dental · Printer offline · #48213 · ScreenConnect".
+    /// With none of them known it is the rail's heading for such a row, "ScreenConnect session", so the
+    /// cell is never blank. The tool is on this line because the table has no room for a column of its
+    /// own beside this one at the smallest window.
+    /// </summary>
+    public static string SessionLine(SessionRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        var ticket = SessionHistory.Known(row.Ticket);
+        var tool = ToolNames.Display(row.Tool);
+        var named = Join(" · ", SessionHistory.Known(row.Company), SessionHistory.Known(row.Title), ticket is null ? null : $"#{ticket}");
+        return named.Length > 0 ? $"{named} · {tool}" : $"{tool} session";
+    }
+
     private static string Screenshots(int frames) =>
         frames == 1 ? "1 screenshot" : string.Create(CultureInfo.InvariantCulture, $"{frames} screenshots");
 
