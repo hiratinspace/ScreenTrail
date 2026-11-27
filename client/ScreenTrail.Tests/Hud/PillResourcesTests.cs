@@ -92,6 +92,26 @@ public sealed partial class PillResourcesTests
     [GeneratedRegex(@"""#[0-9A-Fa-f]{3,8}""|Colors\.|=""(?:Red|White|Black|Gray)""")]
     private static partial Regex TypedColour();
 
+    /// <summary>
+    /// The pill is built on a bare UI thread in the shell's quit, re-dock and clock tests, where the app's
+    /// resources are not loaded. A static lookup of an app resource throws there while the window is built
+    /// (ST-127 named the pill's icons statically, and five Windows tests failed on Icon.Shield), so only
+    /// the pill's own resources are looked up statically.
+    /// </summary>
+    [Fact]
+    public void OnlyThePillsOwnResourcesAreLookedUpStatically()
+    {
+        var pill = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var own = Keys(XDocument.Parse(pill)).ToHashSet(StringComparer.Ordinal);
+        var statics = StaticLookup().Matches(pill).Select(m => m.Groups["key"].Value).ToList();
+
+        Assert.Contains("Hud.Icon", statics);
+        Assert.DoesNotContain(statics, key => !own.Contains(key));
+    }
+
+    [GeneratedRegex(@"\{StaticResource\s+(?<key>[^}\s]+)\s*\}")]
+    private static partial Regex StaticLookup();
+
     private static IEnumerable<string> Keys(XDocument document) =>
         document.Descendants().Select(e => e.Attribute(X + "Key")?.Value).OfType<string>();
 
