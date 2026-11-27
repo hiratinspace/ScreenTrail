@@ -167,7 +167,7 @@ public sealed partial class PublishViewModel : ObservableObject
     [ObservableProperty]
     public partial string PublishError { get; set; } = string.Empty;
 
-    /// <summary>Beside Publish: "1 inferred step not checked", or empty.</summary>
+    /// <summary>Beside Publish: "1 step not checked yet", or empty.</summary>
     [ObservableProperty]
     public partial string OpenItems { get; set; } = string.Empty;
 

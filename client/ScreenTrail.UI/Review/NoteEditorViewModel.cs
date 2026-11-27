@@ -122,11 +122,11 @@ public sealed partial class StepRow : ObservableObject
     /// <summary>When it happened, "14:04", on the session's clock; null for a step the technician added.</summary>
     public string? Time { get; }
 
-    /// <summary>Whether the ⚠ marker is up. Spec §7: never the only signal: the words "Inferred from screen only" are beside it.</summary>
+    /// <summary>Whether the ⚠ marker is up. Spec §7: never the only signal: the words "From the screen only" are beside it.</summary>
     public bool NeedsVerification => _step.NeedsVerification;
 
     /// <summary>Spec §5 S3, verbatim.</summary>
-    public string VerificationTooltip { get; } = "Inferred from screen only. Please verify.";
+    public string VerificationTooltip { get; } = NoteLanding.InferredWhy;
 
     /// <summary>The line an inferred step carries (Spec v0.6.0 §5 S3).</summary>
     public string InferredLine { get; } = NoteLanding.Inferred;
@@ -493,8 +493,8 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     public string UnverifiedLabel => _note.UnverifiedSteps switch
     {
         0 => "Every step checked",
-        1 => "1 step still inferred",
-        var many => $"{many} steps still inferred",
+        1 => "1 step to check",
+        var many => $"{many} steps to check",
     };
 
     [ObservableProperty]

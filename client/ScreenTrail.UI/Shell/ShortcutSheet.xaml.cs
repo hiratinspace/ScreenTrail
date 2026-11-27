@@ -71,7 +71,7 @@ public partial class ShortcutSheet : Window
             new("Enter", "On the receipt: open the next session to check"),
         ]),
         new("In a step of the note", [
-            new("Alt+C", "Confirm a step marked as inferred"),
+            new("Alt+C", "Mark a step as checked (Looks right)"),
             new("Alt+Up, Alt+Down", "Move the step up or down"),
             new("Enter", "At the end of a step: start a new step"),
             new("Backspace", "In an empty step: delete the step"),

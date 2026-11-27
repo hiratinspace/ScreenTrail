@@ -224,7 +224,7 @@ public sealed class NoteAsItLandsTests
         var step = review.Note.Steps[1];
 
         Assert.True(step.NeedsVerification);
-        Assert.Equal("Inferred from screen only", step.InferredLine);
+        Assert.Equal("From the screen only", step.InferredLine);
         Assert.Equal("Looks right, step 2", step.ConfirmName);
         Assert.Equal("Edit step 2", step.EditName);
         Assert.Equal("2", step.Number);

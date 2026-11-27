@@ -110,8 +110,8 @@ public sealed class EnvelopeTests
     public void WhatIsStillOpenCountsInferredStepsNotChecked()
     {
         Assert.Null(PublishPanel.OpenItems(Draft(Step("Checked the spooler."))));
-        Assert.Equal("1 inferred step not checked", PublishPanel.OpenItems(Draft(Step("a"), Step("b", StepConfidence.Low))));
-        Assert.Equal("2 inferred steps not checked", PublishPanel.OpenItems(Draft(Step("a", StepConfidence.Low), Step("b", StepConfidence.Low))));
+        Assert.Equal("1 step not checked yet", PublishPanel.OpenItems(Draft(Step("a"), Step("b", StepConfidence.Low))));
+        Assert.Equal("2 steps not checked yet", PublishPanel.OpenItems(Draft(Step("a", StepConfidence.Low), Step("b", StepConfidence.Low))));
 
         // Looks right (Alt+C) checks it.
         Assert.Null(PublishPanel.OpenItems(Draft(Step("a", StepConfidence.Low) with { Confirmed = true })));

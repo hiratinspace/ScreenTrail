@@ -580,7 +580,7 @@ public sealed class PublishPanel
         : $"KB article in {ProviderName(Destination.KbArticle)}";
 
     /// <summary>
-    /// What is still open beside Publish (Spec v0.4.3): "1 inferred step not checked". Null when every
+    /// What is still open beside Publish (Spec v0.4.3): "1 step not checked yet" (E-11). Null when every
     /// inferred step is checked. It never holds Publish back; it says what the technician has not looked at.
     /// </summary>
     public static string? OpenItems(DraftNote? note)
@@ -589,8 +589,8 @@ public sealed class PublishPanel
         return open switch
         {
             0 => null,
-            1 => "1 inferred step not checked",
-            _ => string.Create(CultureInfo.InvariantCulture, $"{open} inferred steps not checked"),
+            1 => "1 step not checked yet",
+            _ => string.Create(CultureInfo.InvariantCulture, $"{open} steps not checked yet"),
         };
     }
 
