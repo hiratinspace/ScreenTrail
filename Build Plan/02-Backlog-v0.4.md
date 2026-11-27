@@ -2311,7 +2311,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-01, B-44, C-O3, A-03/D-25/E-27, A-04 to A-07, A-34, A-35/E-28, R-01
 - **Blocked By:** ST-127, ST-130
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: one selection treatment, the fill and the 3 x 16 bar (A-01), Settings' nav rows (B-44), the onboarding steps (C-O3), the status chip on one line with its time apart, and full text for trimmed titles and cells (A-03/D-25/E-27), the rail search (A-04), rail row geometry and a pressed state (A-05), the group headings' x (A-06), the foot nav (A-07), the compact age (A-34), the token-driven high-contrast edge (A-35/E-28), and the Review render's selected row (R-01). Laptop: the rail, foot and Settings nav in light and dark with an open row; hover and press on rail and Settings rows; the chip at 1024 wide and at 150% while recording; the narrow rail's titles; real high contrast on the rail, table, Settings and onboarding (does a focused selected table row still show its focus outline over the edge?); the render job and shell-review's selected row. Left: adding selection to `Audit.TabAsync`'s high-contrast pass.
 
 ### **ST-132 · Gallery state matrix and the missing renders**
 - **Findings:** B-56, C-H13, inventory gaps
