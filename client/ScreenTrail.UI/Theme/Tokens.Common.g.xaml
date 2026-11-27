@@ -85,6 +85,7 @@
     <sys:Double x:Key="Layout.tooltip-max-width">320</sys:Double>
     <sys:Double x:Key="Layout.scroll-thumb-hover">8</sys:Double>
     <sys:Double x:Key="Layout.scroll-thumb-min">32</sys:Double>
+    <sys:Double x:Key="Layout.save-bar-height">48</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>

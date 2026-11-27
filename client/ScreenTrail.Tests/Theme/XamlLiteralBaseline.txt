@@ -38,7 +38,7 @@ Theme/Components.xaml	CornerRadius	6,0,0,0	1
 Theme/Components.xaml	CornerRadius	6,0,0,6	1
 Theme/Components.xaml	CornerRadius	8	1
 Theme/Components.xaml	Height	12	2
-Theme/Components.xaml	Height	16	2
+Theme/Components.xaml	Height	16	3
 Theme/Components.xaml	Height	20	2
 Theme/Components.xaml	Height	4	1
 Theme/Components.xaml	Height	40	1
@@ -48,7 +48,6 @@ Theme/Components.xaml	Margin	0,0,0,1	1
 Theme/Components.xaml	Margin	0,1	1
 Theme/Components.xaml	MinHeight	12	1
 Theme/Components.xaml	MinHeight	36	1
-Theme/Components.xaml	MinHeight	52	1
 Theme/Components.xaml	MinWidth	12	1
 Theme/Components.xaml	Padding	10,0	2
 Theme/Components.xaml	Padding	10,2	1
@@ -61,6 +60,7 @@ Theme/Components.xaml	Padding	14,6,10,6	1
 Theme/Components.xaml	Padding	2	1
 Theme/Components.xaml	Padding	6	1
 Theme/Components.xaml	Width	12	2
+Theme/Components.xaml	Width	16	1
 Theme/Components.xaml	Width	20	1
 Theme/Components.xaml	Width	40	2
 Theme/Components.xaml	Width	8	3

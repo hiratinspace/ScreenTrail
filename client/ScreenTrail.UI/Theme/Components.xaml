@@ -304,6 +304,14 @@
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
+            <!-- Loading (theme:Busy.Active): the work is on its way, so the button keeps its fill while it
+                 cannot be pressed again (review finding B-46). Last, so it wins over disabled. -->
+            <Trigger Property="theme:Busy.Active" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
         </Style.Triggers>
     </Style>
     <!-- Ghost: no fill and no edge at rest. Hover fills, and no box appears (a border growing on hover is
@@ -1425,6 +1433,51 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- ProgressRing (design system 10.8): a 16 px three-quarter ring in its foreground, turning once a
+         second while it is shown; the one thing allowed to loop. Not focusable: the words beside it say what
+         is happening. -->
+    <Style x:Key="ProgressRing" TargetType="Control">
+        <Setter Property="Width" Value="{DynamicResource Icon.control}" />
+        <Setter Property="Height" Value="{DynamicResource Icon.control}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Control">
+                    <Viewbox>
+                        <Path x:Name="Arc"
+                              Width="16"
+                              Height="16"
+                              Data="M 8,1.5 A 6.5,6.5 0 1 1 1.5,8"
+                              RenderTransformOrigin="0.5,0.5"
+                              Stroke="{TemplateBinding Foreground}"
+                              StrokeEndLineCap="Round"
+                              StrokeStartLineCap="Round"
+                              StrokeThickness="2">
+                            <Path.RenderTransform>
+                                <RotateTransform x:Name="Spin" />
+                            </Path.RenderTransform>
+                        </Path>
+                    </Viewbox>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsVisible" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard x:Name="Turn">
+                                    <Storyboard RepeatBehavior="Forever">
+                                        <DoubleAnimation Storyboard.TargetName="Spin" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <StopStoryboard BeginStoryboardName="Turn" />
+                            </Trigger.ExitActions>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <!-- The thumb (design system 10.8, review findings A-33, B-29): a 4 px pill in border.strong at rest, so
          a scrolling area does not add a full-strength line beside every list; 8 wide in text.muted while the
          pointer is over its track or it is held (text.secondary), at least 32 long. In high contrast it is 8
@@ -2052,10 +2105,11 @@
 
     <!-- The Save bar: a raised strip pinned under the page, outlined above, so it reads as the page's own
          and not as a toast. No shadow: the frame and the pill are the only things that float. -->
+    <!-- The Save bar (review finding B-46): 16 at the sides and 8 above and below, at least 48 high. -->
     <Style x:Key="SaveBar" TargetType="Border">
         <Setter Property="Margin" Value="0,12,0,0" />
-        <Setter Property="Padding" Value="16,12" />
-        <Setter Property="MinHeight" Value="52" />
+        <Setter Property="Padding" Value="16,8" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.save-bar-height}" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Setter Property="BorderThickness" Value="1" />
