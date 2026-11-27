@@ -24,21 +24,15 @@ public partial class ShortcutSheet : Window
     /// <summary>One line of the sheet: the keys, and what they do. Only keys go in <paramref name="Keys"/>; where they work goes in the words.</summary>
     public sealed record Chord(string Keys, string Action)
     {
-        /// <summary>The line's key caps (<see cref="KeyCaps"/>), each with the comma drawn after it, if any.</summary>
-        public IReadOnlyList<Cap> Caps { get; } = CapsOf(Keys);
+        /// <summary>The line's key caps (<see cref="KeyCaps"/>): alternatives drawn 4 apart, with no comma between.</summary>
+        public IReadOnlyList<Cap> Caps { get; } = [.. KeyCaps.Of(Keys).Select(key => new Cap(key))];
 
         /// <summary>The keys as a screen reader hears the line's caps: "Alt+1, Alt+2 or Alt+3".</summary>
         public string Spoken => KeyCaps.Spoken(Keys);
-
-        private static Cap[] CapsOf(string keys)
-        {
-            var caps = KeyCaps.Of(keys);
-            return [.. caps.Select((key, i) => new Cap(key, i < caps.Count - 1 ? "," : string.Empty))];
-        }
     }
 
-    /// <summary>One key cap and what is drawn after it: a comma between alternatives, or nothing.</summary>
-    public sealed record Cap(string Key, string After);
+    /// <summary>One key cap.</summary>
+    public sealed record Cap(string Key);
 
     /// <summary>A heading and its chords.</summary>
     public sealed record Group(string Name, IReadOnlyList<Chord> Chords);

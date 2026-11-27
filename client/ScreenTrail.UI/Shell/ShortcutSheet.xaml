@@ -18,16 +18,6 @@
             <Setter Property="Margin" Value="0,16,0,4" />
         </Style>
 
-        <!-- A key cap on the sheet (v0.6.11): the raised fill and the strong edge of a secondary button at
-             rest, with the key in body colour, since here the keys are what is being read. No taller than a
-             line of body text, so a line with caps is no taller than one without. -->
-        <Style x:Key="KeyCap.Sheet" BasedOn="{StaticResource KeyCap}" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-            <Setter Property="Padding" Value="4,0" />
-            <Setter Property="MinWidth" Value="24" />
-            <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.primary}" />
-        </Style>
-
         <!-- One group: its heading, then a line per chord, each key in its cap. -->
         <DataTemplate x:Key="Sheet.Group">
             <StackPanel>
@@ -48,19 +38,12 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Border Style="{StaticResource KeyCap.Sheet}">
-                                                    <TextBlock HorizontalAlignment="Center"
-                                                               Style="{StaticResource Text.KeyHint}"
-                                                               FontSize="{DynamicResource Size.sm}"
-                                                               Text="{Binding Key}" />
-                                                </Border>
-                                                <!-- Drawn, not read: the line is read as one text, its keys joined with "or" (KeyCapList). -->
-                                                <controls:Glyph Margin="0,0,4,0"
-                                                                VerticalAlignment="Bottom"
-                                                                Style="{StaticResource Text.Muted}"
-                                                                Text="{Binding After}" />
-                                            </StackPanel>
+                                            <!-- The one key cap (design system 10.5, review finding B-31): alternatives are
+                                                 caps 4 apart with no comma, which sat below the caps; the line is read as
+                                                 one text with "or" between them (KeyCapList). -->
+                                            <Border Margin="0,0,4,4" Style="{StaticResource KeyCap}">
+                                                <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.KeyHint}" Text="{Binding Key}" />
+                                            </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </controls:KeyCapList>
