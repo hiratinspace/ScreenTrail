@@ -111,6 +111,7 @@
                 Grid.Row="0"
                 HorizontalAlignment="Left"
                 Height="{DynamicResource Layout.hud-height}"
+                MinWidth="{DynamicResource Layout.hud-min-width}"
                 CornerRadius="{DynamicResource Radius.pill}"
                 Background="{DynamicResource Brush.shell.bg}"
                 BorderBrush="{DynamicResource Brush.shell.muted}"
@@ -149,11 +150,17 @@
                          the state word in Body strong, then the session's clock in Body, frozen while paused.
                          The word changes; the clock keeps its place, so the pill does not jump between a
                          clock and a sentence. -->
+                    <!-- A width limit and an ellipsis, the whole words in the tooltip (review finding C-H2): a
+                         long app name made the pill a banner over the customer's screen. 200 is what a 420 px
+                         pill (design system 10.10) leaves the word beside the mark, the clock and three
+                         buttons; the mark, the clock and the buttons never trim. -->
                     <TextBlock Margin="8,0,0,0"
+                               MaxWidth="{DynamicResource Layout.hud-word-max}"
                                Style="{StaticResource Hud.Text}"
                                FontWeight="{DynamicResource Weight.semibold}"
+                               TextTrimming="CharacterEllipsis"
                                Text="{Binding StateWord}"
-                               ToolTip="{Binding StateTooltip}"
+                               ToolTip="{Binding StateWordTooltip}"
                                AutomationProperties.Name="{Binding SpokenState}"
                                controls:LiveRegion.Setting="Assertive"
                                controls:LiveRegion.Key="{Binding Announcement}" />

@@ -118,6 +118,23 @@ public sealed partial class PillResourcesTests
     private static partial Regex StaticLookup();
 
     /// <summary>
+    /// Review finding C-H2: a long state word trims with an ellipsis and keeps its whole words in the
+    /// tooltip, so the pill stays a pill; and it is never narrower than 240.
+    /// </summary>
+    [Fact]
+    public void TheStateWordTrimsAndThePillHasAMinimumWidth()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var word = pill.Descendants().Single(e => (string?)e.Attribute("Text") == "{Binding StateWord}");
+        Assert.Equal("CharacterEllipsis", (string?)word.Attribute("TextTrimming"));
+        Assert.Equal("{DynamicResource Layout.hud-word-max}", (string?)word.Attribute("MaxWidth"));
+        Assert.Equal("{Binding StateWordTooltip}", (string?)word.Attribute("ToolTip"));
+
+        var frame = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "Pill");
+        Assert.Equal("{DynamicResource Layout.hud-min-width}", (string?)frame.Attribute("MinWidth"));
+    }
+
+    /// <summary>
     /// Review finding C-H3: the state mark is drawn (dot, ring, progress ring) or is an icon looked up by
     /// name. Every icon a state can carry has its trigger in the pill, and no state text goes into the mark.
     /// </summary>

@@ -149,6 +149,9 @@ public sealed partial class HudViewModel : ObservableObject
 
     public string? StateTooltip => Snapshot.State.Tooltip;
 
+    /// <summary>The state word's tooltip: the whole words, since a long one trims (review finding C-H2), then why.</summary>
+    public string StateWordTooltip => Snapshot.State.Tooltip is { } why ? $"{Snapshot.State.Text}. {why}" : Snapshot.State.Text;
+
     /// <summary>The pill as a screen reader says it (Spec §7), clock included.</summary>
     public string SpokenState => Snapshot.Spoken;
 
@@ -287,6 +290,7 @@ public sealed partial class HudViewModel : ObservableObject
     private void Notify()
     {
         OnPropertyChanged(nameof(StateWord));
+        OnPropertyChanged(nameof(StateWordTooltip));
         OnPropertyChanged(nameof(Timer));
         OnPropertyChanged(nameof(ShowTimer));
         OnPropertyChanged(nameof(StateGlyph));

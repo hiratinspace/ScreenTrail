@@ -93,6 +93,8 @@
   --layout-row-height: 32px;
   --layout-control-height: 32px;
   --layout-hud-height: 44px;
+  --layout-hud-min-width: 240px;
+  --layout-hud-word-max: 200px;
   --layout-hit-target-min: 28px;
   --layout-hud-control: 32px;
   --layout-content-max-width: 760px;
