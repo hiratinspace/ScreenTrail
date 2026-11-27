@@ -262,7 +262,7 @@ public static class TrayMenu
         }
 
         var words = string.IsNullOrWhiteSpace(result.Error) ? StartRefused : result.Error;
-        return new Notification(words, NotificationAction.None, $"tray-start-refused:{words}");
+        return new Notification(words, NotificationAction.None, $"tray-start-refused:{words}", "Capture not started");
     }
 
     /// <summary>The reason a row cannot be chosen while the service is not answering (the state line says "Capture service not running").</summary>

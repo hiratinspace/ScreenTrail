@@ -255,9 +255,11 @@ public sealed class TrayIconHost : IDisposable
         }
 
         _pending = notice.Action;
-        _icon.BalloonTipTitle = "ScreenTrail";
+        // The event as the title and the body says what a click does (review finding E-14); the icon
+        // marks the two that need a look.
+        _icon.BalloonTipTitle = notice.Title;
         _icon.BalloonTipText = notice.Text;
-        _icon.BalloonTipIcon = Forms.ToolTipIcon.None;
+        _icon.BalloonTipIcon = notice.Level == NotificationLevel.Warning ? Forms.ToolTipIcon.Warning : Forms.ToolTipIcon.Info;
 
         // Ten seconds is a hint; Windows applies its own accessibility timeout, which is longer for
         // people who have asked for longer.

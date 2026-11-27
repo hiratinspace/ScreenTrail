@@ -530,7 +530,7 @@ public sealed class LiveShell : IAsyncDisposable
             path => Process.Start(new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(path) })?.Dispose());
         if (problem is not null && !_disposed)
         {
-            _tray.Notify(new Notification(problem, NotificationAction.None, "start-service-failed"));
+            _tray.Notify(new Notification(problem, NotificationAction.None, "start-service-failed", "Capture service not started", NotificationLevel.Warning));
         }
     }
 
