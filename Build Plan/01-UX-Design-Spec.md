@@ -323,7 +323,7 @@ Clicking the pill's body or its chevron opens a card under the pill (the pill st
 **State variants (left segment), both layouts:**
 - Recording: red dot, "Recording" and the timer.
 - Paused: amber `‖ Paused: press Ctrl+Alt+P to resume`.
-- Suppressed: amber `⏸ Paused: sensitive field` / `Paused: excluded app` / `Paused: elevated window`, auto-resumes. The elevated-window tooltip reads "Elevated window: screen not captured." *(v0.4.1, Q5)*
+- Suppressed: amber `⏸ Paused: password field` / `Paused: sign-in screen` / `Paused: excluded app` / `Paused: admin window`, auto-resumes. The elevated-window tooltip reads "Elevated window: screen not captured." *(v0.4.1, Q5)* The same words on the tray and the status chip, and in the past on the strip and timeline ("Paused: a password field had focus"), from one table, `SuppressionWords` *(v0.7.13, review finding E-02)*.
 - Out of scope: slate teal eye-off and `Not capturing: Outlook` (clicks logged, no frames). The process name and nothing more (INV-10), spelled the way its product is: `OUTLOOK` reads "Outlook", and a process this version does not know is title-cased *(v0.5.5; colour v0.6.0, was violet)*.
 - Mic missing: grey mic glyph and "No mic", tooltip "No microphone. Capture continues without voice."
 - Offline: grey cloud glyph and "Offline"; tooltip "Offline: draft will be created when connected."

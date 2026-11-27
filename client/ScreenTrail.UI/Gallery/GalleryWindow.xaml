@@ -82,7 +82,7 @@
                     <Ellipse Margin="0,0,8,0" Style="{StaticResource StateDot}" />
                     <TextBlock Style="{StaticResource Text.Body}" Text="Recording" VerticalAlignment="Center" />
                     <Ellipse Margin="16,0,8,0" Fill="{DynamicResource Brush.state.paused}" Style="{StaticResource StateDot}" />
-                    <TextBlock Style="{StaticResource Text.Body}" Text="Paused: sensitive field" VerticalAlignment="Center" />
+                    <TextBlock Style="{StaticResource Text.Body}" Text="Paused: password field" VerticalAlignment="Center" />
                     <Ellipse Margin="16,0,8,0" Fill="{DynamicResource Brush.state.scope}" Style="{StaticResource StateDot}" />
                     <TextBlock Style="{StaticResource Text.Body}" Text="Not capturing: Outlook" VerticalAlignment="Center" />
                     <Ellipse Margin="16,0,8,0" Fill="{DynamicResource Brush.state.offline}" Style="{StaticResource StateDot}" />

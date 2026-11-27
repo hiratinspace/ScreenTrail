@@ -1,6 +1,8 @@
 using ScreenTrail.Core.Hud;
+using ScreenTrail.Core.Review;
 using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Ipc;
+using ScreenTrail.Shared.Schema;
 
 namespace ScreenTrail.Tests.Shell;
 
@@ -16,6 +18,13 @@ public sealed class StateWordsTests
         { CaptureStates.Idle, null, "Not recording" },
         { CaptureStates.DraftPending, null, "Not recording: drafting the note" },
         { CaptureStates.Finalizing, null, "Finishing up" },
+
+        // A privacy pause names its reason everywhere, from SuppressionWords (E-02).
+        { CaptureStates.Suppressed, CaptureReasons.PasswordField, "Paused: password field" },
+        { CaptureStates.Suppressed, CaptureReasons.SensitiveContext, "Paused: sign-in screen" },
+        { CaptureStates.Suppressed, CaptureReasons.ExcludedApp, "Paused: excluded app" },
+        { CaptureStates.Suppressed, CaptureReasons.ElevatedWindow, "Paused: admin window" },
+        { CaptureStates.Suppressed, null, "Paused" },
     };
 
     [Theory]
@@ -28,6 +37,18 @@ public sealed class StateWordsTests
         Assert.Equal(words, HudState.For(capture).State.Text);
         Assert.Equal(words, TrayPresence.From(snapshot).StateLine);
         Assert.Equal(words, ShellStatus.ChipWords(snapshot));
+    }
+
+    [Theory]
+    [InlineData(CaptureStateReason.PasswordField, "Paused: a password field had focus")]
+    [InlineData(CaptureStateReason.SensitiveContext, "Paused: a sign-in screen was in front")]
+    [InlineData(CaptureStateReason.ExcludedApp, "Paused: an excluded app was in front")]
+    [InlineData(CaptureStateReason.ElevatedWindow, "Paused: an admin window was in front")]
+    [InlineData(CaptureStateReason.User, "Paused by you")]
+    public void TheStripAndTheTimelineSayTheSameReasonInThePast(CaptureStateReason reason, string words)
+    {
+        Assert.Equal(words, SuppressionWords.Past(reason));
+        Assert.Equal(words, new GapCell(0, 1000, reason).Description);
     }
 
     [Fact]

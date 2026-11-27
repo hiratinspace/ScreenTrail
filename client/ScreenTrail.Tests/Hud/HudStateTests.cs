@@ -36,7 +36,7 @@ public sealed class HudStateTests
         var offline = HudState.For(Capture(CaptureStates.Recording, elapsedMs: 3_661_000), online: false);
         Assert.Equal("Recording, 1 hour 1 minute 1 second, Offline: draft will be created when connected.", offline.Spoken);
 
-        Assert.Equal("Paused: sensitive field", HudState.For(Capture(CaptureStates.Suppressed, reason: CaptureReasons.PasswordField)).Spoken);
+        Assert.Equal("Paused: password field", HudState.For(Capture(CaptureStates.Suppressed, reason: CaptureReasons.PasswordField)).Spoken);
         Assert.Equal("Capture state unknown. Not connected to the capture service. It may still be recording.", HudState.For(null).Spoken);
         Assert.Equal("Not recording", HudState.For(Capture(CaptureStates.Idle)).Spoken);
     }
@@ -90,10 +90,10 @@ public sealed class HudStateTests
     }
 
     [Theory]
-    [InlineData(CaptureReasons.PasswordField, "Paused: sensitive field")]
-    [InlineData(CaptureReasons.SensitiveContext, "Paused: sensitive field")]
+    [InlineData(CaptureReasons.PasswordField, "Paused: password field")]
+    [InlineData(CaptureReasons.SensitiveContext, "Paused: sign-in screen")]
     [InlineData(CaptureReasons.ExcludedApp, "Paused: excluded app")]
-    [InlineData(CaptureReasons.ElevatedWindow, "Paused: elevated window")]
+    [InlineData(CaptureReasons.ElevatedWindow, "Paused: admin window")]
     public void ASuppressionSaysWhatCausedIt(string reason, string expected)
     {
         // The technician pressed nothing. A pill that just says "paused" sends them looking for what they

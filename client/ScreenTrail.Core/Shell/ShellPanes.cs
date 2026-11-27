@@ -301,7 +301,7 @@ public static class ShellStatus
         {
             CaptureStates.Recording => "Recording",
             CaptureStates.Paused => "Paused",
-            CaptureStates.Suppressed => "Paused: sensitive window",
+            CaptureStates.Suppressed => SuppressionWords.Live(capture.Reason, capture.ScopeProcess),
             CaptureStates.Finalizing => "Finishing up",
             CaptureStates.DraftReady => "Draft ready",
             CaptureStates.DraftFailed => "Draft failed",

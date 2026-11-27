@@ -232,7 +232,7 @@ public sealed class ShellPanesTests
     [InlineData(CaptureStates.Idle, "Not recording")]
     [InlineData(CaptureStates.Recording, "Recording")]
     [InlineData(CaptureStates.Paused, "Paused")]
-    [InlineData(CaptureStates.Suppressed, "Paused: sensitive window")]
+    [InlineData(CaptureStates.Suppressed, "Paused")]
     [InlineData(CaptureStates.Finalizing, "Finishing up")]
     [InlineData(CaptureStates.DraftReady, "Draft ready")]
     [InlineData(CaptureStates.DraftFailed, "Draft failed")]

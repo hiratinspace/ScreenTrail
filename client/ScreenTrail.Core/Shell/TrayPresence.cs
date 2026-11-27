@@ -56,7 +56,7 @@ public sealed record TrayPresence(TrayIcon Icon, string Tooltip, string StateLin
         {
             "recording" => (TrayIcon.Recording, "Recording"),
             "paused" => (TrayIcon.Paused, "Paused"),
-            "suppressed" => (TrayIcon.Paused, "Paused: sensitive window"),
+            "suppressed" => (TrayIcon.Paused, SuppressionWords.Live(capture.Reason, capture.ScopeProcess)),
             "finalizing" => (TrayIcon.Paused, "Finishing up"),
             "draft_ready" => (TrayIcon.DraftReady, "Draft ready"),
             "draft_failed" => (TrayIcon.DraftReady, "Draft failed"),

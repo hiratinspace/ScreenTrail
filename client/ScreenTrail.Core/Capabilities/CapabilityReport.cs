@@ -101,7 +101,7 @@ public static class CapabilityCopy
         Capability.ElevatedWindows,
         CapabilityState.Degraded,
         "Elevated window: screen not captured.",
-        "Windows hides elevated windows from ScreenTrail. Say what you did and it goes in the note.");
+        "Windows hides admin windows (run as administrator) from ScreenTrail. Say what you did and it goes in the note.");
 
     public static CapabilityCheck NoDesktopSession() => new(
         Capability.DesktopSession,
