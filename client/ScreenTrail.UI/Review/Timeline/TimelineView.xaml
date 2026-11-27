@@ -102,7 +102,9 @@
                            Text="{Binding Summary}" />
             </Grid>
 
-            <!-- The transcript: monospace, wall-clock stamped, one line per thing said. Selecting a line
+            <!-- The transcript: one line per thing said, in two columns (review finding A-22): the time to the
+                 minute in a 48 px Caption column, tabular and text.muted, then the words in Body, wrapping, on
+                 a 24 px line; rows 4 apart. Speech is prose, not a log, so no monospace. Selecting a line
                  highlights its frame in the filmstrip; a line with no frame highlights nothing. -->
             <ListBox Grid.Row="1"
                      Margin="0,4,0,8"
@@ -115,15 +117,29 @@
                      AutomationProperties.Name="Transcript">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="AutomationProperties.Name" Value="{Binding Display}" />
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}" />
+                        <Setter Property="Margin" Value="0,0,0,4" />
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Style="{StaticResource Text.Mono}"
-                                   FontSize="{DynamicResource Size.sm}"
-                                   TextWrapping="Wrap"
-                                   Text="{Binding Display}" />
+                        <Grid ToolTip="{Binding At}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Width="{DynamicResource Layout.transcript-clock-width}"
+                                       Style="{StaticResource Text.Caption}"
+                                       LineHeight="{DynamicResource Leading.section}"
+                                       Typography.NumeralAlignment="Tabular"
+                                       Text="{Binding Clock}" />
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Body}"
+                                       LineHeight="{DynamicResource Leading.section}"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding Text}" />
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

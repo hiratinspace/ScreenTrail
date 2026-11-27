@@ -44,9 +44,17 @@ public sealed record TimelineMarker(
 public sealed record TranscriptLine(string Id, string At, long TsMs, string Text, string? FrameId)
 {
     /// <summary>
-    /// The scrubber's monospace line, as Spec §5 S3 writes it.
+    /// The line as one string, "[14:02:10] clearing the queue now", as Spec §5 S3 first wrote it. The panel
+    /// draws <see cref="Clock"/> and <see cref="Text"/> in two columns since review finding A-22; this stays
+    /// for logs and for what a screen reader would otherwise be read.
     /// </summary>
     public string Display => $"[{At}] {Text}";
+
+    /// <summary>The time column, to the minute: "14:02" (review finding A-22). The tooltip keeps the seconds.</summary>
+    public string Clock => At.Length >= 5 ? At[..5] : At;
+
+    /// <summary>What a screen reader says for the line: "14:02:10, clearing the queue now", no brackets.</summary>
+    public string Spoken => $"{At}, {Text}";
 
     /// <summary>
     /// Whether the redaction engine replaced something here.

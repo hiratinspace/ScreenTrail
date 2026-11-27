@@ -90,6 +90,7 @@
     <sys:Double x:Key="Layout.scroll-thumb-min">32</sys:Double>
     <sys:Double x:Key="Layout.save-bar-height">48</sys:Double>
     <sys:Double x:Key="Layout.receipt-row-height">48</sys:Double>
+    <sys:Double x:Key="Layout.transcript-clock-width">48</sys:Double>
     <sys:Double x:Key="Layout.settings-nav-width">188</sys:Double>
     <sys:Double x:Key="Layout.search-text-inset">36</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>

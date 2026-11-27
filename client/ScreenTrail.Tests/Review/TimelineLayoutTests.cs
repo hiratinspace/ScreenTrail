@@ -72,4 +72,30 @@ public sealed class TimelineLayoutTests
         Assert.Contains("\"Brush.border.warning\"", code, StringComparison.Ordinal);
         Assert.Contains("\"Timeline.FrameMarker\"", code, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding A-22: a transcript line is the time to the minute in a 48 px tabular Caption column and
+    /// the words in Body on a 24 px line, not "[14:02:10] ..." in monospace; a screen reader hears it with
+    /// no brackets.
+    /// </summary>
+    [Fact]
+    public void ATranscriptLineIsATimeAndItsWordsNotALogLine()
+    {
+        var line = new ScreenTrail.Core.Review.TranscriptLine("t1", "14:02:10", 0, "clearing the queue now", null);
+        Assert.Equal("14:02", line.Clock);
+        Assert.Equal("14:02:10, clearing the queue now", line.Spoken);
+
+        var timeline = EnvelopeLayoutTests.Load("Review", "Timeline", "TimelineView.xaml");
+        var transcript = timeline.Descendants(Wpf + "ListBox").Single(l => (string?)l.Attribute("AutomationProperties.Name") == "Transcript");
+        Assert.DoesNotContain(transcript.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Mono}");
+        var clock = transcript.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding Clock}");
+        Assert.Equal("{StaticResource Text.Caption}", (string?)clock.Attribute("Style"));
+        Assert.Equal("{DynamicResource Layout.transcript-clock-width}", (string?)clock.Attribute("Width"));
+        Assert.Equal("Tabular", (string?)clock.Attribute("Typography.NumeralAlignment"));
+        var words = transcript.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding Text}");
+        Assert.Equal("{StaticResource Text.Body}", (string?)words.Attribute("Style"));
+        Assert.Equal("{DynamicResource Leading.section}", (string?)words.Attribute("LineHeight"));
+        var name = transcript.Descendants(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "AutomationProperties.Name");
+        Assert.Equal("{Binding Spoken}", (string?)name.Attribute("Value"));
+    }
 }
