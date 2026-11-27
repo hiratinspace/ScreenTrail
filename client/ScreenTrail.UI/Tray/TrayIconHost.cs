@@ -65,6 +65,7 @@ public sealed class TrayIconHost : IDisposable
         _readLightTaskbar = readLightTaskbar;
         _lightTaskbar = readLightTaskbar();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
         // Spec §5 S1 drawn in the app's tokens (TrayMenuRenderer), with the rows TrayMenu decides.
         // No image or check margin (design system 10.7): the state row draws its own glyph, and no row
@@ -324,6 +325,7 @@ public sealed class TrayIconHost : IDisposable
 
         Disposed = true;
         Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _icon.Visible = false;
         _icon.Dispose();
         foreach (var icon in _icons.Values)
@@ -371,6 +373,41 @@ public sealed class TrayIconHost : IDisposable
     }
 
     /// <summary>
+    /// Takes the icon again at the small-icon size the screen has now (review finding D-31). The icons are
+    /// kept per state and taskbar theme, at the size read when each was first shown, so after a change of
+    /// display scale, or a dock to a screen of another, the tray kept the old frame and Windows scaled it,
+    /// soft beside the system's own icons. Windows raises this on its own thread.
+    /// </summary>
+    internal void RefreshScale()
+    {
+        if (!_dispatcher.CheckAccess())
+        {
+            _ = _dispatcher.BeginInvoke(RefreshScale);
+            return;
+        }
+
+        if (Disposed)
+        {
+            return;
+        }
+
+        // Off the icon before the cached ones are let go, so it never holds one that is disposed.
+        _icon.Icon = null;
+        foreach (var icon in _icons.Values)
+        {
+            icon.Dispose();
+        }
+
+        _icons.Clear();
+        if (_shown is { } shown)
+        {
+            ShowIcon(shown.Icon);
+        }
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => RefreshScale();
+
+    /// <summary>
     /// One state's icon at this screen's small-icon size, from the embedded .ico: 16 px at 100%, 20 at
     /// 125%, 24 at 150%, 32 at 200%, and so on, so Windows never scales a 16-pixel glyph up.
     /// </summary>
@@ -410,6 +447,12 @@ public sealed class TrayIconHost : IDisposable
         if (e.Category is Microsoft.Win32.UserPreferenceCategory.General or Microsoft.Win32.UserPreferenceCategory.VisualStyle or Microsoft.Win32.UserPreferenceCategory.Color or Microsoft.Win32.UserPreferenceCategory.Accessibility)
         {
             RefreshTheme();
+        }
+
+        // A change of text scale arrives as Desktop; the small-icon size can change with it (D-31).
+        if (e.Category == Microsoft.Win32.UserPreferenceCategory.Desktop)
+        {
+            RefreshScale();
         }
     }
 
