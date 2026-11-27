@@ -6,12 +6,55 @@
              AutomationProperties.Name="Privacy">
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
 
-        <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md. -->
+        <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md.
+             Review finding B-48: the approver's trust story as five steps, each a 16 px glyph in text.secondary,
+             12, and a line of Body, then the promise in Body strong; it was one run of numbered text. -->
         <Border Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="What leaves this PC" />
-                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Body}" TextWrapping="Wrap"
-                           Text="1. Captured and masked on this PC.&#10;2. One request drafts the note (or this PC drafts it, in local-only mode).&#10;3. You check it.&#10;4. You publish it.&#10;Nothing is published without your check." />
+                <StackPanel x:Name="DataFlow" Margin="0,8,0,0">
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Camera}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Captured on this PC." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Shield}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Masked on this PC." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Sync}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="One request drafts the note, or this PC drafts it in local-only mode." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Edit}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="You check it." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Send}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="You publish it." />
+                    </Grid>
+                </StackPanel>
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your check." />
             </StackPanel>
         </Border>
 

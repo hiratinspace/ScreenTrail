@@ -134,4 +134,25 @@ public sealed class SettingsPolishTests
         Assert.Equal(["*", "Auto"], grid.Descendants(Wpf + "ColumnDefinition").Select(c => (string?)c.Attribute("Width")));
         Assert.Equal("1", (string?)grid.Elements(Wpf + "Button").Single().Attribute("Grid.Column"));
     }
+
+    /// <summary>
+    /// Review finding B-48: what leaves this PC is five steps, each a 16 px glyph and a line of Body, then
+    /// the promise in Body strong; it was numbered run-on text.
+    /// </summary>
+    [Fact]
+    public void WhatLeavesThisPcIsFiveStepsAndAPromise()
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var privacy = EmptyStateTests.View("Settings/Privacy", "PrivacyPane.xaml");
+        var flow = privacy.Descendants(Wpf + "StackPanel").Single(p => (string?)p.Attribute(Xaml + "Name") == "DataFlow");
+        var rows = flow.Elements(Wpf + "Grid").ToList();
+        Assert.Equal(5, rows.Count);
+        Assert.Equal(
+            ["{DynamicResource Icon.Camera}", "{DynamicResource Icon.Shield}", "{DynamicResource Icon.Sync}", "{DynamicResource Icon.Edit}", "{DynamicResource Icon.Send}"],
+            rows.Select(r => (string?)r.Element(controls + "Glyph")!.Attribute("Text")));
+        Assert.All(rows, r => Assert.Equal("{DynamicResource Layout.flow-row-height}", (string?)r.Attribute("MinHeight")));
+        var promise = (XElement)flow.NextNode!;
+        Assert.Equal("{StaticResource Text.BodyStrong}", (string?)promise.Attribute("Style"));
+        Assert.DoesNotContain(privacy.Descendants(Wpf + "TextBlock"), t => ((string?)t.Attribute("Text"))?.Contains("1. ", StringComparison.Ordinal) == true);
+    }
 }
