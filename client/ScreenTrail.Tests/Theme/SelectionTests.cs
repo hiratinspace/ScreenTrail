@@ -98,3 +98,36 @@ public sealed class RailRowGeometryTests
 
     private static XElement Keyed(string key) => ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key);
 }
+
+/// <summary>Every rail group heading starts where the rows' titles do (design system 10.4, review finding A-06).</summary>
+public sealed class RailGroupHeaderTests
+{
+    private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    [Theory]
+    [InlineData("Rail.GroupHeader")]
+    [InlineData("Rail.GroupToggle")]
+    public void AHeadingHasTheRowsInsetEdgeAndPadding(string key)
+    {
+        var style = ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key);
+        var setters = style.Elements(Wpf + "Setter").Where(s => s.Attribute("Value") is not null).ToDictionary(s => (string)s.Attribute("Property")!, s => (string?)s.Attribute("Value"));
+
+        // The row: Margin 8 on the left, a 1 px edge, then 12 inside.
+        Assert.Equal("8,0,8,2", setters["Margin"]);
+        Assert.Equal("12,0", setters["Padding"]);
+        Assert.Equal("{DynamicResource Layout.control-height-compact}", setters["MinHeight"]);
+        var edge = key == "Rail.GroupHeader" ? setters["BorderThickness"] : (string?)style.Descendants(Wpf + "Border").Single().Attribute("BorderThickness");
+        Assert.Equal("{DynamicResource Thickness.border}", edge);
+    }
+
+    [Fact]
+    public void TheChevronComesAfterTheCount()
+    {
+        var toggle = EmptyStateTests.View("History", "InboxRailView.xaml").Descendants(Wpf + "ToggleButton").Single();
+        var parts = toggle.Descendants(Wpf + "StackPanel").First().Elements().ToList();
+        Assert.Equal("{Binding Name}", (string?)parts[0].Attribute("Text"));
+        Assert.Equal("{Binding CountText}", (string?)parts[1].Attribute("Text"));
+        Assert.Equal("{Binding Chevron}", (string?)parts[2].Attribute("Text"));
+    }
+}

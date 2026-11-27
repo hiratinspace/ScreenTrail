@@ -2604,10 +2604,34 @@
     </Style>
 
 
-    <!-- A group's heading that opens and closes it (Earlier). -->
+    <!-- A rail group's heading (design system 10.4, review finding A-06): a 28 px row with a row's geometry,
+         8 in from the rail's edges, a 1 px clear edge and 12 inside, so its label starts at the same x as
+         every row's title (8 + 1 + 12). The label in the Label style in shell.muted, then the count in
+         Caption; for a group that opens and closes, the 12 px chevron after the count, so no label is pushed
+         right by it. -->
+    <Style x:Key="Rail.GroupHeader" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
+    </Style>
+    <Style x:Key="Rail.GroupLabel" BasedOn="{StaticResource Text.Label}" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
+    </Style>
+    <Style x:Key="Rail.GroupCount" BasedOn="{StaticResource Text.FrameMuted}" TargetType="TextBlock">
+        <Setter Property="Margin" Value="8,0,0,0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+    </Style>
+
+    <!-- A group's heading that opens and closes it (Earlier): the header's geometry, shell.hover under the pointer. -->
     <Style x:Key="Rail.GroupToggle" TargetType="ToggleButton">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="12,0" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="Background" Value="Transparent" />
@@ -2618,6 +2642,8 @@
                 <ControlTemplate TargetType="ToggleButton">
                     <Border Padding="{TemplateBinding Padding}"
                             Background="{TemplateBinding Background}"
+                            BorderBrush="Transparent"
+                            BorderThickness="{DynamicResource Thickness.border}"
                             CornerRadius="{DynamicResource Radius.control}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
