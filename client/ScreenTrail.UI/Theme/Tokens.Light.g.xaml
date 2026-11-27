@@ -163,6 +163,7 @@
     <DropShadowEffect x:Key="Elevation.float" Color="#0F1720" BlurRadius="24" ShadowDepth="8" Direction="270" Opacity="0.18" />
     <Style x:Key="FocusVisual.input" />
     <Thickness x:Key="Thickness.selected-edge">0</Thickness>
+    <Thickness x:Key="Thickness.float-edge">1</Thickness>
     <Color x:Key="Token.selection.edge">#00000000</Color>
     <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />
     <Color x:Key="Token.skeleton.edge">#00000000</Color>

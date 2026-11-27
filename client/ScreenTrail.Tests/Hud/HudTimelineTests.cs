@@ -50,8 +50,9 @@ public sealed class HudTimelineTests
         timeline.Observe(Recording(pending: 0));
 
         Assert.Equal(["1 screenshot masked", "Screenshot taken"], timeline.Recent.Select(e => e.Text));
-        Assert.Equal(["14:14:03", "14:13:51"], timeline.Recent.Select(e => e.Time));
-        Assert.Equal("1 screenshot masked, 14:14:03", timeline.Recent[0].Spoken);
+        // HH:mm, the heading's form ("since 14:02"), not a second one with seconds (C-H10).
+        Assert.Equal(["14:14", "14:13"], timeline.Recent.Select(e => e.Time));
+        Assert.Equal("1 screenshot masked, 14:14", timeline.Recent[0].Spoken);
     }
 
     [Fact]
@@ -78,7 +79,8 @@ public sealed class HudTimelineTests
         }
 
         Assert.Equal(HudTimeline.Shown, timeline.Recent.Count);
-        Assert.Equal(["14:02:05", "14:02:04", "14:02:03"], timeline.Recent.Select(e => e.Time));
+        Assert.Equal(["Screenshot taken", "1 screenshot masked", "Screenshot taken"], timeline.Recent.Select(e => e.Text));
+        Assert.All(timeline.Recent, e => Assert.Equal("14:02", e.Time));
     }
 
     [Fact]
@@ -119,7 +121,7 @@ public sealed class HudTimelineTests
         var only = Assert.Single(timeline.Recent);
         Assert.Equal(HudEventKind.MomentMarked, only.Kind);
         Assert.Equal("Marked moment", only.Text);
-        Assert.Equal("14:13:20", only.Time);
+        Assert.Equal("14:13", only.Time);
     }
 
     [Fact]

@@ -14,13 +14,33 @@ namespace ScreenTrail.Tests.Hud;
 public sealed class HudStateTests
 {
     [Fact]
-    public void RecordingShowsTheTimer()
+    public void RecordingSaysRecordingAndShowsTheTimerInItsOwnPlace()
     {
         var hud = HudState.For(Capture(CaptureStates.Recording, elapsedMs: 761_000));
 
         Assert.Equal(HudTone.Recording, hud.State.Tone);
-        Assert.Equal("12:41", hud.State.Text);
-        Assert.Equal("●", hud.State.Glyph);
+        Assert.Equal("Recording", hud.State.Text);
+        Assert.Equal("12:41", hud.Timer);
+        Assert.Equal(HudGlyphs.Dot, hud.State.Glyph);
+    }
+
+    /// <summary>
+    /// Review finding C-H4: the clock stays, frozen, in every state of a running session, so the session's
+    /// length does not vanish exactly when the technician is deciding whether to resume; outside a session
+    /// there is no clock.
+    /// </summary>
+    [Fact]
+    public void ThePausedPillKeepsTheSessionsClockAndAnIdleOneHasNone()
+    {
+        var paused = HudState.For(Capture(CaptureStates.Paused, elapsedMs: 95_000, reason: CaptureReasons.User));
+        Assert.Equal("Paused", paused.State.Text);
+        Assert.Equal("01:35", paused.Timer);
+        Assert.Equal("Paused. Press Ctrl+Alt+P to resume., 1 minute 35 seconds", paused.Spoken);
+
+        Assert.Equal("04:00", HudState.For(Capture(CaptureStates.Suppressed, elapsedMs: 240_000, reason: CaptureReasons.PasswordField)).Timer);
+        Assert.Null(HudState.For(Capture(CaptureStates.Idle, elapsedMs: 95_000)).Timer);
+        Assert.Null(HudState.For(Capture(CaptureStates.Finalizing, elapsedMs: 95_000)).Timer);
+        Assert.Null(HudState.For(null).Timer);
     }
 
     /// <summary>
@@ -156,6 +176,10 @@ public sealed class HudStateTests
         var hud = HudState.For(capture: null);
 
         Assert.NotEqual(HudTone.Recording, hud.State.Tone);
+
+        // Amendment 21: the paused hue, never the calm idle one, for a state that may be recording.
+        Assert.Equal(HudTone.Paused, hud.State.Tone);
+        Assert.Equal(HudTone.Paused, HudState.For(Capture("a_state_from_a_newer_service")).State.Tone);
         Assert.Equal("Capture state unknown", hud.State.Text);
         Assert.Contains("may still be recording", hud.State.Tooltip, StringComparison.Ordinal);
     }
@@ -235,7 +259,55 @@ public sealed class HudStateTests
         var hud = HudState.For(Capture(state));
 
         Assert.DoesNotContain("unknown", hud.State.Text, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEqual("?", hud.State.Glyph);
+        Assert.NotEqual(HudGlyphs.Unknown, hud.State.Glyph);
+    }
+
+    /// <summary>
+    /// Review finding C-H11, design system amendment 20: the masking backlog is the shield and "Masking 3",
+    /// never a bare number that reads as a count of screenshots already masked; nothing at zero.
+    /// </summary>
+    [Fact]
+    public void TheMaskingBacklogSaysMaskingAndItsCount()
+    {
+        Assert.Equal("Masking 3", HudState.For(Capture(CaptureStates.Recording, elapsedMs: 1_000, pending: 3)).Masking);
+        Assert.Null(HudState.For(Capture(CaptureStates.Recording, elapsedMs: 1_000)).Masking);
+    }
+
+    /// <summary>
+    /// Review finding C-H12: finishing up after Stop is the turning ring with no hue. It was amber with a
+    /// still ellipsis for up to 20 seconds, which said "something needs you" and looked frozen.
+    /// </summary>
+    [Fact]
+    public void FinishingUpTurnsInNoHue()
+    {
+        var hud = HudState.For(Capture(CaptureStates.Finalizing));
+        Assert.Equal(HudTone.Idle, hud.State.Tone);
+        Assert.Equal(HudGlyphs.Busy, hud.State.Glyph);
+        Assert.Equal("Finishing up", hud.State.Text);
+    }
+
+    /// <summary>
+    /// Review finding C-H3: each state's mark is a vector shape or a Fluent icon by concept, never a text
+    /// character. Auto-paused is the lock, not a second pause symbol beside the Pause button.
+    /// </summary>
+    [Theory]
+    [InlineData(CaptureStates.Recording, null, HudGlyphs.Dot)]
+    [InlineData(CaptureStates.Paused, CaptureReasons.User, HudGlyphs.Pause)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.PasswordField, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.SensitiveContext, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.ExcludedApp, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.ElevatedWindow, HudGlyphs.Lock)]
+    [InlineData(CaptureStates.Suppressed, CaptureReasons.OutOfScope, HudGlyphs.Hide)]
+    [InlineData(CaptureStates.Finalizing, null, HudGlyphs.Busy)]
+    [InlineData(CaptureStates.DraftPending, null, HudGlyphs.Busy)]
+    [InlineData(CaptureStates.Idle, null, HudGlyphs.Ring)]
+    [InlineData(CaptureStates.DraftReady, null, HudGlyphs.Ring)]
+    [InlineData(CaptureStates.DraftFailed, null, HudGlyphs.Ring)]
+    [InlineData("a_state_from_a_newer_service", null, HudGlyphs.Unknown)]
+    public void EachStateHasAVectorOrIconMarkAndNoTextSymbol(string state, string? reason, string glyph)
+    {
+        Assert.Equal(glyph, HudState.For(Capture(state, reason: reason)).State.Glyph);
+        Assert.Equal(HudGlyphs.Unknown, HudState.For(null).State.Glyph);
     }
 
     public static TheoryData<string> EveryStateTheServiceSends

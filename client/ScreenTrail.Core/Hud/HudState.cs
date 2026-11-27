@@ -20,10 +20,31 @@ public enum HudTone
     Idle,
 }
 
-/// <param name="Glyph">Spec §7: the shape carries the state as well as the colour does.</param>
+/// <param name="Glyph">Spec §7: the shape carries the state as well as the colour does. One of
+/// <see cref="HudGlyphs"/>: a vector shape the pill draws, or the name of an icon in Theme/Icons.xaml, never a
+/// character (review finding C-H3).</param>
 /// <param name="Text">The left segment, in the technician's words.</param>
 /// <param name="Tooltip">Longer wording on hover; null when the text says everything.</param>
 public sealed record HudSegment(HudTone Tone, string Glyph, string Text, string? Tooltip = null);
+
+/// <summary>
+/// The pill's state marks (design system 8 and 10.10, review finding C-H3). Recording is an 8 px dot and not
+/// recording an 8 px ring, both drawn as vectors; finishing and drafting are the progress ring; the rest are
+/// Fluent icons by concept. Unicode symbols rendered in the text face at the wrong weight, could fall back to
+/// the emoji font, and auto-paused (⏸) looked like a second Pause button beside the real one.
+/// </summary>
+public static class HudGlyphs
+{
+    public const string Dot = "dot";
+    public const string Ring = "ring";
+    public const string Busy = "busy";
+    public const string Pause = "Icon.Pause";
+    public const string Lock = "Icon.Lock";
+    public const string Hide = "Icon.Hide";
+    public const string Unknown = "Icon.Unknown";
+    public const string Mic = "Icon.Mic";
+    public const string Cloud = "Icon.Cloud";
+}
 
 /// <param name="Mic">Null when a microphone is present and working; the meter is shown instead.</param>
 /// <param name="Cloud">Null when online. Spec §5 S2's grey cloud otherwise.</param>
@@ -38,6 +59,24 @@ public sealed record HudSnapshot(
     public long? RecordingMs { get; init; }
 
     /// <summary>
+    /// How long the session has run, while one runs: recording, paused or suppressed, frozen while paused.
+    /// Null outside a session. The pill shows it in its own place after the state word in every one of
+    /// those states, so the session's length never vanishes while the technician decides whether to resume
+    /// (review finding C-H4).
+    /// </summary>
+    public long? SessionMs { get; init; }
+
+    /// <summary>
+    /// The masking segment's words beside the shield: "Masking 3"; null with nothing to mask. A shield beside
+    /// a bare number read as "3 masked", the opposite of 3 screenshots still hidden until masking finishes
+    /// (review finding C-H11, design system amendment 20).
+    /// </summary>
+    public string? Masking => PendingRedactions > 0 ? string.Create(CultureInfo.InvariantCulture, $"Masking {PendingRedactions}") : null;
+
+    /// <summary>The session's clock, mm:ss or h:mm:ss; null outside a session.</summary>
+    public string? Timer => SessionMs is { } ms ? HudState.Elapsed(ms) : null;
+
+    /// <summary>
     /// What a screen reader says for the pill (Spec §7: "Recording, 12 minutes 41 seconds, 3 items
     /// redacted"). The pill's words for every other state, then the microphone, the connection and the
     /// redaction backlog when they are worth saying. It was the fixed words "Capture state" until ST-084,
@@ -48,7 +87,7 @@ public sealed record HudSnapshot(
         get
         {
             var parts = new List<string> { Announcement };
-            if (RecordingMs is { } ms)
+            if (SessionMs is { } ms)
             {
                 parts.Add(HudState.SpokenDuration(ms));
             }
@@ -109,7 +148,7 @@ public static class HudState
         return new HudSnapshot(
             state,
             Mic(capabilities),
-            online ? null : new HudSegment(HudTone.Idle, "☁", "Offline", "Offline: draft will be created when connected."),
+            online ? null : new HudSegment(HudTone.Idle, HudGlyphs.Cloud, "Offline", "Offline: draft will be created when connected."),
             capture?.PendingRedactions ?? 0,
 
             // Hidden only ever hides the pill, and only while capture is known to be off. Spec v0.4.1 Q1
@@ -118,6 +157,12 @@ public static class HudState
             Visible: !hidden || !KnownIdle(capture))
         {
             RecordingMs = capture?.State == CaptureStates.Recording ? Math.Max(0, capture.ElapsedMs ?? 0) : null,
+            SessionMs = capture switch
+            {
+                { State: CaptureStates.Recording } => Math.Max(0, capture.ElapsedMs ?? 0),
+                { State: CaptureStates.Paused or CaptureStates.Suppressed, ElapsedMs: { } ms } => Math.Max(0, ms),
+                _ => null,
+            },
         };
     }
 
@@ -210,17 +255,19 @@ public static class HudState
         if (capture is null)
         {
             // The UI has not heard from the service. It cannot say capture is off, because it does not
-            // know, and "unknown" is the honest word for the state INV-4 cares most about.
+            // know, and "unknown" is the honest word for the state INV-4 cares most about. In the paused
+            // hue (design system amendment 21): it may be recording, so it must not look calm and idle.
             return new HudSegment(
-                HudTone.Idle,
-                "?",
+                HudTone.Paused,
+                HudGlyphs.Unknown,
                 "Capture state unknown",
                 "Not connected to the capture service. It may still be recording.");
         }
 
         return capture.State switch
         {
-            CaptureStates.Recording => new HudSegment(HudTone.Recording, "●", Elapsed(capture.ElapsedMs)),
+            // The word, always: the clock has its own place after it (SessionMs, review finding C-H4).
+            CaptureStates.Recording => new HudSegment(HudTone.Recording, HudGlyphs.Dot, "Recording"),
 
             CaptureStates.Paused => Paused(capture),
 
@@ -228,26 +275,29 @@ public static class HudState
             // pressed anything, and a pill that just says "paused" invites them to look for what they did.
             CaptureStates.Suppressed => Suppressed(capture),
 
-            CaptureStates.Finalizing => new HudSegment(HudTone.Paused, "⋯", "Finishing up"),
+            // No hue (review finding C-H12): amber says "something needs you", and nothing does while the
+            // last screenshots are masked. The turning ring says it is working, not frozen.
+            CaptureStates.Finalizing => new HudSegment(HudTone.Idle, HudGlyphs.Busy, "Finishing up"),
 
-            CaptureStates.Idle => new HudSegment(HudTone.Idle, "○", "Not recording"),
+            CaptureStates.Idle => new HudSegment(HudTone.Idle, HudGlyphs.Ring, "Not recording"),
 
             // Where a session rests once it is over. Not capturing, and said so: these used to fall
             // through to "unknown, may be recording", which the pill then showed after every session and
             // refused to put away (S-39). The words agree with the tray's, which says the same two things.
-            CaptureStates.DraftReady => new HudSegment(HudTone.Idle, "○", "Not recording: draft ready", "Nothing is being captured. The note is ready to review."),
+            CaptureStates.DraftReady => new HudSegment(HudTone.Idle, HudGlyphs.Ring, "Not recording: draft ready", "Nothing is being captured. The note is ready to review."),
 
-            CaptureStates.DraftFailed => new HudSegment(HudTone.Idle, "○", "Not recording: draft failed", "Nothing is being captured. The note could not be drafted; open ScreenTrail to see why."),
+            CaptureStates.DraftFailed => new HudSegment(HudTone.Idle, HudGlyphs.Ring, "Not recording: draft failed", "Nothing is being captured. The note could not be drafted; open ScreenTrail to see why."),
 
             // The session is over and its note is on its way from the backend (ST-013).
-            CaptureStates.DraftPending => new HudSegment(HudTone.Idle, "○", "Not recording: drafting the note", "Nothing is being captured. The note is being drafted and appears in Review when it arrives."),
+            CaptureStates.DraftPending => new HudSegment(HudTone.Idle, HudGlyphs.Busy, "Not recording: drafting the note", "Nothing is being captured. The note is being drafted and appears in Review when it arrives."),
 
             // A state this build has never heard of: a service newer than this UI. KnownIdle already
             // says why guessing "idle" is least defensible here, and this is the same reasoning applied
-            // to the words on the pill rather than to whether it is shown (2026-09-19 review).
+            // to the words on the pill rather than to whether it is shown (2026-09-19 review). Paused hue,
+            // as above (amendment 21).
             _ => new HudSegment(
-                HudTone.Idle,
-                "?",
+                HudTone.Paused,
+                HudGlyphs.Unknown,
                 "Capture state unknown",
                 "This ScreenTrail is older than the capture service. It may be recording."),
         };
@@ -257,7 +307,7 @@ public static class HudState
         capture.Reason is CaptureReasons.User or null
             // The word alone, so it never trims; the chord, as it is bound, in the tooltip and the spoken
             // name (review finding E-03, design system 10.10).
-            ? new HudSegment(HudTone.Paused, "‖", "Paused", Input.HotkeyText.For(Input.HotkeyAction.PauseOrResume) is { Length: > 0 } chord ? $"Press {chord} to resume." : null)
+            ? new HudSegment(HudTone.Paused, HudGlyphs.Pause, "Paused", Input.HotkeyText.For(Input.HotkeyAction.PauseOrResume) is { Length: > 0 } chord ? $"Press {chord} to resume." : null)
             : Suppressed(capture);
 
     private static HudSegment Suppressed(CaptureStateSnapshot capture) => capture.Reason switch
@@ -265,7 +315,7 @@ public static class HudState
         // The words are SuppressionWords', which the tray and the shell say too (review finding E-02).
         CaptureReasons.ElevatedWindow => new HudSegment(
             HudTone.Paused,
-            "⏸",
+            HudGlyphs.Lock,
             Shell.SuppressionWords.Live(capture.Reason),
 
             // Spec v0.4.1 Q5 fixes this wording, so it stays though the state word is now "admin window"
@@ -275,11 +325,11 @@ public static class HudState
 
         CaptureReasons.OutOfScope => new HudSegment(
             HudTone.Scope,
-            "◎",
+            HudGlyphs.Hide,
             Shell.SuppressionWords.Live(capture.Reason, capture.ScopeProcess),
             "Clicks are still on the timeline; no screenshots are taken."),
 
-        _ => new HudSegment(HudTone.Paused, "⏸", Shell.SuppressionWords.Live(capture.Reason, capture.ScopeProcess)),
+        _ => new HudSegment(HudTone.Paused, HudGlyphs.Lock, Shell.SuppressionWords.Live(capture.Reason, capture.ScopeProcess)),
     };
 
     private static HudSegment? Mic(CapabilityReport? capabilities)
@@ -294,7 +344,7 @@ public static class HudState
         var microphone = capabilities.Checks.FirstOrDefault(c => c.Capability == Capability.Microphone);
         return microphone is null || microphone.State is CapabilityState.Ok
             ? null
-            : new HudSegment(HudTone.Idle, "🎤", "No mic", "No microphone. Capture continues without voice.");
+            : new HudSegment(HudTone.Idle, HudGlyphs.Mic, "No mic", "No microphone. Capture continues without voice.");
     }
 }
 

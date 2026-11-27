@@ -91,10 +91,13 @@ public sealed class RecordingClockOnScreenTests
     internal static TextBlock StateSegment(Window pill) =>
         Audit.Descendants(pill).OfType<TextBlock>().Single(t => LiveRegion.GetSetting(t) != AutomationLiveSetting.Off);
 
+    /// <summary>The pill's clock: its own element after the state word since review finding C-H4.</summary>
+    internal static TextBlock Clock(Window pill) => Assert.IsAssignableFrom<TextBlock>(pill.FindName("Clock"));
+
     private static string PillClock(Window pill)
     {
         pill.UpdateLayout();
-        return StateSegment(pill).Text;
+        return Clock(pill).Text;
     }
 
     private static string Onboarded()
@@ -166,20 +169,24 @@ public sealed class PillClockTests(TheApplication app)
             {
                 await Audit.Settle();
                 var segment = RecordingClockOnScreenTests.StateSegment(pill);
-                Assert.Equal("00:05", segment.Text);
+                var face = RecordingClockOnScreenTests.Clock(pill);
+                Assert.Equal("Recording", segment.Text);
+                Assert.Equal("00:05", face.Text);
 
                 var heard = await LiveRegionTests.HeardAsync(() => time.Advance(TimeSpan.FromSeconds(3.1)));
-                Assert.Equal("00:08", segment.Text);
+                Assert.Equal("00:08", face.Text);
                 Assert.Equal("Recording, 8 seconds", AutomationProperties.GetName(segment));
                 Assert.Empty(heard);
 
                 var paused = await LiveRegionTests.HeardAsync(() => state.Observe(new CaptureStateSnapshot { State = CaptureStates.Paused, SessionId = "s1", Reason = "user", ElapsedMs = 8_000 }));
-                Assert.Contains("Paused. Press Ctrl+Alt+P to resume.", paused);
+                // The paused pill keeps the session's clock, and says it (review finding C-H4).
+                Assert.Contains("Paused. Press Ctrl+Alt+P to resume., 8 seconds", paused);
 
                 // Paused, nothing counts and nothing wakes.
                 time.Advance(TimeSpan.FromMinutes(1));
                 await Audit.Settle();
                 Assert.Equal("Paused", segment.Text);
+                Assert.Equal("00:08", face.Text);
                 Assert.Equal(0, time.Armed);
             }
             finally
@@ -219,10 +226,10 @@ public sealed class PillClockTests(TheApplication app)
 
                     var arrived = await StaThread.UntilAsync(
                         () => shell.Tray.Tooltip.EndsWith("(1:11)", StringComparison.Ordinal)
-                            && RecordingClockOnScreenTests.StateSegment(shell.Pill!).Text == "01:11"
+                            && RecordingClockOnScreenTests.Clock(shell.Pill!).Text == "01:11"
                             && status.Status == "Recording: ScreenConnect (1:11)",
                         TimeSpan.FromSeconds(10));
-                    Assert.True(arrived, $"tray '{shell.Tray.Tooltip}', pill '{RecordingClockOnScreenTests.StateSegment(shell.Pill!).Text}', status '{status.Status}'");
+                    Assert.True(arrived, $"tray '{shell.Tray.Tooltip}', pill '{RecordingClockOnScreenTests.Clock(shell.Pill!).Text}', status '{status.Status}'");
                 }
                 finally
                 {

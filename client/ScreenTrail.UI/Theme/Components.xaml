@@ -1089,7 +1089,8 @@
                                         Background="{DynamicResource Brush.bg.surface}"
                                         BorderBrush="{DynamicResource Brush.border.strong}"
                                         BorderThickness="{DynamicResource Thickness.border}"
-                                        CornerRadius="{DynamicResource Radius.card}">
+                                        CornerRadius="{DynamicResource Radius.card}"
+                                        RenderOptions.ClearTypeHint="Enabled">
                                     <ScrollViewer SnapsToDevicePixels="True">
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
                                     </ScrollViewer>
@@ -2043,17 +2044,20 @@
     </Style>
 
     <!-- A round 32 px icon button on the pill: Mark, Pause, Stop and the chevron. Named and tool-tipped by
-         the caller (name and hotkey, "Pause · Ctrl+Alt+P"). -->
+         the caller (name and hotkey, "Pause · Ctrl+Alt+P"). No outline in any state (review finding C-H8,
+         design system 10.10): rings appearing round a circle on hover is the default-template look, and Iris
+         on press broke the brand's one job. Hover fills shell.hover, pressed shell.pressed, keyboard focus
+         draws FocusRing.Frame outside, disabled dims the glyph. The glyph rests in shell.muted and turns
+         shell.text under the pointer (C-H7), so the state word is the only full-strength mark at rest. -->
     <Style x:Key="Hud.IconButton" TargetType="Button">
         <Setter Property="Width" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.bg}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.bg}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Frame}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
@@ -2062,8 +2066,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource Radius.pill}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter Margin="{TemplateBinding Padding}"
@@ -2076,40 +2078,16 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.accent}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
         </Style.Triggers>
-    </Style>
-
-    <!-- A worded button on the expanded pill (Mark moment, Open in ScreenTrail): outlined in shell.muted,
-         32 px tall, the control radius. -->
-    <Style x:Key="Hud.TextButton" BasedOn="{StaticResource Hud.IconButton}" TargetType="Button">
-        <Setter Property="Width" Value="NaN" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hud-control}" />
-        <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                          RecognizesAccessKey="True" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Table: 36 px rows, a quiet header, a tint on hover and on the selected row. The tint, the accent

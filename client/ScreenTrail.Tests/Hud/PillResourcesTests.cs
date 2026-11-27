@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using ScreenTrail.Core.Hud;
 
 namespace ScreenTrail.Tests.Hud;
 
@@ -40,7 +41,7 @@ public sealed partial class PillResourcesTests
 
     /// <summary>
     /// Spec §5 S2 (v0.6.0): the pill is part of the frame. It draws on <c>shell.bg</c> with a
-    /// <c>shell.muted</c> outline, carries the ribbon cap, and colours its states with the <c>shell.*</c>
+    /// <c>shell.muted</c> outline, carries no brand mark (C-H5), and colours its states with the <c>shell.*</c>
     /// state tokens, which high contrast maps to system colours. The pane tokens it used before would put
     /// pane colours on the frame, where the contrast test does not hold them.
     /// </summary>
@@ -52,7 +53,7 @@ public sealed partial class PillResourcesTests
 
         foreach (var key in new[]
         {
-            "Brush.shell.bg", "Brush.shell.text", "Brush.shell.muted", "Brush.shell.line", "Brush.brand.ribbon.band",
+            "Brush.shell.bg", "Brush.shell.text", "Brush.shell.muted", "Brush.shell.line",
             "Brush.shell.recording", "Brush.shell.paused", "Brush.shell.scope", "Brush.shell.offline",
         })
         {
@@ -60,6 +61,10 @@ public sealed partial class PillResourcesTests
         }
 
         Assert.DoesNotContain(asked, key => key.StartsWith("Brush.state.", StringComparison.Ordinal) || key.StartsWith("Brush.bg.", StringComparison.Ordinal));
+
+        // No brand on a status control (review finding C-H5): the ribbon cap was a wedge at the pill's end.
+        Assert.DoesNotContain(asked, key => key.StartsWith("Brush.brand.", StringComparison.Ordinal));
+        Assert.DoesNotContain("<Path", pill, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -111,6 +116,150 @@ public sealed partial class PillResourcesTests
 
     [GeneratedRegex(@"\{StaticResource\s+(?<key>[^}\s]+)\s*\}")]
     private static partial Regex StaticLookup();
+
+    /// <summary>
+    /// The pill floats over the remote desktop, and the Windows audit holds its targets to 32 x 32: no
+    /// control on it, the card's Open in ScreenTrail included, takes the 28 px compact density.
+    /// </summary>
+    [Fact]
+    public void NothingOnThePillIsCompact()
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        Assert.DoesNotContain("Density.Compact", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding D-17: WPF drops to greyscale text in a transparent window, so each opaque surface on
+    /// one asks for ClearType back: the pill and its card, the combo box's list and the tooltip.
+    /// </summary>
+    [Fact]
+    public void TheOpaqueSurfacesOnTransparentWindowsAskForClearType()
+    {
+        const string Hint = "RenderOptions.ClearTypeHint";
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        foreach (var name in new[] { "Pill", "Card" })
+        {
+            Assert.Equal("Enabled", (string?)pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name).Attribute(Hint));
+        }
+
+        var components = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", "Components.xaml"));
+        var popup = components.Descendants().Single(e => e.Name.LocalName == "Popup" && (string?)e.Attribute(X + "Name") == "PART_Popup");
+        Assert.Equal("True", (string?)popup.Attribute("AllowsTransparency"));
+        Assert.Contains(popup.Descendants(), e => e.Name.LocalName == "Border" && e.Element(e.Name.Namespace + "ScrollViewer") is not null && (string?)e.Attribute(Hint) == "Enabled");
+        var tip = components.Root!.Elements().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute("TargetType") == "ToolTip" && e.Attribute(X + "Key") is null);
+        Assert.Contains(tip.Descendants(), e => e.Name.LocalName == "Border" && (string?)e.Attribute(Hint) == "Enabled");
+    }
+
+    /// <summary>
+    /// Review finding C-H6 (less the shadow, which waits for a Windows check): the pill is 40 tall with a
+    /// 1 px border.strong edge, 2 px in high contrast, and so is its card's; the 32 px buttons still fit.
+    /// </summary>
+    [Fact]
+    public void ThePillIs40TallWithAStrongEdgeThatHighContrastDoubles()
+    {
+        var theme = Path.Combine(AppContext.BaseDirectory, "Theme");
+        double Height(string key) => double.Parse(XDocument.Load(Path.Combine(theme, "Tokens.Common.g.xaml")).Root!.Elements()
+            .Single(e => (string?)e.Attribute(X + "Key") == key).Value, System.Globalization.CultureInfo.InvariantCulture);
+        string Edge(string file) => XDocument.Load(Path.Combine(theme, file)).Root!.Elements()
+            .Single(e => (string?)e.Attribute(X + "Key") == "Thickness.float-edge").Value;
+
+        Assert.Equal(40, Height("Layout.hud-height"));
+        Assert.Equal("1", Edge("Tokens.Light.g.xaml"));
+        Assert.Equal("1", Edge("Tokens.Dark.g.xaml"));
+        Assert.Equal("2", Edge("Tokens.HighContrast.xaml"));
+
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        foreach (var name in new[] { "Pill", "Card" })
+        {
+            var surface = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
+            Assert.Equal("{DynamicResource Brush.border.strong}", (string?)surface.Attribute("BorderBrush"));
+            Assert.Equal("{DynamicResource Thickness.float-edge}", (string?)surface.Attribute("BorderThickness"));
+        }
+
+        // 40 less the 2 px high contrast edge both sides and the padding above and below holds a 32 px button.
+        var frame = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "Pill");
+        var padding = ((string)frame.Attribute("Padding")!).Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+        Assert.True(40 - (2 * 2) - padding[1] - padding[3] >= Height("Layout.hud-control"), "The pill's buttons do not fit inside it.");
+    }
+
+    /// <summary>Review finding C-H9, amendment 24: Stop sits 8 from Pause, the other buttons 4 apart.</summary>
+    [Fact]
+    public void StopSitsFurtherFromPauseThanTheOtherButtonsSitApart()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var buttons = pill.Descendants().Where(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Style") == "{DynamicResource Hud.IconButton}")
+            .ToDictionary(b => ((string?)b.Attribute("Command"))!, b => (string?)b.Attribute("Margin"));
+
+        Assert.Equal("8,0,0,0", buttons["{Binding StopCommand}"]);
+        Assert.Equal("4,0,0,0", buttons["{Binding PauseOrResumeCommand}"]);
+        Assert.Equal("4,0,0,0", buttons["{Binding ToggleExpandedCommand}"]);
+    }
+
+    /// <summary>
+    /// Review finding C-H8: the pill's buttons draw no outline in any state; hover and pressed are fills,
+    /// pressed is never Iris, and disabled dims the glyph.
+    /// </summary>
+    [Fact]
+    public void ThePillsButtonsChangeTheirFillAndNeverDrawARing()
+    {
+        var components = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", "Components.xaml"));
+        var style = components.Root!.Elements().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute(X + "Key") == "Hud.IconButton");
+
+        Assert.DoesNotContain(style.Descendants(), e => (string?)e.Attribute("Property") == "BorderBrush" || e.Attribute("BorderBrush") is not null);
+        Assert.Contains(style.Descendants(), e => (string?)e.Attribute("Property") == "BorderThickness" && (string?)e.Attribute("Value") == "0");
+        var triggers = style.Descendants().Where(e => e.Name.LocalName == "Trigger").ToDictionary(t => $"{(string?)t.Attribute("Property")}={(string?)t.Attribute("Value")}", t => t.Elements().ToList());
+        Assert.Contains(triggers["IsMouseOver=True"], e => (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.hover}");
+        Assert.Contains(triggers["IsPressed=True"], e => (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.pressed}");
+        Assert.Contains(triggers["IsEnabled=False"], e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.text.disabled}");
+        Assert.DoesNotContain(style.Descendants(), e => ((string?)e.Attribute("Value") ?? string.Empty).Contains("shell.accent", StringComparison.Ordinal));
+
+        // C-H7: the glyph rests in shell.muted and turns shell.text under the pointer, and the pill's button
+        // glyphs take the button's colour rather than setting their own.
+        Assert.Contains(style.Elements(), e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.muted}");
+        Assert.Contains(triggers["IsMouseOver=True"], e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.text}");
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var buttonGlyphs = pill.Descendants().Where(e => e.Name.LocalName == "Button").SelectMany(b => b.Descendants().Where(g => g.Name.LocalName == "Glyph")).ToList();
+        Assert.Equal(4, buttonGlyphs.Count);
+        Assert.All(buttonGlyphs, g => Assert.Equal("{StaticResource Hud.Glyph}", (string?)g.Attribute("Style")));
+    }
+
+    /// <summary>
+    /// Review finding C-H2: a long state word trims with an ellipsis and keeps its whole words in the
+    /// tooltip, so the pill stays a pill; and it is never narrower than 240.
+    /// </summary>
+    [Fact]
+    public void TheStateWordTrimsAndThePillHasAMinimumWidth()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var word = pill.Descendants().Single(e => (string?)e.Attribute("Text") == "{Binding StateWord}");
+        Assert.Equal("CharacterEllipsis", (string?)word.Attribute("TextTrimming"));
+        Assert.Equal("{DynamicResource Layout.hud-word-max}", (string?)word.Attribute("MaxWidth"));
+        Assert.Equal("{Binding StateWordTooltip}", (string?)word.Attribute("ToolTip"));
+
+        var frame = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "Pill");
+        Assert.Equal("{DynamicResource Layout.hud-min-width}", (string?)frame.Attribute("MinWidth"));
+    }
+
+    /// <summary>
+    /// Review finding C-H3: the state mark is drawn (dot, ring, progress ring) or is an icon looked up by
+    /// name. Every icon a state can carry has its trigger in the pill, and no state text goes into the mark.
+    /// </summary>
+    [Fact]
+    public void EveryStateIconHasItsTriggerAndTheMarkTypesNoCharacter()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var style = pill.Descendants().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute(X + "Key") == "Hud.ToneGlyph");
+        var triggered = style.Descendants().Where(e => e.Name.LocalName == "DataTrigger" && (string?)e.Attribute("Binding") == "{Binding StateGlyph}")
+            .Select(e => (string?)e.Attribute("Value")).ToList();
+
+        foreach (var icon in new[] { HudGlyphs.Pause, HudGlyphs.Lock, HudGlyphs.Hide, HudGlyphs.Unknown })
+        {
+            Assert.Contains(icon, triggered);
+        }
+
+        var mark = pill.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "StateGlyphText");
+        Assert.Null(mark.Attribute("Text"));
+    }
 
     private static IEnumerable<string> Keys(XDocument document) =>
         document.Descendants().Select(e => e.Attribute(X + "Key")?.Value).OfType<string>();

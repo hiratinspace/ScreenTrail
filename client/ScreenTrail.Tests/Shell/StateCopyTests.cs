@@ -18,10 +18,11 @@ public sealed class StateCopyTests
     [InlineData(CaptureStates.Recording, HudTone.Recording)]
     [InlineData(CaptureStates.Paused, HudTone.Paused)]
     [InlineData(CaptureStates.Suppressed, HudTone.Paused)]
-    [InlineData(CaptureStates.Finalizing, HudTone.Paused)]
+    [InlineData(CaptureStates.Finalizing, HudTone.Idle)]
     [InlineData(CaptureStates.Idle, HudTone.Idle)]
     [InlineData(CaptureStates.DraftReady, HudTone.Idle)]
-    [InlineData("new_state", HudTone.Idle)]
+    [InlineData(CaptureStates.DraftPending, HudTone.Idle)]
+    [InlineData("new_state", HudTone.Paused)]
     public void TheStatusChipTakesTheToneThePillWouldShow(string state, HudTone tone)
     {
         // The chip's dot and border are the state's colour, so the shell and the pill agree at a glance.

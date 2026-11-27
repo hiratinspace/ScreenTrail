@@ -130,11 +130,27 @@ public sealed partial class HudViewModel : ObservableObject
     /// <summary>Chevron up when open, down when closed.</summary>
     public string ExpandGlyph => Expanded ? "" : "";
 
-    public string StateText => Snapshot.State.Text;
+    /// <summary>The state in words: "Recording", "Paused", "Paused: password field" (review finding C-H4).</summary>
+    public string StateWord => Snapshot.State.Text;
 
+    /// <summary>The session's clock in its own place after the word, frozen while paused; null outside a session.</summary>
+    public string? Timer => Snapshot.Timer;
+
+    public bool ShowTimer => Snapshot.Timer is not null;
+
+    /// <summary>The state's mark (HudGlyphs): a drawn shape, or the icon the pill looks up by name.</summary>
     public string StateGlyph => Snapshot.State.Glyph;
 
+    public bool ShowDot => Snapshot.State.Glyph == HudGlyphs.Dot;
+
+    public bool ShowRing => Snapshot.State.Glyph == HudGlyphs.Ring;
+
+    public bool ShowBusy => Snapshot.State.Glyph == HudGlyphs.Busy;
+
     public string? StateTooltip => Snapshot.State.Tooltip;
+
+    /// <summary>The state word's tooltip: the whole words, since a long one trims (review finding C-H2), then why.</summary>
+    public string StateWordTooltip => Snapshot.State.Tooltip is { } why ? $"{Snapshot.State.Text}. {why}" : Snapshot.State.Text;
 
     /// <summary>The pill as a screen reader says it (Spec §7), clock included.</summary>
     public string SpokenState => Snapshot.Spoken;
@@ -146,8 +162,8 @@ public sealed partial class HudViewModel : ObservableObject
 
     public bool Visible => Snapshot.Visible;
 
-    /// <summary>The masking chip: beside the sync glyph, the number of screenshots still being masked.</summary>
-    public string RedactionText => Snapshot.PendingRedactions.ToString(CultureInfo.InvariantCulture);
+    /// <summary>The masking segment: beside the shield, "Masking 3" (review finding C-H11).</summary>
+    public string RedactionText => Snapshot.Masking ?? string.Empty;
 
     /// <summary>The chip in words, for its tooltip and a screen reader.</summary>
     public string RedactionSpoken => Snapshot.PendingRedactions == 1
@@ -273,8 +289,14 @@ public sealed partial class HudViewModel : ObservableObject
 
     private void Notify()
     {
-        OnPropertyChanged(nameof(StateText));
+        OnPropertyChanged(nameof(StateWord));
+        OnPropertyChanged(nameof(StateWordTooltip));
+        OnPropertyChanged(nameof(Timer));
+        OnPropertyChanged(nameof(ShowTimer));
         OnPropertyChanged(nameof(StateGlyph));
+        OnPropertyChanged(nameof(ShowDot));
+        OnPropertyChanged(nameof(ShowRing));
+        OnPropertyChanged(nameof(ShowBusy));
         OnPropertyChanged(nameof(StateTooltip));
         OnPropertyChanged(nameof(SpokenState));
         OnPropertyChanged(nameof(Announcement));
@@ -315,7 +337,7 @@ public sealed partial class HudViewModel : ObservableObject
 /// <summary>One line of the expanded pill: an icon for the kind, the kind in words, and the time.</summary>
 /// <param name="Glyph">Segoe Fluent Icons; decoration beside the words, hidden from a screen reader.</param>
 /// <param name="Text">The kind in words ("Screenshot taken").</param>
-/// <param name="Time">HH:mm:ss.</param>
+/// <param name="Time">HH:mm.</param>
 /// <param name="Spoken">The line as a screen reader says it.</param>
 public sealed record HudEventRow(string Glyph, string Text, string Time, string Spoken)
 {

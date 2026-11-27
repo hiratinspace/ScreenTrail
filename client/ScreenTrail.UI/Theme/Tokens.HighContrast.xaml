@@ -126,6 +126,8 @@
          to the frame colour, so on a scaled screen the edge alone was too faint to see (ST-084). -->
     <!-- A chosen segment keeps a 2 px Highlight edge: its tint is the window colour here. -->
     <Thickness x:Key="Thickness.selected-edge">2</Thickness>
+    <!-- The pill and its card: a 2 px WindowFrame edge, since there is no shadow to lift them (C-H6). -->
+    <Thickness x:Key="Thickness.float-edge">2</Thickness>
     <!-- A selected row is the 2 px Highlight edge round it: the bar and the fill are the window colour. -->
     <x:Static x:Key="Token.selection.edge" Member="SystemColors.HighlightColor" />
     <SolidColorBrush x:Key="Brush.selection.edge" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
