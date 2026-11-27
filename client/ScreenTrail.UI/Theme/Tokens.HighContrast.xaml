@@ -127,7 +127,7 @@
     <!-- A chosen segment keeps a 2 px Highlight edge: its tint is the window colour here. -->
     <Thickness x:Key="Thickness.selected-edge">2</Thickness>
     <!-- A selected row is the 2 px Highlight edge round it: the bar and the fill are the window colour. -->
-    <Color x:Key="Token.selection.edge">{x:Static SystemColors.HighlightColor}</Color>
+    <x:Static x:Key="Token.selection.edge" Member="SystemColors.HighlightColor" />
     <SolidColorBrush x:Key="Brush.selection.edge" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
     <!-- A scroll thumb is 8 wide at all times, in the window text colour. -->
     <sys:Double x:Key="ScrollThumb.rest">8</sys:Double>
