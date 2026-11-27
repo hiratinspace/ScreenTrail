@@ -490,7 +490,11 @@ public sealed partial class HistoryViewModel : ObservableObject
         MarkPublishedCommand.NotifyCanExecuteChanged();
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// Opens a row. The button is off with nothing selected (review finding A-13): it was a filled Iris
+    /// button that did nothing when pressed. Enter and a double-click pass the row they are on.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanOpen))]
     private void Open(HistoryRow? row)
     {
         if (row is not null)
@@ -498,6 +502,8 @@ public sealed partial class HistoryViewModel : ObservableObject
             _state.OpenSession(row.Id);
         }
     }
+
+    private static bool CanOpen(HistoryRow? row) => row is not null;
 
     /// <summary>
     /// Spec §5 S4's Bulk discard. Only the selected sessions that qualify are named, and the technician

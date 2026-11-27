@@ -59,6 +59,21 @@ public sealed class HistorySelectionTests
         });
     }
 
+    /// <summary>Review finding A-13: Open is off with nothing selected, where it was a filled button that did nothing.</summary>
+    [Fact]
+    public void OpenIsOffUntilARowIsSelected()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        UiThread.Run(async () =>
+        {
+            var model = new HistoryViewModel(new ShellState(), _ => Task.FromResult<IReadOnlyList<SessionRow>?>([Row("s1", "draft")]));
+            await model.RefreshAsync();
+
+            Assert.False(model.OpenCommand.CanExecute(null));
+            Assert.True(model.OpenCommand.CanExecute(model.Rows[0]));
+        });
+    }
+
     private static SessionRow Row(string id, string status) => new()
     {
         Id = id,
