@@ -119,7 +119,7 @@ public sealed class AllSessionsTableTests
 
         // At the minimum nothing scrolls sideways: the fixed columns, and Session and Status at their least, fit.
         static double Least(XElement c) => double.Parse((string?)c.Attribute("MinWidth") ?? (string)c.Attribute("Width")!, CultureInfo.InvariantCulture);
-        var least = columns.Sum(Least);
+        var least = columns.Sum(Least) + 2;
         Assert.True(least <= TableAtTheMinimum, $"The columns need {least} px and the table has {TableAtTheMinimum} at the smallest window.");
 
         // Nothing caps the table short of the pane, so the star column has the pane's width to fill.
@@ -200,5 +200,34 @@ public sealed class AllSessionsTableTests
         }
 
         throw new FileNotFoundException(file);
+    }
+
+    /// <summary>
+    /// Review finding A-09: the table is in a card, radius 8 with its rows clipped to the corners, that ends
+    /// under the last row, and the actions are 16 under the card rather than pinned to the window's foot.
+    /// </summary>
+    [Fact]
+    public void TheTableIsACardThatEndsUnderItsLastRowWithTheActionsBelowIt()
+    {
+        XNamespace theme = "clr-namespace:ScreenTrail.UI.Theme";
+        var history = Load("History", "HistoryPane.xaml");
+        var table = Assert.Single(history.Descendants(Wpf + "DataGrid"));
+        var card = table.Parent!;
+        Assert.Equal("TableCard", (string?)card.Attribute(Xaml + "Name"));
+        Assert.Equal("{StaticResource History.TableCard}", (string?)card.Attribute("Style"));
+        Assert.Equal("True", (string?)card.Attribute(theme + "RoundedClip.Inside"));
+
+        var cardStyle = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.TableCard");
+        Assert.Equal("{StaticResource Card}", (string?)cardStyle.Attribute("BasedOn"));
+        Assert.Equal("0", Setter(cardStyle, "Padding"));
+        var tableStyle = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.Table");
+        Assert.Equal("0", Setter(tableStyle, "BorderThickness"));
+
+        var holder = card.Parent!;
+        Assert.Equal("TableAndActions", (string?)holder.Attribute(Xaml + "Name"));
+        Assert.Equal("Top", (string?)holder.Attribute("VerticalAlignment"));
+        var actions = Assert.Single(holder.Elements(Wpf + "Grid"), g => (string?)g.Attribute(Xaml + "Name") == "Actions");
+        Assert.Equal("1", (string?)actions.Attribute("Grid.Row"));
+        Assert.Equal("0,16,0,0", (string?)actions.Attribute("Margin"));
     }
 }

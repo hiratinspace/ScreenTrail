@@ -18,6 +18,16 @@
         </Style>
         <!-- The table when there are rows, the sentence as an empty state when there are none. -->
         <Style x:Key="History.Table" BasedOn="{StaticResource Table}" TargetType="DataGrid">
+            <Setter Property="BorderThickness" Value="0" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Rows.Count}" Value="0">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- The table's card, gone with the table when there are no rows; the table's own edge is the card's. -->
+        <Style x:Key="History.TableCard" BasedOn="{StaticResource Card}" TargetType="Border">
+            <Setter Property="Padding" Value="0" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Rows.Count}" Value="0">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -70,13 +80,12 @@
             <Setter Property="HorizontalContentAlignment" Value="Right" />
         </Style>
     </UserControl.Resources>
-    <!-- Spec §5 S4, as built v0.6.6: the table takes the pane's width, and its Status column takes what the
-         others leave, so the rows and the selection run from edge to edge. -->
+    <!-- Spec §5 S4, as built v0.6.6: the table takes the pane's width, and its Session column (Status until
+         v0.7.19) takes what the others leave, so the rows and the selection run from edge to edge. -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- Page header: the title, and the count beside it. Since v0.6.4 the rail is History; this table,
@@ -143,78 +152,161 @@
             </ContentControl>
         </StackPanel>
 
-        <!-- Extended: click, Shift and Ctrl with the mouse, Shift and Ctrl with the arrows and Space, and
-             Ctrl+A, the way every Windows table selects. Spec §5 S4: multi-select, then Bulk discard. -->
-        <DataGrid Grid.Row="1"
-                  x:Name="Sessions"
-                  Margin="0,8,0,0"
-                  Style="{StaticResource History.Table}"
-                  ItemsSource="{Binding Rows}"
-                  IsReadOnly="True"
-                  SelectionMode="Extended"
-                  SelectionUnit="FullRow"
-                  SelectionChanged="OnSelectionChanged"
-                  MouseDoubleClick="OnOpen"
-                  PreviewKeyDown="OnTableKeyDown"
-                  AutomationProperties.Name="Sessions"
-                  AutomationProperties.HelpText="Enter opens the session. Select one or more sessions with Shift or Ctrl, then choose Discard selected.">
-            <!-- The table's row style with each row named for a screen reader (ST-084). -->
-            <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow" BasedOn="{StaticResource Table.Row}">
-                    <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}" />
-                </Style>
-            </DataGrid.RowStyle>
-            <DataGrid.Columns>
-                <!-- Review findings R-03 and A-10: Started, then which session it is, taking what the others
-                     leave (it was Status, about 430 px of nothing beside a badge), then Status as wide as its
-                     badges and the two numbers at the end, right aligned under right-aligned headers. The tool
-                     ends the Session line ("Acme Dental · Printer offline · #48213 · ScreenConnect"): with a
-                     column of its own nothing fitted the smallest window. At their least the columns add up to
-                     662, which the pane holds at the window's 960 minimum beside a scroll bar. -->
-                <DataGridTextColumn Header="Started" Binding="{Binding Started}" Width="152" ElementStyle="{StaticResource History.CellText}" />
-                <DataGridTextColumn x:Name="SessionColumn" Header="Session" Binding="{Binding Session}" Width="*" MinWidth="134" ElementStyle="{StaticResource History.CellText}" />
-                <!-- The status as a badge in the rail's word, glyph and hue (spec v0.6.9 S4), so a state reads
-                     the same on both and never by colour alone. -->
-                <!-- "Not confirmed" sits beside the status, never in place of it: a publish of the session may
-                     have reached the ticket, and the session is still a draft or published in part. Not
-                     focusable, so it is no tab stop; the row's own name says it to a screen reader. -->
-                <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="168" SortMemberPath="Status">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
-                                <ContentControl Style="{StaticResource Badge}" theme:Badge.Tone="{Binding StatusTone}" theme:Badge.Glyph="{Binding StatusGlyph}">
-                                    <TextBlock Text="{Binding Status}" />
-                                </ContentControl>
-                                <ContentControl Margin="8,0,0,0"
-                                                Style="{StaticResource Badge}"
-                                                theme:Badge.Tone="Warning"
-                                                theme:Badge.Glyph="{x:Static local:HistoryRow.NotConfirmedGlyph}"
-                                                Visibility="{Binding NotConfirmedVisibility}"
-                                                ToolTip="A publish of this session may have reached the ticket. Check the ticket, then publish again from Review or mark it as published."
-                                                AutomationProperties.Name="Publish not confirmed">
-                                    <TextBlock Text="{Binding NotConfirmedLabel}" />
-                                </ContentControl>
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn x:Name="DurationColumn" Header="Duration" Binding="{Binding Duration}" Width="96" HeaderStyle="{StaticResource History.NumberHeader}" ElementStyle="{StaticResource History.CellNumber}" />
-                <DataGridTemplateColumn x:Name="ScreenshotsColumn" Header="Screenshots" Width="112" HeaderStyle="{StaticResource History.NumberHeader}" SortMemberPath="Frames">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource History.CellNumber}" Text="{Binding Frames}" />
-                                <TextBlock Margin="4,0,0,0"
-                                           VerticalAlignment="Center"
-                                           Style="{StaticResource Text.Caption}"
-                                           Text="{Binding LeftOut}"
-                                           Visibility="{Binding HasLeftOut, Converter={StaticResource Visible}}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Review finding A-09: the table in a card (radius 8, its rows clipped to the corners), ending under
+             its last row instead of a framed white box the pane's height, with the actions 16 under it. The
+             card and the actions are one top-aligned grid: the card's row takes what the actions leave, so a
+             long list scrolls inside the card and the actions stay on screen. -->
+        <Grid x:Name="TableAndActions" Grid.Row="1" Margin="0,8,0,0" VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <Border x:Name="TableCard"
+                    Grid.Row="0"
+                    Style="{StaticResource History.TableCard}"
+                    theme:RoundedClip.Inside="True">
+                <!-- Extended: click, Shift and Ctrl with the mouse, Shift and Ctrl with the arrows and Space, and
+                     Ctrl+A, the way every Windows table selects. Spec §5 S4: multi-select, then Bulk discard. -->
+                <DataGrid x:Name="Sessions"
+                          Style="{StaticResource History.Table}"
+                          ItemsSource="{Binding Rows}"
+                          IsReadOnly="True"
+                          SelectionMode="Extended"
+                          SelectionUnit="FullRow"
+                          SelectionChanged="OnSelectionChanged"
+                          MouseDoubleClick="OnOpen"
+                          PreviewKeyDown="OnTableKeyDown"
+                          AutomationProperties.Name="Sessions"
+                          AutomationProperties.HelpText="Enter opens the session. Select one or more sessions with Shift or Ctrl, then choose Discard selected.">
+                    <!-- The table's row style with each row named for a screen reader (ST-084). -->
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource Table.Row}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}" />
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <!-- Review findings R-03 and A-10: Started, then which session it is, taking what the others
+                             leave (it was Status, about 430 px of nothing beside a badge), then Status as wide as its
+                             badges and the two numbers at the end, right aligned under right-aligned headers. The tool
+                             ends the Session line ("Acme Dental · Printer offline · #48213 · ScreenConnect"): with a
+                             column of its own nothing fitted the smallest window. At their least the columns add up to 660, which with the card's edge the pane holds at the window's 960 minimum beside a scroll bar. -->
+                        <DataGridTextColumn Header="Started" Binding="{Binding Started}" Width="152" ElementStyle="{StaticResource History.CellText}" />
+                        <DataGridTextColumn x:Name="SessionColumn" Header="Session" Binding="{Binding Session}" Width="*" MinWidth="132" ElementStyle="{StaticResource History.CellText}" />
+                        <!-- The status as a badge in the rail's word, glyph and hue (spec v0.6.9 S4), so a state reads
+                             the same on both and never by colour alone. -->
+                        <!-- "Not confirmed" sits beside the status, never in place of it: a publish of the session may
+                             have reached the ticket, and the session is still a draft or published in part. Not
+                             focusable, so it is no tab stop; the row's own name says it to a screen reader. -->
+                        <DataGridTemplateColumn Header="Status" Width="Auto" MinWidth="168" SortMemberPath="Status">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
+                                        <ContentControl Style="{StaticResource Badge}" theme:Badge.Tone="{Binding StatusTone}" theme:Badge.Glyph="{Binding StatusGlyph}">
+                                            <TextBlock Text="{Binding Status}" />
+                                        </ContentControl>
+                                        <ContentControl Margin="8,0,0,0"
+                                                        Style="{StaticResource Badge}"
+                                                        theme:Badge.Tone="Warning"
+                                                        theme:Badge.Glyph="{x:Static local:HistoryRow.NotConfirmedGlyph}"
+                                                        Visibility="{Binding NotConfirmedVisibility}"
+                                                        ToolTip="A publish of this session may have reached the ticket. Check the ticket, then publish again from Review or mark it as published."
+                                                        AutomationProperties.Name="Publish not confirmed">
+                                            <TextBlock Text="{Binding NotConfirmedLabel}" />
+                                        </ContentControl>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn x:Name="DurationColumn" Header="Duration" Binding="{Binding Duration}" Width="96" HeaderStyle="{StaticResource History.NumberHeader}" ElementStyle="{StaticResource History.CellNumber}" />
+                        <DataGridTemplateColumn x:Name="ScreenshotsColumn" Header="Screenshots" Width="112" HeaderStyle="{StaticResource History.NumberHeader}" SortMemberPath="Frames">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource History.CellNumber}" Text="{Binding Frames}" />
+                                        <TextBlock Margin="4,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Style="{StaticResource Text.Caption}"
+                                                   Text="{Binding LeftOut}"
+                                                   Visibility="{Binding HasLeftOut, Converter={StaticResource Visible}}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <Grid x:Name="Actions" Grid.Row="1" Margin="0,16,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource History.Actions}">
+                    <Button Style="{StaticResource Button.Primary}"
+                            Content="Open"
+                            Command="{Binding OpenCommand}"
+                            CommandParameter="{Binding SelectedItem, ElementName=Sessions}" />
+                    <TextBlock Margin="12,0,0,0"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Muted}"
+                               Text="Or press Enter, or double-click a session." />
+                </StackPanel>
+
+                <!-- How many are selected and how many of those a discard would take, so the number the
+                     dialog asks for is never a surprise. Then the button, on the right, apart from Open. -->
+                <TextBlock Grid.Row="0"
+                           Grid.Column="1"
+                           Margin="16,0,12,0"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Secondary}"
+                           Text="{Binding SelectionNote}"
+                           controls:LiveRegion.Setting="Polite" />
+                <StackPanel Grid.Row="0" Grid.Column="2" Style="{StaticResource History.Actions}">
+                    <!-- For one selected session whose publish was not confirmed: the technician checked the
+                         ticket and the note is there. Asks first, sends nothing to the ticket. -->
+                    <Button Margin="0,0,8,0"
+                            Style="{StaticResource Button.Secondary}"
+                            Content="Mark as published"
+                            Command="{Binding MarkPublishedCommand}"
+                            ToolTip="For one session marked Not confirmed: after checking the ticket, record that the earlier publish is there. Nothing is sent again."
+                            AutomationProperties.Name="Mark as published: the selected session"
+                            AutomationProperties.HelpText="For one selected session marked Not confirmed. After you have checked the ticket, records that the earlier publish is there. Nothing is sent again. You will be asked to confirm." />
+                    <Button Style="{StaticResource Button.Danger}"
+                            Content="Discard selected"
+                            Command="{Binding BulkDiscardCommand}"
+                            ToolTip="Discard the selected sessions. You will be asked to type how many."
+                            AutomationProperties.Name="Discard selected sessions"
+                            AutomationProperties.HelpText="Deletes the selected sessions' screenshots, transcripts and notes from this PC. You will be asked to type how many." />
+                </StackPanel>
+
+                <!-- What the last discard did, or why it did not happen: beside the button, never a dialog,
+                     and read out as it changes. -->
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           Grid.ColumnSpan="3"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Right"
+                           Style="{StaticResource Text.Error}"
+                           Visibility="{Binding DiscardFailed, Converter={StaticResource Visible}}"
+                           Text="{Binding DiscardError}"
+                           controls:LiveRegion.Setting="Assertive" />
+                <TextBlock Grid.Row="1"
+                           Grid.Column="0"
+                           Grid.ColumnSpan="3"
+                           Margin="0,8,0,0"
+                           HorizontalAlignment="Right"
+                           Style="{StaticResource History.Notice}"
+                           Text="{Binding Notice}"
+                           controls:LiveRegion.Setting="Polite" />
+            </Grid>
+        </Grid>
 
         <!-- Nothing yet: the same sentence the count line says, as the screen's content. -->
         <StackPanel Grid.Row="1" Style="{StaticResource History.Empty}">
@@ -230,75 +322,5 @@
                     Visibility="{Binding ClearFiltersVisibility}" />
         </StackPanel>
 
-        <Grid Grid.Row="2" Margin="0,16,0,0">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource History.Actions}">
-                <Button Style="{StaticResource Button.Primary}"
-                        Content="Open"
-                        Command="{Binding OpenCommand}"
-                        CommandParameter="{Binding SelectedItem, ElementName=Sessions}" />
-                <TextBlock Margin="12,0,0,0"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource Text.Muted}"
-                           Text="Or press Enter, or double-click a session." />
-            </StackPanel>
-
-            <!-- How many are selected and how many of those a discard would take, so the number the
-                 dialog asks for is never a surprise. Then the button, on the right, apart from Open. -->
-            <TextBlock Grid.Row="0"
-                       Grid.Column="1"
-                       Margin="16,0,12,0"
-                       HorizontalAlignment="Right"
-                       VerticalAlignment="Center"
-                       Style="{StaticResource Text.Secondary}"
-                       Text="{Binding SelectionNote}"
-                       controls:LiveRegion.Setting="Polite" />
-            <StackPanel Grid.Row="0" Grid.Column="2" Style="{StaticResource History.Actions}">
-                <!-- For one selected session whose publish was not confirmed: the technician checked the
-                     ticket and the note is there. Asks first, sends nothing to the ticket. -->
-                <Button Margin="0,0,8,0"
-                        Style="{StaticResource Button.Secondary}"
-                        Content="Mark as published"
-                        Command="{Binding MarkPublishedCommand}"
-                        ToolTip="For one session marked Not confirmed: after checking the ticket, record that the earlier publish is there. Nothing is sent again."
-                        AutomationProperties.Name="Mark as published: the selected session"
-                        AutomationProperties.HelpText="For one selected session marked Not confirmed. After you have checked the ticket, records that the earlier publish is there. Nothing is sent again. You will be asked to confirm." />
-                <Button Style="{StaticResource Button.Danger}"
-                        Content="Discard selected"
-                        Command="{Binding BulkDiscardCommand}"
-                        ToolTip="Discard the selected sessions. You will be asked to type how many."
-                        AutomationProperties.Name="Discard selected sessions"
-                        AutomationProperties.HelpText="Deletes the selected sessions' screenshots, transcripts and notes from this PC. You will be asked to type how many." />
-            </StackPanel>
-
-            <!-- What the last discard did, or why it did not happen: beside the button, never a dialog,
-                 and read out as it changes. -->
-            <TextBlock Grid.Row="1"
-                       Grid.Column="0"
-                       Grid.ColumnSpan="3"
-                       Margin="0,8,0,0"
-                       HorizontalAlignment="Right"
-                       Style="{StaticResource Text.Error}"
-                       Visibility="{Binding DiscardFailed, Converter={StaticResource Visible}}"
-                       Text="{Binding DiscardError}"
-                       controls:LiveRegion.Setting="Assertive" />
-            <TextBlock Grid.Row="1"
-                       Grid.Column="0"
-                       Grid.ColumnSpan="3"
-                       Margin="0,8,0,0"
-                       HorizontalAlignment="Right"
-                       Style="{StaticResource History.Notice}"
-                       Text="{Binding Notice}"
-                       controls:LiveRegion.Setting="Polite" />
-        </Grid>
     </Grid>
 </UserControl>
