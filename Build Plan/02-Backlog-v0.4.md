@@ -2356,10 +2356,10 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Status:** Built (2026-11-27), PR open. All findings: a failed draft says why in plain words, with "Try drafting again" only when it can help and the reason carried over the pipe (E-10, IPC contract v16); E-11's words were in since ST-133; an inferred step is one badge line with no side stripe (B-34); a step stacks under a 560 px note with a 96 x 60 frame and no "screenshot N" line (B-35, R-02); quotes as Captions (B-36); a draft on its way as a ring and the note's shape (B-37); the footer in one size at 44 high (B-38). Follow-up: a `retry_draft` command so the live pane can offer Try drafting again. Laptop checks: the Windows suite and the note renders (default, narrow, pending, failed).
 
 ### **ST-139 · All sessions (including restoring the selection across reads, the rest of D-22)**
-- **Findings:** A-09, A-10, R-03, A-13 (Open)
+- **Findings:** A-09, A-10, R-03, A-13 (Open), D-22 (rest)
 - **Blocked By:** ST-130, ST-131, ST-133
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. D-22 (the rest): the list is reconciled by id and the selection kept by id across a read and a filter change; A-10 and R-03: a Session column from the rail's fields, the numbers right aligned at the end, the left-out count a caption (the tool moved onto the Session line, since a Tool column no longer fitted 960 wide); A-09: the table is a rounded card ending under its last row with the actions under it; A-13: Open off until a row is selected (the shared disabled state was ST-128's). Laptop checks: the Windows suite (HistorySelectionTests) and the History renders.
 
 ### **ST-140 · Settings**
 - **Findings:** B-12, B-39 to B-43, B-45, B-47 to B-49, E-15
