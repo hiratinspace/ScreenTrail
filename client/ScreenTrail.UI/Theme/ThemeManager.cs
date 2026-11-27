@@ -165,12 +165,18 @@ public static class ThemeManager
         };
 
         var next = new ResourceDictionary { Source = new Uri($"pack://application:,,,/ScreenTrail.UI;component/Theme/{file}") };
-        if (_colors is not null)
+        // Replaced in place (review finding D-28): removing the old dictionary and then inserting the new one
+        // invalidated every resource twice per switch.
+        var index = _colors is null ? -1 : resources.MergedDictionaries.IndexOf(_colors);
+        if (index >= 0)
         {
-            resources.MergedDictionaries.Remove(_colors);
+            resources.MergedDictionaries[index] = next;
+        }
+        else
+        {
+            resources.MergedDictionaries.Insert(0, next);
         }
 
-        resources.MergedDictionaries.Insert(0, next);
         _colors = next;
         Current = theme;
         Applied?.Invoke(null, EventArgs.Empty);

@@ -35,6 +35,10 @@
     <!-- The installer compresses the files; compressing them again inside the executable would cost
          start-up time at every sign-in for a smaller folder nobody looks at. -->
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <!-- Review finding D-28: the app's own assemblies (UI, Core, Platform, Shared, the MVVM toolkit) arrive
+         compiled, rather than being JIT-compiled at every sign-in and on the first shell open, the slowest
+         moment of the day. The files are larger; the installer compresses them. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
     <!-- English only (Scope: US first). Without this, every framework resource language ships. -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- No symbol files in Program Files. Crash reports are stack-only either way (ST-011). -->
