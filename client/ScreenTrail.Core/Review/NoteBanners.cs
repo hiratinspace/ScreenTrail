@@ -51,7 +51,7 @@ public static class NoteBanners
             var noun = count == 1 ? "screenshot was" : "screenshots were";
             banners.Add(new Banner(
                 BannerKind.Warning,
-                $"{count} {noun} removed because they could not be redacted in time."));
+                $"{count} {noun} left out because masking did not finish in time."));
         }
 
         if (session.Draft is { Source: DraftSource.Local })

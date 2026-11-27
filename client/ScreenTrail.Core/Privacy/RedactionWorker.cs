@@ -468,7 +468,7 @@ public sealed class RedactionWorker(
 
     /// <summary>
     /// Deletes a frame that could not be redacted. The session keeps its count of what was lost, so Review
-    /// can say "3 screenshots were removed because they could not be redacted in time" rather than leaving
+    /// can say "3 screenshots were left out because masking did not finish in time" rather than leaving
     /// a silent gap (Spec §5 S3).
     /// </summary>
     /// <param name="unread">

@@ -55,7 +55,8 @@ public sealed record HudSnapshot(
 
             if (PendingRedactions > 0)
             {
-                parts.Add(PendingRedactions == 1 ? "1 screenshot still being redacted" : string.Create(CultureInfo.InvariantCulture, $"{PendingRedactions} screenshots still being redacted"));
+                // "Masking", the word the tooltip and the rest of the product use (review finding E-05).
+                parts.Add(PendingRedactions == 1 ? "masking 1 screenshot" : string.Create(CultureInfo.InvariantCulture, $"masking {PendingRedactions} screenshots"));
             }
 
             if (Mic is { } mic)

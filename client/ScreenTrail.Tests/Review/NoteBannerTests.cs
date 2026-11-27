@@ -22,7 +22,7 @@ public sealed class NoteBannerTests
         Assert.Equal(
             [
                 "Capture started late or was interrupted. Some steps may be missing.",
-                "3 screenshots were removed because they could not be redacted in time.",
+                "3 screenshots were left out because masking did not finish in time.",
             ],
             banners.Select(banner => banner.Text));
         Assert.All(banners, banner => Assert.Equal(BannerKind.Warning, banner.Kind));
@@ -35,7 +35,7 @@ public sealed class NoteBannerTests
         // is the one number on this screen that has to be believed.
         var banners = NoteBanners.For(Session(framesPurged: 1, draft: Draft()));
 
-        Assert.Equal("1 screenshot was removed because they could not be redacted in time.", banners[0].Text);
+        Assert.Equal("1 screenshot was left out because masking did not finish in time.", banners[0].Text);
     }
 
     [Fact]

@@ -431,7 +431,7 @@ Window default 1280×800, minimum 1024×680.
 - Low-confidence steps show a `confidence.low` ⚠ marker with tooltip "Inferred from screen only. Please verify." Marker clears when the step is edited or explicitly confirmed (`Alt+C`).
 - Drag handle on hover; `Alt+↑/↓` reorders. `Enter` at end of a step creates a new step; `Backspace` on empty deletes.
 - Autosave indicator bottom-left of pane: "Saved" / "Saving…" / "Not saved: retrying" in `text.muted`.
-- Banners at top of pane when applicable: *Partial capture* ("Capture started late or was interrupted. Some steps may be missing."), *Frames purged* ("3 screenshots were removed because they could not be redacted in time."), *Local draft* ("Drafted on this device only. Quality may be lower.").
+- Banners at top of pane when applicable: *Partial capture* ("Capture started late or was interrupted. Some steps may be missing."), *Screenshots left out* ("3 screenshots were left out because masking did not finish in time."), *Local draft* ("Drafted on this device only. Quality may be lower.").
 
 **Screenshots (v0.5 centre pane; target: on each step's row, same actions)**
 - Filmstrip grid, 160×90 thumbnails, ordered by time. Included frames have a check; excluded are dimmed. Suppressed/out-of-scope intervals appear as slim striped gaps with a tooltip.

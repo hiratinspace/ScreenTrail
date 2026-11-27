@@ -31,7 +31,7 @@ public sealed class HudStateTests
     public void AScreenReaderHearsTheStateTheClockAndTheBacklogInWords()
     {
         var hud = HudState.For(Capture(CaptureStates.Recording, elapsedMs: 761_000, pending: 3));
-        Assert.Equal("Recording, 12 minutes 41 seconds, 3 screenshots still being redacted", hud.Spoken);
+        Assert.Equal("Recording, 12 minutes 41 seconds, masking 3 screenshots", hud.Spoken);
 
         var offline = HudState.For(Capture(CaptureStates.Recording, elapsedMs: 3_661_000), online: false);
         Assert.Equal("Recording, 1 hour 1 minute 1 second, Offline: draft will be created when connected.", offline.Spoken);

@@ -10,7 +10,7 @@ using ScreenTrail.Shared.Ipc;
 namespace ScreenTrail.UI.History;
 
 /// <summary>One row of the History screen, already worded (Spec §5 S4).</summary>
-/// <param name="Frames">"7", or "7 (+1 purged)" when frames were deleted unredacted, because that is a fact about coverage the technician should see before publishing.</param>
+/// <param name="Frames">"7", or "7 (1 left out)" when frames were deleted unredacted, because that is a fact about coverage the technician should see before publishing.</param>
 /// <param name="NotConfirmed">A publish of the session may have reached the ticket and was never confirmed: said beside the status, never in place of it (contract v10).</param>
 /// <param name="Badge">The status as the rail draws it: its word, glyph and hue (spec v0.6.9 S4). Null draws the word alone.</param>
 public sealed record HistoryRow(string Id, string Started, string Duration, string Status, string Tool, string Frames, bool NotConfirmed = false, StatusBadge? Badge = null)
@@ -531,7 +531,8 @@ public sealed partial class HistoryViewModel : ObservableObject
             // The status in the rail's words, glyph and hue (spec v0.6.9 S4): "Partial capture", not "Partial".
             row.Status.Length == 0 ? row.Status : StatusBadges.Of(row.Status).Word,
             ToolNames.Display(row.Tool),
-            row.FramesPurged > 0 ? $"{row.Frames} (+{row.FramesPurged} purged)" : row.Frames.ToString(CultureInfo.InvariantCulture),
+            // "Left out", the note's words for the same screenshots, not "purged" (review finding E-05).
+            row.FramesPurged > 0 ? $"{row.Frames} ({row.FramesPurged} left out)" : row.Frames.ToString(CultureInfo.InvariantCulture),
             SessionHistory.MayMarkPublished(row),
             row.Status.Length == 0 ? null : StatusBadges.Of(row.Status));
     }
