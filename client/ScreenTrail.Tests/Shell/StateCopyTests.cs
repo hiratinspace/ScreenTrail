@@ -40,7 +40,7 @@ public sealed class StateCopyTests
     [InlineData(CaptureStates.Suppressed)]
     public void ReviewWithNothingToShowWhileCapturingSaysTheDraftIsComing(string state)
     {
-        Assert.Equal("Capturing now: the draft opens here when you stop (Ctrl+Alt+S).", ShellStatus.NothingToReview(Snapshot(state)));
+        Assert.Equal("Recording now: the draft opens here when you stop (Ctrl+Alt+S).", ShellStatus.NothingToReview(Snapshot(state)));
     }
 
     [Theory]

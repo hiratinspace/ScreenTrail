@@ -351,7 +351,7 @@ public partial class ShellWindow : Window
                 {
                     IReadOnlyList<DestinationResult> Unmapped(PublishRequest request) =>
                         [.. request.Destinations.Select(d => d == Destination.KbArticle
-                            ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the documentation platform. Choose one below, or map it in Settings → Integrations.", DestinationResult.NeedsMapping)
+                            ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the knowledge base. Choose one below, or map it in Settings → Integrations.", DestinationResult.NeedsMapping)
                             : new DestinationResult(d, true, new Uri("https://na.myconnectwise.net/v4_6_release/services/system_io/Service/fv_sr100_request.rails?service_recid=48213")))];
                     IReadOnlyList<CompanyChoice> Companies() => [new("7", "Acme Dental Group"), new("9", "Bright Smiles"), new("12", "Northwind Clinic")];
                     var panel = new PublishPanel(
@@ -489,7 +489,7 @@ public partial class ShellWindow : Window
             Task.FromResult<IReadOnlyList<IntegrationDetail>?>(
             [
                 new("connectwise", "https://na.myconnectwise.net", "••••7Qa2", new DateTimeOffset(2026, 9, 20, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 9, 25, 8, 30, 0, TimeSpan.Zero), null),
-                new("hudu", "https://docs.contosomsp.com", "••••c09d", new DateTimeOffset(2026, 9, 20, 9, 5, 0, TimeSpan.Zero), new DateTimeOffset(2026, 9, 25, 8, 31, 0, TimeSpan.Zero), "Hudu rejected the API key. Ask your ScreenTrail owner to update the Hudu connection in the web admin."),
+                new("hudu", "https://docs.contosomsp.com", "••••c09d", new DateTimeOffset(2026, 9, 20, 9, 5, 0, TimeSpan.Zero), new DateTimeOffset(2026, 9, 25, 8, 31, 0, TimeSpan.Zero), "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
             ]);
 
         public Task<CheckOutcome> CheckAsync(string provider, CancellationToken ct = default) =>

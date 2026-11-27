@@ -78,7 +78,7 @@ public sealed class ReceiptTests
         var panel = await PublishedAsync(d => new DestinationResult(d, true, Ticket), draft: Draft() with { SuggestedTitle = "Restart a stopped Print Spooler" });
 
         Assert.Equal("Internal note", panel.DetailOf(Destination.TicketNote));
-        Assert.Equal("0:30", panel.DetailOf(Destination.TimeEntry));
+        Assert.Equal("30 min", panel.DetailOf(Destination.TimeEntry));
         Assert.Equal("“Restart a stopped Print Spooler”", panel.DetailOf(Destination.KbArticle));
     }
 

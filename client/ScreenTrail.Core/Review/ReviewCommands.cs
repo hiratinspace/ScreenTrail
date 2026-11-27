@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Microsoft.Extensions.Logging;
 using ScreenTrail.Core.Privacy;
 using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
@@ -24,7 +25,11 @@ namespace ScreenTrail.Core.Review;
 /// blurred (ST-084 follow-up review). The service passes the one <see cref="Publish.PublishCommands"/>
 /// has; on its own this keeps blurs to one at a time.
 /// </param>
-public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, FrameEditGate? edits = null)
+/// <param name="logger">
+/// Where the sizes of a refusal go (review finding E-12): the technician reads what happened and what to
+/// do, and the byte counts are for whoever reads the service's log.
+/// </param>
+public sealed partial class ReviewCommands(ISessionStore store, IFrameMasker masker, FrameEditGate? edits = null, ILogger? logger = null)
 {
     private readonly ISessionStore _store = store ?? throw new ArgumentNullException(nameof(store));
     private readonly IFrameMasker _masker = masker ?? throw new ArgumentNullException(nameof(masker));
@@ -44,14 +49,21 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
     /// </summary>
     private readonly ConditionalWeakTable<BlurFrameCommand, string> _refusals = [];
 
-    private const string NoFrame = "There is no such frame, or it has not been redacted yet.";
+    // In the technician's words, not the store's or the pipe's (review finding E-12).
+    private const string NoFrame = "This screenshot is not ready yet. It shows once masking finishes.";
+
+    private const string SessionTooLarge = "This session is too large to open here. Ask your ScreenTrail admin to check it in the web admin.";
+
+    private const string TextTooLarge = "This screenshot's text is too large to show here.";
+
+    private const string FrameTooLarge = "This screenshot is too large to show here.";
 
     /// <summary>
     /// How the one refusal that follows a write begins: the blur is on disk, and only the new image could
     /// not be sent back. <see cref="PipeReviewFrames"/> reads it so the pane can show the disk as it is
     /// rather than the picture from before (ST-084 follow-up review).
     /// </summary>
-    public const string WrittenButTooLarge = "The blur was written, but the frame is now too large for the pipe";
+    public const string WrittenButTooLarge = "The blur was saved, but the screenshot is now too large to show here";
 
     /// <summary>
     /// The largest image that fits in one message once it is base64 in JSON, with room to spare under
@@ -94,13 +106,13 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
             GetSessionCommand get => await SessionAsync(get, ct).ConfigureAwait(false) switch
             {
                 (null, _) => (false, "There is no such session."),
-                (_, var bytes and > IpcFraming.MaxMessageBytes) => (false, $"The session is too large to open in Review: {bytes} bytes against the pipe's limit of {IpcFraming.MaxMessageBytes}."),
+                (_, var bytes and > IpcFraming.MaxMessageBytes) => (false, TooLarge(SessionTooLarge, "session", bytes, IpcFraming.MaxMessageBytes)),
                 _ => (true, null),
             },
             GetFrameTextCommand get => await FrameTextAsync(get, ct).ConfigureAwait(false) switch
             {
                 (null, _) => (false, NoFrame),
-                (_, var bytes and > IpcFraming.MaxMessageBytes) => (false, $"The frame's text is too large for the pipe: {bytes} bytes against a limit of {IpcFraming.MaxMessageBytes}."),
+                (_, var bytes and > IpcFraming.MaxMessageBytes) => (false, TooLarge(TextTooLarge, "frame text", bytes, IpcFraming.MaxMessageBytes)),
                 _ => (true, null),
             },
             GetFrameCommand get => await WhyNotAsync(get.FrameId, ct).ConfigureAwait(false),
@@ -186,7 +198,7 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
             // it had until the session is opened again; the words say the disk has moved on.
             return Fits(painted.Image) is { } image
                 ? (new FrameLoaded { RequestId = blur.RequestId, FrameId = blur.FrameId, Image = image }, null)
-                : (null, $"{WrittenButTooLarge}: {painted.Image.Length} bytes against a limit of {LargestFrameBytes}. Open the session again to see it.");
+                : (null, TooLarge($"{WrittenButTooLarge}. Open the session again to see it.", "blurred frame", painted.Image.Length, LargestFrameBytes));
         }
     }
 
@@ -304,7 +316,7 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
         return image switch
         {
             null => (false, NoFrame),
-            { Length: > LargestFrameBytes } => (false, $"The frame is too large for the pipe: {image.Length} bytes against a limit of {LargestFrameBytes}."),
+            { Length: > LargestFrameBytes } => (false, TooLarge(FrameTooLarge, "frame", image.Length, LargestFrameBytes)),
             _ => (true, null),
         };
     }
@@ -318,7 +330,7 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
         }
         catch (InvalidOperationException)
         {
-            return (false, "There is no such frame.");
+            return (false, "This screenshot is no longer in the session.");
         }
     }
 
@@ -336,4 +348,18 @@ public sealed class ReviewCommands(ISessionStore store, IFrameMasker masker, Fra
     }
 
     private static byte[]? Fits(byte[]? image) => image is { Length: <= LargestFrameBytes } ? image : null;
+
+    /// <summary>The words for the technician; the sizes to the log.</summary>
+    private string TooLarge(string words, string what, long bytes, long limit)
+    {
+        if (logger is not null)
+        {
+            LogTooLarge(logger, what, bytes, limit);
+        }
+
+        return words;
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Review refused a {What} of {Bytes} bytes against a limit of {Limit}")]
+    private static partial void LogTooLarge(ILogger logger, string what, long bytes, long limit);
 }

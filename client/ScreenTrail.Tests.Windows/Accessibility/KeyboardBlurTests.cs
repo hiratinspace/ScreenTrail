@@ -408,7 +408,7 @@ public sealed partial class KeyboardBlurTests(TheApplication app)
                     Assert.Null(frame.Thumbnail);
                     Assert.Null(frame.OcrText);
                     Assert.True(frame.WaitingForBlur, "The enlarged view shows nothing to say it is waiting.");
-                    Assert.Equal("A blur of frame 1 is still being applied. Publish once it has landed.", strip.PublishHeldBecause);
+                    Assert.Equal("A blur of screenshot 1 is still being applied. Publish once it has landed.", strip.PublishHeldBecause);
                     Assert.Empty(frame.Cell.Frame.MaskedRegions);
 
                     // Closed and opened again while it waits: nothing is asked for, so nothing old is shown.

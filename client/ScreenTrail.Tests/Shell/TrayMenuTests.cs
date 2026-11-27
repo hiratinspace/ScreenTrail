@@ -19,7 +19,7 @@ public sealed class TrayMenuTests
                 "Recording: ScreenConnect (12:41)",
                 "Pause", "Stop and draft", "Discard session…",
                 "-",
-                "Open ScreenTrail", "Session history", "What's being captured right now?", "Hide the recording pill (only between sessions)",
+                "Open ScreenTrail", "All sessions", "Diagnostics", "Hide the recording pill (only between sessions)",
                 "-",
                 "Settings", "Set up ScreenTrail…", "Quit ScreenTrail",
             ],
@@ -121,7 +121,7 @@ public sealed class TrayMenuTests
         Assert.Equal("&Start capture", start.Text);
         Assert.Equal(pause.Kind, start.Kind);
         Assert.Equal(
-            ["Start capture", "-", "Open ScreenTrail", "Session history", "What's being captured right now?", "Hide the recording pill until the next session", "-", "Settings", "Set up ScreenTrail…", "Quit ScreenTrail"],
+            ["Start capture", "-", "Open ScreenTrail", "All sessions", "Diagnostics", "Hide the recording pill until the next session", "-", "Settings", "Set up ScreenTrail…", "Quit ScreenTrail"],
             rows.Skip(1).Select(r => r.Kind == TrayRowKind.Separator ? "-" : r.Name));
     }
 
@@ -197,19 +197,20 @@ public sealed class TrayMenuTests
     }
 
     [Theory]
-    [InlineData(ServiceConnection.Unavailable, "capture service not running")]
-    [InlineData(ServiceConnection.Connecting, "still connecting to the capture service")]
-    public void WithNoServiceEachDisabledRowSaysWhy(ServiceConnection connection, string why)
+    [InlineData(ServiceConnection.Unavailable, "Capture service not running")]
+    [InlineData(ServiceConnection.Connecting, "Connecting to the capture service")]
+    public void WithNoServiceTheStateLineSaysWhyOnceAndTheRowsAreDisabled(ServiceConnection connection, string why)
     {
-        // Spec v0.6.12 §5 S1: a disabled row says why in its own words, as the pill's row already did
-        // ("only between sessions"). Pause, Stop and draft and Discard were greyed with no reason, so a
-        // technician could not tell a dead menu from a service that was down.
+        // Review finding E-13: the state line says why, once. v0.6.12 had every disabled row repeat it in
+        // brackets, four copies of one reason down the menu.
         var rows = TrayMenu.For(new ShellSnapshot(connection, null, ShellView.Review, null), pillHidden: false);
 
-        Assert.Equal($"Pause ({why})", Row(rows, TrayCommand.Pause).Name);
-        Assert.Equal($"Stop and draft ({why})", Row(rows, TrayCommand.Stop).Name);
-        Assert.Equal($"Discard session ({why})", Row(rows, TrayCommand.Discard).Name);
-        Assert.Equal($"Hide the recording pill ({why})", Row(rows, TrayCommand.HidePill).Name);
+        Assert.Equal(why, rows[0].Name);
+        Assert.Equal("Pause", Row(rows, TrayCommand.Pause).Name);
+        Assert.Equal("Stop and draft", Row(rows, TrayCommand.Stop).Name);
+        Assert.Equal("Discard session…", Row(rows, TrayCommand.Discard).Name);
+        Assert.Equal("Hide the recording pill", Row(rows, TrayCommand.HidePill).Name);
+        Assert.DoesNotContain(rows, r => r.Name.Contains('(', StringComparison.Ordinal));
         Assert.All(
             rows.Where(r => r.Command is TrayCommand.Pause or TrayCommand.Stop or TrayCommand.Discard or TrayCommand.HidePill),
             r => Assert.False(r.Enabled));
@@ -264,8 +265,8 @@ public sealed class TrayMenuTests
 
     [Theory]
     [InlineData(0, "Open ScreenTrail")]
-    [InlineData(1, "Open last draft (1 ready)")]
-    [InlineData(2, "Open last draft (2 ready)")]
+    [InlineData(1, "Open next draft (1 ready)")]
+    [InlineData(2, "Open next draft (2 ready)")]
     public void OpenLastDraftCountsTheDraftsReady(int ready, string name)
     {
         var rows = Rows(Capture(CaptureStates.Idle) with { DraftsReady = ready });

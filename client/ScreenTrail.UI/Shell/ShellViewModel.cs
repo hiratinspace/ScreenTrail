@@ -318,7 +318,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
                 break;
             case PaneAction.History:
                 _historyPane ??= _history?.Invoke();
-                Content = _historyPane ?? "History arrives when the capture service answers.";
+                Content = _historyPane ?? "All sessions appear when the capture service answers.";
                 if (_historyPane is History.HistoryViewModel list && step.RefreshHistory)
                 {
                     _ = list.RefreshAsync(_closing);
@@ -394,7 +394,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             _panes.Failed(sessionId);
             if (_panes.View == ShellView.Review)
             {
-                Content = "The capture service could not hand over that session. Open it again from History.";
+                Content = "The capture service could not hand over that session. Open it again from All sessions.";
             }
 
             return;

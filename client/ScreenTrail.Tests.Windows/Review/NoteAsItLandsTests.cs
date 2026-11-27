@@ -22,7 +22,7 @@ public sealed class NoteAsItLandsTests
 
         Assert.Same(review.Strip.Items.OfType<FrameItem>().Single(i => i.Id == "f3"), chip.Item);
         Assert.Equal("screenshot 3", chip.Place);
-        Assert.Equal("Step 1 screenshot, frame 3, screenshot 3", chip.SpokenName);
+        Assert.Equal("Step 1: Screenshot 3, attached as screenshot 3", chip.SpokenName);
     }
 
     [Fact]
@@ -81,7 +81,7 @@ public sealed class NoteAsItLandsTests
         Assert.Equal([("f2", false)], frames.Included);
         Assert.Empty(frames.Deleted);
         Assert.True(review.Note.HasUndoToast);
-        Assert.Equal("Deleted frame 2", review.Note.UndoToast);
+        Assert.Equal("Deleted screenshot 2", review.Note.UndoToast);
         Assert.Equal(review.Strip.UndoToast, review.Note.UndoToast);
         Assert.Contains(nameof(NoteEditorViewModel.UndoToast), raised);
         Assert.Contains(nameof(NoteEditorViewModel.HasUndoToast), raised);
@@ -224,7 +224,7 @@ public sealed class NoteAsItLandsTests
         var step = review.Note.Steps[1];
 
         Assert.True(step.NeedsVerification);
-        Assert.Equal("Inferred from screen only", step.InferredLine);
+        Assert.Equal("From the screen only", step.InferredLine);
         Assert.Equal("Looks right, step 2", step.ConfirmName);
         Assert.Equal("Edit step 2", step.EditName);
         Assert.Equal("2", step.Number);

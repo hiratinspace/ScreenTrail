@@ -38,20 +38,20 @@ public sealed record ConfirmWords(
 public static class ConfirmCopy
 {
     /// <summary>What a discard that did not happen leaves behind.</summary>
-    public const string StillHere = "The session is still on this device.";
+    public const string StillHere = "The session is still on this PC.";
 
     /// <summary>Spec §5 S3 Discard and the tray's Discard session (S1), typed with DISCARD.</summary>
     public static ConfirmWords DiscardSession { get; } = new(
         "Discard this session?",
-        "Its screenshots, transcript, timeline and draft note are deleted from this device straight away. Nothing is sent to a ticket. This cannot be undone.",
+        "Its screenshots, transcript, timeline and draft note are deleted from this PC straight away. Nothing is sent to a ticket. This cannot be undone.",
         "Discard session",
         "Keep it",
         ConfirmTone.Danger);
 
     /// <summary>Spec §5 S6 Delete everything, typed with the phrase the service gives.</summary>
     public static ConfirmWords DeleteEverything { get; } = new(
-        "Delete everything on this device?",
-        "Every session, draft, screenshot and transcript on this device is deleted, with your settings and this device's sign-in. Notes already published stay on their tickets. ScreenTrail will need to be set up again. This cannot be undone.",
+        "Delete everything on this PC?",
+        "Every session, draft, screenshot and transcript on this PC is deleted, with your settings and this PC's sign-in. Notes already published stay on their tickets. ScreenTrail will need to be set up again. This cannot be undone.",
         "Delete everything",
         "Keep everything",
         ConfirmTone.Danger);
@@ -76,8 +76,8 @@ public static class ConfirmCopy
         return new ConfirmWords(
             $"Discard {sessions}?",
             count == 1
-                ? "Its screenshots, transcript, timeline and draft note are deleted from this device straight away. Nothing is sent to a ticket. This cannot be undone."
-                : "Their screenshots, transcripts, timelines and draft notes are deleted from this device straight away. Nothing is sent to a ticket. This cannot be undone.",
+                ? "Its screenshots, transcript, timeline and draft note are deleted from this PC straight away. Nothing is sent to a ticket. This cannot be undone."
+                : "Their screenshots, transcripts, timelines and draft notes are deleted from this PC straight away. Nothing is sent to a ticket. This cannot be undone.",
             $"Discard {sessions}",
             count == 1 ? "Keep it" : "Keep them",
             ConfirmTone.Danger);

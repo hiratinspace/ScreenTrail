@@ -39,7 +39,8 @@ public sealed record ConfirmedResult(ConfirmedOutcome Outcome, string? Error = n
 /// </summary>
 public static class ConfirmedAction
 {
-    public const string NotConnected = "Not connected to the capture service, so nothing was changed.";
+    /// <summary>What failed, then what to do about it (review finding E-16).</summary>
+    public const string NotConnected = "Not connected to the capture service, so nothing was changed. Start the capture service from the banner, then try again.";
 
     public const string RefusedWithoutReason = "The capture service refused, so nothing was changed.";
 

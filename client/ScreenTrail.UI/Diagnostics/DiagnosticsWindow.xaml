@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
-        Title="What's being captured right now?"
+        Title="Diagnostics"
         Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
@@ -81,7 +81,7 @@
                                     Style="{StaticResource Badge}"
                                     Content="Local-only"
                                     Visibility="{Binding LocalOnlyVisibility}"
-                                    AutomationProperties.Name="Local-only: nothing leaves this device but what you publish" />
+                                    AutomationProperties.Name="Local-only: nothing leaves this PC but what you publish" />
                 </StackPanel>
             </Grid>
         </ContentControl>

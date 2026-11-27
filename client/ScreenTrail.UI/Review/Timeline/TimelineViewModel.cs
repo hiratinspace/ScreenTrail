@@ -100,7 +100,7 @@ public sealed partial class TimelineViewModel : ObservableObject
     {
         Expanded = _state.Expanded;
         Height = _state.Height;
-        ToggleLabel = _state.Expanded ? "▾ Timeline & transcript" : "▸ Timeline & transcript";
+        ToggleLabel = _state.Expanded ? "▾ Timeline and transcript" : "▸ Timeline and transcript";
         TranscriptVisibility = _state.Expanded ? Visibility.Visible : Visibility.Collapsed;
     }
 

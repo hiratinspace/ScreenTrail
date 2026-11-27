@@ -121,14 +121,20 @@ public sealed class AllSessionsTableTests
         // Nothing caps the table short of the pane, so the star column has the pane's width to fill.
         Assert.DoesNotContain(table.Ancestors(), a => a.Attribute("MaxWidth") is not null);
 
-        // A cell too narrow for its words ends them in an ellipsis.
+        // A cell too narrow for its words ends them in an ellipsis; the number columns are right aligned and
+        // tabular on top of that (design system 3.2, review finding E-08).
         foreach (var text in columns.Where(c => c.Name.LocalName == "DataGridTextColumn"))
         {
-            Assert.Equal("{StaticResource History.CellText}", (string?)text.Attribute("ElementStyle"));
+            var numeric = (string?)text.Attribute("Header") is "Duration" or "Screenshots";
+            Assert.Equal(numeric ? "{StaticResource History.CellNumber}" : "{StaticResource History.CellText}", (string?)text.Attribute("ElementStyle"));
         }
 
         var trimmed = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.CellText");
         Assert.Equal("CharacterEllipsis", Setter(trimmed, "TextTrimming"));
+        var number = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.CellNumber");
+        Assert.Equal("{StaticResource History.CellText}", (string?)number.Attribute("BasedOn"));
+        Assert.Equal("Right", Setter(number, "TextAlignment"));
+        Assert.Equal("Tabular", Setter(number, "Typography.NumeralAlignment"));
     }
 
     [Fact]

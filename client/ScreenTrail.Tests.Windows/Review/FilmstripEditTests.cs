@@ -31,7 +31,7 @@ public sealed class FilmstripEditTests
 
         Assert.Equal(["f1"], frames.Deleted);
         Assert.True(strip.HasEditError);
-        Assert.Contains("frame 1", strip.EditError, StringComparison.Ordinal);
+        Assert.Contains("screenshot 1", strip.EditError, StringComparison.Ordinal);
         Assert.Equal(["f2"], strip.IncludedFrameIds);
     }
 
@@ -95,7 +95,7 @@ public sealed class FilmstripEditTests
         Assert.False(first.Included);
         Assert.Equal(["f2"], strip.IncludedFrameIds);
         Assert.True(strip.HasEditError);
-        Assert.Contains("frame 1", strip.EditError, StringComparison.Ordinal);
+        Assert.Contains("screenshot 1", strip.EditError, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class FilmstripEditTests
 
         Assert.Equal([("f1", false)], frames.Included);
         Assert.True(strip.HasEditError);
-        Assert.Contains("frame 1", strip.EditError, StringComparison.Ordinal);
+        Assert.Contains("screenshot 1", strip.EditError, StringComparison.Ordinal);
 
         frames.Records = true;
         await strip.ToggleIncludeCommand.ExecuteAsync(items[1]);

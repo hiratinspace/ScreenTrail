@@ -10,9 +10,16 @@ namespace ScreenTrail.Service.Input;
 internal sealed class HotkeyHost(HotkeyBindings bindings, Action<HotkeyAction> pressed) : IAsyncDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private Hotkeys _current = Wire(new Hotkeys(bindings), pressed);
+    private Hotkeys _current = Wire(new Hotkeys(Spoken(bindings)), pressed);
 
     public IReadOnlyList<HotkeyConflict> Conflicts => _current.Conflicts;
+
+    /// <summary>The service's own words (a refused start says the chord) teach the chords it binds (E-03).</summary>
+    private static HotkeyBindings Spoken(HotkeyBindings bindings)
+    {
+        HotkeyText.Use(bindings);
+        return bindings;
+    }
 
     public Task StartAsync(CancellationToken ct = default) => _current.StartAsync(ct);
 
@@ -24,7 +31,7 @@ internal sealed class HotkeyHost(HotkeyBindings bindings, Action<HotkeyAction> p
         try
         {
             await _current.DisposeAsync().ConfigureAwait(false);
-            _current = Wire(new Hotkeys(next), pressed);
+            _current = Wire(new Hotkeys(Spoken(next)), pressed);
             await _current.StartAsync(ct).ConfigureAwait(false);
             return _current.Conflicts;
         }

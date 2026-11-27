@@ -92,7 +92,7 @@ public sealed class CaptureMicrophoneViewModelTests
             Assert.NotNull(screen.SelectedModel);
             Assert.Same(screen.Models[0], screen.SelectedModel);
             Assert.Equal("Automatic (Recommended)", screen.SelectedModel.Label);
-            Assert.Equal("Automatic uses Balanced on this computer.", screen.ModelHint);
+            Assert.Equal("Automatic uses Balanced on this PC.", screen.ModelHint);
             Assert.Equal("Medium", screen.SelectedSensitivity.Label);
             Assert.Equal(["Low: fewer screenshots", "Medium", "High: more screenshots"], screen.Sensitivities.Select(s => s.Label));
             Assert.False(screen.HasUnsavedEdits);

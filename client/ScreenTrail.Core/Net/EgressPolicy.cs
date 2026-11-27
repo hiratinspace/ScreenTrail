@@ -144,7 +144,7 @@ public sealed class EgressPolicy(EgressSettings? settings = null)
 
     /// <summary>What the tray tooltip and the HUD show (ST-046, Spec §5 S1/S2).</summary>
     public string? Badge => _settings.LocalOnly
-        ? _settings.PolicyEnforced ? "Local-only (set by your ScreenTrail owner)" : "Local-only"
+        ? _settings.PolicyEnforced ? "Local-only (set by your ScreenTrail admin)" : "Local-only"
         : null;
 
     public EgressDecision Decide(EgressPurpose purpose, Uri destination) => Decide(purpose, destination, onBehalfOf: null);
@@ -176,7 +176,7 @@ public sealed class EgressPolicy(EgressSettings? settings = null)
             // 2026-11-15 review. A sign-in carries no content, but a renewal on a timer is a request
             // nobody asked for at that moment. Under local-only the device signs in only when something
             // local-only lets out needs it: a publish the technician asked for, or the policy fetch.
-            return new EgressDecision(false, "Local-only mode is on, so this device signs in only to publish or to fetch its policy.", LocalOnly: true);
+            return new EgressDecision(false, "Local-only mode is on, so this PC signs in only to publish or to fetch its policy.", LocalOnly: true);
         }
 
         if (_settings.LocalOnly && purpose is EgressPurpose.ModelDownload)

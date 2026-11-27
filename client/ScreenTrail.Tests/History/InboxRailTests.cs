@@ -76,7 +76,7 @@ public sealed class InboxRailTests
         Assert.Equal(age, InboxRail.ShortAge(Now.AddHours(-hoursAgo), Now, Utc));
 
     [Theory]
-    [InlineData(8_000, "Under 1 min")]
+    [InlineData(8_000, "8 s")]
     [InlineData(12 * 60_000, "12 min")]
     [InlineData(65 * 60_000, "1 h 5 min")]
     public void DurationIsInMinutes(long ms, string words) => Assert.Equal(words, InboxRail.Duration(ms));

@@ -26,9 +26,9 @@ public sealed class StatusChipTests
     {
         var snapshot = new ShellSnapshot(ServiceConnection.Connected, new CaptureStateSnapshot { State = CaptureStates.Idle }, ShellView.Review, Banner: null);
 
-        Assert.Equal("Idle", ShellStatus.ChipWords(snapshot));
+        Assert.Equal("Not recording", ShellStatus.ChipWords(snapshot));
         Assert.Equal(string.Empty, ShellStatus.ChipTime(snapshot));
-        Assert.Equal("Idle", ShellStatus.ChipLine(snapshot));
+        Assert.Equal("Not recording", ShellStatus.ChipLine(snapshot));
     }
 
     [Fact]

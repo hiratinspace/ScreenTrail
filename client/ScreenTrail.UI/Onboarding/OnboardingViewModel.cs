@@ -215,12 +215,13 @@ public sealed partial class OnboardingViewModel : ObservableObject
         Title = Step switch
         {
             OnboardingStep.Welcome => "Welcome to ScreenTrail",
-            OnboardingStep.Activate => "Activate this device",
-            OnboardingStep.Permissions => "What this machine allows",
+            OnboardingStep.Activate => "Activate this PC",
+            // Each title starts with its name in the step list (review finding E-17).
+            OnboardingStep.Permissions => "Permissions: what this PC allows",
             OnboardingStep.Tools => "Your remote tools",
-            OnboardingStep.Connect => "Your PSA and documentation",
+            OnboardingStep.Connect => "Connect your PSA and Hudu",
             OnboardingStep.TryIt => "Try it",
-            _ => "You're set",
+            _ => "Done: you're set",
         };
         Progress = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Step {_wizard.StepNumber} of {_wizard.StepCount}");
         Steps.Clear();

@@ -1270,7 +1270,7 @@ public sealed class PublishCommandsTests : IAsyncDisposable
         }
 
         /// <summary>The backend's 403 <c>owner_only</c> sentence: what a device's store or remove is answered with.</summary>
-        public const string OwnerOnly = "Your ScreenTrail owner manages this connection in the web admin. Ask them to connect or change it there.";
+        public const string OwnerOnly = "Your ScreenTrail admin manages this connection in the web admin. Ask them to connect or change it there.";
 
         public List<string> OwnerRefused { get; } = [];
 

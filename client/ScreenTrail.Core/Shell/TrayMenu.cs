@@ -36,7 +36,7 @@ public enum TrayCommand
     /// <summary>The shell, on All sessions.</summary>
     History,
 
-    /// <summary>The "What's being captured right now?" panel (ST-071).</summary>
+    /// <summary>The Diagnostics panel, "What's being captured right now?" (ST-071).</summary>
     Diagnostics,
 
     /// <summary>Put the pill away until the next session starts (INV-4: only between sessions).</summary>
@@ -104,14 +104,16 @@ public static class TrayMenu
     /// </summary>
     public const string StartText = "&Start capture";
 
-    /// <summary>The chord shown beside Start capture, as the other rows show theirs: the default binding.</summary>
-    public static readonly string StartHotkey = Chord(HotkeyAction.StartCapture);
+    /// <summary>The chord shown beside Start capture, as the other rows show theirs: as it is bound now.</summary>
+    public static string StartHotkey => Chord(HotkeyAction.StartCapture);
 
     public const string DiscardText = "&Discard session…";
 
-    public const string HistoryText = "Session &history";
+    /// <summary>The rail's name for the table (review finding E-07; it was "Session history").</summary>
+    public const string HistoryText = "&All sessions";
 
-    public const string DiagnosticsText = "&What's being captured right now?";
+    /// <summary>The rail's name for the panel (review finding E-13; it was "What's being captured right now?").</summary>
+    public const string DiagnosticsText = "Dia&gnostics";
 
     public const string HidePillText = "Hide the recording pi&ll until the next session";
 
@@ -128,9 +130,9 @@ public static class TrayMenu
 
     public const string OpenText = "&Open ScreenTrail";
 
-    /// <summary>"Open last draft (2 ready)", or Open ScreenTrail when no draft is known to be ready.</summary>
+    /// <summary>"Open next draft (2 ready)", or Open ScreenTrail when no draft is known to be ready.</summary>
     public static string OpenLastDraftText(int ready) => ready > 0
-        ? string.Create(CultureInfo.InvariantCulture, $"&Open last draft ({ready} ready)")
+        ? string.Create(CultureInfo.InvariantCulture, $"&Open next draft ({ready} ready)")
         : OpenText;
 
     /// <param name="snapshot">What the shell last heard.</param>
@@ -158,13 +160,14 @@ public static class TrayMenu
                 rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Discard, DiscardText, null, Enabled: true));
             }
         }
-        else if (Unreachable(snapshot.Connection) is { } why)
+        else if (Unreachable(snapshot.Connection) is not null)
         {
-            // Nothing can be sent, so every row that sends is disabled and says why in its own words
-            // (v0.6.12), as the pill's row does; greyed with no reason, it read as a menu that was broken.
-            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Pause, $"&Pause ({why})", HudControls.Pause.Hotkey, Enabled: false));
-            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Stop, $"&Stop and draft ({why})", HudControls.Stop.Hotkey, Enabled: false));
-            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Discard, $"&Discard session ({why})", null, Enabled: false));
+            // Nothing can be sent, so every row that sends is disabled. The state line above them says
+            // why once ("Capture service not running"); each row repeating it in brackets made four
+            // copies of one reason (review finding E-13, which replaces v0.6.12's per-row reasons).
+            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Pause, "&Pause", HudControls.Pause.Hotkey, Enabled: false));
+            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Stop, "&Stop and draft", HudControls.Stop.Hotkey, Enabled: false));
+            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Discard, DiscardText, null, Enabled: false));
         }
         else
         {
@@ -227,7 +230,7 @@ public static class TrayMenu
     }
 
     /// <summary>What the balloon says when the service gives no reason of its own for starting nothing.</summary>
-    public const string StartRefused = "Nothing was started. Open the remote session, then choose Start capture or press Ctrl+Alt+R.";
+    public static string StartRefused => $"Nothing was started. Open the remote session, then choose Start capture{Sessions.HandStart.OrPress()}.";
 
     /// <summary>
     /// The tray's Start capture: sends the tray's <c>start</c> and says, in a balloon, why nothing started
@@ -268,8 +271,8 @@ public static class TrayMenu
 
     private static string HidePillWords(bool knownIdle, ServiceConnection connection) =>
         knownIdle ? HidePillText
-        : Unreachable(connection) is { } why ? $"Hide the recording pi&ll ({why})"
+        : Unreachable(connection) is not null ? "Hide the recording pi&ll"
         : HidePillNotNowText;
 
-    private static string Chord(HotkeyAction action) => HotkeyBindings.Defaults[action].ToString();
+    private static string Chord(HotkeyAction action) => HotkeyText.For(action);
 }

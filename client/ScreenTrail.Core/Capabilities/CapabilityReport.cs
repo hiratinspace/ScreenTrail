@@ -89,7 +89,7 @@ public static class CapabilityCopy
         Capability.Microphone,
         CapabilityState.Blocked,
         "Microphone is blocked by your organization's policy.",
-        "Your ScreenTrail owner controls this setting. Sessions will be captured without narration.");
+        "Your ScreenTrail admin controls this setting. Sessions will be captured without narration.");
 
     public static CapabilityCheck NoMicrophone() => new(
         Capability.Microphone,
@@ -101,7 +101,7 @@ public static class CapabilityCopy
         Capability.ElevatedWindows,
         CapabilityState.Degraded,
         "Elevated window: screen not captured.",
-        "Windows hides elevated windows from ScreenTrail. Say what you did and it goes in the note.");
+        "Windows hides admin windows (run as administrator) from ScreenTrail. Say what you did and it goes in the note.");
 
     public static CapabilityCheck NoDesktopSession() => new(
         Capability.DesktopSession,

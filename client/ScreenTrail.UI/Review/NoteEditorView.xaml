@@ -210,7 +210,7 @@
                                              rule: readable with no colour at all (Spec §7). -->
                                         <!-- The line is its own row so it wraps: inside the WrapPanel with the buttons, a
                                              horizontal StackPanel measured it at infinite width and the narrow note cut it
-                                             mid word ("Inferred from screen o"). Review finding B-33. -->
+                                             mid word (it read "Inferred from screen o"). Review finding B-33. -->
                                         <StackPanel Margin="0,8,0,0"
                                                     Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}">
                                             <Grid ToolTip="{Binding VerificationTooltip}">
@@ -484,7 +484,7 @@
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Muted}"
                                FontSize="{DynamicResource Size.xs}"
-                               Text="Alt+C looks right · Alt+↑↓ reorder · Ctrl+S save" />
+                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save" />
 
                     <!-- The whole strip, in the note's place: the frames no step shows, Del and its undo. -->
                     <Button Style="{StaticResource Button.Secondary}"

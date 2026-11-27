@@ -38,11 +38,16 @@ public sealed class HandStartTests
         Assert.Equal(HandStartOutcome.Held, HandStart.Before(held: true, state));
     }
 
+    public static TheoryData<HandStartOutcome, string> Refusals => new()
+    {
+        { HandStartOutcome.NoRemoteSession, HandStart.NoRemoteSession },
+        { HandStartOutcome.NotIndicated, HandStart.NotIndicated },
+        { HandStartOutcome.Held, ManualStart.Updating },
+        { HandStartOutcome.Busy, HandStart.Busy },
+    };
+
     [Theory]
-    [InlineData(HandStartOutcome.NoRemoteSession, HandStart.NoRemoteSession)]
-    [InlineData(HandStartOutcome.NotIndicated, HandStart.NotIndicated)]
-    [InlineData(HandStartOutcome.Held, ManualStart.Updating)]
-    [InlineData(HandStartOutcome.Busy, HandStart.Busy)]
+    [MemberData(nameof(Refusals))]
     public void EachRefusalIsAFailedResultWithItsSentence(HandStartOutcome outcome, string words)
     {
         var result = HandStart.Result(7, outcome);

@@ -146,13 +146,13 @@ public sealed partial class HudViewModel : ObservableObject
 
     public bool Visible => Snapshot.Visible;
 
-    /// <summary>The masked-count chip: beside the shield, the number of screenshots still being masked.</summary>
+    /// <summary>The masking chip: beside the sync glyph, the number of screenshots still being masked.</summary>
     public string RedactionText => Snapshot.PendingRedactions.ToString(CultureInfo.InvariantCulture);
 
     /// <summary>The chip in words, for its tooltip and a screen reader.</summary>
     public string RedactionSpoken => Snapshot.PendingRedactions == 1
-        ? "1 screenshot still being masked. It is not readable until it is done."
-        : string.Create(CultureInfo.InvariantCulture, $"{Snapshot.PendingRedactions} screenshots still being masked. They are not readable until this reaches zero.");
+        ? "Masking 1 screenshot. It stays hidden until masking finishes."
+        : string.Create(CultureInfo.InvariantCulture, $"Masking {Snapshot.PendingRedactions} screenshots. They stay hidden until masking finishes.");
 
     /// <summary>The shield count is only worth screen space while there is a backlog to report.</summary>
     public bool ShowRedactions => Snapshot.PendingRedactions > 0;

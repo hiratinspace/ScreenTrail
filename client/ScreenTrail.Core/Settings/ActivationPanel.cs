@@ -33,7 +33,7 @@ public sealed class ActivationPanel(IDeviceGateway gateway, string deviceName)
     public const string ForeignCharacter = "A code has no 0, 1, I, L or O, and only the letters and digits on the invite. Check it against the invite.";
 
     private readonly IDeviceGateway _gateway = gateway ?? throw new ArgumentNullException(nameof(gateway));
-    private readonly string _deviceName = string.IsNullOrWhiteSpace(deviceName) ? "this device" : deviceName;
+    private readonly string _deviceName = string.IsNullOrWhiteSpace(deviceName) ? "this PC" : deviceName;
     private string? _refusal;
     private bool _busy;
 
@@ -69,7 +69,7 @@ public sealed class ActivationPanel(IDeviceGateway gateway, string deviceName)
         if (standing is null)
         {
             Activated = false;
-            Standing = "The capture service did not answer, so this device's standing is unknown.";
+            Standing = "The capture service did not answer, so this PC's standing is unknown.";
             return;
         }
 
@@ -151,6 +151,6 @@ public sealed class PipeDevice(CaptureConnection connection) : IDeviceGateway
         var answer = await _connection.AskAsync<DeviceActivated>(id => new ActivateDeviceCommand { RequestId = id, Code = code, DeviceName = deviceName }, ct).ConfigureAwait(false);
         return answer.Reply is { } activated
             ? new ActivationAnswer(activated.TenantName, null)
-            : new ActivationAnswer(null, answer.Refusal ?? "The capture service could not activate this device.");
+            : new ActivationAnswer(null, answer.Refusal ?? "The capture service could not activate this PC.");
     }
 }

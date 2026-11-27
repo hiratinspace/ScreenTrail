@@ -10,7 +10,7 @@ using ScreenTrail.Shared.Ipc;
 namespace ScreenTrail.UI.History;
 
 /// <summary>One row of the History screen, already worded (Spec §5 S4).</summary>
-/// <param name="Frames">"7", or "7 (+1 purged)" when frames were deleted unredacted, because that is a fact about coverage the technician should see before publishing.</param>
+/// <param name="Frames">"7", or "7 (1 left out)" when frames were deleted unredacted, because that is a fact about coverage the technician should see before publishing.</param>
 /// <param name="NotConfirmed">A publish of the session may have reached the ticket and was never confirmed: said beside the status, never in place of it (contract v10).</param>
 /// <param name="Badge">The status as the rail draws it: its word, glyph and hue (spec v0.6.9 S4). Null draws the word alone.</param>
 public sealed record HistoryRow(string Id, string Started, string Duration, string Status, string Tool, string Frames, bool NotConfirmed = false, StatusBadge? Badge = null)
@@ -361,7 +361,7 @@ public sealed partial class HistoryViewModel : ObservableObject
         var filtered = Filter.IsActive;
         Status = (Rows.Count, _all.Count) switch
         {
-            (_, 0) => SessionHistory.Empty,
+            (_, 0) => SessionHistory.EmptyWhile(_state.Snapshot.KnownCapture),
             (0, _) => HistoryFilters.NoMatch,
             (var n, var all) when filtered => string.Create(CultureInfo.CurrentCulture, $"{n} of {all} sessions"),
             (1, _) => "1 session",
@@ -503,7 +503,7 @@ public sealed partial class HistoryViewModel : ObservableObject
     /// <summary>The row in the words it already shows, so the question names the session without anything new.</summary>
     /// <summary>
     /// The session in words for the Mark as published question: "ScreenConnect session, started Mon 14 Sep
-    /// 16:40, 9 min". Not the table's "9:00", which beside a time of day reads as another time.
+    /// 16:40, 9 min", in the table's own duration format.
     /// </summary>
     internal static string Described(SessionRow row) =>
         string.Create(
@@ -523,15 +523,16 @@ public sealed partial class HistoryViewModel : ObservableObject
 
     internal static HistoryRow Format(SessionRow row)
     {
-        var duration = TimeSpan.FromMilliseconds(row.DurationMs);
         return new HistoryRow(
             row.Id,
             row.StartedAt.ToLocalTime().ToString("ddd d MMM HH:mm", CultureInfo.CurrentCulture),
-            duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture) : duration.ToString(@"m\:ss", CultureInfo.InvariantCulture),
+            // The rail's and the receipt's format, not "21:00", which beside a time of day read as another (E-08).
+            Durations.InWords(row.DurationMs),
             // The status in the rail's words, glyph and hue (spec v0.6.9 S4): "Partial capture", not "Partial".
             row.Status.Length == 0 ? row.Status : StatusBadges.Of(row.Status).Word,
             ToolNames.Display(row.Tool),
-            row.FramesPurged > 0 ? $"{row.Frames} (+{row.FramesPurged} purged)" : row.Frames.ToString(CultureInfo.InvariantCulture),
+            // "Left out", the note's words for the same screenshots, not "purged" (review finding E-05).
+            row.FramesPurged > 0 ? $"{row.Frames} ({row.FramesPurged} left out)" : row.Frames.ToString(CultureInfo.InvariantCulture),
             SessionHistory.MayMarkPublished(row),
             row.Status.Length == 0 ? null : StatusBadges.Of(row.Status));
     }

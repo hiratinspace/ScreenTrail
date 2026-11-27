@@ -139,7 +139,7 @@ public sealed class PsaGatewayTests
         Assert.Contains("\"secret\":\"acme", storing.Body, StringComparison.Ordinal);
         Assert.Contains("PRIV", storing.Body, StringComparison.Ordinal);
 
-        using var checking = new RecordingHandler(Json(new { ok = false, message = "ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin.", checkedAt = "2026-09-25T10:00:00Z" }));
+        using var checking = new RecordingHandler(Json(new { ok = false, message = "ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin.", checkedAt = "2026-09-25T10:00:00Z" }));
         var checkAnswer = await Gateway(checking).CheckIntegrationAsync("connectwise", TestContext.Current.CancellationToken);
         Assert.True(checkAnswer.Ok);
         Assert.False(checkAnswer.Value!.Ok);
@@ -160,7 +160,7 @@ public sealed class PsaGatewayTests
         Assert.EndsWith("/v1/integrations/hudu/companies/Acme%20Dental", unmapping.Asked!.AbsoluteUri, StringComparison.Ordinal);
     }
 
-    private const string OwnerOnlySentence = "Your ScreenTrail owner manages this connection in the web admin. Ask them to connect or change it there.";
+    private const string OwnerOnlySentence = "Your ScreenTrail admin manages this connection in the web admin. Ask them to connect or change it there.";
 
     private static HttpResponseMessage OwnerOnly(string? message = OwnerOnlySentence) => new(HttpStatusCode.Forbidden)
     {
@@ -224,7 +224,7 @@ public sealed class PsaGatewayTests
 
         var answer = await Gateway(handler).StoreIntegrationAsync("hudu", "https://acme.huducloud.com", "key", TestContext.Current.CancellationToken);
 
-        Assert.Equal("This device may not publish. Its enrolment was revoked or its token expired.", answer.Refusal);
+        Assert.Equal("This PC may not publish. Its enrolment was revoked or its token expired.", answer.Refusal);
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public sealed class PsaGatewayTests
         var answer = await Gateway(handler).PublishAsync(Wire(), TestContext.Current.CancellationToken);
 
         Assert.False(answer.Ok);
-        Assert.Equal("No PSA is connected. Your ScreenTrail owner connects one in the web admin.", answer.Refusal);
+        Assert.Equal("No PSA is connected. Your ScreenTrail admin connects one in the web admin.", answer.Refusal);
     }
 
     [Fact]

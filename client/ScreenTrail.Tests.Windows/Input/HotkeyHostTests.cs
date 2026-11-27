@@ -9,9 +9,16 @@ namespace ScreenTrail.Tests.Windows.Input;
 /// <see cref="HotkeyRegistrationTests"/> covers one fixed set; this covers the swap, which is where a
 /// chord can be left registered by a set that is gone, or the handler left wired to one that is.
 /// </summary>
-public sealed class HotkeyHostTests
+public sealed class HotkeyHostTests : IDisposable
 {
     private static bool OnWindows => OperatingSystem.IsWindows();
+
+    /// <summary>
+    /// The host teaches the process its chords (HotkeyText, review finding E-03), and this test's are not
+    /// the defaults: left in place, every pill test after it said "Press Ctrl+Alt+Shift+Q to resume" and
+    /// failed on the laptop. The defaults go back once it is done.
+    /// </summary>
+    public void Dispose() => HotkeyText.Use(new HotkeyBindings());
 
     [Fact]
     public async Task RebindingReleasesTheOldChordAndKeepsTheHandler()

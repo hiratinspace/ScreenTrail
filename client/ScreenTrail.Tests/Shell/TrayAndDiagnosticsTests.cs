@@ -115,12 +115,12 @@ public sealed class TrayAndDiagnosticsTests
     }
 
     [Theory]
-    [InlineData(CaptureStates.Idle, 1, "Not capturing · 1 draft ready")]
-    [InlineData(CaptureStates.Idle, 3, "Not capturing · 3 drafts ready")]
+    [InlineData(CaptureStates.Idle, 1, "Not recording · 1 draft ready")]
+    [InlineData(CaptureStates.Idle, 3, "Not recording · 3 drafts ready")]
     [InlineData(CaptureStates.DraftReady, 1, "Draft ready")]
     [InlineData(CaptureStates.DraftReady, 2, "Draft ready · 2 drafts ready")]
     [InlineData(CaptureStates.DraftFailed, 1, "Draft failed · 1 draft ready")]
-    [InlineData(CaptureStates.DraftPending, 0, "Not capturing: drafting the note")]
+    [InlineData(CaptureStates.DraftPending, 0, "Not recording: drafting the note")]
     public void BetweenSessionsTheCountOfDraftsReadyIsInWords(string state, int drafts, string line)
     {
         // Spec §5 S1: draft ready is a badge count. The badge glyph has no number in it, so the count was
@@ -136,8 +136,8 @@ public sealed class TrayAndDiagnosticsTests
     {
         var presence = TrayPresence.From(new ShellSnapshot(ServiceConnection.Connected, new CaptureStateSnapshot { State = CaptureStates.Idle, DraftsReady = 2, PublishesUnconfirmed = 3 }, ShellView.Review, null));
 
-        Assert.Equal("Not capturing · 2 drafts ready · 3 publishes not confirmed", presence.StateLine);
-        Assert.Equal("ScreenTrail · Not capturing · 2 drafts ready", presence.Tooltip);
+        Assert.Equal("Not recording · 2 drafts ready · 3 publishes not confirmed", presence.StateLine);
+        Assert.Equal("ScreenTrail · Not recording · 2 drafts ready", presence.Tooltip);
     }
 
     [Fact]

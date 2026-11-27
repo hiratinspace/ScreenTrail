@@ -453,15 +453,17 @@ public partial class ShellWindow
         state.OpenSession("preview");
         await EachThemeAsync("shell-rail-empty");
 
-        // All sessions with none: the sentence as the screen's content, in place of the table.
+        // All sessions with none: the sentence as the screen's content, in place of the table. The sample is
+        // recording, so it is the sentence for a session under way (review finding E-16), as the app says it.
         state.Navigate(ShellView.History);
-        for (var waited = 0; waited < 2000 && _model.Content is not History.HistoryViewModel { Rows.Count: 0, Status: Core.History.SessionHistory.Empty }; waited += 50)
+        bool ComeUpEmpty() => _model.Content is History.HistoryViewModel { Rows.Count: 0 } history && history.Status == Core.History.SessionHistory.EmptyWhile(state.Snapshot.KnownCapture);
+        for (var waited = 0; waited < 2000 && !ComeUpEmpty(); waited += 50)
         {
             await SettleAsync();
             await Task.Delay(50).ConfigureAwait(true);
         }
 
-        if (_model.Content is not History.HistoryViewModel { Rows.Count: 0, Status: Core.History.SessionHistory.Empty })
+        if (!ComeUpEmpty())
         {
             throw new InvalidOperationException("All sessions did not come up empty.");
         }
@@ -813,7 +815,7 @@ public partial class ShellWindow
                 Plain("Left a note on the workstation's asset record about the older driver."),
                 Plain("Confirmed with the office manager that printing works from both reception PCs."),
             ],
-            FollowUps = [.. draft.FollowUps, "Schedule the HP driver update for this machine after hours.", "Check the other reception PC's spooler recovery settings."],
+            FollowUps = [.. draft.FollowUps, "Schedule the HP driver update for this PC after hours.", "Check the other reception PC's spooler recovery settings."],
         };
     }
 

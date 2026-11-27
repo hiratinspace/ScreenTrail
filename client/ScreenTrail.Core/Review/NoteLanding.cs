@@ -18,8 +18,14 @@ public static class NoteLanding
     /// <summary>The quiet line over the note: what it is, and how to change it.</summary>
     public const string Guide = "This is the note as it will read on the ticket. Click any line to edit it.";
 
-    /// <summary>What an inferred step says beside its glyph (Spec §5 S3, verbatim).</summary>
-    public const string Inferred = "Inferred from screen only";
+    /// <summary>
+    /// What a step written from the screenshots alone says beside its glyph (Spec §5 S3). One name for the
+    /// idea, which was "inferred", "unverified" and "not checked" by turns (review finding E-11).
+    /// </summary>
+    public const string Inferred = "From the screen only";
+
+    /// <summary>Its tooltip: why, and what to do about it.</summary>
+    public const string InferredWhy = "Nothing was said about this step, so it was written from the screenshots. Check it, then choose Looks right.";
 
     /// <summary>An empty section: the formatter leaves it off the ticket, so the editor says so.</summary>
     public const string EmptySection = "Empty, so it is left off the ticket.";

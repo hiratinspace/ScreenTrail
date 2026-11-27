@@ -147,10 +147,10 @@ public sealed class FilmstripTests
     [Fact]
     public void FramesAreNumberedByTheirPlaceInTime()
     {
-        // The note's chips say "frame 2" and this is the 2. The store's order is the store's business.
+        // The note's chips say "Screenshot 2" and this is the 2. The store's order is the store's business.
         var strip = new Filmstrip(WithFrames(Frame("late", 3000), Frame("early", 1000), Frame("middle", 2000)));
 
-        Assert.Equal(["frame 1", "frame 2", "frame 3"], strip.Frames.Select(cell => cell.Label));
+        Assert.Equal(["Screenshot 1", "Screenshot 2", "Screenshot 3"], strip.Frames.Select(cell => cell.Label));
         Assert.Equal(["early", "middle", "late"], strip.Frames.Select(cell => cell.Frame.Id));
     }
 
@@ -162,7 +162,7 @@ public sealed class FilmstripTests
 
         strip.Remove("f2");
 
-        Assert.Equal(["frame 1", "frame 2"], strip.Frames.Select(cell => cell.Label));
+        Assert.Equal(["Screenshot 1", "Screenshot 2"], strip.Frames.Select(cell => cell.Label));
         Assert.Equal("2 of 2 included", strip.Header);
     }
 
@@ -176,7 +176,7 @@ public sealed class FilmstripTests
         strip.Restore(removed, included: true);
 
         Assert.Equal(["f1", "f2", "f3"], strip.Frames.Select(cell => cell.Frame.Id));
-        Assert.Equal(["frame 1", "frame 2", "frame 3"], strip.Frames.Select(cell => cell.Label));
+        Assert.Equal(["Screenshot 1", "Screenshot 2", "Screenshot 3"], strip.Frames.Select(cell => cell.Label));
     }
 
     [Fact]
@@ -225,7 +225,7 @@ public sealed class FilmstripTests
         Assert.False(strip.Frames.Single(cell => cell.Frame.Id == "f2").Included);
         Assert.Equal(["f1"], strip.ToPublish().Select(frame => frame.Id));
         Assert.Equal("1 of 2 included", strip.Header);
-        Assert.Equal(["frame 1", "frame 2"], strip.Frames.Select(cell => cell.Label));
+        Assert.Equal(["Screenshot 1", "Screenshot 2"], strip.Frames.Select(cell => cell.Label));
     }
 
     [Fact]

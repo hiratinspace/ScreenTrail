@@ -42,13 +42,13 @@ public sealed record HudControl(HudAction Action, string Name, string Hotkey)
 /// </summary>
 public static class HudControls
 {
-    public static readonly HudControl Mark = new(HudAction.Mark, "Mark moment", Chord(HotkeyAction.MarkMoment));
+    public static HudControl Mark => new(HudAction.Mark, "Mark a moment", Chord(HotkeyAction.MarkMoment));
 
-    public static readonly HudControl Pause = new(HudAction.Pause, "Pause", Chord(HotkeyAction.PauseOrResume));
+    public static HudControl Pause => new(HudAction.Pause, "Pause", Chord(HotkeyAction.PauseOrResume));
 
-    public static readonly HudControl Resume = new(HudAction.Resume, "Resume", Chord(HotkeyAction.PauseOrResume));
+    public static HudControl Resume => new(HudAction.Resume, "Resume", Chord(HotkeyAction.PauseOrResume));
 
-    public static readonly HudControl Stop = new(HudAction.Stop, "Stop and draft", Chord(HotkeyAction.StopAndDraft));
+    public static HudControl Stop => new(HudAction.Stop, "Stop and draft", Chord(HotkeyAction.StopAndDraft));
 
     /// <summary>The controls for this state, in the order the pill draws them: Mark, Pause or Resume, Stop.</summary>
     /// <param name="capture">The last thing the service said; null when the UI has not heard from it.</param>
@@ -63,5 +63,6 @@ public static class HudControls
         _ => [],
     };
 
-    private static string Chord(HotkeyAction action) => HotkeyBindings.Defaults[action].ToString();
+    // As bound now, not the shipped default (review finding E-03): a property, so a rebind shows.
+    private static string Chord(HotkeyAction action) => HotkeyText.For(action);
 }

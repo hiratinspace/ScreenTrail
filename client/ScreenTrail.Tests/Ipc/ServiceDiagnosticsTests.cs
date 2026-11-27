@@ -23,7 +23,7 @@ public sealed class ServiceDiagnosticsTests
 
         var reported = ServiceDiagnostics.Report(
             serviceVersion: "0.1.0",
-            scope: "Capturing: ScreenConnect",
+            scope: "Recording: ScreenConnect",
             microphone: "Headset Microphone (Realtek)",
             state,
             isHeld: reason => reason is CaptureStateReason.PasswordField,
@@ -45,7 +45,7 @@ public sealed class ServiceDiagnosticsTests
         Assert.Equal(3, reported.NameHookRefusals);
         Assert.True(reported.LocalOnly);
         Assert.Equal("v3", reported.PolicyVersion);
-        Assert.Equal("Capturing: ScreenConnect", reported.Scope);
+        Assert.Equal("Recording: ScreenConnect", reported.Scope);
         Assert.Equal("Headset Microphone (Realtek)", reported.Microphone);
         Assert.Equal(1024, reported.WorkingSetBytes);
         Assert.Equal("0.1.0", reported.ServiceVersion);

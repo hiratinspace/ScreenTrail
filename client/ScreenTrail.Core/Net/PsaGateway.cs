@@ -323,7 +323,7 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
 
         if (token() is not { Length: > 0 } bearer)
         {
-            return GatewayAnswer.Refused<TOut>("This device is not enrolled yet, so nothing can be published.");
+            return GatewayAnswer.Refused<TOut>("This PC is not enrolled yet, so nothing can be published.");
         }
 
         using var request = build();
@@ -407,7 +407,7 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
         {
             var problem = await response.Content.ReadFromJsonAsync<Problem>(Json, ct).ConfigureAwait(false);
             return problem is { Error: "no_psa" or "no_docs" or "not_configured" }
-                ? problem.Message is { Length: > 0 } message ? message : "No PSA is connected. Your ScreenTrail owner connects one in the web admin."
+                ? problem.Message is { Length: > 0 } message ? message : "No PSA is connected. Your ScreenTrail admin connects one in the web admin."
                 : null;
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or HttpRequestException or IOException)
@@ -417,7 +417,7 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
     }
 
     /// <summary>What a device is told when it asks to change an integration and the backend gave no sentence of its own.</summary>
-    internal const string OwnerOnly = "Your ScreenTrail owner manages this connection in the web admin. Ask them to connect or change it there.";
+    internal const string OwnerOnly = "Your ScreenTrail admin manages this connection in the web admin. Ask them to connect or change it there.";
 
     /// <summary>The backend's own sentence when it sent one; the status in words when it did not.</summary>
     private static async Task<string> RefusalAsync(HttpResponseMessage response, CancellationToken ct)
@@ -444,8 +444,8 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
 
         return response.StatusCode switch
         {
-            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "This device may not publish. Its enrolment was revoked or its token expired.",
-            HttpStatusCode.NotImplemented => "No PSA is connected. Your ScreenTrail owner connects one in the web admin.",
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "This PC may not publish. Its enrolment was revoked or its token expired.",
+            HttpStatusCode.NotImplemented => "No PSA is connected. Your ScreenTrail admin connects one in the web admin.",
             _ => $"The backend answered {(int)response.StatusCode}.",
         };
     }

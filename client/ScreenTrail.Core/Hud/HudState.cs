@@ -55,7 +55,8 @@ public sealed record HudSnapshot(
 
             if (PendingRedactions > 0)
             {
-                parts.Add(PendingRedactions == 1 ? "1 screenshot still being redacted" : string.Create(CultureInfo.InvariantCulture, $"{PendingRedactions} screenshots still being redacted"));
+                // "Masking", the word the tooltip and the rest of the product use (review finding E-05).
+                parts.Add(PendingRedactions == 1 ? "masking 1 screenshot" : string.Create(CultureInfo.InvariantCulture, $"masking {PendingRedactions} screenshots"));
             }
 
             if (Mic is { } mic)
@@ -254,33 +255,31 @@ public static class HudState
 
     private static HudSegment Paused(CaptureStateSnapshot capture) =>
         capture.Reason is CaptureReasons.User or null
-            ? new HudSegment(HudTone.Paused, "‖", "Paused: press Ctrl+Alt+P to resume")
+            // The word alone, so it never trims; the chord, as it is bound, in the tooltip and the spoken
+            // name (review finding E-03, design system 10.10).
+            ? new HudSegment(HudTone.Paused, "‖", "Paused", Input.HotkeyText.For(Input.HotkeyAction.PauseOrResume) is { Length: > 0 } chord ? $"Press {chord} to resume." : null)
             : Suppressed(capture);
 
     private static HudSegment Suppressed(CaptureStateSnapshot capture) => capture.Reason switch
     {
-        CaptureReasons.PasswordField => new HudSegment(HudTone.Paused, "⏸", "Paused: sensitive field"),
-        CaptureReasons.SensitiveContext => new HudSegment(HudTone.Paused, "⏸", "Paused: sensitive field"),
-        CaptureReasons.ExcludedApp => new HudSegment(HudTone.Paused, "⏸", "Paused: excluded app"),
-
+        // The words are SuppressionWords', which the tray and the shell say too (review finding E-02).
         CaptureReasons.ElevatedWindow => new HudSegment(
             HudTone.Paused,
             "⏸",
-            "Paused: elevated window",
+            Shell.SuppressionWords.Live(capture.Reason),
 
-            // Spec v0.4.1 Q5 fixes this wording. It explains a limitation rather than implying a choice:
-            // Windows will not let us capture an elevated window, and the technician cannot fix that.
+            // Spec v0.4.1 Q5 fixes this wording, so it stays though the state word is now "admin window"
+            // (E-02). It explains a limitation rather than implying a choice: Windows will not let us
+            // capture an elevated window, and the technician cannot fix that.
             "Elevated window: screen not captured."),
 
         CaptureReasons.OutOfScope => new HudSegment(
             HudTone.Scope,
             "◎",
-            capture.ScopeProcess is { Length: > 0 } process
-                ? $"Not capturing: {Shell.ProcessNames.Friendly(process)}"
-                : "Not capturing: out of scope",
+            Shell.SuppressionWords.Live(capture.Reason, capture.ScopeProcess),
             "Clicks are still on the timeline; no screenshots are taken."),
 
-        _ => new HudSegment(HudTone.Paused, "⏸", "Paused"),
+        _ => new HudSegment(HudTone.Paused, "⏸", Shell.SuppressionWords.Live(capture.Reason, capture.ScopeProcess)),
     };
 
     private static HudSegment? Mic(CapabilityReport? capabilities)

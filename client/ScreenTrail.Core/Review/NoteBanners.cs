@@ -51,14 +51,14 @@ public static class NoteBanners
             var noun = count == 1 ? "screenshot was" : "screenshots were";
             banners.Add(new Banner(
                 BannerKind.Warning,
-                $"{count} {noun} removed because they could not be redacted in time."));
+                $"{count} {noun} left out because masking did not finish in time."));
         }
 
         if (session.Draft is { Source: DraftSource.Local })
         {
             banners.Add(new Banner(
                 BannerKind.Info,
-                "Drafted on this device only. Quality may be lower."));
+                "Drafted on this PC only. Quality may be lower."));
         }
 
         // Local-only mode is why a local draft happened, so saying both would be saying it twice. Said on

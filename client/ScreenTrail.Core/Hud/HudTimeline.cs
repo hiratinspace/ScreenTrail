@@ -134,7 +134,7 @@ public sealed class HudTimeline
 
     /// <summary>The service accepted a Mark moment the pill sent. Ignored between sessions.</summary>
     /// <returns>Whether it was recorded.</returns>
-    public bool MomentMarked() => _session is not null && Add(HudEventKind.MomentMarked, "Moment marked");
+    public bool MomentMarked() => _session is not null && Add(HudEventKind.MomentMarked, "Marked moment");
 
     private bool Add(HudEventKind kind, string text)
     {

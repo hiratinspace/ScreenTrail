@@ -88,7 +88,7 @@ public sealed class OnboardingWizard(
     /// changed by the tenant owner, in the web admin, so the step shows what is connected and says who
     /// connects the rest; there is nothing to type here, and the step can be skipped or continued as before.
     /// </summary>
-    public const string ConnectByOwner = "Your ScreenTrail owner connects ConnectWise and Hudu in the web admin. You can publish once they have.";
+    public const string ConnectByOwner = "Your ScreenTrail admin connects ConnectWise and Hudu in the web admin. You can publish once they have.";
 
     public ActivationPanel Activation { get; } = activation ?? throw new ArgumentNullException(nameof(activation));
 
@@ -123,7 +123,7 @@ public sealed class OnboardingWizard(
     public string? Blocker => Step switch
     {
         OnboardingStep.Activate when !Activation.Activated => "Enter the code from your invite, or come back to this from Settings later.",
-        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this machine allows…",
+        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this PC allows…",
         OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "screen_capture") =>
             "Screen capture is blocked, so there is nothing to capture with. Fix that first.",
         OnboardingStep.TryIt when !_testDone => TestRunning

@@ -181,24 +181,24 @@ public sealed class ScopePolicy(RemoteToolRegistry registry, ScopeOptions? optio
         {
             return _options.DisabledTools.Contains(tool.Id)
                 ? new ScopeDecision(CaptureScope.OutOfScope, tool.Id, tool.Kind, $"Not capturing: {tool.DisplayName} is switched off in Settings.")
-                : new ScopeDecision(CaptureScope.RemoteTool, tool.Id, tool.Kind, $"Capturing: {tool.DisplayName}", window.Handle);
+                : new ScopeDecision(CaptureScope.RemoteTool, tool.Id, tool.Kind, $"Recording: {tool.DisplayName}", window.Handle);
         }
 
         if (registry.MatchBrowser(window) is { } browser)
         {
             return _options.DisabledTools.Contains(browser.Id)
                 ? new ScopeDecision(CaptureScope.OutOfScope, browser.Id, RemoteToolKind.Browser, $"Not capturing: {browser.DisplayName} is switched off in Settings.")
-                : new ScopeDecision(CaptureScope.RemoteTool, browser.Id, RemoteToolKind.Browser, $"Capturing: {browser.DisplayName}", window.Handle);
+                : new ScopeDecision(CaptureScope.RemoteTool, browser.Id, RemoteToolKind.Browser, $"Recording: {browser.DisplayName}", window.Handle);
         }
 
         if (registry.MatchAdminTool(window) is { } admin)
         {
-            return new ScopeDecision(CaptureScope.AdminTool, admin.Id, null, $"Capturing: {admin.DisplayName}", window.Handle);
+            return new ScopeDecision(CaptureScope.AdminTool, admin.Id, null, $"Recording: {admin.DisplayName}", window.Handle);
         }
 
         if (_options.CaptureAllWindows)
         {
-            return new ScopeDecision(CaptureScope.AdminTool, null, null, $"Capturing: {process} (all windows)", window.Handle);
+            return new ScopeDecision(CaptureScope.AdminTool, null, null, $"Recording: {process} (all windows)", window.Handle);
         }
 
         return NotCapturing(process);

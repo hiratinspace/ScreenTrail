@@ -51,6 +51,44 @@ public sealed partial class AutomationNamesTests
     }
 
     /// <summary>
+    /// WCAG 2.5.3, label in name: a control that shows words and is also given a name has those words in
+    /// the name, so "click Discard selected" in speech control finds it. The Windows audit checks this on a
+    /// running window; CI on ST-133 caught History's "Discard selected" named "Discard the selected
+    /// sessions" there. An access key's underscore and a trailing ellipsis are not words.
+    /// </summary>
+    [Fact]
+    public void AControlsNameHoldsTheWordsItShows()
+    {
+        var mismatched = new List<string>();
+        var checkedCount = 0;
+        foreach (var file in Xaml())
+        {
+            var source = File.ReadAllText(file);
+            foreach (Match match in Element().Matches(source))
+            {
+                var attrs = match.Groups["attrs"].Value;
+                var shown = Regex.Match(attrs, @"\b(?:Content|Header)=""(?<v>[^""{]+)""");
+                var name = Regex.Match(attrs, @"AutomationProperties\.Name=""(?<v>[^""{]+)""");
+                if (!shown.Success || !name.Success)
+                {
+                    continue;
+                }
+
+                checkedCount++;
+                var words = shown.Groups["v"].Value.Replace("_", string.Empty, StringComparison.Ordinal).TrimEnd('…').Trim();
+                if (!name.Groups["v"].Value.Contains(words, StringComparison.OrdinalIgnoreCase))
+                {
+                    var line = source[..match.Index].Count(c => c == '\n') + 1;
+                    mismatched.Add($"{Path.GetFileName(file)}:{line} shows \"{words}\", named \"{name.Groups["v"].Value}\"");
+                }
+            }
+        }
+
+        Assert.True(checkedCount > 10, $"Only {checkedCount} controls are both labelled and named; the pattern no longer reads the XAML.");
+        Assert.Empty(mismatched);
+    }
+
+    /// <summary>
     /// ST-084: WPF declares a live region and never announces it, so a view that sets
     /// <c>AutomationProperties.LiveSetting</c> itself is silent to a screen reader. Every live region goes
     /// through <c>controls:LiveRegion.Setting</c>, which announces the change; the Windows suite holds that

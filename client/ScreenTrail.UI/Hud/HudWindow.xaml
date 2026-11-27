@@ -150,12 +150,14 @@
                                controls:LiveRegion.Setting="Assertive"
                                controls:LiveRegion.Key="{Binding Announcement}" />
 
-                    <!-- The masked-count chip: screenshots still being masked. -->
+                    <!-- The masking chip: screenshots still being masked. -->
                     <Border Style="{StaticResource Hud.Segment}"
                             ToolTip="{Binding RedactionSpoken}"
                             Visibility="{Binding ShowRedactions, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Shield}" />
+                            <!-- Sync, not the shield (review finding E-05): the count is masking still to do, and the shield
+                                 marks masking done in the events below. -->
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Sync}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Typography.NumeralAlignment="Tabular"

@@ -163,7 +163,7 @@ public sealed class ShellViewModelTests
 
         Assert.Equal(ShellStatus.Unknown, model.Status);
         state.Observe(new CaptureStateSnapshot { State = CaptureStates.Idle });
-        Assert.Equal("Idle", model.Status);
+        Assert.Equal("Not recording", model.Status);
     }
 
     /// <summary>Every Settings panel's gateway, counting the reads that reach the service.</summary>

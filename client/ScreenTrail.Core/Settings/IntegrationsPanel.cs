@@ -62,13 +62,14 @@ public static class IntegrationNames
     public static bool IsDemo(string provider) =>
         provider is not null && provider.StartsWith("demo-", StringComparison.Ordinal);
 
+    // The backend's own words, matched as it sends them, so the arrow stays.
     private const string Pointer = " in Settings → Integrations";
 
-    private const string AskOwner = "Ask your ScreenTrail owner to ";
+    private const string AskOwner = "Ask your ScreenTrail admin to ";
 
     /// <summary>
     /// The backend's words, as they read on the Integrations page itself (Spec v0.6.8, v0.6.15). The
-    /// backend asks the technician to ask the ScreenTrail owner, in the web admin, and those words are kept.
+    /// backend asks the technician to ask the ScreenTrail admin, in the web admin, and those words are kept.
     /// A check stored before integration credentials became the owner's can still end by sending the
     /// technician to "Settings → Integrations" to fix the credential, where nothing can be changed. So that
     /// sentence asks the owner instead: "Update it in Settings → Integrations." reads "Ask your ScreenTrail
@@ -91,7 +92,7 @@ public static class IntegrationNames
             start = start < 0 ? 0 : start + 2;
             var instruction = message[start..at];
             var asked = instruction.Length == 0
-                ? "Ask your ScreenTrail owner to fix it in the web admin"
+                ? "Ask your ScreenTrail admin to fix it in the web admin"
                 : AskOwner + char.ToLowerInvariant(instruction[0]) + instruction[1..] + " in the web admin";
             message = string.Concat(message.AsSpan(0, start), asked, message.AsSpan(at + Pointer.Length));
             at = message.IndexOf(Pointer, start + asked.Length, StringComparison.Ordinal);
@@ -144,10 +145,10 @@ public sealed class IntegrationCard
     public const string HuduProvider = "hudu";
 
     /// <summary>A connected card's line under its status: who changes it, and where.</summary>
-    public const string OwnerManages = "Your ScreenTrail owner manages this connection in the web admin.";
+    public const string OwnerManages = "Your ScreenTrail admin manages this connection in the web admin.";
 
     /// <summary>A card with nothing connected: who connects it, and where.</summary>
-    public const string OwnerConnects = "Not connected. Your ScreenTrail owner connects it in the web admin.";
+    public const string OwnerConnects = "Not connected. Your ScreenTrail admin connects it in the web admin.";
 
     /// <summary>The badge of a connected card whose credential checks out, or has not been checked yet.</summary>
     public const string ConnectedBadge = "Connected";

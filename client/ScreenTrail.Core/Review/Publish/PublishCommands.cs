@@ -181,7 +181,7 @@ public sealed class PublishCommands(
             return null;
         }
 
-        var reason = _refusals.TryRemove((caller, command.RequestId), out var kept) ? kept : "The backend refused.";
+        var reason = _refusals.TryRemove((caller, command.RequestId), out var kept) ? kept : "ScreenTrail's server refused the publish. Try again in a minute.";
         return new CommandResult { RequestId = command.RequestId, Ok = false, Error = reason };
     }
 
@@ -271,7 +271,7 @@ public sealed class PublishCommands(
         // than encoding and uploading megabytes for a certain refusal.
         if (chosen.Count > MaxFrames)
         {
-            return Refuse(caller, publish, $"A publish can carry at most {MaxFrames} frames, and {chosen.Count} are included. Exclude {chosen.Count - MaxFrames} in the filmstrip and publish again.");
+            return Refuse(caller, publish, $"A publish can include up to {MaxFrames} screenshots and {chosen.Count} are included. Leave out {chosen.Count - MaxFrames} in All screenshots and publish again.");
         }
 
         var frames = new List<PublishWireFrame>(chosen.Count);

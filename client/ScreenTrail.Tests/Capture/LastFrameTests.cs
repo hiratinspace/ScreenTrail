@@ -15,7 +15,7 @@ public sealed class LastFrameTests
     private static readonly RemoteTool Rdp = new() { Kind = RemoteToolKind.Rdp, ClientVersion = "10" };
 
     private static readonly ScopeDecision InScope =
-        new(CaptureScope.RemoteTool, "rdp", RemoteToolKind.Rdp, "Capturing: Remote Desktop", 11);
+        new(CaptureScope.RemoteTool, "rdp", RemoteToolKind.Rdp, "Recording: Remote Desktop", 11);
 
     [Fact]
     public async Task ClicksOnAScreenThatDoesNotChangeShareOnePicture()

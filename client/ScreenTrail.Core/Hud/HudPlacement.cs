@@ -53,7 +53,7 @@ public static class HudPlacement
 
     /// <summary>
     /// Where the pill's left edge goes when its width changes (review finding D-16). Its words change from
-    /// a timer to "Paused: press Ctrl+Alt+P to resume", and buttons come and go, so it grows and shrinks. It
+    /// a timer to "Paused", and buttons come and go, so it grows and shrinks. It
     /// grew rightward only, and a pill docked at the top right ran off the screen. One in the right half of
     /// its monitor now keeps its right edge and grows leftward; one in the left half keeps its left edge.
     /// A pill that was inside the monitor's work area stays inside it. One placed across two monitors, which

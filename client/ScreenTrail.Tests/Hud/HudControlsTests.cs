@@ -63,7 +63,7 @@ public sealed class HudControlsTests
         var recording = HudControls.For(Capture(CaptureStates.Recording)).ToDictionary(c => c.Action, c => c.Tooltip);
         var paused = HudControls.For(Capture(CaptureStates.Paused, CaptureReasons.User)).ToDictionary(c => c.Action, c => c.Tooltip);
 
-        Assert.Equal("Mark moment · Ctrl+Alt+M", recording[HudAction.Mark]);
+        Assert.Equal("Mark a moment · Ctrl+Alt+M", recording[HudAction.Mark]);
         Assert.Equal("Pause · Ctrl+Alt+P", recording[HudAction.Pause]);
         Assert.Equal("Stop and draft · Ctrl+Alt+S", recording[HudAction.Stop]);
         Assert.Equal("Resume · Ctrl+Alt+P", paused[HudAction.Resume]);

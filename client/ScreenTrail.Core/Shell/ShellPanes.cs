@@ -174,15 +174,20 @@ public static class ShellStatus
 {
     public const string Connecting = "Connecting to the capture service…";
 
-    public const string NotConnected = "Not connected to the capture service";
+    /// <summary>The banner's subject, word for word, so the rail and the banner beside it agree (E-16).</summary>
+    public const string NotConnected = TrayPresence.NotRunning;
 
     public const string Unknown = "Capture state unknown";
 
     /// <summary>Review with nothing to show between sessions: how to make a draft.</summary>
-    public const string NothingToReviewYet = "No draft to review yet. Record a session and stop it with Ctrl+Alt+S.";
+    public static string NothingToReviewYet => Input.HotkeyText.For(Input.HotkeyAction.StopAndDraft) is { Length: > 0 } chord
+        ? $"No draft to review yet. Record a session and stop it with {chord}."
+        : "No draft to review yet. Record a session and stop it.";
 
     /// <summary>Review with nothing to show while a session is being captured: the draft is on its way here.</summary>
-    public const string CapturingNow = "Capturing now: the draft opens here when you stop (Ctrl+Alt+S).";
+    public static string CapturingNow => Input.HotkeyText.For(Input.HotkeyAction.StopAndDraft) is { Length: > 0 } chord
+        ? $"Recording now: the draft opens here when you stop ({chord})."
+        : "Recording now: the draft opens here when you stop.";
 
     /// <summary>
     /// What Review says with no session to show. While one is being captured it says the draft is coming
@@ -301,12 +306,12 @@ public static class ShellStatus
         {
             CaptureStates.Recording => "Recording",
             CaptureStates.Paused => "Paused",
-            CaptureStates.Suppressed => "Paused: sensitive window",
+            CaptureStates.Suppressed => SuppressionWords.Live(capture.Reason, capture.ScopeProcess),
             CaptureStates.Finalizing => "Finishing up",
             CaptureStates.DraftReady => "Draft ready",
             CaptureStates.DraftFailed => "Draft failed",
-            CaptureStates.DraftPending => "Drafting the note",
-            CaptureStates.Idle => "Idle",
+            CaptureStates.DraftPending => "Not recording: drafting the note",
+            CaptureStates.Idle => "Not recording",
             _ => Unknown,
         };
 

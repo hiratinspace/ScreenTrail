@@ -111,7 +111,7 @@ public sealed class ConfirmCopyTests
         // work out whether a note had gone to the ticket; nothing is sent, and the words now say so.
         foreach (var words in new[] { ConfirmCopy.DiscardSession, ConfirmCopy.DiscardSessions(1), ConfirmCopy.DiscardSessions(3) })
         {
-            Assert.Contains("deleted from this device", words.Consequence, StringComparison.Ordinal);
+            Assert.Contains("deleted from this PC", words.Consequence, StringComparison.Ordinal);
             Assert.Contains("Nothing is sent to a ticket.", words.Consequence, StringComparison.Ordinal);
             Assert.DoesNotContain("goes with", words.Consequence, StringComparison.Ordinal);
         }
@@ -128,7 +128,7 @@ public sealed class ConfirmCopyTests
 
         Assert.DoesNotContain("token", words, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("is deleted", words, StringComparison.Ordinal);
-        Assert.Contains("this device's sign-in", words, StringComparison.Ordinal);
+        Assert.Contains("this PC's sign-in", words, StringComparison.Ordinal);
         Assert.Contains("Notes already published stay on their tickets.", words, StringComparison.Ordinal);
         Assert.Contains("set up again", words, StringComparison.Ordinal);
     }
@@ -150,7 +150,7 @@ public sealed class ConfirmCopyTests
     {
         var words = ConfirmCopy.NotDiscarded("Not connected to the capture service, so nothing was changed.");
 
-        Assert.Equal("Not connected to the capture service, so nothing was changed. The session is still on this device.", words.Consequence);
+        Assert.Equal("Not connected to the capture service, so nothing was changed. The session is still on this PC.", words.Consequence);
     }
 
     [Fact]

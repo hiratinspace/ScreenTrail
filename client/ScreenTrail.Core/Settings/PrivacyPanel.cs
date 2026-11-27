@@ -81,6 +81,27 @@ public sealed class PrivacyPanel(IPrivacyGateway gateway)
             .Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? p.Name),
     ];
 
+    /// <summary>
+    /// Each field in plain words, for the technician beside the approver's exact names (review finding
+    /// E-18). A field the wire gains without a gloss fails PrivacyPanelTests, so the list never goes stale.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> TelemetryGlosses { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["session_id"] = "a random id for the session, not anything in it",
+        ["started_at"] = "when the session started",
+        ["duration_ms"] = "how long the session was",
+        ["frames"] = "how many screenshots it took",
+        ["transcript_segments"] = "how many stretches of speech it heard",
+        ["frames_purged_unredacted"] = "how many screenshots were left out because masking did not finish",
+        ["edit_ratio"] = "how much of the drafted note was changed",
+        ["published"] = "whether it was published",
+    };
+
+    /// <summary>"duration_ms: how long the session was", one line per field.</summary>
+    public static string TelemetryFieldLines => string.Join(
+        Environment.NewLine,
+        TelemetryFields.Select(f => TelemetryGlosses.TryGetValue(f, out var gloss) ? $"{f}: {gloss}" : f));
+
     public bool Loaded { get; private set; }
 
     /// <summary>Local-only as shown. A write while the admin locked it is ignored, so the screen keeps showing what is in force.</summary>

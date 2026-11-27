@@ -387,7 +387,7 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
         var result = await commands.HandleAsync(blur);
 
         Assert.False(result!.Ok);
-        Assert.Contains("written", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("saved", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("too large", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(masker.Painted, await _store!.GetRedactedFrameImageAsync("f1"));
         Assert.Null((await _store.LoadSessionAsync("s1"))!.Frames.Single(f => f.Id == "f1").OcrText);
@@ -433,7 +433,7 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
         var result = await commands.HandleAsync(blur);
 
         Assert.False(result!.Ok);
-        Assert.Contains("no such frame", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not ready yet", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.Null(await _store!.GetRedactedFrameImageAsync("f1"));
         Assert.Single(masker.Regions);
     }
@@ -522,7 +522,10 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
         Assert.NotNull(result);
         Assert.False(result.Ok);
         Assert.Contains("too large", result.Error, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(IpcFraming.MaxMessageBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), result.Error, StringComparison.Ordinal);
+        // The sizes are the log's; the technician is told what to do (review finding E-12).
+        Assert.DoesNotContain(IpcFraming.MaxMessageBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), result.Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("pipe", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("bytes", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -565,7 +568,7 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
         var result = await commands.HandleAsync(new GetFrameTextCommand { RequestId = 2, FrameId = frameId });
 
         Assert.False(result!.Ok);
-        Assert.Contains("no such frame", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not ready yet", result.Error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

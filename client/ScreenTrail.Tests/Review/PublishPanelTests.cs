@@ -102,7 +102,7 @@ public sealed class PublishPanelTests
         panel.Choose(new TicketMatch("1", "x", "y"));
 
         Assert.False(panel.HasIntegrations);
-        Assert.Equal("Ask your ScreenTrail owner to connect a PSA to publish", panel.BlockedBecause);
+        Assert.Equal("Ask your ScreenTrail admin to connect a PSA to publish.", panel.BlockedBecause);
         Assert.False(panel.CanPublish);
     }
 
@@ -115,7 +115,7 @@ public sealed class PublishPanelTests
         panel.Choose(new TicketMatch("48213", "Printer offline in reception", "Acme Dental"));
 
         Assert.True(panel.CanPublish);
-        Assert.StartsWith("Publishing to Demo PSA (not ConnectWise)", panel.DemoNotice, StringComparison.Ordinal);
+        Assert.StartsWith("Demo PSA (not ConnectWise): ", panel.DemoNotice, StringComparison.Ordinal);
         Assert.Contains("no real ticket", panel.DemoNotice, StringComparison.Ordinal);
     }
 
@@ -234,7 +234,7 @@ public sealed class PublishPanelTests
         Assert.True(panel.Published);
         Assert.Equal([Destination.TimeEntry], calls[1]);
         Assert.Equal(2, panel.Results.Count);
-        Assert.Equal("Published to ticket #48213 · 0:30 logged", panel.Summary);
+        Assert.Equal("Published to ticket #48213 · 30 min logged", panel.Summary);
     }
 
     [Fact]
@@ -268,7 +268,7 @@ public sealed class PublishPanelTests
         Assert.Equal([Destination.TimeEntry], calls[1]);
         Assert.True(panel.Published);
         Assert.Empty(panel.Failed);
-        Assert.Equal($"Published to ticket #48213 · 0:30 logged. {Missing}", panel.Summary);
+        Assert.Equal($"Published to ticket #48213 · 30 min logged. {Missing}", panel.Summary);
     }
 
     [Fact]
@@ -278,7 +278,7 @@ public sealed class PublishPanelTests
         // not mapped; the pane asks for the platform's companies and shows the prompt beside the result.
         var panel = Panel(
             publish: r => [.. r.Destinations.Select(d => d == Destination.KbArticle
-                ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the documentation platform. Map it in Settings → Integrations, then publish the article again.", "needs_mapping")
+                ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the knowledge base. Map it in Settings → Integrations, then publish the article again.", "needs_mapping")
                 : new DestinationResult(d, true))],
             companies: () => [new CompanyChoice("7", "Acme Dental"), new CompanyChoice("9", "Bright Smiles")]);
         panel.Choose(new TicketMatch("48213", "Printer offline", "Acme Dental"));

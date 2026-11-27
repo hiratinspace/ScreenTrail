@@ -198,7 +198,7 @@ public sealed class CapturePanel(ICaptureGateway gateway)
     /// </summary>
     public IReadOnlyList<ModelChoice> Models { get; } =
     [
-        new ModelChoice(null, "Automatic (Recommended)", $"Automatic uses {PlainName(SpeechModels.For(Environment.ProcessorCount).Name)} on this computer."),
+        new ModelChoice(null, "Automatic (Recommended)", $"Automatic uses {PlainName(SpeechModels.For(Environment.ProcessorCount).Name)} on this PC."),
         .. SpeechModels.All.Select(m => new ModelChoice(m.Name, PlainName(m.Name), m.Name switch
         {
             "tiny.en" => "The smallest download and the quickest, but it gets the most words wrong.",
@@ -424,6 +424,13 @@ public sealed class PipeCapture(CaptureConnection connection) : ICaptureGateway,
     public async Task<CaptureSnapshot?> LoadAsync(CancellationToken ct = default)
     {
         var reported = await _connection.RequestAsync<CaptureSettingsReported>(id => new GetCaptureSettingsCommand { RequestId = id }, ct).ConfigureAwait(false);
+
+        // The chords as bound, for every string that teaches one (review finding E-03).
+        if (reported is not null)
+        {
+            HotkeyText.Use(reported.Settings.ToBindings());
+        }
+
         return reported is null
             ? null
             : new CaptureSnapshot(
@@ -437,6 +444,11 @@ public sealed class PipeCapture(CaptureConnection connection) : ICaptureGateway,
     public async Task<string?> SaveAsync(CaptureSettings settings, CancellationToken ct = default)
     {
         var result = await _connection.SendAsync(id => new SetCaptureSettingsCommand { RequestId = id, Settings = settings }, ct).ConfigureAwait(false);
+        if (result.Ok)
+        {
+            HotkeyText.Use(settings.ToBindings());
+        }
+
         return result.Ok ? null : result.Error ?? "The capture service refused the settings.";
     }
 

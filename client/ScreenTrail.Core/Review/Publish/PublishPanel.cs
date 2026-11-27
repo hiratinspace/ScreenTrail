@@ -1,6 +1,7 @@
 using System.Globalization;
 using ScreenTrail.Core.Intel;
 using ScreenTrail.Core.Settings;
+using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Schema;
 
 namespace ScreenTrail.Core.Review.Publish;
@@ -225,16 +226,16 @@ public sealed class PublishPanel
     /// <summary>Two characters match half the tickets in a PSA, and each search is a round trip to it.</summary>
     public const int MinimumQueryLength = 3;
 
-    public const string ConnectPrompt = "Ask your ScreenTrail owner to connect a PSA to publish";
+    public const string ConnectPrompt = "Ask your ScreenTrail admin to connect a PSA to publish.";
 
     /// <summary>Everything chosen landed. Publishing again would post it all a second time.</summary>
     public const string AlreadyPublished = "Already published";
 
     /// <summary>Some of it landed. Publishing again would post that part a second time; Retry sends the rest.</summary>
-    public const string PartlyPublished = "Already partly published. Retry sends only what failed";
+    public const string PartlyPublished = "Already partly published. Retry sends only what failed.";
 
     /// <summary>Something may already be on the ticket. Publish, Ctrl+Enter and Retry wait until the technician says they looked.</summary>
-    public const string CheckTheTicketFirst = "This may already be on the ticket. Check the ticket, then confirm below before publishing again, so nothing is added twice";
+    public const string CheckTheTicketFirst = "This may already be on the ticket. Check the ticket, then confirm below before publishing again, so nothing is added twice.";
 
     private readonly Session _session;
     private readonly Func<string, CancellationToken, Task<IReadOnlyList<TicketMatch>>> _search;
@@ -301,7 +302,7 @@ public sealed class PublishPanel
     }
 
     /// <summary>
-    /// A pane with nothing to publish to: "Ask your ScreenTrail owner to connect a PSA to publish", and delegates that are never
+    /// A pane with nothing to publish to: "Ask your ScreenTrail admin to connect a PSA to publish", and delegates that are never
     /// reached because the pane is blocked before them. What the running application shows until
     /// ST-092 and ST-093 wire the real ones.
     /// </summary>
@@ -316,11 +317,23 @@ public sealed class PublishPanel
     public bool HasIntegrations => Integrations.Count > 0;
 
     /// <summary>
+    /// Why a publish threw, in plain words: "the capture service did not answer in time". The exception's
+    /// own message is a developer's and is never shown (review finding E-12).
+    /// </summary>
+    public static string PlainReason(Exception error) => error switch
+    {
+        TimeoutException => "the capture service did not answer in time",
+        IOException => "the connection to the capture service dropped",
+        UnauthorizedAccessException => "ScreenTrail was not allowed to read a screenshot",
+        _ => "something went wrong in ScreenTrail",
+    };
+
+    /// <summary>
     /// Said above Publish when the backend's PSA is its Development demo (ST-090), so nobody watching
     /// takes the note for one on a real ticket. Null for a real PSA, or none.
     /// </summary>
     public string? DemoNotice => Integrations.Any(IntegrationNames.IsDemo)
-        ? $"Publishing to {IntegrationNames.Title(IntegrationNames.DemoPsa)}: the backend keeps the note in memory, and it reaches no real ticket."
+        ? $"{IntegrationNames.Title(IntegrationNames.DemoPsa)}: the note reaches no real ticket."
         : null;
 
     /// <summary>
@@ -435,7 +448,7 @@ public sealed class PublishPanel
 
     private string DocumentationName => ProviderFor(Destination.KbArticle) is { } provider
         ? IntegrationNames.InSentence(provider)
-        : "the documentation platform";
+        : "the knowledge base";
 
     /// <summary>The result list (Spec §5 S3), one row per destination, in the order the form lists them.</summary>
     public IReadOnlyList<PublishResultRow> Rows
@@ -579,7 +592,7 @@ public sealed class PublishPanel
         : $"KB article in {ProviderName(Destination.KbArticle)}";
 
     /// <summary>
-    /// What is still open beside Publish (Spec v0.4.3): "1 inferred step not checked". Null when every
+    /// What is still open beside Publish (Spec v0.4.3): "1 step not checked yet" (E-11). Null when every
     /// inferred step is checked. It never holds Publish back; it says what the technician has not looked at.
     /// </summary>
     public static string? OpenItems(DraftNote? note)
@@ -588,8 +601,8 @@ public sealed class PublishPanel
         return open switch
         {
             0 => null,
-            1 => "1 inferred step not checked",
-            _ => string.Create(CultureInfo.InvariantCulture, $"{open} inferred steps not checked"),
+            1 => "1 step not checked yet",
+            _ => string.Create(CultureInfo.InvariantCulture, $"{open} steps not checked yet"),
         };
     }
 
@@ -662,7 +675,7 @@ public sealed class PublishPanel
             var facts = new List<ReceiptFact>(5);
             if (_session.DurationMs is { } duration)
             {
-                facts.Add(new(InMinutes(TimeSpan.FromMilliseconds(duration)), "captured"));
+                facts.Add(new(Durations.InWords(duration), "captured"));
             }
 
             var steps = _sentNote.Steps;
@@ -678,7 +691,7 @@ public sealed class PublishPanel
             // already published), so the fact is left out rather than shown as "0 s".
             if (SentAt is { } at && at - _openedAt is var took && took >= TimeSpan.FromSeconds(1))
             {
-                facts.Add(new(took < TimeSpan.FromMinutes(1) ? string.Create(CultureInfo.InvariantCulture, $"{(int)took.TotalSeconds} s") : InMinutes(took), "open to published"));
+                facts.Add(new(Durations.InWords(took), "open to published"));
             }
 
             return facts;
@@ -697,13 +710,11 @@ public sealed class PublishPanel
     public string? DetailOf(Destination destination) => destination switch
     {
         Destination.TicketNote => NoteType == NoteType.Internal ? InternalLabel : "Discussion",
-        Destination.TimeEntry => string.Create(CultureInfo.InvariantCulture, $"{Minutes / 60}:{Minutes % 60:00}"),
+        // "15 min", as the envelope said it, not "0:15", which read as fifteen seconds (E-08).
+        Destination.TimeEntry => Durations.OfMinutes(Minutes),
         Destination.KbArticle => _session.Draft?.SuggestedTitle is { Length: > 0 } title ? $"“{title}”" : null,
         _ => null,
     };
-
-    private static string InMinutes(TimeSpan span) =>
-        string.Create(CultureInfo.InvariantCulture, $"{Math.Max(1, (int)Math.Round(span.TotalMinutes, MidpointRounding.AwayFromZero))} min");
 
     /// <summary>Spec §6's toast line for what happened, or null before anything has.</summary>
     public string? Summary
@@ -721,7 +732,7 @@ public sealed class PublishPanel
             if (Published)
             {
                 var time = _results.TryGetValue(Destination.TimeEntry, out var entry) && entry.Ok
-                    ? $" · {Minutes / 60}:{Minutes % 60:00} logged"
+                    ? $" · {Durations.OfMinutes(Minutes)} logged"
                     : string.Empty;
                 return missing.Length > 0
                     ? $"Published to ticket #{Ticket?.Id}{time}. {missing}"
