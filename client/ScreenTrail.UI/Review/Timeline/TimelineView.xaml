@@ -1,6 +1,7 @@
 <UserControl x:Class="ScreenTrail.UI.Review.Timeline.TimelineView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              AutomationProperties.Name="Timeline and transcript">
     <!-- Spec §5 S3: 40 px of scrubber collapsed, 176 px with the transcript open (A-20). The track is drawn in
          code-behind from the markers' fractions, because a Canvas wants pixels and the model has none. -->
@@ -19,13 +20,33 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0"
-                        Style="{StaticResource Button.Ghost}"
-                        VerticalAlignment="Center"
-                        Content="{Binding ToggleLabel}"
-                        Command="{Binding ToggleCommand}"
-                        AutomationProperties.Name="Toggle the timeline and transcript panel"
-                        AutomationProperties.AcceleratorKey="Alt+T" />
+                <!-- Review finding E-24: a disclosure button, so a screen reader hears "collapsed" or "expanded"
+                     rather than a "▸" it cannot read. A chevron at 12, right when closed and down when open,
+                     8 from the words (design system 8). -->
+                <controls:DisclosureButton x:Name="Toggle"
+                                           Grid.Column="0"
+                                           Style="{StaticResource Button.Ghost}"
+                                           VerticalAlignment="Center"
+                                           IsExpanded="{Binding Expanded, Mode=OneWay}"
+                                           Command="{Binding ToggleCommand}"
+                                           AutomationProperties.Name="Timeline and transcript"
+                                           AutomationProperties.AcceleratorKey="Alt+T">
+                    <StackPanel Orientation="Horizontal">
+                        <controls:Glyph VerticalAlignment="Center" FontSize="{DynamicResource Icon.sm}">
+                            <controls:Glyph.Style>
+                                <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                    <Setter Property="Text" Value="{StaticResource Icon.ChevronRight}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Expanded}" Value="True">
+                                            <Setter Property="Text" Value="{StaticResource Icon.ChevronDown}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:Glyph.Style>
+                        </controls:Glyph>
+                        <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Timeline and transcript" />
+                    </StackPanel>
+                </controls:DisclosureButton>
                 <!-- Beside the toggle it belongs to: a key cap, as the envelope's Change carries Ctrl+T. -->
                 <Border Grid.Column="1" Margin="4,0,12,0" Style="{StaticResource KeyCap}">
                     <TextBlock Style="{StaticResource Text.KeyHint}" Text="Alt+T" />

@@ -61,9 +61,6 @@ public sealed partial class TimelineViewModel : ObservableObject
     public partial double Height { get; set; }
 
     [ObservableProperty]
-    public partial string ToggleLabel { get; set; } = string.Empty;
-
-    [ObservableProperty]
     public partial Visibility TranscriptVisibility { get; set; } = Visibility.Collapsed;
 
     [ObservableProperty]
@@ -100,7 +97,6 @@ public sealed partial class TimelineViewModel : ObservableObject
     {
         Expanded = _state.Expanded;
         Height = _state.Height;
-        ToggleLabel = _state.Expanded ? "▾ Timeline and transcript" : "▸ Timeline and transcript";
         TranscriptVisibility = _state.Expanded ? Visibility.Visible : Visibility.Collapsed;
     }
 

@@ -178,7 +178,7 @@ public sealed class EnvelopeLayoutTests
     private static string Token(XElement dictionary, string key) =>
         dictionary.Elements().Single(e => (string?)e.Attribute(X + "Key") == key).Value;
 
-    private static string Ui()
+    internal static string Ui()
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
