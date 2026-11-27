@@ -81,9 +81,10 @@ public sealed class InboxRailControlsTests
             Assert.Equal("{StaticResource FocusRing.Rail}", Setter(Style(key), "FocusVisualStyle"));
         }
 
-        // The search box is a text field: a 2 px shell.accent edge over its own (review finding B-09), and the
-        // outer ring only in high contrast, as every field.
-        Assert.Equal("{DynamicResource FocusVisual.input}", Setter(Style("Rail.Search"), "FocusVisualStyle"));
+        // The search box is a text field: a 2 px shell.accent edge over its own (review finding B-09), and,
+        // on the frame, the rail's ring too: the edge alone failed the laptop's focus check, its top and
+        // bottom rows blurred under 3:1 at the display's scale.
+        Assert.Equal("{StaticResource FocusRing.Rail}", Setter(Style("Rail.Search"), "FocusVisualStyle"));
         var edge = Style("Rail.Search").Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml") + "Name") == "FocusEdge");
         Assert.Equal("{DynamicResource Brush.shell.accent}", (string?)edge.Attribute("BorderBrush"));
     }
