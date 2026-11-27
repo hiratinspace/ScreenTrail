@@ -40,7 +40,7 @@ public sealed partial class PillResourcesTests
 
     /// <summary>
     /// Spec §5 S2 (v0.6.0): the pill is part of the frame. It draws on <c>shell.bg</c> with a
-    /// <c>shell.muted</c> outline, carries the ribbon cap, and colours its states with the <c>shell.*</c>
+    /// <c>shell.muted</c> outline, carries no brand mark (C-H5), and colours its states with the <c>shell.*</c>
     /// state tokens, which high contrast maps to system colours. The pane tokens it used before would put
     /// pane colours on the frame, where the contrast test does not hold them.
     /// </summary>
@@ -52,7 +52,7 @@ public sealed partial class PillResourcesTests
 
         foreach (var key in new[]
         {
-            "Brush.shell.bg", "Brush.shell.text", "Brush.shell.muted", "Brush.shell.line", "Brush.brand.ribbon.band",
+            "Brush.shell.bg", "Brush.shell.text", "Brush.shell.muted", "Brush.shell.line",
             "Brush.shell.recording", "Brush.shell.paused", "Brush.shell.scope", "Brush.shell.offline",
         })
         {
@@ -60,6 +60,10 @@ public sealed partial class PillResourcesTests
         }
 
         Assert.DoesNotContain(asked, key => key.StartsWith("Brush.state.", StringComparison.Ordinal) || key.StartsWith("Brush.bg.", StringComparison.Ordinal));
+
+        // No brand on a status control (review finding C-H5): the ribbon cap was a wedge at the pill's end.
+        Assert.DoesNotContain(asked, key => key.StartsWith("Brush.brand.", StringComparison.Ordinal));
+        Assert.DoesNotContain("<Path", pill, StringComparison.Ordinal);
     }
 
     /// <summary>
