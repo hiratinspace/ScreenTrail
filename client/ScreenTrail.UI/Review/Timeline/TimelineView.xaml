@@ -3,6 +3,37 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              AutomationProperties.Name="Timeline and transcript">
+    <UserControl.Resources>
+        <!-- A frame on the track (review findings A-21, E-23): an 8 px round mark in text.muted, Iris when it
+             is the selected frame, on a transparent 28 x 28 button so a pointer and a keyboard can both reach
+             it. No chrome: the mark is the button. Hover takes text.secondary. -->
+        <Style x:Key="Timeline.FrameMarker" TargetType="Button">
+            <Setter Property="Width" Value="{DynamicResource Layout.hit-target-min}" />
+            <Setter Property="Height" Value="{DynamicResource Layout.hit-target-min}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Mark"
+                                     Width="{DynamicResource Layout.state-dot}"
+                                     Height="{DynamicResource Layout.state-dot}"
+                                     Fill="{DynamicResource Brush.text.muted}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource Brush.text.secondary}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Selected">
+                                <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource Brush.accent.primary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <!-- Spec §5 S3: 40 px of scrubber collapsed, 176 px with the transcript open (A-20). The track is drawn in
          code-behind from the markers' fractions, because a Canvas wants pixels and the model has none. -->
     <Border Style="{StaticResource Timeline}" Height="{Binding Height}">
@@ -52,19 +83,22 @@
                     <TextBlock Style="{StaticResource Text.KeyHint}" Text="Alt+T" />
                 </Border>
 
-                <!-- Dots are clicks, squares are frames, a flag is a marked moment, bands are gaps. -->
+                <!-- One baseline across the track (review finding A-21), and on it: small dots are clicks, round
+                     marks are screenshots, a flag is a marked moment, a short line is something said, bands are
+                     gaps. Each screenshot is a button (E-23), one Tab stop for the lot, arrows between them. -->
                 <Canvas Grid.Column="2"
                         x:Name="Track"
-                        Height="18"
+                        Height="{DynamicResource Layout.hit-target-min}"
                         VerticalAlignment="Center"
-                        ClipToBounds="True"
+                        KeyboardNavigation.TabNavigation="Once"
+                        KeyboardNavigation.DirectionalNavigation="Cycle"
                         AutomationProperties.Name="Timeline: clicks, screenshots, things said, pauses" />
 
                 <TextBlock Grid.Column="3"
                            Margin="12,0,0,0"
                            VerticalAlignment="Center"
-                           Style="{StaticResource Text.Muted}"
-                           FontSize="{DynamicResource Size.xs}"
+                           Style="{StaticResource Text.Caption}"
+                           Typography.NumeralAlignment="Tabular"
                            Text="{Binding Summary}" />
             </Grid>
 

@@ -13,7 +13,6 @@ Review/NoteEditorView.xaml	CornerRadius	1.5	1
 Review/NoteEditorView.xaml	Margin	0,6,0,0	1
 Review/Publish/PublishPane.xaml	Height	40	1
 Review/Publish/PublishPane.xaml	Width	40	1
-Review/Timeline/TimelineView.xaml	Height	18	1
 Settings/SettingsPane.xaml	Height	8	1
 Settings/SettingsPane.xaml	Width	8	1
 Theme/Components.xaml	BorderThickness	2	1
