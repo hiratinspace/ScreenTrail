@@ -34,9 +34,9 @@
              sure?" asks a question nobody can answer; this one says what disappears. -->
         <!-- A notice's reason sits on the warning banner, as the app's other "this did not happen" lines
              do (§3 Banner); a question's consequence is plain text. -->
-        <Border x:Name="ConsequenceBox" Margin="0,8,0,0">
+        <ContentControl x:Name="ConsequenceBox" Margin="0,8,0,0" Focusable="False" IsTabStop="False">
             <TextBlock Style="{StaticResource Text.Body}" Text="{Binding Consequence}" />
-        </Border>
+        </ContentControl>
 
         <!-- Typed rather than clicked (Spec §3) for irreversible data loss. Input.Mono, not Text.Mono: that
              is a TextBlock style, and WPF refuses a style for another type the moment the window is built. -->
