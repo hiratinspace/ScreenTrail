@@ -240,7 +240,9 @@
                             Visibility="{Binding ShowPauseControl, Converter={StaticResource Visible}}">
                         <controls:Glyph Style="{StaticResource Hud.Glyph}" Text="{Binding PauseGlyph}" />
                     </Button>
-                    <Button Margin="4,0,0,0"
+                    <!-- 8 from Pause, not 4 (review finding C-H9, design system amendment 24): Stop ends the
+                         session in one click, so a slip aimed at Pause should not land on it. -->
+                    <Button Margin="8,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding StopCommand}"
                             ToolTip="{Binding StopButton.Tooltip}"

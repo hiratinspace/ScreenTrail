@@ -117,6 +117,19 @@ public sealed partial class PillResourcesTests
     [GeneratedRegex(@"\{StaticResource\s+(?<key>[^}\s]+)\s*\}")]
     private static partial Regex StaticLookup();
 
+    /// <summary>Review finding C-H9, amendment 24: Stop sits 8 from Pause, the other buttons 4 apart.</summary>
+    [Fact]
+    public void StopSitsFurtherFromPauseThanTheOtherButtonsSitApart()
+    {
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var buttons = pill.Descendants().Where(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Style") == "{DynamicResource Hud.IconButton}")
+            .ToDictionary(b => ((string?)b.Attribute("Command"))!, b => (string?)b.Attribute("Margin"));
+
+        Assert.Equal("8,0,0,0", buttons["{Binding StopCommand}"]);
+        Assert.Equal("4,0,0,0", buttons["{Binding PauseOrResumeCommand}"]);
+        Assert.Equal("4,0,0,0", buttons["{Binding ToggleExpandedCommand}"]);
+    }
+
     /// <summary>
     /// Review finding C-H8: the pill's buttons draw no outline in any state; hover and pressed are fills,
     /// pressed is never Iris, and disabled dims the glyph.
