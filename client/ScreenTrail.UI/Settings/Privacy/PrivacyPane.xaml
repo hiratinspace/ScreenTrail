@@ -6,12 +6,55 @@
              AutomationProperties.Name="Privacy">
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
 
-        <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md. -->
+        <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md.
+             Review finding B-48: the approver's trust story as five steps, each a 16 px glyph in text.secondary,
+             12, and a line of Body, then the promise in Body strong; it was one run of numbered text. -->
         <Border Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="What leaves this PC" />
-                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Body}" TextWrapping="Wrap"
-                           Text="1. Captured and masked on this PC.&#10;2. One request drafts the note (or this PC drafts it, in local-only mode).&#10;3. You check it.&#10;4. You publish it.&#10;Nothing is published without your check." />
+                <StackPanel x:Name="DataFlow" Margin="0,8,0,0">
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Camera}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Captured on this PC." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Shield}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Masked on this PC." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Sync}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="One request drafts the note, or this PC drafts it in local-only mode." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Edit}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="You check it." />
+                    </Grid>
+                    <Grid MinHeight="{DynamicResource Layout.flow-row-height}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Icon}" Text="{DynamicResource Icon.Send}" />
+                        <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="You publish it." />
+                    </Grid>
+                </StackPanel>
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your check." />
             </StackPanel>
         </Border>
 
@@ -23,7 +66,7 @@
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[LocalOnlyMode]}" />
                 </StackPanel>
                 <CheckBox Margin="0,8,0,0" Content="Send nothing for drafting; publish only what I ask" IsChecked="{Binding LocalOnly}" IsEnabled="{Binding LocalOnlyEditable}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding LocalOnlyLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding LocalOnlyLockVisibility}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Local-only keeps the screenshots on this PC. Notes are drafted here from what was said and shown. They are plainer than a usual draft, and Review marks them." />
             </StackPanel>
         </Border>
@@ -36,15 +79,23 @@
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[ExcludedApps]}" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Password managers, banking tabs and credential prompts are excluded already (Recommended). Browser tabs are matched by the page title shown in the browser's title bar, not by the web address. Add any process that must never be captured." />
-                <controls:Repeater Margin="0,8,0,0" ItemsSource="{Binding ExcludedProcesses}">
+                <!-- Review finding B-42: list rows, each 36 high under a rule, the name at the left and Remove
+                     at the right, where the Ghost button had read as a word after the name. -->
+                <controls:Repeater x:Name="ExcludedList" Margin="0,8,0,0" ItemsSource="{Binding ExcludedProcesses}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
-                                        Command="{Binding DataContext.RemoveProcessCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding StringFormat='Remove {0} from the excluded apps'}" />
-                            </StackPanel>
+                            <Border Style="{StaticResource Settings.ListRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource Text.Mono}" Foreground="{DynamicResource Brush.text.primary}" TextTrimming="CharacterEllipsis" Text="{Binding}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
+                                            Command="{Binding DataContext.RemoveProcessCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding StringFormat='Remove {0} from the excluded apps'}" />
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
@@ -56,12 +107,14 @@
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewProcess, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="keepass"
+                             theme:Field.HasError="{Binding NewProcessProblem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="App to exclude"
                              AutomationProperties.HelpText="As Task Manager shows it, for example keepass" />
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddProcessCommand}" IsEnabled="{Binding CanAddProcess}" AutomationProperties.Name="Add app" />
                 </StackPanel>
+                <!-- Review finding B-12: what is wrong, 4 under the field, which shows its error edge. -->
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding NewProcessProblem}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Caption}" Text="As Task Manager shows it, for example keepass" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding NewProcessProblem}" Visibility="{Binding NewProcessProblemVisibility}" controls:LiveRegion.Setting="Polite" />
             </StackPanel>
         </Border>
 
@@ -79,15 +132,21 @@
                 <CheckBox Margin="0,4,0,0" Content="Email addresses" IsChecked="{Binding Emails}" />
 
                 <TextBlock Margin="0,16,0,8" Style="{StaticResource Text.Label}" Text="Custom patterns (regular expressions)" />
-                <controls:Repeater ItemsSource="{Binding CustomPatterns}">
+                <controls:Repeater x:Name="PatternList" ItemsSource="{Binding CustomPatterns}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
-                                        Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding StringFormat='Remove the pattern {0}'}" />
-                            </StackPanel>
+                            <Border Style="{StaticResource Settings.ListRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource Text.Mono}" Foreground="{DynamicResource Brush.text.primary}" TextTrimming="CharacterEllipsis" Text="{Binding}" ToolTip="{Binding}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
+                                            Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding StringFormat='Remove the pattern {0}'}" />
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
@@ -98,10 +157,11 @@
                              FontFamily="{DynamicResource Font.mono}"
                              Text="{Binding NewPattern, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="TKT-\d{6}"
+                             theme:Field.HasError="{Binding NewPatternProblem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="New pattern" />
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddPatternCommand}" IsEnabled="{Binding CanAddPattern}" AutomationProperties.Name="Add pattern" />
                 </StackPanel>
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding NewPatternProblem}" Visibility="{Binding NewPatternProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding NewPatternProblem}" />
                 <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="Try it on some text" />
                 <TextBox Style="{StaticResource Input.Default}" Text="{Binding Sample, UpdateSourceTrigger=PropertyChanged}" theme:Field.Placeholder="Paste a line from a ticket" AutomationProperties.Name="Try it on some text" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SampleMasked}" AutomationProperties.Name="What the sample becomes" />
@@ -121,7 +181,7 @@
                     <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Numeric}" Text="{Binding RetentionDays}" />
                     <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="days" />
                 </StackPanel>
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding RetentionLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding RetentionLockVisibility}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding RetentionLabel}" />
             </StackPanel>
         </Border>
@@ -141,11 +201,12 @@
 
         <!-- Saved by the page's one Save bar (Spec, Settings layout). Why this section cannot be saved as it
              is, or why an export did not land, stays here beside the fields. -->
-        <TextBlock Margin="0,0,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+        <ContentControl Margin="0,4,0,4" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
 
         <!-- Your data, the danger zone at the end of Privacy: export the audit log; delete everything, typed
-             (INV-12), with the capture guard (#280). Both act at once and are never on the Save bar. -->
-        <Border Style="{StaticResource Settings.Tile}" Margin="0,16,0,4" BorderBrush="{DynamicResource Brush.state.danger}">
+             (INV-12), with the capture guard (#280). Both act at once and are never on the Save bar. Review
+             finding B-41: outlined like its neighbours, not in red; the danger is the Delete button's. -->
+        <Border x:Name="YourData" Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="Your data" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="These act straight away. They are not part of Save." />

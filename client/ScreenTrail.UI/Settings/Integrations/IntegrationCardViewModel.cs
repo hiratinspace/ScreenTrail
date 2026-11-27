@@ -40,8 +40,12 @@ public sealed partial class IntegrationCardViewModel : ObservableObject
     [ObservableProperty]
     public partial string CheckResult { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Whether the last check passed: the result line's glyph is a check in state.published, else a warning in
+    /// state.danger (review finding B-43; it was a "✓" or "✗" character in body colour).
+    /// </summary>
     [ObservableProperty]
-    public partial string CheckMark { get; set; } = string.Empty;
+    public partial bool CheckPassed { get; set; }
 
     [ObservableProperty]
     public partial bool Connected { get; set; }
@@ -93,7 +97,7 @@ public sealed partial class IntegrationCardViewModel : ObservableObject
         ConnectedBadgeVisibility = _card.Badge == IntegrationCard.ConnectedBadge ? Visibility.Visible : Visibility.Collapsed;
         CheckFailedBadgeVisibility = _card.Badge == IntegrationCard.CheckFailedBadge ? Visibility.Visible : Visibility.Collapsed;
         CheckResult = _card.CheckResult ?? _card.LastError ?? string.Empty;
-        CheckMark = _card.CheckOk switch { true => "✓", false => "✗", null => _card.LastError is null ? string.Empty : "✗" };
+        CheckPassed = _card.CheckOk == true;
         CheckVisibility = CheckResult.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
         CheckCommand.NotifyCanExecuteChanged();
     }

@@ -33,7 +33,7 @@
                 </StackPanel>
                 <RadioButton Margin="0,8,0,0" GroupName="Scope" Content="Remote-tool windows and admin tools (Recommended)" IsChecked="{Binding RemoteToolsOnly}" IsEnabled="{Binding ScopeEditable}" />
                 <RadioButton Margin="0,4,0,0" GroupName="Scope" Content="All windows during a session" IsChecked="{Binding AllWindows}" IsEnabled="{Binding ScopeEditable}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding ScopeLockedNote, Mode=OneTime}" Visibility="{Binding ScopeLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding ScopeLockedNote, Mode=OneTime}" Visibility="{Binding ScopeLockVisibility}" />
                 <ContentControl Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Margin="0,8,0,0" Visibility="{Binding ScopeWarningVisibility}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding ScopeWarning}" controls:LiveRegion.Setting="Assertive" />
@@ -70,15 +70,22 @@
                 <controls:Repeater Margin="0,8,0,0" ItemsSource="{Binding Hotkeys}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,0,0,8">
+                            <!-- Review finding B-12: a clash is said on a second row under the field, across the
+                                 field's column and the rest, and the field shows its error edge; it was a red
+                                 sentence beside a field that looked fine. -->
+                            <Grid x:Name="HotkeyRow" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Width="{DynamicResource Layout.field-narrow}" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding Label}" />
-                                <TextBox Grid.Column="1" Width="{DynamicResource Layout.field-narrow}" Style="{StaticResource Input.Default}" FontFamily="{DynamicResource Font.mono}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" />
-                                <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Width="{DynamicResource Layout.field-narrow}" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding Label}" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Width="{DynamicResource Layout.field-narrow}" Style="{StaticResource Input.Default}" FontFamily="{DynamicResource Font.mono}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" theme:Field.HasError="{Binding Problem, Converter={StaticResource HasText}}" AutomationProperties.Name="{Binding Label}" />
+                                <ContentControl Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -86,7 +93,8 @@
             </StackPanel>
         </Border>
 
-        <!-- Screenshots and the microphone. -->
+        <!-- Screenshots. Review finding B-39: the microphone and the speech model are a tile of their own,
+             not two more heading levels inside this one (one group per tile, spec v0.7.0). -->
         <Border Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
@@ -103,11 +111,16 @@
                         </Style>
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
+            </StackPanel>
+        </Border>
 
-                <!-- ST-080 AC3: the device and its live level. The level is read only while this card is
-                     on screen with the window in front (the code-behind says when); nothing is recorded. -->
+        <!-- The microphone: Device, Level and Speech model, labelled fields 16 apart. ST-080 AC3: the level
+             is read only while this tile is on screen with the window in front (the code-behind says when);
+             nothing is recorded. -->
+        <Border x:Name="MicrophoneTile" Style="{StaticResource Settings.Tile}">
+            <StackPanel>
                 <StackPanel x:Name="MicrophoneCard">
-                    <StackPanel Margin="0,24,0,0" Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Text.TileHeading}" Text="Microphone" />
                         <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[Microphone]}" />
                     </StackPanel>
@@ -123,7 +136,7 @@
                     <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Visibility="{Binding MicrophoneNoteVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding MicrophoneNote}" controls:LiveRegion.Setting="Polite" />
                     </ContentControl>
-                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                    <StackPanel Margin="0,16,0,0" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Label}" Text="Level" />
                         <ProgressBar Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Meter.Level}" Value="{Binding MicrophoneLevel, Mode=OneWay}" theme:Meter.Clipping="{Binding MicrophoneClipping, Mode=OneWay}" AutomationProperties.Name="Microphone level" AutomationProperties.HelpText="{Binding MicrophoneLevelStatus}" />
                     </StackPanel>
@@ -151,15 +164,21 @@
             </StackPanel>
         </Border>
 
-        <Border Style="{StaticResource Settings.Tile}">
-            <StackPanel Orientation="Horizontal">
-                <CheckBox Content="Start ScreenTrail when I sign in to Windows" IsChecked="{Binding StartUiAtLogin}" />
-                <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[StartAtSignIn]}" />
+        <!-- Every tile opens with its heading (B-39): this one was a lone check box. -->
+        <Border x:Name="StartWithWindowsTile" Style="{StaticResource Settings.Tile}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Text.TileHeading}" Text="Start with Windows" />
+                    <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[StartAtSignIn]}" />
+                </StackPanel>
+                <CheckBox Margin="0,8,0,0" Content="Start ScreenTrail when I sign in to Windows" IsChecked="{Binding StartUiAtLogin}" />
             </StackPanel>
         </Border>
 
         <!-- Saved by the page's one Save bar (Spec, Settings layout). Why this section cannot be saved as it
-             is stays here, beside its fields, as well as on the bar when a save is tried. -->
-        <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+             is stays here, after its tiles, as well as on the bar when a save is tried: it may be the service
+             refusing the whole section, so it belongs to no one tile. A field's own problem is also said
+             under that field (B-12). The shared error line, glyph and words. -->
+        <ContentControl Margin="0,4,0,12" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
     </StackPanel>
 </UserControl>

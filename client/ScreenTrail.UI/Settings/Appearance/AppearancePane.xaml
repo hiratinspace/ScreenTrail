@@ -13,13 +13,8 @@
             </StackPanel>
             <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="How ScreenTrail looks on this PC. It changes when you save." />
             <RadioButton Margin="0,8,0,0" GroupName="AppearanceTheme" Content="Use my Windows setting (Recommended)" IsChecked="{Binding UseWindows}" />
-            <TextBlock Margin="24,4,0,0"
-                       Style="{StaticResource Text.Muted}"
-                       TextWrapping="Wrap"
-                       Text="{Binding WindowsNow}" />
-            <TextBlock Margin="24,0,0,0"
-                       Style="{StaticResource Text.Muted}"
-                       TextWrapping="Wrap"
+            <TextBlock Style="{StaticResource Choice.Hint}" Text="{Binding WindowsNow}" />
+            <TextBlock Style="{StaticResource Choice.Hint}"
                        Text="ScreenTrail follows it when it changes. Change it in Windows Settings &gt; Personalization &gt; Colors." />
             <RadioButton Margin="0,8,0,0" GroupName="AppearanceTheme" Content="Light" IsChecked="{Binding Light}" />
             <RadioButton Margin="0,4,0,0" GroupName="AppearanceTheme" Content="Dark" IsChecked="{Binding Dark}" />
