@@ -282,6 +282,7 @@ public partial class ShellWindow
         element.BringIntoView();
         _ = Keyboard.Focus(element);
         await SettleAsync();
+        await InViewAsync(element, screen);
 
         // The first hosted run focused all three controls and WPF drew no ring for any of them: it decides
         // "focus arrived by keyboard" from input this harness cannot really send. So the ring is drawn the
@@ -323,40 +324,37 @@ public partial class ShellWindow
         });
     }
 
+    /// <summary>
+    /// Scrolls <paramref name="element"/> into its scroll viewer's viewport if focusing it did not, and fails
+    /// the render if it is still outside. focus-input focused Settings' first text box, the Capture hotkey
+    /// field below the fold, and the shot showed no focused input at all (review finding B-56).
+    /// </summary>
+    private static async Task InViewAsync(FrameworkElement element, string screen)
+    {
+        if (Ancestor<ScrollViewer>(element) is not { Content: Visual content } scroller || Shows(scroller, element))
+        {
+            return;
+        }
+
+        var top = element.TransformToAncestor(content).Transform(new Point(0, 0)).Y;
+        scroller.ScrollToVerticalOffset(Math.Max(0, top - 24));
+        await SettleAsync();
+        if (!Shows(scroller, element))
+        {
+            throw new InvalidOperationException($"{screen}: the focused {element.GetType().Name} is outside its scroll viewer's view.");
+        }
+    }
+
+    private static bool Shows(ScrollViewer scroller, FrameworkElement element)
+    {
+        var box = element.TransformToAncestor(scroller).TransformBounds(new Rect(element.RenderSize));
+        return box.Top >= 0 && box.Bottom <= scroller.ViewportHeight;
+    }
+
     /// <summary>Undoes what a render's prepare step added.</summary>
     private sealed class Removal(Action undo) : IDisposable
     {
         public void Dispose() => undo();
-    }
-
-    /// <summary>What WPF's own focus visual is: a Control styled with the element's FocusVisualStyle, sized to the element.</summary>
-    private sealed class FocusRingAdorner : Adorner
-    {
-        private readonly Control _ring;
-
-        public FocusRingAdorner(UIElement adorned, Style style)
-            : base(adorned)
-        {
-            _ring = new Control { Style = style, Focusable = false };
-            IsHitTestVisible = false;
-            AddVisualChild(_ring);
-        }
-
-        protected override int VisualChildrenCount => 1;
-
-        protected override Visual GetVisualChild(int index) => _ring;
-
-        protected override Size MeasureOverride(Size constraint)
-        {
-            _ring.Measure(AdornedElement.RenderSize);
-            return AdornedElement.RenderSize;
-        }
-
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            _ring.Arrange(new Rect(finalSize));
-            return finalSize;
-        }
     }
 
     private static bool HasAdorner(UIElement element) =>
