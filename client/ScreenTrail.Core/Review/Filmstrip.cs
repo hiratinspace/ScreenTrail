@@ -6,11 +6,15 @@ namespace ScreenTrail.Core.Review;
 public abstract record FilmstripCell(long TsMs);
 
 /// <param name="Number">What the technician reads: the frame's place in the strip, counted from one.
-/// The note's chips say "frame 2" and this is the 2.</param>
+/// The note's chips say "Screenshot 2" and this is the 2.</param>
 /// <param name="Included">Whether it goes out when the note is published.</param>
 public sealed record FrameCell(Frame Frame, int Number, bool Included) : FilmstripCell(Frame.TsMs)
 {
-    public string Label => $"frame {Number}";
+    /// <summary>"Screenshot 2": a heading and a chip, so capitalised (review finding E-06; it said "frame 2").</summary>
+    public string Label => $"Screenshot {Number}";
+
+    /// <summary>"screenshot 2", inside a sentence.</summary>
+    public string InSentence => $"screenshot {Number}";
 
     /// <summary>
     /// Never goes out, whatever the technician does: it looked like a sign-in screen, or capture was off

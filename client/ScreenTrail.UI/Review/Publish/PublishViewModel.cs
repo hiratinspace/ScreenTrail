@@ -852,7 +852,7 @@ public sealed partial class PublishViewModel : ObservableObject
         var frames = _frames().Count;
         if (frames > PublishCommands.MaxFrames)
         {
-            return $"A publish can carry at most {PublishCommands.MaxFrames} frames, and {frames} are included. Exclude {frames - PublishCommands.MaxFrames} in the filmstrip.";
+            return $"A publish can include up to {PublishCommands.MaxFrames} screenshots and {frames} are included. Leave out {frames - PublishCommands.MaxFrames} in All screenshots.";
         }
 
         return minutesMatter && _panel.TimeEntry && !_minutesValid

@@ -48,7 +48,7 @@
                 <StackPanel Style="{StaticResource Row}">
                     <ContentControl Style="{StaticResource Toast}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource Text.Body}" Text="Deleted frame 2" VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource Text.Body}" Text="Deleted screenshot 2" VerticalAlignment="Center" />
                             <Button Margin="12,0,0,0" Content="Undo" Style="{StaticResource Button.Secondary}" theme:Density.Compact="True" />
                         </StackPanel>
                     </ContentControl>

@@ -77,7 +77,7 @@ public sealed class ReviewPaneTests
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
         var review = new ReviewViewModel(Session(Draft("Spooler", "f2"), Frames(3)), frames: null);
         var chip = Assert.Single(review.Note.Steps.Single().Frames);
-        Assert.Equal("frame 2", chip.Label);
+        Assert.Equal("Screenshot 2", chip.Label);
 
         review.Note.ShowFrameCommand.Execute(chip.Id);
 

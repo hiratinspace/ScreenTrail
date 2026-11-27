@@ -42,6 +42,8 @@ public sealed partial class FrameItem : StripItem
 
     public string Label => Cell.Label;
 
+    public string InSentence => Cell.InSentence;
+
     public bool Included => Cell.Included;
 
     /// <summary>
@@ -50,7 +52,7 @@ public sealed partial class FrameItem : StripItem
     /// </summary>
     public string StateLabel => Cell.Withheld ? "withheld" : Cell.Included ? "included" : "excluded";
 
-    /// <summary>"frame 2, included": the label and the state, as the strip shows them under the picture.</summary>
+    /// <summary>"Screenshot 2, included": the label and the state, as the strip shows them under the picture.</summary>
     public override string SpokenName => $"{Label}, {StateLabel}";
 
     /// <summary>
@@ -169,7 +171,7 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
 
     /// <summary>The 5 s toast, or null. Spec §4 prefers this to a dialog in front of every small deletion.</summary>
     public string? UndoToast => _deletes.Pending is { } pending
-        ? $"Deleted {pending.Label}"
+        ? $"Deleted {pending.InSentence}"
         : null;
 
     public bool HasUndoToast => UndoToast is not null;
@@ -333,7 +335,7 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
             return;
         }
 
-        var label = item.Label;
+        var label = item.InSentence;
         var recorded = await _frames.SetIncludedAsync(item.Id, included).ConfigureAwait(true);
 
         // An inclusion the service did not record goes back to excluded (ST-078). Filmstrip.Answered decides.
@@ -399,7 +401,7 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
         // delete does not land either, the frame is back, included, the next time the session opens.
         if (wasIncluded && _frames is not null)
         {
-            var label = item.Label;
+            var label = item.InSentence;
             if (await _frames.SetIncludedAsync(item.Id, false).ConfigureAwait(true))
             {
                 EditLanded();
@@ -584,7 +586,7 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
     public string? PublishHeldBecause => _pending.Count switch
     {
         0 => null,
-        1 => $"A blur of {_pending.First().Label} is still being applied. Publish once it has landed.",
+        1 => $"A blur of {_pending.First().InSentence} is still being applied. Publish once it has landed.",
         var n => $"Blurs of {n} screenshots are still being applied. Publish once they have landed.",
     };
 
@@ -726,7 +728,7 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
         }
 
         // The label it had when it was deleted, which is the one the toast showed.
-        var label = item.Label;
+        var label = item.InSentence;
         bool deleted;
         try
         {

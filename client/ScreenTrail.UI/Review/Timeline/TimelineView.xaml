@@ -37,7 +37,7 @@
                         Height="18"
                         VerticalAlignment="Center"
                         ClipToBounds="True"
-                        AutomationProperties.Name="Timeline: clicks, frames, narration, suppression and scope" />
+                        AutomationProperties.Name="Timeline: clicks, screenshots, things said, pauses" />
 
                 <TextBlock Grid.Column="3"
                            Margin="12,0,0,0"

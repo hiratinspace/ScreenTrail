@@ -16,7 +16,7 @@ public sealed record MaskBox(System.Windows.Thickness Offset, double Width, doub
 /// thumbnail size from what the store holds once redacted (INV-1), so a blur in the strip shows here too.
 /// </summary>
 /// <remarks>
-/// Was the v0.5 "frame 2" chip, which highlighted the filmstrip and jumped on click. It keeps the frame's
+/// Was the v0.5 "frame 2" chip (now "Screenshot 2"), which highlighted the filmstrip and jumped on click. It keeps the frame's
 /// strip label for its spoken name, so the strip and the step call one frame by one name.
 /// </remarks>
 public sealed partial class FrameChip : ObservableObject
@@ -32,7 +32,7 @@ public sealed partial class FrameChip : ObservableObject
     public string Id { get; }
 
     /// <summary>
-    /// The frame's place in the session, "frame 2", as the strip shows it: not its id, which is a fact about
+    /// The frame's place in the session, "Screenshot 2", as the strip shows it: not its id, which is a fact about
     /// the database and not something anyone can find on the screen.
     /// </summary>
     public string Label { get; }
@@ -54,8 +54,11 @@ public sealed partial class FrameChip : ObservableObject
     [NotifyPropertyChangedFor(nameof(SpokenName))]
     private string _step = "Step";
 
-    /// <summary>"Step 2 screenshot, frame 2, screenshot 2": what the button is called, unique on the note.</summary>
-    public string SpokenName => $"{Step} screenshot, {Label}, {Place}";
+    /// <summary>
+    /// "Step 2: Screenshot 2, attached as screenshot 2": what the button is called, unique on the note. It
+    /// said "Step 2 screenshot, frame 2, screenshot 2", two numbers for one picture under two names (E-06).
+    /// </summary>
+    public string SpokenName => $"{Step}: {Label}, {(Place.StartsWith("screenshot", StringComparison.Ordinal) ? $"attached as {Place}" : Place)}";
 
     /// <summary>The frame's size in its own pixels, which the masks are measured in.</summary>
     public double FrameWidth => Math.Max(1, Item?.Cell.Frame.Width ?? 16);
@@ -253,7 +256,7 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
 
         _quotes = session.Transcript.ToDictionary(segment => segment.Id, segment => segment.Text, StringComparer.Ordinal);
         _frameLabels = session.Frames
-            .Select((frame, index) => (frame.Id, Label: $"frame {index + 1}"))
+            .Select((frame, index) => (frame.Id, Label: $"Screenshot {index + 1}"))
             .ToDictionary(pair => pair.Id, pair => pair.Label, StringComparer.Ordinal);
 
         _save = new AutoSave(
