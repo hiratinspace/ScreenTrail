@@ -2179,6 +2179,53 @@
          on press broke the brand's one job. Hover fills shell.hover, pressed shell.pressed, keyboard focus
          draws FocusRing.Frame outside, disabled dims the glyph. The glyph rests in shell.muted and turns
          shell.text under the pointer (C-H7), so the state word is the only full-strength mark at rest. -->
+    <!-- A picture of the recording pill (review finding C-O2), for setup to show what the technician will
+         see: Recording at a fixed 12:41, drawn with the pill's own tokens (HudWindow's Pill), never a
+         bitmap, so it follows the theme and high contrast. Not a control: nothing in it takes focus or a
+         click, and its words are Glyphs, so a screen reader hears the picture's name, not a second pill.
+         OnboardingPolishTests holds its frame to the real pill's. -->
+    <ControlTemplate x:Key="Pill.Picture" TargetType="Control">
+        <Border x:Name="Pill"
+                HorizontalAlignment="Left"
+                Height="{DynamicResource Layout.hud-height}"
+                MinWidth="{DynamicResource Layout.hud-min-width}"
+                CornerRadius="{DynamicResource Radius.pill}"
+                Background="{DynamicResource Brush.shell.bg}"
+                BorderBrush="{DynamicResource Brush.border.strong}"
+                BorderThickness="{DynamicResource Thickness.float-edge}"
+                Padding="12,2,4,2"
+                IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid Width="{DynamicResource Icon.control}" Height="{DynamicResource Icon.control}" VerticalAlignment="Center">
+                    <Ellipse Width="{DynamicResource Layout.state-dot}" Height="{DynamicResource Layout.state-dot}" Fill="{DynamicResource Brush.shell.recording}" />
+                </Grid>
+                <controls:Glyph Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Font.ui}"
+                                FontSize="{DynamicResource Size.md}"
+                                FontWeight="{DynamicResource Weight.semibold}"
+                                Foreground="{DynamicResource Brush.shell.text}"
+                                Text="Recording" />
+                <controls:Glyph Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Font.ui}"
+                                FontSize="{DynamicResource Size.md}"
+                                Foreground="{DynamicResource Brush.shell.text}"
+                                Typography.NumeralAlignment="Tabular"
+                                Text="12:41" />
+                <Grid Margin="8,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Flag}" />
+                </Grid>
+                <Grid Margin="4,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Pause}" />
+                </Grid>
+                <Grid Margin="8,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Stop}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </ControlTemplate>
+
     <Style x:Key="Hud.IconButton" TargetType="Button">
         <Setter Property="Width" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />

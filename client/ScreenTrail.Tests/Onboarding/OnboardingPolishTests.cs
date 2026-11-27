@@ -89,4 +89,45 @@ public sealed class OnboardingPolishTests
         Assert.Contains(running.Elements(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Numeric}" && (string?)t.Attribute("Text") == "{Binding TestElapsed}");
         Assert.Contains(Named(card, "TestDoneLine").Descendants(), e => (string?)e.Attribute("Text") == "{StaticResource Icon.Check}");
     }
+
+    /// <summary>
+    /// Review finding C-O2: setup pictures the pill the technician will look for, drawn with the real pill's
+    /// frame (HudWindow's Pill), so the two cannot drift apart; nothing in the picture is a control.
+    /// </summary>
+    [Fact]
+    public void ThePillPictureHasTheRealPillsFrame()
+    {
+        var real = Named(EmptyStateTests.View("Hud", "HudWindow.xaml"), "Pill");
+        var template = EmptyStateTests.View("Theme", "Components.xaml").Descendants(Wpf + "ControlTemplate").Single(t => (string?)t.Attribute(Xaml + "Key") == "Pill.Picture");
+        var picture = Named(template, "Pill");
+        foreach (var property in new[] { "Height", "MinWidth", "CornerRadius", "Background", "BorderBrush", "BorderThickness", "Padding" })
+        {
+            Assert.Equal((string?)real.Attribute(property), (string?)picture.Attribute(property));
+        }
+
+        Assert.Equal("False", (string?)picture.Attribute("IsHitTestVisible"));
+        Assert.Empty(template.Descendants(Wpf + "Button"));
+        Assert.Empty(template.Descendants(Wpf + "TextBlock"));
+    }
+
+    /// <summary>
+    /// Review finding C-O2: Done pictures the pill under "Look for the pill", with what it is for; Welcome
+    /// shows the three parts (the pill, a drafted note, Publish) each with its line.
+    /// </summary>
+    [Fact]
+    public void DoneAndWelcomePictureWhatTheTechnicianWillSee()
+    {
+        var window = Window();
+        var done = Named(window, "DoneStep");
+        Assert.Equal("{StaticResource Pill.Picture}", (string?)Named(done, "DonePill").Attribute("Template"));
+        Assert.Contains(done.Elements(Wpf + "TextBlock"), t => ((string?)t.Attribute("Text"))?.Contains("screen share", StringComparison.Ordinal) == true);
+        Assert.DoesNotContain(done.Descendants(), e => e.Attribute("FontSize") is not null);
+
+        var parts = Named(window, "WelcomeParts");
+        var captions = parts.Descendants(Wpf + "TextBlock").Where(t => (string?)t.Attribute("Style") == "{StaticResource Text.Caption}").Select(t => (string?)t.Attribute("Text")).ToList();
+        Assert.Equal(3, captions.Count);
+        Assert.All(captions, c => Assert.DoesNotContain('\u2014', c!));
+        Assert.Contains(parts.Descendants(Wpf + "Control"), c => (string?)c.Attribute("Template") == "{StaticResource Pill.Picture}");
+        Assert.Empty(parts.Descendants(Wpf + "Button"));
+    }
 }

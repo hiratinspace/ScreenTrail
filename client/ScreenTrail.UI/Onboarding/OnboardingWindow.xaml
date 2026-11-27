@@ -174,6 +174,41 @@
                         <ContentControl Margin="0,24,0,0" Style="{StaticResource Banner}" theme:Banner.Glyph="{StaticResource Icon.Lock}">
                             <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your review." />
                         </ContentControl>
+                        <!-- Review finding C-O2: what the product is, in three small pictures, each with its line:
+                             what you see (the pill), what you get (a drafted note), what you approve (Publish).
+                             Drawn, not bitmaps, and not controls: the captions are what is read. -->
+                        <Grid x:Name="WelcomeParts" Margin="0,24,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <Control Focusable="False" IsTabStop="False" Template="{StaticResource Pill.Picture}" />
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you see: the pill, while it records." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="24,0,24,0">
+                                <Border Style="{StaticResource Card}" IsHitTestVisible="False">
+                                    <StackPanel>
+                                        <controls:Glyph Style="{StaticResource Text.BodyStrong}" TextTrimming="CharacterEllipsis" Text="Printer offline on the front desk PC" />
+                                        <controls:Glyph Margin="0,2,0,0" Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" Text="1. Restarted the print spooler" />
+                                        <controls:Glyph Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" Text="2. Printed a test page" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you get: the note, drafted step by step." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Border HorizontalAlignment="Left"
+                                        MinHeight="{DynamicResource Layout.control-height}"
+                                        Padding="{DynamicResource Padding.control}"
+                                        CornerRadius="{DynamicResource Radius.control}"
+                                        Background="{DynamicResource Brush.accent.primary}"
+                                        IsHitTestVisible="False">
+                                    <controls:Glyph VerticalAlignment="Center" FontWeight="{DynamicResource Weight.semibold}" Foreground="{DynamicResource Brush.text.on-accent}" Style="{StaticResource Text.Body}" Text="Publish" />
+                                </Border>
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you approve: you publish it." />
+                            </StackPanel>
+                        </Grid>
                         <TextBlock Margin="0,24,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Setup takes about five minutes: activate this PC, check what the machine allows, pick your remote tools, connect your PSA if you want to, and try a session." />
                     </StackPanel>
 
@@ -274,12 +309,21 @@
 
                     <!-- 7. Done. The first line is the wizard's own note for this step (Spec §5 S8 step 7), said
                          here in full and announced on arrival; the foot does not repeat it. -->
-                    <StackPanel Visibility="{Binding DoneVisibility}">
+                    <!-- Review finding C-O2: "Look for the pill" with the pill pictured under it, as it shows while
+                         recording, and what it is for; anchored 48 below the heading (design system 4.3). -->
+                    <StackPanel x:Name="DoneStep" Margin="0,24,0,0" Visibility="{Binding DoneVisibility}">
                         <Grid Width="{DynamicResource Space.7}" Height="{DynamicResource Space.7}" HorizontalAlignment="Left">
                             <Ellipse Fill="{DynamicResource Brush.bg.success}" Stroke="{DynamicResource Brush.state.published}" />
                             <controls:Glyph HorizontalAlignment="Center" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.text.primary}" Text="{StaticResource Icon.Check}" />
                         </Grid>
-                        <TextBlock Margin="0,16,0,0" Style="{StaticResource Text.Body}" FontSize="{DynamicResource Size.lg}" TextWrapping="Wrap" Text="{Binding Note}" controls:LiveRegion.Setting="Polite" />
+                        <TextBlock Margin="0,16,0,0" Style="{StaticResource Text.Section}" TextWrapping="Wrap" Text="{Binding Note}" controls:LiveRegion.Setting="Polite" />
+                        <Control x:Name="DonePill"
+                                 Margin="0,16,0,0"
+                                 Focusable="False"
+                                 IsTabStop="False"
+                                 Template="{StaticResource Pill.Picture}"
+                                 AutomationProperties.Name="The recording pill, as it shows while ScreenTrail records" />
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="This is on screen whenever ScreenTrail records. It never appears in the customer's screen share." />
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Everything here can be changed in Settings, and this setup can be run again from the tray." />
                     </StackPanel>
                 </Grid>
