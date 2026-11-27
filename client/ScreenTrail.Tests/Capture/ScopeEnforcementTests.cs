@@ -173,9 +173,9 @@ public sealed class ScopeEnforcementTests
     public void TheStricterOfTwoDecisionsIsTheOneThatForbidsFrames()
     {
         // For a title not reported yet: it may tighten the decision in force, never loosen it.
-        var inScope = new ScopeDecision(CaptureScope.RemoteTool, "rdp", RemoteToolKind.Rdp, "Capturing: Remote Desktop", 11);
+        var inScope = new ScopeDecision(CaptureScope.RemoteTool, "rdp", RemoteToolKind.Rdp, "Recording: Remote Desktop", 11);
         var excluded = new ScopeDecision(CaptureScope.Excluded, "vaults", null, "Not capturing: Password vaults in a browser is excluded.", 11);
-        var otherInScope = new ScopeDecision(CaptureScope.AdminTool, null, null, "Capturing: notepad (all windows)", 11);
+        var otherInScope = new ScopeDecision(CaptureScope.AdminTool, null, null, "Recording: notepad (all windows)", 11);
         var outOfScope = new ScopeDecision(CaptureScope.OutOfScope, null, null, "Not capturing: outlook", 11);
 
         Assert.Same(excluded, ScopeDecision.Stricter(inScope, excluded));

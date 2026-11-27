@@ -94,9 +94,9 @@ public sealed class NotConfirmedTests
     }
 
     [Theory]
-    [InlineData(CaptureStates.Idle, 1, "Not capturing · 1 publish not confirmed")]
-    [InlineData(CaptureStates.Idle, 3, "Not capturing · 3 publishes not confirmed")]
-    [InlineData(CaptureStates.DraftPending, 1, "Not capturing: drafting the note · 1 publish not confirmed")]
+    [InlineData(CaptureStates.Idle, 1, "Not recording · 1 publish not confirmed")]
+    [InlineData(CaptureStates.Idle, 3, "Not recording · 3 publishes not confirmed")]
+    [InlineData(CaptureStates.DraftPending, 1, "Not recording: drafting the note · 1 publish not confirmed")]
     [InlineData(CaptureStates.DraftReady, 2, "Draft ready · 2 publishes not confirmed")]
     [InlineData(CaptureStates.DraftFailed, 1, "Draft failed · 1 publish not confirmed")]
     public void BetweenSessionsTheTraySaysHowManyPublishesAreNotConfirmed(string state, int count, string line)
@@ -141,7 +141,7 @@ public sealed class NotConfirmedTests
     [Fact]
     public void NoneNotConfirmedSaysNothingAndAnOfflineTrayDoesNotGuess()
     {
-        Assert.Equal("Not capturing", Presence(new CaptureStateSnapshot { State = CaptureStates.Idle }).StateLine);
+        Assert.Equal("Not recording", Presence(new CaptureStateSnapshot { State = CaptureStates.Idle }).StateLine);
         Assert.Null(TrayPresence.NotConfirmed(0));
 
         var offline = TrayPresence.From(new ShellSnapshot(ServiceConnection.Unavailable, new CaptureStateSnapshot { State = CaptureStates.Idle, PublishesUnconfirmed = 2 }, ShellView.Review, null));

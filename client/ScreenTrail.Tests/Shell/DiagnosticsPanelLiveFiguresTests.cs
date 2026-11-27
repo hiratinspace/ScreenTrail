@@ -150,7 +150,7 @@ public sealed class DiagnosticsPanelLiveFiguresTests
         captureLevel: captureLevel);
 
     private static Diagnostics With(double? cpuPercent = 1.5, string? captureLevel = null) => new(
-        Scope: "Capturing: ScreenConnect",
+        Scope: "Recording: ScreenConnect",
         Microphone: "Headset Microphone",
         Suppression: null,
         RedactionBacklog: 0,

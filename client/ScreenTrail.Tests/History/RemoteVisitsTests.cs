@@ -14,10 +14,10 @@ public sealed class RemoteVisitsTests
     private static readonly DateTimeOffset T0 = new(2026, 11, 17, 9, 0, 0, TimeSpan.Zero);
     private static readonly TimeSpan Grace = TimeSpan.FromSeconds(90);
 
-    private static readonly ScopeDecision AnyDesk = new(CaptureScope.RemoteTool, "anydesk", RemoteToolKind.Anydesk, "Capturing: AnyDesk", 1);
-    private static readonly ScopeDecision ScreenConnect = new(CaptureScope.RemoteTool, "screenconnect", RemoteToolKind.Screenconnect, "Capturing: ScreenConnect", 2);
+    private static readonly ScopeDecision AnyDesk = new(CaptureScope.RemoteTool, "anydesk", RemoteToolKind.Anydesk, "Recording: AnyDesk", 1);
+    private static readonly ScopeDecision ScreenConnect = new(CaptureScope.RemoteTool, "screenconnect", RemoteToolKind.Screenconnect, "Recording: ScreenConnect", 2);
     private static readonly ScopeDecision Outlook = new(CaptureScope.OutOfScope, null, null, "Not capturing: OUTLOOK");
-    private static readonly ScopeDecision PowerShell = new(CaptureScope.AdminTool, "powershell", null, "Capturing: PowerShell", 3);
+    private static readonly ScopeDecision PowerShell = new(CaptureScope.AdminTool, "powershell", null, "Recording: PowerShell", 3);
     private static readonly ScopeDecision Splashtop = new(CaptureScope.OutOfScope, "splashtop", RemoteToolKind.Splashtop, "Not capturing: Splashtop is switched off in Settings.");
 
     private readonly ManualTime _time = new(T0);

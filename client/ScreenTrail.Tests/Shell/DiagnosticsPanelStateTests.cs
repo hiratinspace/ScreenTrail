@@ -24,10 +24,10 @@ public sealed class DiagnosticsPanelStateTests
         ClientVersion: "0.1.0");
 
     [Theory]
-    [InlineData("Capturing: ScreenConnect", null, DiagnosticsState.Capturing)]
+    [InlineData("Recording: ScreenConnect", null, DiagnosticsState.Capturing)]
     [InlineData("Not capturing: Outlook is on your excluded list.", null, DiagnosticsState.NotCapturing)]
     [InlineData("Not capturing: no remote session in front", null, DiagnosticsState.NotCapturing)]
-    [InlineData("Capturing: ScreenConnect", "sensitive field", DiagnosticsState.Paused)]
+    [InlineData("Recording: ScreenConnect", "sensitive field", DiagnosticsState.Paused)]
     public void TheHeadlineHasAState(string scope, string? suppression, DiagnosticsState expected)
     {
         Assert.Equal(expected, DiagnosticsPanel.From(With(scope, suppression)).State);
@@ -45,7 +45,7 @@ public sealed class DiagnosticsPanelStateTests
     [InlineData(false)]
     public void LocalOnlyIsWhatTheServiceSaid(bool localOnly)
     {
-        Assert.Equal(localOnly, DiagnosticsPanel.From(With("Capturing: RDP", localOnly: localOnly)).LocalOnly);
+        Assert.Equal(localOnly, DiagnosticsPanel.From(With("Recording: RDP", localOnly: localOnly)).LocalOnly);
     }
 
     [Fact]

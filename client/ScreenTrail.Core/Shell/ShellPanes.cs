@@ -305,8 +305,8 @@ public static class ShellStatus
             CaptureStates.Finalizing => "Finishing up",
             CaptureStates.DraftReady => "Draft ready",
             CaptureStates.DraftFailed => "Draft failed",
-            CaptureStates.DraftPending => "Drafting the note",
-            CaptureStates.Idle => "Idle",
+            CaptureStates.DraftPending => "Not recording: drafting the note",
+            CaptureStates.Idle => "Not recording",
             _ => Unknown,
         };
 
