@@ -50,6 +50,7 @@ public partial class ShortcutSheet : Window
     public static IReadOnlyList<Group> Groups =>
     [
         new("Everywhere", [
+            new("F1", "This sheet"),
             new("?", "This sheet, when the cursor is not in a text box"),
             new("Tab, Shift+Tab", "Move to the next or previous control"),
             new("Ctrl+F", "Search the sessions in the rail"),

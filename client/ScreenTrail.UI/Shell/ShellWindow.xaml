@@ -59,6 +59,8 @@
     <Window.InputBindings>
         <!-- Spec §5 S4: Ctrl+F puts focus in the rail's search, from anywhere in the window. -->
         <KeyBinding Modifiers="Ctrl" Key="F" Command="{x:Static shell:ShellWindow.FindCommand}" />
+        <!-- Review finding E-21: F1 opens the shortcut sheet, as "?" does, from a text box too. -->
+        <KeyBinding Key="F1" Command="{x:Static shell:ShellWindow.ShortcutsCommand}" />
     </Window.InputBindings>
 
     <!-- Spec v0.6.0 §5 S3 and S4, as built v0.6.4: the frame (the rail, shell.bg) beside the session
@@ -177,6 +179,29 @@
                             <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Diagnostic}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Diagnostics" />
                         </StackPanel>
+                    </Button>
+                    <!-- Review finding E-21: the shortcut sheet had no visible way in; "?" outside a text box was
+                         the only one. Its row, with the "?" key cap at the right (design system 10.4). -->
+                    <Button x:Name="ShortcutsItem"
+                            Margin="0,2,0,0"
+                            HorizontalContentAlignment="Stretch"
+                            Style="{StaticResource Rail.FootItem}"
+                            Command="{x:Static shell:ShellWindow.ShortcutsCommand}"
+                            AutomationProperties.Name="Keyboard shortcuts"
+                            AutomationProperties.AcceleratorKey="F1"
+                            AutomationProperties.HelpText="Every shortcut, in a sheet of its own. F1 or ? opens it too.">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <controls:Glyph Grid.Column="0" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Keyboard}" />
+                            <TextBlock Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="Keyboard shortcuts" />
+                            <Border Grid.Column="2" Margin="8,0,0,0" Style="{StaticResource KeyCap}">
+                                <TextBlock Style="{StaticResource Text.KeyHint}" Text="?" />
+                            </Border>
+                        </Grid>
                     </Button>
                 </StackPanel>
             </Border>

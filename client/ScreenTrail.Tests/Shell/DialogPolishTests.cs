@@ -136,4 +136,26 @@ public sealed class DialogPolishTests
             window.Descendants().Where(e => (string?)e.Attribute("Background") == "{DynamicResource Brush.bg.base}"),
             e => Assert.Equal("Footer", (string?)e.Attribute(Xaml + "Name")));
     }
+
+    /// <summary>
+    /// Review finding E-21: the shortcut sheet has a visible way in, a Keyboard shortcuts row in the rail's
+    /// foot with the "?" key cap at its right, and F1 opens it as well; the sheet lists F1.
+    /// </summary>
+    [Fact]
+    public void TheShortcutSheetHasARailRowAndF1()
+    {
+        var shell = EmptyStateTests.View("Shell", "ShellWindow.xaml");
+        var row = Named(shell, "ShortcutsItem");
+        Assert.Equal("{StaticResource Rail.FootItem}", (string?)row.Attribute("Style"));
+        Assert.Equal("{x:Static shell:ShellWindow.ShortcutsCommand}", (string?)row.Attribute("Command"));
+        Assert.Equal("Keyboard shortcuts", (string?)row.Attribute("AutomationProperties.Name"));
+        Assert.Equal("F1", (string?)row.Attribute("AutomationProperties.AcceleratorKey"));
+        var cap = row.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute("Style") == "{StaticResource KeyCap}");
+        Assert.Equal("2", (string?)cap.Attribute("Grid.Column"));
+        Assert.Equal("?", (string?)cap.Descendants(Wpf + "TextBlock").Single().Attribute("Text"));
+
+        Assert.Contains(shell.Descendants(Wpf + "KeyBinding"), k => (string?)k.Attribute("Key") == "F1" && (string?)k.Attribute("Command") == "{x:Static shell:ShellWindow.ShortcutsCommand}");
+        Assert.Contains("CommandBinding(ShortcutsCommand", Code("Shell", "ShellWindow.xaml.cs"), StringComparison.Ordinal);
+        Assert.Contains("new(\"F1\", \"This sheet\")", Code("Shell", "ShortcutSheet.xaml.cs"), StringComparison.Ordinal);
+    }
 }

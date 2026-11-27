@@ -60,9 +60,13 @@ public partial class ShellWindow : Window
     /// </summary>
     public static System.Windows.Input.RoutedCommand FindCommand { get; } = new(nameof(FindCommand), typeof(ShellWindow));
 
+    /// <summary>Review finding E-21: the rail's Keyboard shortcuts row and F1 open the shortcut sheet.</summary>
+    public static System.Windows.Input.RoutedCommand ShortcutsCommand { get; } = new(nameof(ShortcutsCommand), typeof(ShellWindow));
+
     private void BindFind()
     {
         CommandBindings.Add(new System.Windows.Input.CommandBinding(FindCommand, (_, _) => Rail.FocusSearch()));
+        CommandBindings.Add(new System.Windows.Input.CommandBinding(ShortcutsCommand, (_, _) => _ = ShortcutSheet.Open(this)));
         BindRail();
     }
 
