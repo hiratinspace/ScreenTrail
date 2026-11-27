@@ -155,6 +155,9 @@ internal static class WindowRenderer
 
     private static RenderTargetBitmap Render(Window window, double? height, double scale, Func<IDisposable?>? prepare = null)
     {
+        // Waiting marks as they look once settled, not in their first 300 ms (Theme.Waiting.AtOnce).
+        Theme.Waiting.AtOnce = true;
+        Theme.Waiting.ShowNow(window);
         var size = Lay(window, height);
         var root = Client(window);
         var fits = root is null || (Math.Abs(root.ActualWidth - size.Width) < 0.5 && Math.Abs(root.ActualHeight - size.Height) < 0.5);
