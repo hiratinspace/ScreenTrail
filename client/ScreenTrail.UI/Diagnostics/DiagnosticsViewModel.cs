@@ -42,7 +42,20 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
         Rows = RowsOf(_panel);
         State = _panel.State;
         LocalOnlyVisibility = VisibilityOf(_panel);
+        InPlaceOfRows = _panel.InPlaceOfRows ?? string.Empty;
+        RowsVisibility = RowsVisibilityOf(_panel);
     }
+
+    /// <summary>The one line said in place of the rows while the service has not answered (review finding B-55); empty once it has.</summary>
+    [ObservableProperty]
+    public partial string InPlaceOfRows { get; private set; }
+
+    /// <summary>The rows card, hidden while the service has not answered, since every row would say unknown.</summary>
+    [ObservableProperty]
+    public partial System.Windows.Visibility RowsVisibility { get; private set; }
+
+    private static System.Windows.Visibility RowsVisibilityOf(CoreShell.DiagnosticsPanel panel) =>
+        panel.InPlaceOfRows is null ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
 
     [ObservableProperty]
     public partial string Headline { get; private set; }
@@ -69,6 +82,8 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
         Headline = panel.Headline;
         State = panel.State;
         LocalOnlyVisibility = VisibilityOf(panel);
+        InPlaceOfRows = panel.InPlaceOfRows ?? string.Empty;
+        RowsVisibility = RowsVisibilityOf(panel);
         var rows = RowsOf(panel);
         if (!rows.SequenceEqual(Rows))
         {

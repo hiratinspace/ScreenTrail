@@ -181,6 +181,18 @@ public sealed class DiagnosticsPanel
 
     public IReadOnlyList<DiagnosticsLine> Rows { get; }
 
+    /// <summary>Said under the headline when the service has not answered: one line in place of the rows.</summary>
+    public const string UnansweredWords = "The figures appear once the capture service answers. Copy diagnostics still copies this panel for support.";
+
+    /// <summary>Said under the headline before the first answer.</summary>
+    public const string AskingWords = "The figures appear when it answers.";
+
+    /// <summary>
+    /// Review finding B-55: with no answer, every row said "unknown", twelve times over. The panel shows this
+    /// one line instead of the rows; null once the service has answered. The copied text keeps every row.
+    /// </summary>
+    public string? InPlaceOfRows => _diagnostics is not null ? null : _asking ? AskingWords : UnansweredWords;
+
     /// <summary>
     /// The headline as a state, so the panel draws it with its glyph and colour beside the words (Spec
     /// §1.1, §7). Paused when capture is suppressed; not capturing when the scope decision says so (its

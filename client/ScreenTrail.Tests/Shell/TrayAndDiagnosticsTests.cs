@@ -243,6 +243,21 @@ public sealed class TrayAndDiagnosticsTests
         Assert.All(DiagnosticsPanel.Unanswered.Rows, r => Assert.Equal(DiagnosticsValue.Words, r.Kind));
     }
 
+    /// <summary>
+    /// Review finding B-55: unanswered, the panel says one line in place of twelve "unknown" rows, asking or
+    /// not connected; answered, it says nothing there. The copied text still carries every row.
+    /// </summary>
+    [Fact]
+    public void AnUnansweredPanelSaysOneLineInPlaceOfTheRows()
+    {
+        Assert.Equal(DiagnosticsPanel.UnansweredWords, DiagnosticsPanel.Unanswered.InPlaceOfRows);
+        Assert.Equal(DiagnosticsPanel.AskingWords, DiagnosticsPanel.Asking.InPlaceOfRows);
+        Assert.Null(DiagnosticsPanel.From(Sample()).InPlaceOfRows);
+        Assert.Contains("Copy diagnostics", DiagnosticsPanel.UnansweredWords, StringComparison.Ordinal);
+        Assert.DoesNotContain("\u2014", DiagnosticsPanel.UnansweredWords, StringComparison.Ordinal);
+        Assert.Contains("microphone", DiagnosticsPanel.Unanswered.ToClipboardText(DateTimeOffset.UnixEpoch), StringComparison.Ordinal);
+    }
+
     private static Diagnostics Sample() => new(
         Scope: "Not capturing: outlook",
         Microphone: "Headset Microphone (Realtek)",

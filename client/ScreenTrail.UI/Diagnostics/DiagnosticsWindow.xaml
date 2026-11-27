@@ -104,12 +104,20 @@
             </Grid>
         </ContentControl>
 
+        <!-- Review finding B-55: with no answer the rows would say "unknown" twelve times; one line says why
+             there is nothing to show, and the rows card is hidden. Empty once the service answers. -->
+        <TextBlock Grid.Row="2"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Caption}"
+                   Text="{Binding InPlaceOfRows}" />
+
         <!-- States only, never content (INV-10). The scroll viewer stays for a window made shorter than its
              rows by a large text setting; at 100% and 150% the panel is as tall as they are. -->
         <Border Grid.Row="2"
                 Margin="0,12,0,0"
                 Style="{StaticResource Card}"
-                Padding="0">
+                Padding="0"
+                Visibility="{Binding RowsVisibility}">
             <ScrollViewer Padding="16,8,8,8"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">

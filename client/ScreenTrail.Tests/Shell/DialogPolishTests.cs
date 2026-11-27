@@ -106,4 +106,14 @@ public sealed class DialogPolishTests
         Assert.Equal("{StaticResource StateDot}", (string?)dot.Descendants(Wpf + "Style").Single().Attribute("BasedOn"));
         Assert.DoesNotContain(panel.Descendants(Wpf + "ColumnDefinition"), c => (string?)c.Attribute("Width") == "128");
     }
+
+    /// <summary>Review finding B-55: the rows card hides while unanswered, and one Caption says why under the headline.</summary>
+    [Fact]
+    public void TheUnansweredPanelHidesItsRowsBehindOneLine()
+    {
+        var panel = EmptyStateTests.View("Diagnostics", "DiagnosticsWindow.xaml");
+        Assert.Contains(panel.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource Card}" && (string?)b.Attribute("Visibility") == "{Binding RowsVisibility}");
+        Assert.Contains(panel.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Caption}" && (string?)t.Attribute("Text") == "{Binding InPlaceOfRows}");
+        Assert.Contains(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Command") == "{Binding CopyCommand}");
+    }
 }
