@@ -34,7 +34,7 @@ Theme/Components.xaml	CornerRadius	4	1
 Theme/Components.xaml	CornerRadius	6,0,0,0	1
 Theme/Components.xaml	CornerRadius	6,0,0,6	1
 Theme/Components.xaml	CornerRadius	8	1
-Theme/Components.xaml	Height	12	1
+Theme/Components.xaml	Height	12	2
 Theme/Components.xaml	Height	16	3
 Theme/Components.xaml	Height	4	1
 Theme/Components.xaml	Height	40	1

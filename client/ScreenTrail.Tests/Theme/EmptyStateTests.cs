@@ -28,7 +28,7 @@ public sealed class EmptyStateTests
     [InlineData("Review", "NoteEditorView.xaml")]
     public void NoEmptyStateIsBoxedInACardOrDrawnInIris(string folder, string file)
     {
-        var view = XDocument.Load(Path.Combine(Root(), "client", "ScreenTrail.UI", folder, file)).Root!;
+        var view = View(folder, file);
         var glyphs = view.Descendants().Where(e => ((string?)e.Attribute("Style"))?.StartsWith("{StaticResource EmptyState.Icon", StringComparison.Ordinal) == true
             || e.Descendants(Wpf + "Style").Any(s => ((string?)s.Attribute("BasedOn"))?.StartsWith("{StaticResource EmptyState.Icon", StringComparison.Ordinal) == true)).ToList();
 
@@ -41,6 +41,9 @@ public sealed class EmptyStateTests
     private static string? Setter(XElement root, string key, string property) =>
         (string?)root.Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key)
             .Elements(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == property).Attribute("Value");
+
+    internal static XElement View(string folder, string file) =>
+        XDocument.Load(Path.Combine(Root(), "client", "ScreenTrail.UI", folder, file)).Root!;
 
     private static string Root()
     {

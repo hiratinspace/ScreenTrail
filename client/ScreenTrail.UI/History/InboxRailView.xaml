@@ -95,7 +95,79 @@
                 <!-- In line with the rows' words: the rail's 8 inset, then the row's 12. -->
                 <Border Margin="8,24,16,8" Padding="12,0,0,0" Visibility="{Binding NoticeVisibility}">
                 <StackPanel>
-                    <Border Style="{StaticResource EmptyState.Disc.Rail}">
+                    <!-- The first load (design system 10.8): three two-line rows of skeleton, the lines at 60, 80
+                         and 40% in turn, in place of the disc while the rail asks the service for the first time.
+                         The sentence stays under them, so the wait is said as well as drawn. -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Notice}" Value="{x:Static core:InboxRail.Asking}">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <StackPanel Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4*" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                        </StackPanel>
+                        <StackPanel Margin="0,0,0,16">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="3*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                        </StackPanel>
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="4*" />
+                                    <ColumnDefinition Width="1*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*" />
+                                    <ColumnDefinition Width="3*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Style="{StaticResource Skeleton.Frame}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                    <Border>
+                        <Border.Style>
+                            <Style BasedOn="{StaticResource EmptyState.Disc.Rail}" TargetType="Border">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Notice}" Value="{x:Static core:InboxRail.Asking}">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
                         <controls:Glyph>
                             <controls:Glyph.Style>
                                 <Style BasedOn="{StaticResource EmptyState.Icon.Rail}" TargetType="controls:Glyph">
