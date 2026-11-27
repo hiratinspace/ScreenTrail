@@ -2353,43 +2353,43 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-34/E-11, B-35, R-02, B-36 to B-38, E-10
 - **Blocked By:** ST-128 to ST-130, ST-133
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: a failed draft says why in plain words, with "Try drafting again" only when it can help and the reason carried over the pipe (E-10, IPC contract v16); E-11's words were in since ST-133; an inferred step is one badge line with no side stripe (B-34); a step stacks under a 560 px note with a 96 x 60 frame and no "screenshot N" line (B-35, R-02); quotes as Captions (B-36); a draft on its way as a ring and the note's shape (B-37); the footer in one size at 44 high (B-38). Follow-up: a `retry_draft` command so the live pane can offer Try drafting again. Laptop checks: the Windows suite and the note renders (default, narrow, pending, failed).
 
 ### **ST-139 · All sessions (including restoring the selection across reads, the rest of D-22)**
-- **Findings:** A-09, A-10, R-03, A-13 (Open)
+- **Findings:** A-09, A-10, R-03, A-13 (Open), D-22 (rest)
 - **Blocked By:** ST-130, ST-131, ST-133
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. D-22 (the rest): the list is reconciled by id and the selection kept by id across a read and a filter change; A-10 and R-03: a Session column from the rail's fields, the numbers right aligned at the end, the left-out count a caption (the tool moved onto the Session line, since a Tool column no longer fitted 960 wide); A-09: the table is a rounded card ending under its last row with the actions under it; A-13: Open off until a row is selected (the shared disabled state was ST-128's). Laptop checks: the Windows suite (HistorySelectionTests) and the History renders.
 
 ### **ST-140 · Settings**
 - **Findings:** B-12, B-39 to B-43, B-45, B-47 to B-49, E-15
 - **Blocked By:** ST-129, ST-130
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: field errors as an edge and a glyph line under the field (B-12); the Microphone tile and a heading on every tile (B-39); tiles radius 8 (B-40); Your data not in red (B-41); list rows with Remove at the right and the mapping columns aligned (B-42); the check result's glyph (B-43); heading rhythm 32/12 (B-45; the title was already 20/28); the lock line (B-47); the data flow as five rows (B-48); Choice.Hint (B-49); the mapping table's headers and words (E-15). Left: section problems stay after their section (a refused save is the section's). Laptop checks: the Windows suite and the Settings renders.
 
 ### **ST-141 · Dialogs, shortcut sheet, diagnostics, access keys**
 - **Findings:** B-50 to B-52, B-54, B-55, D-12, E-20, E-21, E-25
 - **Blocked By:** ST-128, ST-130
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: the dialog as a surface over a footer (B-50); the hanging 20 px glyph and Secondary consequence (B-51); a notice without a banner (B-52); diagnostics values in Body, tabular and mono, the drawn dot (B-54); one line for an unanswered panel (B-55); surface captions on small windows and a border.strong edge on every window (D-12); access keys on buttons and Settings field labels (E-20); the Keyboard shortcuts rail row and F1 (E-21); the consequence as help text (E-25). Left: the dialog's service error and loading state (it closes before the service is asked); onboarding keeps the frame caption. Laptop checks: the Windows suite (title bar, dialog focus, save bar tests) and the renders.
 
 ### **ST-142 · Onboarding and first run**
 - **Findings:** C-O2, C-O4, C-O6 to C-O8, D-30, C-T8, C-I4, C-I7
 - **Blocked By:** ST-130, ST-131, ST-134
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built 2026-11-27 on `st-142-onboarding` (spec v0.7.22), one commit per finding; owner decision 4 decided "on". Waiting on the laptop: renders of every step, the Try it states, a hand install from Start, a silent install then sign-in. Not done: diagnostics' tray-pinned line (C-T8), the setup EXE's Launch (C-I4 b, ST-143).
 
 ### **ST-143 · Identity, installer, toasts**
 - **Findings:** C-I1, C-I2/D-11, C-I3, C-I5, C-I6, C-T6/D-10
 - **Blocked By:** ST-126; owner: legal name and signing certificate
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built 2026-11-27 on `st-143-identity` (spec v0.7.23) as far as it goes without the owner: C-I2/D-11, C-I1 (comments), C-T6/D-10 (real toasts, balloon fallback), C-I5 (standard setup window with Launch), C-I6 (owner decision 9 as recommended). Waiting on the owner: the legal name (`ScreenTrailPublisher` and both Manufacturer values), the About, Help and Update links and support contact (needs the domain), the code-signing certificate (C-I3). Waiting on the laptop: the bundle build, setup pages, toasts, names in Task Manager and Settings, the icon at 100% and 150%.
 
 ### **ST-144 · Speed, motion, text size**
 - **Findings:** D-19, D-20, D-26, D-28, D-29, D-32, D-14, D-15
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All eight findings: ReadyToRun and one theme at start (D-28), idle timers and cached preferences (D-29), the session opening before the PSA answers (D-19), the pane kept while the next loads (D-20 a), persistent pane hosts with a fade (D-26), the motion helper and DS 9.5 reduce motion (D-32), Text size (D-14), the taskbar overlay (D-15). Not done: the jump list, the draft filled in place (D-20 b), hiding the window on close, the per-template hover and popup motion, rows as minimums. Laptop: the Windows checks in spec v0.7.24.
 
 ---
 

@@ -3,15 +3,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
+        xmlns:shell="clr-namespace:ScreenTrail.Core.Shell;assembly=ScreenTrail.Core"
         Title="Diagnostics"
         Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
+        Background="{DynamicResource Brush.bg.surface}"
+        theme:TitleBar.Caption="Surface"
         Style="{StaticResource Window.Base}">
     <!-- Spec §5 S1's panel, opened from the tray and from the rail's foot (Diagnostics). As tall as its rows
          (v0.6.11): at the spec's fixed 420 the last rows sat under a scroll bar that nothing in the panel
          could scroll from the keyboard, since nothing in it takes focus. -->
-    <Grid Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
+    <!-- Review finding D-12: the panel is its surface, caption and body alike. -->
+    <Grid Margin="{DynamicResource Padding.pane}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -43,33 +47,50 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <controls:Glyph Grid.Column="0" Margin="0,0,12,0" VerticalAlignment="Top">
-                    <controls:Glyph.Style>
-                        <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
-                            <!-- Capturing: the filled dot. Paused: two bars. Not capturing: eye-off. Unknown: warning. -->
-                            <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.state.recording}" />
-                            <Setter Property="Text" Value="●" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding State}" Value="Paused">
-                                    <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="{StaticResource Icon.Pause}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding State}" Value="NotCapturing">
-                                    <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.scope}" />
-                                    <Setter Property="Text" Value="{StaticResource Icon.Hide}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding State}" Value="Unknown">
-                                    <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
-                                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="{StaticResource Icon.Warning}" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </controls:Glyph.Style>
-                </controls:Glyph>
+                <!-- Capturing: the 8 px recording dot, drawn rather than a "●" in the UI face (review finding
+                     B-54), centred on the headline's first line. Paused: two bars. Not capturing: eye-off.
+                     Unknown: warning. -->
+                <Grid Grid.Column="0" MinWidth="{DynamicResource Icon.control}" Margin="0,0,12,0" VerticalAlignment="Top">
+                    <Grid Height="{DynamicResource Leading.body}" VerticalAlignment="Top">
+                        <Ellipse x:Name="RecordingMark">
+                            <Ellipse.Style>
+                                <Style BasedOn="{StaticResource StateDot}" TargetType="Ellipse">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Setter Property="HorizontalAlignment" Value="Center" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="Capturing">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                    </Grid>
+                    <controls:Glyph VerticalAlignment="Top">
+                        <controls:Glyph.Style>
+                            <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding State}" Value="Paused">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
+                                        <Setter Property="Text" Value="{StaticResource Icon.Pause}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="NotCapturing">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.state.scope}" />
+                                        <Setter Property="Text" Value="{StaticResource Icon.Hide}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="Unknown">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
+                                        <Setter Property="Text" Value="{StaticResource Icon.Warning}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </controls:Glyph.Style>
+                    </controls:Glyph>
+                </Grid>
                 <StackPanel Grid.Column="1">
                     <TextBlock Style="{StaticResource Text.Body}"
                                FontWeight="{DynamicResource Weight.semibold}"
@@ -86,29 +107,54 @@
             </Grid>
         </ContentControl>
 
+        <!-- Review finding B-55: with no answer the rows would say "unknown" twelve times; one line says why
+             there is nothing to show, and the rows card is hidden. Empty once the service answers. -->
+        <TextBlock Grid.Row="2"
+                   Margin="0,8,0,0"
+                   Style="{StaticResource Text.Caption}"
+                   Text="{Binding InPlaceOfRows}" />
+
         <!-- States only, never content (INV-10). The scroll viewer stays for a window made shorter than its
              rows by a large text setting; at 100% and 150% the panel is as tall as they are. -->
         <Border Grid.Row="2"
                 Margin="0,12,0,0"
                 Style="{StaticResource Card}"
-                Padding="0">
+                Padding="0"
+                Visibility="{Binding RowsVisibility}">
             <ScrollViewer Padding="16,8,8,8"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Disabled">
                 <controls:Repeater ItemsSource="{Binding Rows}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
+                            <!-- Review finding B-54: the value is what is read, so it is Body 14 in text.primary
+                                 and the label stays Label; it was the other way round, 12/600 over 12/400.
+                                 Counts and percentages are tabular, the policy and client versions mono. -->
                             <Grid Margin="0,4,8,4">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="128" />
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Style="{StaticResource Text.Label}" Text="{Binding Label}" TextWrapping="Wrap" Margin="0,0,8,0" />
-                                <TextBlock Grid.Column="1"
+                                <TextBlock Grid.Column="0"
+                                           Width="{DynamicResource Layout.diagnostics-label-width}"
+                                           Margin="0,0,8,0"
+                                           Style="{StaticResource Text.Label}"
+                                           Text="{Binding Label}"
+                                           TextWrapping="Wrap" />
+                                <TextBlock x:Name="Value"
+                                           Grid.Column="1"
                                            Style="{StaticResource Text.Body}"
-                                           FontSize="{DynamicResource Size.sm}"
                                            Text="{Binding Value}" />
                             </Grid>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Kind}" Value="{x:Static shell:DiagnosticsValue.Number}">
+                                    <Setter TargetName="Value" Property="Style" Value="{StaticResource Text.Numeric}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Kind}" Value="{x:Static shell:DiagnosticsValue.Identifier}">
+                                    <Setter TargetName="Value" Property="Style" Value="{StaticResource Text.Mono}" />
+                                    <Setter TargetName="Value" Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
@@ -132,13 +178,13 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0"
                     Style="{StaticResource Button.Secondary}"
-                    Content="Copy diagnostics"
+                    Content="Copy _diagnostics"
                     Command="{Binding CopyCommand}"
                     AutomationProperties.Name="Copy diagnostics to the clipboard" />
             <Button x:Name="CloseButton"
                     Grid.Column="2"
                     Style="{StaticResource Button.Secondary}"
-                    Content="Close"
+                    Content="_Close"
                     IsCancel="True"
                     Click="OnClose"
                     AutomationProperties.Name="Close diagnostics" />

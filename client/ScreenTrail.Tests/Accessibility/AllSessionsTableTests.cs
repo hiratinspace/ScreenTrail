@@ -108,14 +108,18 @@ public sealed class AllSessionsTableTests
         var history = Load("History", "HistoryPane.xaml");
         var table = Assert.Single(history.Descendants(Wpf + "DataGrid"));
         var columns = table.Element(Wpf + "DataGrid.Columns")!.Elements().ToList();
-        Assert.Equal(["Started", "Duration", "Status", "Tool", "Screenshots"], columns.Select(c => (string?)c.Attribute("Header")));
+        // Review findings R-03 and A-10: which session a row is takes the width the others leave, not Status,
+        // and the two numbers end the row.
+        Assert.Equal(["Started", "Session", "Status", "Duration", "Screenshots"], columns.Select(c => (string?)c.Attribute("Header")));
 
         var star = Assert.Single(columns, c => (string?)c.Attribute("Width") == "*");
-        Assert.Equal("Status", (string?)star.Attribute("Header"));
+        Assert.Equal("Session", (string?)star.Attribute("Header"));
+        var status = Assert.Single(columns, c => (string?)c.Attribute("Header") == "Status");
+        Assert.Equal("Auto", (string?)status.Attribute("Width"));
 
-        // At the 960 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
-        var least = columns.Where(c => c != star).Sum(c => double.Parse((string)c.Attribute("Width")!, CultureInfo.InvariantCulture))
-            + double.Parse((string)star.Attribute("MinWidth")!, CultureInfo.InvariantCulture);
+        // At the minimum nothing scrolls sideways: the fixed columns, and Session and Status at their least, fit.
+        static double Least(XElement c) => double.Parse((string?)c.Attribute("MinWidth") ?? (string)c.Attribute("Width")!, CultureInfo.InvariantCulture);
+        var least = columns.Sum(Least) + 2;
         Assert.True(least <= TableAtTheMinimum, $"The columns need {least} px and the table has {TableAtTheMinimum} at the smallest window.");
 
         // Nothing caps the table short of the pane, so the star column has the pane's width to fill.
@@ -128,6 +132,20 @@ public sealed class AllSessionsTableTests
             var numeric = (string?)text.Attribute("Header") is "Duration" or "Screenshots";
             Assert.Equal(numeric ? "{StaticResource History.CellNumber}" : "{StaticResource History.CellText}", (string?)text.Attribute("ElementStyle"));
         }
+
+        // The number columns' headers sit over their figures, on the right; the screenshots left out are a
+        // muted caption after the count, so the counts line up (A-10).
+        foreach (var figures in columns.Where(c => (string?)c.Attribute("Header") is "Duration" or "Screenshots"))
+        {
+            Assert.Equal("{StaticResource History.NumberHeader}", (string?)figures.Attribute("HeaderStyle"));
+        }
+
+        var shots = Assert.Single(columns, c => (string?)c.Attribute("Header") == "Screenshots");
+        Assert.Contains(shots.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding Frames}" && (string?)t.Attribute("Style") == "{StaticResource History.CellNumber}");
+        Assert.Contains(shots.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding LeftOut}" && (string?)t.Attribute("Style") == "{StaticResource Text.Caption}");
+        var header = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.NumberHeader");
+        Assert.Equal("{StaticResource Table.Header}", (string?)header.Attribute("BasedOn"));
+        Assert.Equal("Right", Setter(header, "HorizontalContentAlignment"));
 
         var trimmed = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.CellText");
         Assert.Equal("CharacterEllipsis", Setter(trimmed, "TextTrimming"));
@@ -182,5 +200,34 @@ public sealed class AllSessionsTableTests
         }
 
         throw new FileNotFoundException(file);
+    }
+
+    /// <summary>
+    /// Review finding A-09: the table is in a card, radius 8 with its rows clipped to the corners, that ends
+    /// under the last row, and the actions are 16 under the card rather than pinned to the window's foot.
+    /// </summary>
+    [Fact]
+    public void TheTableIsACardThatEndsUnderItsLastRowWithTheActionsBelowIt()
+    {
+        XNamespace theme = "clr-namespace:ScreenTrail.UI.Theme";
+        var history = Load("History", "HistoryPane.xaml");
+        var table = Assert.Single(history.Descendants(Wpf + "DataGrid"));
+        var card = table.Parent!;
+        Assert.Equal("TableCard", (string?)card.Attribute(Xaml + "Name"));
+        Assert.Equal("{StaticResource History.TableCard}", (string?)card.Attribute("Style"));
+        Assert.Equal("True", (string?)card.Attribute(theme + "RoundedClip.Inside"));
+
+        var cardStyle = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.TableCard");
+        Assert.Equal("{StaticResource Card}", (string?)cardStyle.Attribute("BasedOn"));
+        Assert.Equal("0", Setter(cardStyle, "Padding"));
+        var tableStyle = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.Table");
+        Assert.Equal("0", Setter(tableStyle, "BorderThickness"));
+
+        var holder = card.Parent!;
+        Assert.Equal("TableAndActions", (string?)holder.Attribute(Xaml + "Name"));
+        Assert.Equal("Top", (string?)holder.Attribute("VerticalAlignment"));
+        var actions = Assert.Single(holder.Elements(Wpf + "Grid"), g => (string?)g.Attribute(Xaml + "Name") == "Actions");
+        Assert.Equal("1", (string?)actions.Attribute("Grid.Row"));
+        Assert.Equal("0,16,0,0", (string?)actions.Attribute("Margin"));
     }
 }

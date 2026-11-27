@@ -80,7 +80,7 @@ public sealed class DialogAndSheetControlsTests
         Assert.InRange(width, 760, 1000);
 
         var close = Assert.Single(sheet.Descendants(Wpf + "Button"));
-        Assert.Equal("Close", (string?)close.Attribute("Content"));
+        Assert.Equal("_Close", (string?)close.Attribute("Content"));
         Assert.Equal("True", (string?)close.Attribute("IsCancel"));
     }
 
@@ -97,7 +97,7 @@ public sealed class DialogAndSheetControlsTests
 
         var scroll = Assert.Single(root.Descendants(Wpf + "ScrollViewer"));
         Assert.Equal("Auto", (string?)scroll.Attribute("VerticalScrollBarVisibility"));
-        var close = Assert.Single(root.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Close");
+        var close = Assert.Single(root.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "_Close");
         Assert.DoesNotContain(close.Ancestors(), a => a.Name == Wpf + "ScrollViewer");
     }
 
@@ -151,9 +151,9 @@ public sealed class DialogAndSheetControlsTests
     {
         var panel = Load("Diagnostics", "DiagnosticsWindow.xaml");
 
-        var close = Assert.Single(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Close");
+        var close = Assert.Single(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "_Close");
         Assert.Equal("True", (string?)close.Attribute("IsCancel"));
-        Assert.Contains(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Copy diagnostics");
+        Assert.Contains(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Copy _diagnostics");
 
         // Spec §5 S1 asks for a Local-only badge; Spec §1.1 for state as a word, an icon and a colour.
         Assert.Contains(panel.Descendants(), e => (string?)e.Attribute("Style") == "{StaticResource Badge}" && ((string?)e.Attribute("AutomationProperties.Name"))?.Contains("Local-only", StringComparison.Ordinal) == true);

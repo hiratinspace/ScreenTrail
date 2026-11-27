@@ -144,7 +144,7 @@ public sealed class PublishPanelTests
         var panel = Panel(session: Session(draft: null));
         panel.Choose(new TicketMatch("1", "x", "y"));
 
-        Assert.Equal("There is no note to publish yet. Retry the draft first.", panel.BlockedBecause);
+        Assert.Equal("There is no note to publish yet. Try drafting again first.", panel.BlockedBecause);
     }
 
     [Fact]

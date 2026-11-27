@@ -1,6 +1,8 @@
 using System.IO;
 using Microsoft.Win32;
+using ScreenTrail.Core.Install;
 using ScreenTrail.Core.Lifecycle;
+using ScreenTrail.Core.Shell;
 
 namespace ScreenTrail.UI.Shell;
 
@@ -37,7 +39,14 @@ internal static class StartAtLogin
                 return;
             }
 
-            if (run.GetValue(LegacyValueName) is string)
+            // Review finding C-I7: installed, the machine's Run value starts the UI, so the technician's own
+            // would start it a second time at every sign-in (the second copy exits, but it is a wasted start).
+            if (MachineValueExists())
+            {
+                run.DeleteValue(ValueName, throwOnMissingValue: false);
+                run.DeleteValue(LegacyValueName, throwOnMissingValue: false);
+            }
+            else if (run.GetValue(LegacyValueName) is string)
             {
                 run.SetValue(ValueName, UiStart.SignInCommand(Environment.ProcessPath!));
                 run.DeleteValue(LegacyValueName, throwOnMissingValue: false);
@@ -53,11 +62,25 @@ internal static class StartAtLogin
         }
     }
 
-    public static bool Apply(bool enabled)
+    /// <summary>
+    /// Saves "Start UI at login". Installed, the machine's Run value starts the UI for everyone (review
+    /// finding C-I7), so the choice is kept in the shell's preferences, where that start reads it, and the
+    /// technician's own Run value is not written. A copy run without the installer (a developer's) has no
+    /// machine value and uses the technician's Run value as before.
+    /// </summary>
+    public static bool Apply(bool enabled, ShellPreferencesStore preferences)
     {
+        ArgumentNullException.ThrowIfNull(preferences);
+        var kept = preferences.Save(preferences.Load() with { StartAtSignIn = enabled });
         try
         {
             using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true) ?? Registry.CurrentUser.CreateSubKey(RunKey);
+            if (MachineValueExists())
+            {
+                run.DeleteValue(ValueName, throwOnMissingValue: false);
+                return kept;
+            }
+
             if (enabled)
             {
                 run.SetValue(ValueName, UiStart.SignInCommand(Environment.ProcessPath!));
@@ -68,6 +91,20 @@ internal static class StartAtLogin
             }
 
             return true;
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Whether the installer's machine Run value for the UI is there.</summary>
+    private static bool MachineValueExists()
+    {
+        try
+        {
+            using var machine = Registry.LocalMachine.OpenSubKey(InstalledFootprint.RunKey);
+            return machine?.GetValue(InstalledFootprint.UiRunValue) is string;
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {

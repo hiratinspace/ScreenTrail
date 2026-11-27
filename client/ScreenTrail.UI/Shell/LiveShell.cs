@@ -205,6 +205,17 @@ public sealed class LiveShell : IAsyncDisposable
             ShowWindow();
         }
 
+        // Review finding C-I4: opened by hand with no service running (just installed, say), start it rather
+        // than leave setup waiting until the next sign-in. A start at sign-in leaves it to the Run key.
+        if (openWindow)
+        {
+            _ = CaptureServiceStart.StartIfSilentAsync(
+                () => _disposed || _state.Snapshot.Connection == ServiceConnection.Connected,
+                Task.Delay,
+                StartCaptureService,
+                ct);
+        }
+
         await _connection.StartAsync(ct).ConfigureAwait(false);
 
         // ST-083: the first start runs setup. Finishing it is remembered; the tray runs it again on request.
@@ -377,7 +388,7 @@ public sealed class LiveShell : IAsyncDisposable
                     new ActivationViewModel(new ActivationPanel(new PipeDevice(_connection), Environment.MachineName)),
                     new CaptureViewModel(
                         new CapturePanel(new PipeCapture(_connection)),
-                        enabled => Task.FromResult(StartAtLogin.Apply(enabled)),
+                        enabled => Task.FromResult(StartAtLogin.Apply(enabled, _preferences)),
                         // Each request waits for a round trip through this dispatcher, so a window that
                         // has hung asks for nothing and the service closes the microphone by itself.
                         new MicrophoneLevelWatch(
@@ -554,21 +565,34 @@ public sealed class LiveShell : IAsyncDisposable
     /// </summary>
     private async Task<object?> LoadReviewAsync(string sessionId, CancellationToken ct)
     {
+        // Review finding D-19: the session and what the tenant has connected are asked together, and the
+        // pane is returned without waiting for the suggested ticket's PSA lookup, which runs once it is
+        // on screen (below).
         var frames = new PipeReviewFrames(_connection);
-        var loaded = await frames.LoadAsync(sessionId, ct).ConfigureAwait(true);
+        var publisher = new PipePublisher(_connection);
+        var loading = frames.LoadAsync(sessionId, ct);
+        var asking = publisher.IntegrationsAsync(ct);
+        await Task.WhenAll(loading, asking).ConfigureAwait(true);
+        var loaded = await loading.ConfigureAwait(true);
         if (loaded?.Session is not { } session)
         {
             return null;
         }
 
-        // ST-013: a draft still on its way says so, rather than "We couldn't draft this session".
+        // ST-013: a draft still on its way says so, rather than that it could not be drafted.
         var draftPending = loaded.DraftPending;
+
+        // Why a failed draft failed, said under the heading (review finding E-10). Nothing over the pipe asks
+        // for a draft again yet, so this pane never offers to try: a button that cannot help is worse than
+        // none, and the Publish reason does not tell the technician to press it.
+        var draftFailure = session.Draft is null && !draftPending
+            ? Core.Notifications.DraftFailure.For(loaded.DraftFailure) with { CanRetryNow = false }
+            : null;
 
         // The publish pane's delegates, over the pipe. What the tenant has connected is asked now, once,
         // so the pane opens saying "Ask your ScreenTrail admin to connect a PSA to publish" or ready, not guessing. The mapping prompt's
         // two calls (ST-097) ride the same connection.
-        var publisher = new PipePublisher(_connection);
-        var integrations = await publisher.IntegrationsAsync(ct).ConfigureAwait(true);
+        var integrations = await asking.ConfigureAwait(true);
         var publish = new PublishPanel(
             session,
             integrations,
@@ -576,6 +600,7 @@ public sealed class LiveShell : IAsyncDisposable
             publisher.PublishAsync,
             mapping: new CompanyMapping(publisher.CompaniesAsync, publisher.MapRefusedAsync),
             draftPending: draftPending,
+            draftFailure: draftFailure,
             earlierOutcomes: PipePublisher.Earlier(loaded.PublishOutcomes),
             reloadEarlier: c => publisher.EarlierAsync(sessionId, c));
 
@@ -586,17 +611,9 @@ public sealed class LiveShell : IAsyncDisposable
         // not the technician publishing, and the number came off their screen (S-44, S-45). Nor when
         // local-only is in force now for a session recorded before it was, or when the service will not
         // say whether it is.
-        if (await ReviewOpening.MayLookUpSuggestedTicketAsync(session.LocalOnly, session.SuggestedTicket, integrations.Count, LocalOnlyNowAsync, ct).ConfigureAwait(true)
-            && session.SuggestedTicket is { } hinted)
-        {
-            var matches = await publisher.SearchAsync(hinted, ct).ConfigureAwait(true);
-            if (matches.FirstOrDefault(m => m.Id == hinted) is { } match)
-            {
-                publish.Suggest(match);
-            }
-        }
-
-        return new ReviewViewModel(
+        // Asked after the pane is returned (review finding D-19), within five seconds, and stopped when the
+        // pane goes away (ReviewViewModel.DisposeAsync).
+        var review = new ReviewViewModel(
             session,
             frames,
             write: async (draft, c) =>
@@ -611,12 +628,22 @@ public sealed class LiveShell : IAsyncDisposable
             timelineExpanded: _preferences.Load().TimelineExpanded,
             timelineToggled: expanded => _ = _preferences.Save(_preferences.Load() with { TimelineExpanded = expanded }),
             draftPending: draftPending,
+            draftFailure: draftFailure,
             discard: c => DiscardFromReviewAsync(sessionId, c),
             discardBlocked: () => _discards.ReviewBlockedBecause(sessionId),
 
             // The receipt's Next to check reads History's rows and opens one the way a History row does.
             next: new NextSessions(ListSessionsAsync, _state.OpenSession),
             openSettings: () => _state.NavigateToSettings("Integrations"));
+        if (session.SuggestedTicket is { } hinted)
+        {
+            _ = review.Publish.LookUpSuggestedAsync(
+                hinted,
+                c => ReviewOpening.MayLookUpSuggestedTicketAsync(session.LocalOnly, session.SuggestedTicket, integrations.Count, LocalOnlyNowAsync, c),
+                publisher.SearchAsync);
+        }
+
+        return review;
     }
 
     /// <summary>

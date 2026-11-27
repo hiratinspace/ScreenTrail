@@ -57,6 +57,9 @@
     <sys:Double x:Key="Layout.field-wide">360</sys:Double>
     <sys:Double x:Key="Layout.slider-width">264</sys:Double>
     <sys:Double x:Key="Layout.pane-padding-narrow">16</sys:Double>
+    <sys:Double x:Key="Layout.dialog-footer-padding-y">16</sys:Double>
+    <sys:Double x:Key="Layout.diagnostics-label-width">128</sys:Double>
+    <sys:Double x:Key="Layout.group-row-height">48</sys:Double>
     <sys:Double x:Key="Layout.pane-gap">16</sys:Double>
     <sys:Double x:Key="Layout.card-gap">8</sys:Double>
     <sys:Double x:Key="Layout.section-gap">32</sys:Double>
@@ -92,6 +95,11 @@
     <sys:Double x:Key="Layout.receipt-row-height">48</sys:Double>
     <sys:Double x:Key="Layout.transcript-clock-width">48</sys:Double>
     <sys:Double x:Key="Layout.toolbar-height">48</sys:Double>
+    <sys:Double x:Key="Layout.step-frame-width">96</sys:Double>
+    <sys:Double x:Key="Layout.step-frame-height">60</sys:Double>
+    <sys:Double x:Key="Layout.note-footer-height">44</sys:Double>
+    <sys:Double x:Key="Layout.choice-hint-indent">26</sys:Double>
+    <sys:Double x:Key="Layout.flow-row-height">28</sys:Double>
     <sys:Double x:Key="Layout.settings-nav-width">188</sys:Double>
     <sys:Double x:Key="Layout.search-text-inset">36</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
@@ -99,8 +107,10 @@
     <Thickness x:Key="Padding.control">12,0</Thickness>
     <Thickness x:Key="Padding.control-compact">8,0</Thickness>
     <Thickness x:Key="Padding.pane-narrow">16</Thickness>
+    <Thickness x:Key="Padding.dialog-footer">24,16</Thickness>
     <Thickness x:Key="Padding.rail-row">12,8</Thickness>
     <Thickness x:Key="Padding.search">36,0,12,0</Thickness>
+    <Thickness x:Key="Inset.choice-hint">26,4,0,0</Thickness>
     <CornerRadius x:Key="Radius.xs">2</CornerRadius>
     <CornerRadius x:Key="Radius.sm">4</CornerRadius>
     <CornerRadius x:Key="Radius.control">6</CornerRadius>

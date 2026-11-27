@@ -121,9 +121,11 @@ function wpfCommon(shared) {
     `    <Thickness x:Key="Padding.control">${t.layout['control-padding-x']},${t.layout['control-padding-y']}</Thickness>`,
     `    <Thickness x:Key="Padding.control-compact">${t.layout['control-padding-x-compact']},${t.layout['control-padding-y']}</Thickness>`,
     `    <Thickness x:Key="Padding.pane-narrow">${t.layout['pane-padding-narrow']}</Thickness>`,
+    `    <Thickness x:Key="Padding.dialog-footer">${t.layout['pane-padding']},${t.layout['dialog-footer-padding-y']}</Thickness>`,
     `    <Thickness x:Key="Padding.rail-row">${t.layout['rail-row-padding-x']},${t.layout['rail-row-padding-y']}</Thickness>`,
     // A search field: its text after the 16 px glyph 12 in and an 8 gap (design system 10.2).
     `    <Thickness x:Key="Padding.search">${t.layout['search-text-inset']},0,${t.layout['control-padding-x']},0</Thickness>`,
+    `    <Thickness x:Key="Inset.choice-hint">${t.layout['choice-hint-indent']},4,0,0</Thickness>`,
   );
   // "pill" is 999: fully round at any height. A Border scales radii that overrun its sides down to fit, so a
   // 20 px badge and the 40 px pill both get true half circles from the one value (design system 5).

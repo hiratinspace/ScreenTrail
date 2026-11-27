@@ -79,8 +79,12 @@ namespace ScreenTrail.Shared.Ipc;
 /// measured (it was required and always 0), and the reply gains <c>capture_level</c>, optional, the capture
 /// throttle's level. A changed and a new member on a reply both sides exchange, which a v14 UI would fail
 /// on, so the version moves.
+///
+/// Version 16 (review finding E-10, spec v0.7.18): the <c>session</c> reply gains <c>draft_failure</c>,
+/// optional, the reason a failed draft recorded, so Review says why. A new member on a reply, which a v15
+/// UI would fail on, so the version moves.
 /// </summary>
 public static class IpcContract
 {
-    public const int Version = 15;
+    public const int Version = 16;
 }

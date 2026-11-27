@@ -16,6 +16,8 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Icons.xaml" />
     </ResourceDictionary.MergedDictionaries>
+    <!-- A field's error edge from the problem its view model words (review finding B-12). -->
+    <theme:HasText x:Key="HasText" />
 
     <!-- Focus ring: 2 px accent 3 px outside the control; WPF shows FocusVisualStyle for keyboard focus only.
          Its radius is the control's plus the 3 px gap, so the ring runs parallel to the edge it circles
@@ -109,6 +111,28 @@
         <Setter Property="LineHeight" Value="{DynamicResource Leading.caption}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+    </Style>
+    <!-- A field's label with an access key (review finding E-20): Text.Label's look, 12/16 semibold in
+         text.secondary, on a Label whose Target is the field, so Alt and the underlined letter puts focus
+         in the field and a screen reader reads the label as the field's. Not a Tab stop. -->
+    <Style x:Key="Field.Label" TargetType="Label">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Label">
+                    <AccessText Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                                TextWrapping="Wrap"
+                                LineHeight="{DynamicResource Leading.caption}"
+                                LineStackingStrategy="BlockLineHeight" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <!-- Strings a machine reads: hotkeys, paths, IDs. 13 px Cascadia Mono has 14 px Segoe UI's x-height. -->
     <Style x:Key="Text.Mono" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
@@ -523,7 +547,7 @@
         <Style.Triggers>
             <!-- The error is said with the field: its UI Automation item status. -->
             <Trigger Property="theme:Field.HasError" Value="True">
-                <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+                <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}, TargetNullValue=''}" />
             </Trigger>
             <!-- Hover darkens the edge and leaves the fill (review finding B-10): a grey fill is what the
                  disabled look is made of, so a hovered field looked switched off. -->
@@ -801,6 +825,12 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+    <!-- A hint under a check box or radio button, at its label's left edge: the 18 px mark and its 8 px gap
+         (review finding B-49; at 24 the hint sat 2 px left of the label). Muted, wrapping. -->
+    <Style x:Key="Choice.Hint" BasedOn="{StaticResource Text.Muted}" TargetType="TextBlock">
+        <Setter Property="Margin" Value="{StaticResource Inset.choice-hint}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style x:Key="Segment" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
@@ -1135,7 +1165,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="theme:Field.HasError" Value="True">
                             <Setter TargetName="ErrorEdge" Property="Visibility" Value="Visible" />
-                            <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+                            <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}, TargetNullValue=''}" />
                         </Trigger>
                         <Trigger Property="theme:Field.Error" Value="{x:Null}">
                             <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />
@@ -1821,14 +1851,105 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.card}" />
     </Style>
+    <!-- Grouped card (design system 10.5, review finding C-O4): one card whose rows are divided by a
+         border.subtle rule, rather than a stack of single-row cards. The card has no padding; each row is
+         16,12 and at least 48 high; the first row has no rule above it. -->
+    <Style x:Key="Card.Group" BasedOn="{StaticResource Card}" TargetType="Border">
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style x:Key="Card.GroupRow" TargetType="Border">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.group-row-height}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <!-- What is wrong with the field above it, 4 below it (review finding B-12): the 12 px warning glyph in
+         state.danger, 4, and the words in Text.Error, wrapping, read out as they change. The same line the
+         field's own theme:Field.Error draws, for a field whose words need the width of the row or a live
+         region: the field marks its edge with theme:Field.HasError. Empty, it takes no room. -->
+    <Style x:Key="Field.ErrorLine" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0"
+                                        Margin="0,2,4,0"
+                                        VerticalAlignment="Top"
+                                        Style="{StaticResource Icon}"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Foreground="{DynamicResource Brush.state.danger}"
+                                        Text="{DynamicResource Icon.Warning}" />
+                        <TextBlock Grid.Column="1"
+                                   Style="{StaticResource Text.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                                   controls:LiveRegion.Setting="Polite" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Content" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="Content" Value="{x:Null}">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <!-- A setting the admin's policy decided (INV-11, review finding B-47): under the control, which keeps
+         its value in the disabled colours, a 12 px lock in text.secondary, 4, and the Caption "Set by your
+         ScreenTrail admin" (the Content), so a locked setting reads as decided rather than broken. Where
+         the policy is known, its detail is the ToolTip. -->
+    <Style x:Key="Settings.Locked" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <StackPanel Background="Transparent" Orientation="Horizontal">
+                        <controls:Glyph VerticalAlignment="Center"
+                                        Style="{StaticResource Icon}"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Foreground="{DynamicResource Brush.text.secondary}"
+                                        Text="{DynamicResource Icon.Lock}" />
+                        <TextBlock Margin="4,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Caption}"
+                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- A row of a list inside a Settings tile (review finding B-42): at least 36 high, a border.subtle rule
+         above it, the value at the left and its Remove at the right. -->
+    <Style x:Key="Settings.ListRow" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
     <!-- A Settings tile (v0.7.0, owner: Windows 11 style): one setting or one small group of them, a
          compact surface with a 4 px gap to the next, so a section reads as a stack of separate tiles rather
-         than one long card each. -->
+         than one long card each. Review finding B-40: radius 8, as every card is; at 6 the banners inside a
+         tile had rounder corners than the tile. -->
     <Style x:Key="Settings.Tile" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="16,12" />
         <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
@@ -2058,6 +2179,53 @@
          on press broke the brand's one job. Hover fills shell.hover, pressed shell.pressed, keyboard focus
          draws FocusRing.Frame outside, disabled dims the glyph. The glyph rests in shell.muted and turns
          shell.text under the pointer (C-H7), so the state word is the only full-strength mark at rest. -->
+    <!-- A picture of the recording pill (review finding C-O2), for setup to show what the technician will
+         see: Recording at a fixed 12:41, drawn with the pill's own tokens (HudWindow's Pill), never a
+         bitmap, so it follows the theme and high contrast. Not a control: nothing in it takes focus or a
+         click, and its words are Glyphs, so a screen reader hears the picture's name, not a second pill.
+         OnboardingPolishTests holds its frame to the real pill's. -->
+    <ControlTemplate x:Key="Pill.Picture" TargetType="Control">
+        <Border x:Name="Pill"
+                HorizontalAlignment="Left"
+                Height="{DynamicResource Layout.hud-height}"
+                MinWidth="{DynamicResource Layout.hud-min-width}"
+                CornerRadius="{DynamicResource Radius.pill}"
+                Background="{DynamicResource Brush.shell.bg}"
+                BorderBrush="{DynamicResource Brush.border.strong}"
+                BorderThickness="{DynamicResource Thickness.float-edge}"
+                Padding="12,2,4,2"
+                IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Grid Width="{DynamicResource Icon.control}" Height="{DynamicResource Icon.control}" VerticalAlignment="Center">
+                    <Ellipse Width="{DynamicResource Layout.state-dot}" Height="{DynamicResource Layout.state-dot}" Fill="{DynamicResource Brush.shell.recording}" />
+                </Grid>
+                <controls:Glyph Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Font.ui}"
+                                FontSize="{DynamicResource Size.md}"
+                                FontWeight="{DynamicResource Weight.semibold}"
+                                Foreground="{DynamicResource Brush.shell.text}"
+                                Text="Recording" />
+                <controls:Glyph Margin="8,0,0,0"
+                                VerticalAlignment="Center"
+                                FontFamily="{DynamicResource Font.ui}"
+                                FontSize="{DynamicResource Size.md}"
+                                Foreground="{DynamicResource Brush.shell.text}"
+                                Typography.NumeralAlignment="Tabular"
+                                Text="12:41" />
+                <Grid Margin="8,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Flag}" />
+                </Grid>
+                <Grid Margin="4,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Pause}" />
+                </Grid>
+                <Grid Margin="8,0,0,0" Width="{DynamicResource Layout.hud-control}" Height="{DynamicResource Layout.hud-control}">
+                    <controls:Glyph Style="{StaticResource Icon}" HorizontalAlignment="Center" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Stop}" />
+                </Grid>
+            </StackPanel>
+        </Border>
+    </ControlTemplate>
+
     <Style x:Key="Hud.IconButton" TargetType="Button">
         <Setter Property="Width" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
@@ -2177,6 +2345,56 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- A table's column header (ST-084, review finding A-10): keyed so a number column's header can be
+         right aligned over its figures (HorizontalContentAlignment). -->
+    <Style x:Key="Table.Header" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Height" Value="{DynamicResource Layout.row-height}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <!-- Spec §3 makes the table sortable, and a header is how it sorts. WPF's headers take no
+             focus, so sorting needed the mouse (ST-084); focusable, Space or Enter sorts. -->
+        <Setter Property="Focusable" Value="True" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DataGridColumnHeader">
+                    <Border Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="TextWrapping" Value="NoWrap" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!-- The filler WPF adds after the last column is no column and sorts nothing. -->
+            <DataTrigger Binding="{Binding Column, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                <Setter Property="Focusable" Value="False" />
+                <Setter Property="IsEnabled" Value="False" />
+            </DataTrigger>
+            <!-- The ring is cut off at the table's top edge, so the focused header is drawn in
+                 the accent with its words in the accent's text colour, as high contrast draws a
+                 selection: an underline alone was too faint on a scaled screen (ST-084). -->
+            <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="Table" TargetType="DataGrid">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
@@ -2193,58 +2411,7 @@
         <Setter Property="EnableRowVirtualization" Value="True" />
         <Setter Property="RowBackground" Value="Transparent" />
         <Setter Property="AlternatingRowBackground" Value="Transparent" />
-        <Setter Property="ColumnHeaderStyle">
-            <Setter.Value>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-                    <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-                    <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
-                    <Setter Property="Padding" Value="12,0" />
-                    <Setter Property="Height" Value="{DynamicResource Layout.row-height}" />
-                    <Setter Property="BorderThickness" Value="0,0,0,1" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                    <!-- Spec §3 makes the table sortable, and a header is how it sorts. WPF's headers take no
-                         focus, so sorting needed the mouse (ST-084); focusable, Space or Enter sorts. -->
-                    <Setter Property="Focusable" Value="True" />
-                    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="DataGridColumnHeader">
-                                <Border Padding="{TemplateBinding Padding}"
-                                        Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}">
-                                    <ContentPresenter VerticalAlignment="Center">
-                                        <ContentPresenter.Resources>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-                                                <Setter Property="TextWrapping" Value="NoWrap" />
-                                            </Style>
-                                        </ContentPresenter.Resources>
-                                    </ContentPresenter>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <!-- The filler WPF adds after the last column is no column and sorts nothing. -->
-                        <DataTrigger Binding="{Binding Column, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
-                            <Setter Property="Focusable" Value="False" />
-                            <Setter Property="IsEnabled" Value="False" />
-                        </DataTrigger>
-                        <!-- The ring is cut off at the table's top edge, so the focused header is drawn in
-                             the accent with its words in the accent's text colour, as high contrast draws a
-                             selection: an underline alone was too faint on a scaled screen (ST-084). -->
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Setter.Value>
-        </Setter>
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource Table.Header}" />
         <Setter Property="RowStyle" Value="{StaticResource Table.Row}" />
         <Setter Property="CellStyle">
             <Setter.Value>

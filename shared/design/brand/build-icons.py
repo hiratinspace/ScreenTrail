@@ -5,8 +5,10 @@
 
 Writes, under client/ScreenTrail.UI/Assets/:
 
-- app.ico: the window, taskbar and executable icon. 16, 20 and 24 from app-icon-small.svg (small glyph),
-  32, 40 and 48 from glyph-mid-on-navy.svg (mid glyph), 64, 128 and 256 from app-icon-256.svg (full mark).
+- app.ico: the window, taskbar and executable icon. 16 to 48 from app-icon-small.svg (small glyph, one
+  scheme at every small size: review finding C-I6, owner decision 9), 64, 128 and 256 from
+  app-icon-256.svg (full mark).
+- installer/theme/logo-side.png: the setup program's side logo, the full mark at 64 (review finding C-I5).
 - Tray/tray-<state>-<light|dark>.ico for idle, recording, paused, offline and draftready: 16, 20 and 24
   from the -16 file, 32, 40 and 48 from the -32 file. The tray picks the frame for the screen's DPI.
 
@@ -42,14 +44,17 @@ from PIL import Image
 BRAND = Path(__file__).resolve().parent
 REPO = BRAND.parents[2]
 ASSETS = REPO / "client" / "ScreenTrail.UI" / "Assets"
+INSTALLER_LOGO = REPO / "installer" / "theme" / "logo-side.png"
 
 APP_SIZES = {
     16: "app-icon-small.svg",
     20: "app-icon-small.svg",
     24: "app-icon-small.svg",
-    32: "glyph-mid-on-navy.svg",
-    40: "glyph-mid-on-navy.svg",
-    48: "glyph-mid-on-navy.svg",
+    # Review finding C-I6, owner decision 9: one scheme at 16 to 48. The mid glyph's (an Iris ribbon and an
+    # ink screen 1.08:1 on the plate) made the same app two icons on two monitors at different scales.
+    32: "app-icon-small.svg",
+    40: "app-icon-small.svg",
+    48: "app-icon-small.svg",
     64: "app-icon-256.svg",
     128: "app-icon-256.svg",
     256: "app-icon-256.svg",
@@ -58,6 +63,9 @@ APP_SIZES = {
 TRAY_STATES = ["idle", "recording", "paused", "offline", "draftready"]
 TRAY_THEMES = ["light", "dark"]
 TRAY_SIZES = [16, 20, 24, 32, 40, 48]
+
+# The setup program's side logo (review finding C-I5), beside the bundle that shows it.
+INSTALLER_LOGO_PX = 64
 
 # The draft-ready badge: the screen's colour on each taskbar, so it reads as part of the mark, with one
 # line across it in the other colour, a note to read (review finding C-T7): a plain filled square was the
@@ -221,6 +229,9 @@ def main() -> None:
                 source = 16 if px < 28 else 32
                 jobs.append((f"tray-{state}-{theme}-{px}", px, sized(tray_svg(state, theme, source), px)))
 
+    # The setup program's side logo (review finding C-I5): the full mark at 64, as a PNG.
+    jobs.append((f"installer-logo-{INSTALLER_LOGO_PX}", INSTALLER_LOGO_PX, sized((BRAND / "app-icon-256.svg").read_text(), INSTALLER_LOGO_PX)))
+
     images = rasterise(chrome, jobs)
     for key, image in images.items():
         px = int(key.rsplit("-", 1)[1])
@@ -232,7 +243,9 @@ def main() -> None:
         for theme in TRAY_THEMES:
             write_ico(ASSETS / "Tray" / f"tray-{state}-{theme}.ico",
                       [images[f"tray-{state}-{theme}-{px}"] for px in TRAY_SIZES])
-    print(f"Wrote {1 + len(TRAY_STATES) * len(TRAY_THEMES)} icons under {ASSETS.relative_to(REPO)}.")
+    INSTALLER_LOGO.parent.mkdir(parents=True, exist_ok=True)
+    images[f"installer-logo-{INSTALLER_LOGO_PX}"].save(INSTALLER_LOGO, format="PNG", optimize=True)
+    print(f"Wrote {1 + len(TRAY_STATES) * len(TRAY_THEMES)} icons under {ASSETS.relative_to(REPO)}, and {INSTALLER_LOGO.relative_to(REPO)}.")
 
 
 if __name__ == "__main__":

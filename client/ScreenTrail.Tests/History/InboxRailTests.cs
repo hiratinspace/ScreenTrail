@@ -160,4 +160,14 @@ public sealed class InboxRailTests
         FramesPurged = 0,
         PublishUnconfirmed = unconfirmed,
     };
+
+    /// <summary>Review finding R-03: the All sessions table says which session a row is, from the rail's own fields.</summary>
+    [Fact]
+    public void ATableRowIsKnownByItsCompanyTitleAndTicket()
+    {
+        var row = new SessionRow { Id = "s1", StartedAt = DateTimeOffset.UnixEpoch, DurationMs = 0, Frames = 0, FramesPurged = 0, Status = "draft", Tool = "screenconnect", Company = "Acme Dental", Title = "Printer offline", Ticket = "48213" };
+        Assert.Equal("Acme Dental · Printer offline · #48213 · ScreenConnect", InboxRail.SessionLine(row));
+        Assert.Equal("Printer offline · ScreenConnect", InboxRail.SessionLine(row with { Company = null, Ticket = null }));
+        Assert.Equal("ScreenConnect session", InboxRail.SessionLine(row with { Company = null, Title = null, Ticket = null }));
+    }
 }

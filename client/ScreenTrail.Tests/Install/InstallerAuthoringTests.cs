@@ -72,13 +72,103 @@ public sealed class InstallerAuthoringTests
             .Where(v => (string?)v.Attribute("Key") == InstalledFootprint.RunKey)
             .ToList();
 
-        var service = Assert.Single(run);
+        var service = Assert.Single(run, v => (string?)v.Attribute("Name") == InstalledFootprint.ServiceRunValue);
         Assert.Equal("HKLM", (string?)service.Attribute("Root"));
         Assert.Equal(InstalledFootprint.ServiceRunValue, (string?)service.Attribute("Name"));
         Assert.Equal($"\"[INSTALLFOLDER]{InstalledFootprint.ServiceExecutable}\"", (string?)service.Attribute("Value"));
 
         var loginStartup = File.ReadAllText(Repo.File("client", "ScreenTrail.Service", "Host", "LoginStartup.cs"));
         Assert.Contains($"ServiceValueName = \"{InstalledFootprint.ServiceRunValue}\"", loginStartup, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding C-I7, owner decision 4 (on): the UI starts at sign-in for every user from the
+    /// machine's Run key, in the background and saying it is the machine's start, so a silent deployment
+    /// shows the tray icon and setup. The two Run values are the only ones, and both are installed.
+    /// </summary>
+    [Fact]
+    public void TheUiStartsAtSignInForEveryUser()
+    {
+        var run = Package().Descendants(Wix + "RegistryValue")
+            .Where(v => (string?)v.Attribute("Key") == InstalledFootprint.RunKey)
+            .ToList();
+        Assert.Equal(2, run.Count);
+
+        var ui = Assert.Single(run, v => (string?)v.Attribute("Name") == InstalledFootprint.UiRunValue);
+        Assert.Equal("HKLM", (string?)ui.Attribute("Root"));
+        Assert.Equal(ScreenTrail.Core.Lifecycle.UiStart.MachineSignInCommand($"[INSTALLFOLDER]{InstalledFootprint.UiExecutable}"), (string?)ui.Attribute("Value"));
+
+        var component = (string?)ui.Parent!.Attribute("Id");
+        Assert.Contains(Package().Descendants(Wix + "ComponentRef"), r => (string?)r.Attribute("Id") == component);
+    }
+
+    /// <summary>
+    /// Review findings C-I1, C-I2 and D-11: one publisher everywhere Windows names one, the executables'
+    /// Company, the MSI's and the bundle's Manufacturer, so the owner's legal name (C-I3) goes in once and
+    /// they cannot drift apart; and the programs carry a product name and a title, not "ScreenTrail.UI".
+    /// </summary>
+    [Fact]
+    public void ThePublisherIsTheSameEverywhereWindowsNamesIt()
+    {
+        var props = XDocument.Load(Repo.File("client", "Directory.Build.props"));
+        string Prop(XDocument d, string name) => d.Descendants(name).Single().Value;
+        var publisher = Prop(props, "ScreenTrailPublisher");
+        Assert.Equal("$(ScreenTrailPublisher)", Prop(props, "Company"));
+        Assert.Contains("$(ScreenTrailPublisher)", Prop(props, "Copyright"), StringComparison.Ordinal);
+        Assert.Equal("ScreenTrail", Prop(props, "Product"));
+
+        Assert.Equal(publisher, (string?)Package().Root!.Element(Wix + "Package")!.Attribute("Manufacturer"));
+        Assert.Equal(publisher, (string?)Bundle().Root!.Element(Wix + "Bundle")!.Attribute("Manufacturer"));
+
+        Assert.Equal("ScreenTrail", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.UI", "ScreenTrail.UI.csproj")), "AssemblyTitle"));
+        Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
+    }
+
+    /// <summary>
+    /// Review finding C-I5: the setup program has a window of its own, with the brand's mark, no licence
+    /// link to a licence that does not exist, and a finish page whose Launch starts the installed UI.
+    /// </summary>
+    [Fact]
+    public void TheSetupProgramHasItsOwnWindowWithLaunch()
+    {
+        XNamespace bal = "http://wixtoolset.org/schemas/v4/wxs/bal";
+        var standard = Assert.Single(Bundle().Descendants(bal + "WixStandardBootstrapperApplication"));
+        Assert.Empty(Bundle().Descendants(bal + "WixInternalUIBootstrapperApplication"));
+        Assert.Equal("hyperlinkSidebarLicense", (string?)standard.Attribute("Theme"));
+        // Present and empty: WiX requires it for the hyperlink themes, and empty shows no licence link.
+        Assert.Equal(string.Empty, (string?)standard.Attribute("LicenseUrl"));
+        Assert.Null(standard.Attribute("LicenseFile"));
+        Assert.Equal("yes", (string?)standard.Attribute("SuppressOptionsUI"));
+        Assert.Equal($@"[ProgramFiles64Folder]ScreenTrail\{InstalledFootprint.UiExecutable}", (string?)standard.Attribute("LaunchTarget"));
+
+        var logo = (string)standard.Attribute("LogoSideFile")!;
+        Assert.True(File.Exists(Repo.File([.. logo.Split('\\')])), "the side logo is in the repository");
+    }
+
+    /// <summary>Review findings C-T6 and D-10: the Start menu shortcut carries the identity the UI's toasts use.</summary>
+    [Fact]
+    public void TheShortcutCarriesTheAppsToastIdentity()
+    {
+        var shortcut = Package().Descendants(Wix + "Shortcut").Single(s => (string?)s.Attribute("Id") == "UiShortcut");
+        var id = Assert.Single(shortcut.Elements(Wix + "ShortcutProperty"));
+        Assert.Equal("System.AppUserModel.ID", (string?)id.Attribute("Key"));
+        Assert.Equal(ScreenTrail.Core.Notifications.ToastContent.AppId, (string?)id.Attribute("Value"));
+        Assert.Contains("WindowsToasts.Identify()", File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs")), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding C-I1: Installed apps says what the product is, and Modify stays off. No link points
+    /// at a placeholder address: a support link in a fleet's Installed apps that goes nowhere is worse than
+    /// none.
+    /// </summary>
+    [Fact]
+    public void InstalledAppsSaysWhatItIsAndLinksNowhereFake()
+    {
+        var properties = Package().Descendants(Wix + "Property").ToDictionary(p => (string)p.Attribute("Id")!, p => (string?)p.Attribute("Value"));
+        Assert.Equal("Session notes from remote support", properties["ARPCOMMENTS"]);
+        Assert.Equal("1", properties["ARPNOMODIFY"]);
+        var installer = File.ReadAllText(Repo.File("installer", "Package.wxs")) + File.ReadAllText(Repo.File("installer", "Bundle.wxs"));
+        Assert.DoesNotContain(".example", installer, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -514,6 +604,26 @@ public sealed class InstallerAuthoringTests
     private static XDocument Package() => XDocument.Load(Repo.File("installer", "Package.wxs"));
 
     private static XDocument Bundle() => XDocument.Load(Repo.File("installer", "Bundle.wxs"));
+
+    /// <summary>
+    /// Review finding D-28: the installed build arrives compiled (ReadyToRun), and the application loads
+    /// one colour dictionary at start, the technician's, not the dark one first; a theme switch replaces
+    /// the dictionary in place.
+    /// </summary>
+    [Fact]
+    public void StartUpDoesNoAvoidableWork()
+    {
+        Assert.Equal("true", Packaged()["PublishReadyToRun"]);
+
+        var app = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs"));
+        Assert.Equal(1, Regex.Count(app, @"ThemeManager\.Follow\("));
+        Assert.Equal(1, Regex.Count(app, @"ThemeManager\.Apply\(AppTheme\.Dark, Resources\)"));
+        Assert.True(app.IndexOf("if (harness)", StringComparison.Ordinal) < app.IndexOf("ThemeManager.Apply(AppTheme.Dark, Resources)", StringComparison.Ordinal));
+
+        var theme = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "Theme", "ThemeManager.cs"));
+        Assert.Contains("resources.MergedDictionaries[index] = next;", theme, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergedDictionaries.Remove(_colors)", theme, StringComparison.Ordinal);
+    }
 
     /// <summary>The properties Packaging.props sets when the installer build asks for them.</summary>
     private static Dictionary<string, string> Packaged()

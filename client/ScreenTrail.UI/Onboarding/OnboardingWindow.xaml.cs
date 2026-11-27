@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Media.Animation;
 using ScreenTrail.Core.Onboarding;
 using ScreenTrail.Core.Settings;
 using ScreenTrail.Core.Shell;
+using ScreenTrail.UI.Theme;
 
 namespace ScreenTrail.UI.Onboarding;
 
@@ -30,7 +32,33 @@ public partial class OnboardingWindow : Window
         InitializeComponent();
         DataContext = model;
         model.Closed += Close;
+        model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(OnboardingViewModel.Step))
+            {
+                ShowNewStep();
+            }
+        };
         Loaded += async (_, _) => await model.LoadAsync();
+    }
+
+    /// <summary>
+    /// Review finding D-30: the steps share one scroll view, so a step scrolled down at the minimum size
+    /// handed its offset to the next, which opened part way down, and the steps swapped with no transition.
+    /// A new step opens at its top and fades in over motion.state (design system 9.2, pane switch); with
+    /// reduce motion on, or in a render, it is there at once.
+    /// </summary>
+    private void ShowNewStep()
+    {
+        StepScroller.ScrollToTop();
+        if (Waiting.AtOnce || ThemeManager.ReduceMotion)
+        {
+            StepContent.BeginAnimation(OpacityProperty, null);
+            StepContent.Opacity = 1;
+            return;
+        }
+
+        StepContent.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, ThemeManager.Motion(new Duration(Waiting.Fade))));
     }
 
     /// <summary>The live wizard over the pipe, wired to Settings' own panels and the shell's preferences.</summary>

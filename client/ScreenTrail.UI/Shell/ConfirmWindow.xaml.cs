@@ -37,6 +37,15 @@ public partial class ConfirmWindow : Window
         InitializeComponent();
         DataContext = words;
 
+        // Review finding E-20: each button has an access key, unique in the dialog ("_Keep it", "_Discard
+        // session"); the accessible names stay the plain words, bound in the XAML.
+        var keyed = AccessKeys.Assign(words.Action is null ? [words.Cancel] : [words.Cancel, words.Action]);
+        Cancel.Content = keyed[0];
+        if (words.Action is not null)
+        {
+            Confirm.Content = keyed[1];
+        }
+
         // A destructive confirm is the solid danger button, never weaker than the safe one (review finding B-05).
         if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.DangerSolid" : "Button.Primary") is Style style)
         {
@@ -47,7 +56,7 @@ public partial class ConfirmWindow : Window
         Mark.Text = words.Action is null || words.Tone == ConfirmTone.Danger ? "" : "";
         Mark.SetResourceReference(
             System.Windows.Controls.TextBlock.ForegroundProperty,
-            words.Action is null ? "Brush.state.paused" : words.Tone == ConfirmTone.Danger ? "Brush.state.danger" : "Brush.accent.primary");
+            words.Action is null ? "Brush.state.paused" : words.Tone == ConfirmTone.Danger ? "Brush.state.danger" : "Brush.text.secondary");
 
         if (words.Action is null)
         {
@@ -59,12 +68,9 @@ public partial class ConfirmWindow : Window
                 Cancel.Style = primary;
             }
 
-            if (FindResource("Banner") is Style banner)
-            {
-                ConsequenceBox.Style = banner;
-                Theme.Banner.SetTone(ConsequenceBox, "Warning");
-                ConsequenceBox.Margin = new Thickness(0, 12, 0, 0);
-            }
+            // Review finding B-52: the reason is said under the heading in Secondary like a question's
+            // consequence; the state.paused glyph carries the kind. On a warning banner as well it said
+            // "warning" twice.
         }
         else if (typed is not null)
         {

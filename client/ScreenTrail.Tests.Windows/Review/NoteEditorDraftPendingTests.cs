@@ -20,7 +20,7 @@ public sealed class NoteEditorDraftPendingTests
 
         Assert.True(pending.DraftPending);
         Assert.False(pending.DraftFailed);
-        Assert.Equal("Drafting this session. The note appears here when it arrives.", pending.DraftPendingMessage);
+        Assert.Equal("Drafting the note. It appears here when it arrives.", pending.DraftPendingMessage);
         Assert.Contains("being drafted", pending.PublishBlockedBecause, StringComparison.Ordinal);
 
         Assert.False(failed.DraftPending);

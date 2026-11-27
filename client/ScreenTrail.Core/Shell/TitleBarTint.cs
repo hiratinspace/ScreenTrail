@@ -3,18 +3,20 @@ using System.Globalization;
 namespace ScreenTrail.Core.Shell;
 
 /// <summary>
-/// The colours a window's title bar is given (Spec v0.6.0 §3 Frame, built v0.6.12): the frame's own
-/// <c>shell.bg</c> under <c>shell.text</c>, set through DWM's caption, text and border colour attributes,
-/// so the title bar is part of the frame the rail and the pill are drawn on. Flat, no Mica or blur.
-/// In high contrast every value is the system's own (<see cref="SystemDefault"/>), so Windows draws the
-/// title bar in the contrast theme the technician chose.
+/// The colours a window's title bar is given (Spec v0.6.0 §3 Frame, built v0.6.12), set through DWM's
+/// caption, text and border colour attributes. The main window's caption is the frame's <c>shell.bg</c>
+/// under <c>shell.text</c>, so it joins the rail; a dialog's is its surface, so it reads as one sheet
+/// (review finding D-12). Every window's 1 px edge is <c>border.strong</c>, so a light window still has an
+/// edge over a light wallpaper or a white remote session. Flat, no Mica or blur. In high contrast every
+/// value is the system's own (<see cref="SystemDefault"/>), so Windows draws the title bar in the contrast
+/// theme the technician chose.
 /// </summary>
 /// <param name="Caption">DWMWA_CAPTION_COLOR, a COLORREF (0x00BBGGRR), or <see cref="SystemDefault"/>.</param>
 /// <param name="Text">DWMWA_TEXT_COLOR.</param>
-/// <param name="Border">DWMWA_BORDER_COLOR: the window's 1 px edge, the frame's colour too.</param>
+/// <param name="Border">DWMWA_BORDER_COLOR: the window's 1 px edge.</param>
 /// <param name="DarkCaptionButtons">
-/// DWMWA_USE_IMMERSIVE_DARK_MODE: light minimise, maximise and close glyphs, for a dark caption. The frame
-/// is dark in both themes (indigo navy in light), so this is on in both and off in high contrast.
+/// DWMWA_USE_IMMERSIVE_DARK_MODE: light minimise, maximise and close glyphs, for a dark caption: on in the
+/// dark theme, off on the light theme's light caption and in high contrast.
 /// </param>
 public sealed record TitleBarTint(uint Caption, uint Text, uint Border, bool DarkCaptionButtons)
 {
@@ -27,7 +29,8 @@ public sealed record TitleBarTint(uint Caption, uint Text, uint Border, bool Dar
     /// <param name="highContrast">Whether the high-contrast dictionary is the one in use.</param>
     /// <param name="frame">The theme's <c>shell.bg</c>, as <c>#RRGGBB</c>.</param>
     /// <param name="text">The theme's <c>shell.text</c>, as <c>#RRGGBB</c>.</param>
-    public static TitleBarTint For(bool highContrast, string frame, string text)
+    /// <param name="edge">The window's edge, the theme's <c>border.strong</c>; the caption's colour when not given.</param>
+    public static TitleBarTint For(bool highContrast, string frame, string text, string? edge = null)
     {
         if (highContrast)
         {
@@ -35,7 +38,7 @@ public sealed record TitleBarTint(uint Caption, uint Text, uint Border, bool Dar
         }
 
         var caption = ColorRef(frame);
-        return new TitleBarTint(caption, ColorRef(text), caption, DarkCaptionButtons: RelativeLuminance(frame) < 0.18);
+        return new TitleBarTint(caption, ColorRef(text), edge is null ? caption : ColorRef(edge), DarkCaptionButtons: RelativeLuminance(frame) < 0.18);
     }
 
     /// <summary><c>#RRGGBB</c> as the COLORREF DWM takes: red in the low byte.</summary>

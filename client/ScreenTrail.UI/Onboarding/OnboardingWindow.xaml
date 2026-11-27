@@ -15,26 +15,23 @@
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource Window.Base}">
     <Window.Resources>
-        <!-- A permission's state: a tick or a cross in a disc, coloured as well, never colour alone; the
-             check's own message says it in words. -->
-        <Style x:Key="Onboarding.MarkDisc" TargetType="Ellipse">
-            <Setter Property="Fill" Value="{DynamicResource Brush.bg.danger}" />
-            <Setter Property="Stroke" Value="{DynamicResource Brush.state.danger}" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding Ok}" Value="True">
-                    <Setter Property="Fill" Value="{DynamicResource Brush.bg.success}" />
-                    <Setter Property="Stroke" Value="{DynamicResource Brush.state.published}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="Onboarding.MarkGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-            <Setter Property="HorizontalAlignment" Value="Center" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+        <!-- A permission's state (review finding C-O4, design system 2.3): a 16 px glyph, no disc, never colour
+             alone, and the row's message says it in words. Allowed: the check in state.published. The
+             microphone missing: the warning in state.paused, since sessions still work. Screen capture or the
+             input hooks missing: the close glyph in state.danger. A missing microphone was the same red cross
+             as a blocking failure, which made setup look broken on the first run. -->
+        <Style x:Key="Onboarding.Mark" BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+            <Setter Property="FontSize" Value="{DynamicResource Icon.control}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
             <Setter Property="Text" Value="{StaticResource Icon.Close}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding Ok}" Value="True">
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static core:PermissionSeverity.Ok}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
                     <Setter Property="Text" Value="{StaticResource Icon.Check}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static core:PermissionSeverity.OptionalMissing}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
+                    <Setter Property="Text" Value="{StaticResource Icon.Warning}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -155,26 +152,64 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Header: where the technician is in the setup, in words, and the step's title. -->
+            <!-- Header: where the technician is in the setup, in words, and the step's title. Review finding
+                 C-O8: the step heading is Display, 28/36, the role design system 3.2 names for it; at the
+                 24 px screen title it was every main-window screen's size, not a first-run moment. -->
             <StackPanel Grid.Row="0" Margin="32,24,32,16">
                 <TextBlock Style="{StaticResource Text.Muted}" Text="{Binding Progress}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.ScreenTitle}" Text="{Binding Title}" controls:LiveRegion.Setting="Polite" />
+                <TextBlock x:Name="StepTitle" Margin="0,4,0,0" Style="{StaticResource Text.Display}" Text="{Binding Title}" controls:LiveRegion.Setting="Polite" />
             </StackPanel>
 
-            <ScrollViewer Grid.Row="1" Padding="32,0,16,0" VerticalScrollBarVisibility="Auto">
+            <!-- Review finding D-30: a new step opens at its top and fades in (OnboardingWindow.xaml.cs). -->
+            <ScrollViewer x:Name="StepScroller" Grid.Row="1" Padding="32,0,16,0" VerticalScrollBarVisibility="Auto">
                 <!-- Top-aligned, so a step with little in it is not stretched into a card the height of the
                      window, and no wider than the readable width, from the left, in a window made large. -->
-                <Grid Margin="0,0,16,16" VerticalAlignment="Top">
+                <Grid x:Name="StepContent" Margin="0,0,16,16" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MaxWidth="{DynamicResource Layout.content-max-width}" />
                     </Grid.ColumnDefinitions>
 
                     <!-- 1. Welcome -->
                     <StackPanel Visibility="{Binding WelcomeVisibility}">
-                        <TextBlock Style="{StaticResource Text.Body}" FontSize="{DynamicResource Size.lg}" TextWrapping="Wrap" Text="ScreenTrail watches your remote-support sessions and drafts the ticket note for you: what you did, in order, with the screenshots that show it." />
+                        <TextBlock x:Name="WelcomeLead" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="ScreenTrail watches your remote-support sessions and drafts the ticket note for you: what you did, in order, with the screenshots that show it." />
                         <ContentControl Margin="0,24,0,0" Style="{StaticResource Banner}" theme:Banner.Glyph="{StaticResource Icon.Lock}">
                             <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your review." />
                         </ContentControl>
+                        <!-- Review finding C-O2: what the product is, in three small pictures, each with its line:
+                             what you see (the pill), what you get (a drafted note), what you approve (Publish).
+                             Drawn, not bitmaps, and not controls: the captions are what is read. -->
+                        <Grid x:Name="WelcomeParts" Margin="0,24,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <Control Focusable="False" IsTabStop="False" Template="{StaticResource Pill.Picture}" />
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you see: the pill, while it records." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="24,0,24,0">
+                                <Border Style="{StaticResource Card}" IsHitTestVisible="False">
+                                    <StackPanel>
+                                        <controls:Glyph Style="{StaticResource Text.BodyStrong}" TextTrimming="CharacterEllipsis" Text="Printer offline on the front desk PC" />
+                                        <controls:Glyph Margin="0,2,0,0" Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" Text="1. Restarted the print spooler" />
+                                        <controls:Glyph Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" Text="2. Printed a test page" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you get: the note, drafted step by step." />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Border HorizontalAlignment="Left"
+                                        MinHeight="{DynamicResource Layout.control-height}"
+                                        Padding="{DynamicResource Padding.control}"
+                                        CornerRadius="{DynamicResource Radius.control}"
+                                        Background="{DynamicResource Brush.accent.primary}"
+                                        IsHitTestVisible="False">
+                                    <controls:Glyph VerticalAlignment="Center" FontWeight="{DynamicResource Weight.semibold}" Foreground="{DynamicResource Brush.text.on-accent}" Style="{StaticResource Text.Body}" Text="Publish" />
+                                </Border>
+                                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="What you approve: you publish it." />
+                            </StackPanel>
+                        </Grid>
                         <TextBlock Margin="0,24,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Setup takes about five minutes: activate this PC, check what the machine allows, pick your remote tools, connect your PSA if you want to, and try a session." />
                     </StackPanel>
 
@@ -184,29 +219,26 @@
                         <activation:ActivationPane DataContext="{Binding Activation}" />
                     </Border>
 
-                    <!-- 3. Permissions: each shows a tick or a fix. -->
+                    <!-- 3. Permissions: each shows its state and, when it is not allowed, the fix. One grouped card
+                         with a rule between the rows (design system 10.5), not three separate cards. -->
                     <StackPanel Visibility="{Binding PermissionsVisibility}">
+                        <Border x:Name="PermissionsCard" Style="{StaticResource Card.Group}">
                         <controls:Repeater ItemsSource="{Binding Permissions}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource Card}" Margin="0,0,0,8" Padding="16,12">
+                                    <Border Style="{StaticResource Card.GroupRow}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Grid Grid.Column="0"
-                                                  Margin="0,0,12,0"
-                                                  Width="{DynamicResource Space.5}"
-                                                  Height="{DynamicResource Space.5}"
-                                                  VerticalAlignment="Top">
-                                                <Ellipse Style="{StaticResource Onboarding.MarkDisc}" />
-                                                <controls:Glyph Style="{StaticResource Onboarding.MarkGlyph}" />
-                                            </Grid>
+                                            <controls:Glyph x:Name="Mark" Grid.Column="0" Margin="0,2,12,0" VerticalAlignment="Top" Style="{StaticResource Onboarding.Mark}" />
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                                <TextBlock Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="{Binding Label}" />
-                                                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Message}" />
+                                                <TextBlock Style="{StaticResource Text.BodyStrong}" Text="{Binding Label}" />
+                                                <TextBlock Margin="0,2,0,0" Style="{StaticResource Text.Secondary}" Text="{Binding Message}" />
+                                                <!-- What a missing microphone means, under its own row (C-O4); empty, and so not there, otherwise. -->
+                                                <TextBlock Margin="0,2,0,0" Style="{StaticResource Text.Caption}" Text="{Binding Consequence}" />
                                             </StackPanel>
                                             <Button Grid.Column="2" Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Button.Secondary}" Content="{Binding FixLabel}"
                                                     AutomationProperties.Name="{Binding FixName}"
@@ -217,7 +249,8 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </controls:Repeater>
-                        <Button Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="Check again" Command="{Binding RecheckCommand}" />
+                        </Border>
+                        <Button Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="Check _again" AutomationProperties.Name="Check again" Command="{Binding RecheckCommand}" />
                     </StackPanel>
 
                     <!-- 4. Your remote tools -->
@@ -247,22 +280,65 @@
                     <!-- 6. Try it: a real session, drafted the real way. -->
                     <StackPanel Visibility="{Binding TryItVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="A sixty-second test: start, open any window, click around, say one sentence, then stop. The draft opens in Review when it is ready." />
-                        <Border Margin="0,24,0,0" Style="{StaticResource Card}">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource Button.Primary}" Content="Start test session" Command="{Binding StartTestCommand}" IsEnabled="{Binding CanStartTest}" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Stop and draft" Command="{Binding StopTestCommand}" IsEnabled="{Binding TestRunning}" />
+                        <!-- Review finding C-O6: the card shows where the test is, with one filled button per state;
+                             after it, Continue in the foot is the only filled button. -->
+                        <Border x:Name="TestCard" Margin="0,24,0,0" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <!-- Running: the recording dot, "Recording" and the timer, as the pill shows them. -->
+                                <StackPanel x:Name="TestRunningLine" Margin="0,0,0,12" Orientation="Horizontal" Visibility="{Binding TestRunningVisibility}">
+                                    <Ellipse Margin="0,0,8,0" Style="{StaticResource StateDot}" />
+                                    <TextBlock Style="{StaticResource Text.BodyStrong}" Text="Recording" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Numeric}" Text="{Binding TestElapsed}" AutomationProperties.Name="Time recorded" />
+                                </StackPanel>
+                                <!-- Done: what happens now, with its check. -->
+                                <Grid x:Name="TestDoneLine" Margin="0,0,0,12" Visibility="{Binding TestDoneVisibility}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <controls:Glyph Grid.Column="0" Margin="0,2,8,0" VerticalAlignment="Top" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.published}" Text="{StaticResource Icon.Check}" />
+                                    <TextBlock Grid.Column="1" Style="{StaticResource Text.Body}" Text="{x:Static local:OnboardingViewModel.TestDrafting}" controls:LiveRegion.Setting="Polite" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="StartTest" Style="{StaticResource Button.Primary}" Content="Start _test session" AutomationProperties.Name="Start test session" Command="{Binding StartTestCommand}" Visibility="{Binding StartTestVisibility}" />
+                                    <Button x:Name="StopTest" Style="{StaticResource Button.Primary}" Content="Stop and _draft" AutomationProperties.Name="Stop and draft" Command="{Binding StopTestCommand}" Visibility="{Binding StopTestVisibility}" />
+                                    <Button x:Name="AgainTest" Style="{StaticResource Button.Secondary}" Content="_Run the test again" AutomationProperties.Name="Run the test again" Command="{Binding StartTestCommand}" Visibility="{Binding AgainTestVisibility}" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
 
                     <!-- 7. Done. The first line is the wizard's own note for this step (Spec §5 S8 step 7), said
                          here in full and announced on arrival; the foot does not repeat it. -->
-                    <StackPanel Visibility="{Binding DoneVisibility}">
+                    <!-- Review finding C-O2: "Look for the pill" with the pill pictured under it, as it shows while
+                         recording, and what it is for; anchored 48 below the heading (design system 4.3). -->
+                    <StackPanel x:Name="DoneStep" Margin="0,24,0,0" Visibility="{Binding DoneVisibility}">
                         <Grid Width="{DynamicResource Space.7}" Height="{DynamicResource Space.7}" HorizontalAlignment="Left">
                             <Ellipse Fill="{DynamicResource Brush.bg.success}" Stroke="{DynamicResource Brush.state.published}" />
                             <controls:Glyph HorizontalAlignment="Center" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.text.primary}" Text="{StaticResource Icon.Check}" />
                         </Grid>
-                        <TextBlock Margin="0,16,0,0" Style="{StaticResource Text.Body}" FontSize="{DynamicResource Size.lg}" TextWrapping="Wrap" Text="{Binding Note}" controls:LiveRegion.Setting="Polite" />
+                        <TextBlock Margin="0,16,0,0" Style="{StaticResource Text.Section}" TextWrapping="Wrap" Text="{Binding Note}" controls:LiveRegion.Setting="Polite" />
+                        <Control x:Name="DonePill"
+                                 Margin="0,16,0,0"
+                                 Focusable="False"
+                                 IsTabStop="False"
+                                 Template="{StaticResource Pill.Picture}"
+                                 AutomationProperties.Name="The recording pill, as it shows while ScreenTrail records" />
+                        <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="This is on screen whenever ScreenTrail records. It never appears in the customer's screen share." />
+                        <!-- Review finding C-T8: between sessions the tray icon is the indicator (INV-4), and Windows 11
+                             puts a new icon in the overflow; the button opens the page that pins it. -->
+                        <StackPanel x:Name="TrayHint" Margin="0,24,0,0">
+                            <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{x:Static local:OnboardingViewModel.TrayHint}" />
+                            <Button x:Name="ShowTrayIcon"
+                                    Margin="0,8,0,0"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource Button.Secondary}"
+                                    Content="_Show the tray icon on the taskbar"
+                                    AutomationProperties.Name="Show the tray icon on the taskbar"
+                                    AutomationProperties.HelpText="Opens the taskbar page of Windows Settings."
+                                    Command="{Binding OpenFixCommand}"
+                                    CommandParameter="{x:Static local:OnboardingViewModel.TaskbarSettings}" />
+                        </StackPanel>
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Everything here can be changed in Settings, and this setup can be run again from the tray." />
                     </StackPanel>
                 </Grid>
@@ -281,13 +357,25 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Note}" Visibility="{Binding NoteVisibility}" controls:LiveRegion.Setting="Polite" />
-                        <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" Visibility="{Binding BlockerVisibility}" controls:LiveRegion.Setting="Polite" />
+                        <!-- Review finding C-I4: while the step waits on the service, the ring beside its words. -->
+                        <Grid x:Name="BlockerLine" Margin="0,0,0,12" Visibility="{Binding BlockerVisibility}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Control x:Name="WaitingRing" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top" Style="{StaticResource ProgressRing}" Visibility="{Binding WaitingVisibility}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" controls:LiveRegion.Setting="Polite" />
+                        </Grid>
                         <Grid>
-                            <Button HorizontalAlignment="Left" Style="{StaticResource Button.Ghost}" Content="Back" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
+                            <!-- Review finding C-O7: Back is a Secondary button, its edge on the content's edge as in
+                                 Windows setup (a Ghost button's label sat inset from it), and is not there on
+                                 Welcome or Done, where it cannot act. Skip is shown only on a step with something
+                                 left undone (Activate before activation). -->
+                            <Button x:Name="BackButton" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="_Back" AutomationProperties.Name="Back" Command="{Binding BackCommand}" Visibility="{Binding BackVisibility}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Style="{StaticResource Button.Ghost}" Content="Skip for now" Command="{Binding SkipCommand}" Visibility="{Binding SkipVisibility}" />
-                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="Continue" Command="{Binding NextCommand}" IsEnabled="{Binding CanContinue}" Visibility="{Binding ContinueVisibility}" />
-                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="Finish" Command="{Binding FinishCommand}" Visibility="{Binding FinishVisibility}" />
+                                <Button Style="{StaticResource Button.Ghost}" Content="S_kip for now" AutomationProperties.Name="Skip for now" Command="{Binding SkipCommand}" Visibility="{Binding SkipVisibility}" />
+                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="C_ontinue" AutomationProperties.Name="Continue" Command="{Binding NextCommand}" IsEnabled="{Binding CanContinue}" Visibility="{Binding ContinueVisibility}" />
+                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="_Finish" AutomationProperties.Name="Finish" Command="{Binding FinishCommand}" Visibility="{Binding FinishVisibility}" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>

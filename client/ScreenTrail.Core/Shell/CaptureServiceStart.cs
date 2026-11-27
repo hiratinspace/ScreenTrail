@@ -20,6 +20,44 @@ public static class CaptureServiceStart
     /// <summary>What the balloon says when nothing could be started.</summary>
     public const string Failed = "ScreenTrail could not start the capture service. Sign out and back in to start it, or reinstall ScreenTrail.";
 
+    /// <summary>How long a start the technician asked for waits for the service before starting it (review finding C-I4).</summary>
+    public static readonly TimeSpan AnswerWait = TimeSpan.FromSeconds(3);
+
+    /// <summary>
+    /// Review finding C-I4: after a hand install nothing had started the service (the machine Run key starts
+    /// it only at the next sign-in), so opening ScreenTrail from Start showed setup waiting on a service that
+    /// was not coming. When the app is opened and no service has answered after <see cref="AnswerWait"/>, it
+    /// is started once, by <see cref="Run"/>: the same executable beside this app, as the technician, that
+    /// the tray's Start row already runs, so this adds no new way in. A service that is running answers first,
+    /// and a second start is the service's to refuse.
+    /// </summary>
+    /// <param name="answered">Whether the service has answered.</param>
+    /// <param name="wait">Waits for a time, or throws when cancelled (Task.Delay; a test passes its own).</param>
+    /// <param name="start">Starts the service, as <see cref="Run"/> does.</param>
+    /// <returns>Whether it was started.</returns>
+    public static async Task<bool> StartIfSilentAsync(Func<bool> answered, Func<TimeSpan, CancellationToken, Task> wait, Action start, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(answered);
+        ArgumentNullException.ThrowIfNull(wait);
+        ArgumentNullException.ThrowIfNull(start);
+        try
+        {
+            await wait(AnswerWait, ct).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            return false;
+        }
+
+        if (ct.IsCancellationRequested || answered())
+        {
+            return false;
+        }
+
+        start();
+        return true;
+    }
+
     /// <summary>Starts the service from <paramref name="appFolder"/>.</summary>
     /// <param name="appFolder">The folder this app runs from, where the installer puts the service beside it.</param>
     /// <param name="exists">Whether a file is there.</param>

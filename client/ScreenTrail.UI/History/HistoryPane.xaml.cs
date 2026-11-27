@@ -14,6 +14,9 @@ public partial class HistoryPane : UserControl
 {
     private HistoryViewModel? _listening;
 
+    /// <summary>True while the table's selection is being made the model's, so those changes are not handed back.</summary>
+    private bool _applying;
+
     public HistoryPane()
     {
         InitializeComponent();
@@ -53,7 +56,7 @@ public partial class HistoryPane : UserControl
 
     private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (DataContext is HistoryViewModel model)
+        if (!_applying && DataContext is HistoryViewModel model)
         {
             model.Select(Sessions.SelectedItems.OfType<HistoryRow>());
         }
@@ -73,7 +76,9 @@ public partial class HistoryPane : UserControl
         {
             OnUnloaded(sender, e);
             model.Discarded += OnDiscarded;
+            model.SelectionRestored += OnSelectionRestored;
             _listening = model;
+            OnSelectionRestored(model, EventArgs.Empty);
         }
 
         if (Keyboard.FocusedElement is not UIElement { IsVisible: true })
@@ -87,7 +92,41 @@ public partial class HistoryPane : UserControl
         if (_listening is not null)
         {
             _listening.Discarded -= OnDiscarded;
+            _listening.SelectionRestored -= OnSelectionRestored;
             _listening = null;
+        }
+    }
+
+    /// <summary>
+    /// The rows were read again (review finding D-22): the table selects what the model kept, by id, since a
+    /// row the service changed is a new object the table no longer counts as selected. The current row
+    /// stays where it was, so the arrows go on from the same place.
+    /// </summary>
+    private void OnSelectionRestored(object? sender, EventArgs e)
+    {
+        if (DataContext is not HistoryViewModel model)
+        {
+            return;
+        }
+
+        var want = model.Selected;
+        if (Sessions.SelectedItems.Count == want.Count && want.All(Sessions.SelectedItems.Contains))
+        {
+            return;
+        }
+
+        _applying = true;
+        try
+        {
+            Sessions.SelectedItems.Clear();
+            foreach (var row in want)
+            {
+                _ = Sessions.SelectedItems.Add(row);
+            }
+        }
+        finally
+        {
+            _applying = false;
         }
     }
 

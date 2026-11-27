@@ -31,11 +31,11 @@ public sealed class TitleBarTintTests(TheApplication app)
 
                     ThemeManager.Apply(AppTheme.Dark, app.Resources);
                     await Audit.Settle();
-                    Assert.Equal(TitleBarTint.For(false, "#0D111B", "#F7F5FE"), TitleBar.GetApplied(shell));
+                    Assert.Equal(TitleBarTint.For(false, "#0D111B", "#F7F5FE", "#4A546B"), TitleBar.GetApplied(shell));
 
                     ThemeManager.Apply(AppTheme.Light, app.Resources);
                     await Audit.Settle();
-                    Assert.Equal(TitleBarTint.For(false, "#ECEDF1", "#121826"), TitleBar.GetApplied(shell));
+                    Assert.Equal(TitleBarTint.For(false, "#ECEDF1", "#121826", "#BFC4CF"), TitleBar.GetApplied(shell));
 
                     ThemeManager.SystemHighContrast = () => true;
                     ThemeManager.Apply(AppTheme.Light, app.Resources);
@@ -65,7 +65,11 @@ public sealed class TitleBarTintTests(TheApplication app)
             try
             {
                 Assert.True(TitleBar.GetTint(dialog));
-                Assert.Equal(TitleBarTint.For(false, "#0D111B", "#F7F5FE"), TitleBar.GetApplied(dialog));
+
+                // Review finding D-12: the dialog's caption is its surface (dark bg.surface under
+                // text.primary), and its edge border.strong, so it is one sheet with an edge.
+                Assert.Equal(TitleBarCaption.Surface, TitleBar.GetCaption(dialog));
+                Assert.Equal(TitleBarTint.For(false, "#1D2536", "#F1F2F6", "#4A546B"), TitleBar.GetApplied(dialog));
             }
             finally
             {

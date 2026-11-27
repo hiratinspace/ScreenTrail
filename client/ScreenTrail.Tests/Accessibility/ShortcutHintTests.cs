@@ -27,7 +27,7 @@ public sealed partial class ShortcutHintTests
     {
         var hints = Views()
             .SelectMany(v => v.Root.Descendants(Wpf + "TextBlock")
-                .Where(t => (string?)t.Attribute("Style") == "{StaticResource Text.KeyHint}" && t.Ancestors(Wpf + "Button").Any())
+                .Where(t => (string?)t.Attribute("Style") == "{StaticResource Text.KeyHint}" && t.Ancestors(Wpf + "Button").Any() && !InKeyCap(t))
                 .Select(t => (v.Name, Hint: t)))
             .ToList();
 
@@ -54,9 +54,23 @@ public sealed partial class ShortcutHintTests
             var name = (string?)b.Button.Attribute("AutomationProperties.Name");
             Assert.False(string.IsNullOrEmpty(name), $"{b.Name}: the {key} button has no name of its own, so its hint is read as part of it");
             Assert.False(Regex.IsMatch(name!, $@"[\s,]{Regex.Escape(key)}$"), $"{b.Name}: \"{name}\" ends with its key");
-            Assert.Equal(key, (string?)b.Button.Attribute("AutomationProperties.AcceleratorKey"));
+
+            // A nav row's key cap (design system 10.4, review finding E-21: the rail's Keyboard shortcuts row
+            // shows "?" and F1 opens it too) offers a key of its own; a hint in the label offers its own text.
+            if (b.Button.Descendants(Wpf + "TextBlock").Any(InKeyCap))
+            {
+                Assert.False(string.IsNullOrEmpty((string?)b.Button.Attribute("AutomationProperties.AcceleratorKey")), $"{b.Name}: the {key} row offers no key");
+            }
+            else
+            {
+                Assert.Equal(key, (string?)b.Button.Attribute("AutomationProperties.AcceleratorKey"));
+            }
         });
     }
+
+    /// <summary>A hint drawn in a KeyCap: the key-cap form, 8 after the label by the cap's own margin.</summary>
+    private static bool InKeyCap(XElement hint) =>
+        hint.Parent is { } cap && cap.Name == Wpf + "Border" && (string?)cap.Attribute("Style") == "{StaticResource KeyCap}" && (string?)cap.Attribute("Margin") == "8,0,0,0";
 
     [Fact]
     public void AKeyCapIsTwentyHighWithTheSmallRadius()

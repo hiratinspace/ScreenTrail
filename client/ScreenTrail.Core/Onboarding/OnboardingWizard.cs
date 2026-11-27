@@ -16,6 +16,14 @@ public enum OnboardingStep
     Done,
 }
 
+/// <summary>The Try it step's test session: before it, running, or stopped and drafting.</summary>
+public enum TestState
+{
+    NotStarted,
+    Running,
+    Done,
+}
+
 /// <summary>The service's capability checks, for the Permissions step. Over the pipe in the running application.</summary>
 public interface ICapabilitiesGateway
 {
@@ -37,10 +45,37 @@ public interface ITestSession
     Task<bool> StopAsync(CancellationToken ct = default);
 }
 
+/// <summary>How much a permission's state matters (review finding C-O4), which picks its glyph and colour.</summary>
+public enum PermissionSeverity
+{
+    /// <summary>Allowed: the check in state.published.</summary>
+    Ok,
+
+    /// <summary>Not allowed, and sessions still work without it (the microphone): the warning in state.paused.</summary>
+    OptionalMissing,
+
+    /// <summary>Not allowed, and capture needs it (screen capture, input hooks): the close glyph in state.danger.</summary>
+    Blocking,
+}
+
 /// <param name="FixLink">A Windows Settings deep link when there is one, so the fix is one click.</param>
 public sealed record PermissionRow(string Capability, string Label, bool Ok, string Message, string? FixLink)
 {
+    /// <summary>What a missing microphone means, said under its row rather than in the step's footer (review finding C-O4).</summary>
+    public const string MicrophoneConsequence = "Sessions are drafted from screenshots alone, without narration, until this is on.";
+
     public string Mark => Ok ? "✓" : "✗";
+
+    /// <summary>
+    /// The microphone missing is a worse session, not a broken setup, so it is not drawn as the red failure
+    /// a blocked screen capture is (review finding C-O4).
+    /// </summary>
+    public PermissionSeverity Severity => Ok ? PermissionSeverity.Ok
+        : Capability == "microphone" ? PermissionSeverity.OptionalMissing
+        : PermissionSeverity.Blocking;
+
+    /// <summary>What follows from the row's state, under its message, or empty.</summary>
+    public string Consequence => Severity == PermissionSeverity.OptionalMissing ? MicrophoneConsequence : string.Empty;
 
     /// <summary>What the fix button says: the page it opens, for the microphone, whose page is Windows' privacy settings.</summary>
     public string FixLabel => Capability == "microphone" ? "Open Windows privacy settings" : "Fix in Windows Settings";
@@ -63,8 +98,11 @@ public sealed class OnboardingWizard(
     CapturePanel capture,
     IntegrationsPanel integrations,
     ITestSession testSession,
-    Action<DateTimeOffset> finished)
+    Action<DateTimeOffset> finished,
+    TimeProvider? time = null)
 {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
+
     private static readonly (string Capability, string Label)[] Labels =
     [
         ("microphone", "Microphone"),
@@ -108,22 +146,60 @@ public sealed class OnboardingWizard(
 
     public bool TestRunning { get; private set; }
 
+    /// <summary>Where the Try it step's test is (review finding C-O6), which picks the card's state and its one filled button.</summary>
+    public TestState Test => TestRunning ? TestState.Running : _testDone ? TestState.Done : TestState.NotStarted;
+
+    /// <summary>When the running test started, for the card's timer; null when none is running.</summary>
+    public DateTimeOffset? TestStartedAt { get; private set; }
+
+    /// <summary>How long the running test has run, as the pill says it ("0:07", "1:02"); empty when none is running.</summary>
+    public string TestElapsed => TestStartedAt is { } at ? Elapsed(_time.GetUtcNow() - at) : string.Empty;
+
+    /// <summary>What the card says once the test has stopped.</summary>
+    /// <summary>
+    /// Review finding C-T8: Windows 11 puts a new tray icon in the overflow flyout, and between sessions the
+    /// tray icon is the indicator (INV-4), so Done offers the Settings page that pins it.
+    /// </summary>
+    public const string TrayHint = "Between sessions ScreenTrail shows only its tray icon. Windows may tuck a new icon behind the arrow on the taskbar; turn ScreenTrail on under Other system tray icons to keep it in sight.";
+
+    /// <summary>The taskbar page of Windows Settings, where Other system tray icons are.</summary>
+    public const string TaskbarSettings = "ms-settings:taskbar";
+
+    /// <summary>
+    /// The Permissions step before the service has answered (review finding C-I4): an opened app starts
+    /// the service itself, and the step checks again every two seconds until it answers.
+    /// </summary>
+    public const string WaitingForService = "Starting the capture service, then checking what this PC allows. This takes a few seconds.";
+
+    /// <summary>Whether the step is waiting on the service, with the ring beside its words, and checking again.</summary>
+    public bool WaitingOnService => Step == OnboardingStep.Permissions && !PermissionsKnown;
+
+    public const string TestDrafting = "The draft is on its way. It opens in Review when it is ready, usually within a minute.";
+
+    private static string Elapsed(TimeSpan span)
+    {
+        var seconds = Math.Max(0, (long)span.TotalSeconds);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{seconds / 60}:{seconds % 60:00}");
+    }
+
     public bool Finished { get; private set; }
 
     public bool CanGoBack => Step > OnboardingStep.Welcome && Step < OnboardingStep.Done;
 
     /// <summary>
-    /// Two steps can be skipped. Connect, because publishing can wait and capture cannot, and the owner
-    /// connects it anyway (Spec §5 S8 step 5); Activate, because its own words offer Settings later, and a device enrolled from the
-    /// environment (the M1 runbook) has no code to enter.
+    /// Skip is offered only where there is something left undone to skip (review finding C-O7): Activate
+    /// before this PC is activated, because its own words offer Settings later, and a device enrolled from
+    /// the environment (the M1 runbook) has no code to enter. Once activated there is nothing to skip, and
+    /// Connect is read only (the owner connects it, Spec §5 S8 step 5), so Skip and Continue did the same
+    /// thing there; both steps continue with Continue alone.
     /// </summary>
-    public bool CanSkip => Step is OnboardingStep.Connect or OnboardingStep.Activate;
+    public bool CanSkip => Step is OnboardingStep.Activate && !Activation.Activated;
 
     /// <summary>Why the technician cannot continue yet, or null.</summary>
     public string? Blocker => Step switch
     {
         OnboardingStep.Activate when !Activation.Activated => "Enter the code from your invite, or come back to this from Settings later.",
-        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this PC allows…",
+        OnboardingStep.Permissions when !PermissionsKnown => WaitingForService,
         OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "screen_capture") =>
             "Screen capture is blocked, so there is nothing to capture with. Fix that first.",
         OnboardingStep.TryIt when !_testDone => TestRunning
@@ -135,11 +211,8 @@ public sealed class OnboardingWizard(
     /// <summary>What the step says beside its content, or null: the microphone's consequence, the test's outcome.</summary>
     public string? Note => Step switch
     {
-        OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "microphone") =>
-            "Without the microphone, sessions are drafted without narration, from screenshots alone. Fix it now or later in Windows Settings.",
         OnboardingStep.Tools when _toolsRefused is { } notSaved => notSaved,
         OnboardingStep.TryIt when !_testDone && _testRefused is { } refused => refused,
-        OnboardingStep.TryIt when _testDone => "The draft is on its way. It opens in Review when it is ready, usually within a minute.",
         OnboardingStep.Done => "ScreenTrail starts when you open a remote session. Look for the pill.",
         _ => null,
     };
@@ -254,6 +327,10 @@ public sealed class OnboardingWizard(
 
         _testRefused = null;
         TestRunning = true;
+
+        // A second test, after "Run the test again", is a test of its own: Continue waits for it to stop.
+        _testDone = false;
+        TestStartedAt = _time.GetUtcNow();
         return true;
     }
 
@@ -265,6 +342,7 @@ public sealed class OnboardingWizard(
         }
 
         TestRunning = false;
+        TestStartedAt = null;
         _testDone = true;
         return true;
     }

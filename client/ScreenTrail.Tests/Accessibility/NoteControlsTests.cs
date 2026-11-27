@@ -13,6 +13,7 @@ public sealed class NoteControlsTests
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly XNamespace Controls = "clr-namespace:ScreenTrail.UI.Controls";
+    private static readonly XNamespace Theme = "clr-namespace:ScreenTrail.UI.Theme";
 
     [Fact]
     public void AStepsFrameIsAButtonThatOpensItAndTakesSpace()
@@ -41,7 +42,8 @@ public sealed class NoteControlsTests
 
         var frame = Assert.Single(Buttons(note), b => (string?)b.Attribute("Tag") == "{Binding Id}");
         Assert.Equal("{Binding DataContext.FrameHelp, RelativeSource={RelativeSource AncestorType=UserControl}}", (string?)frame.Attribute("AutomationProperties.HelpText"));
-        Assert.Equal("{Binding DataContext.FrameTip, RelativeSource={RelativeSource AncestorType=UserControl}}", (string?)frame.Attribute("ToolTip"));
+        // Its name first ("Screenshot 2. Enter or click to enlarge, ..."), since R-02 took it from under the image.
+        Assert.Equal("{Binding Tip}", (string?)frame.Attribute("ToolTip"));
 
         // Ctrl+Z is heard on the way down, before a text box takes it for its own undo.
         Assert.Equal("OnNoteKeyDown", (string?)note.Attribute("PreviewKeyDown"));
@@ -102,15 +104,20 @@ public sealed class NoteControlsTests
         var edit = Assert.Single(Buttons(note), b => (string?)b.Attribute("Content") == "Edit");
         Assert.Equal("{Binding EditName}", (string?)edit.Attribute("AutomationProperties.Name"));
 
-        // The words beside the glyph, in confidence.low (never colour alone).
-        Assert.Contains(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
-        Assert.Contains(note.Descendants(Controls + "Glyph"), g => (string?)g.Attribute("Foreground") == "{DynamicResource Brush.confidence.low}");
-
-        // The words wrap on their own row: beside the buttons in a WrapPanel they were measured at infinite
-        // width and the narrow note cut them mid word (review finding B-33).
-        var line = note.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
-        Assert.Equal("Wrap", (string?)line.Attribute("TextWrapping"));
-        Assert.DoesNotContain(line.Ancestors(), e => e.Name == Wpf + "WrapPanel");
+        // Review finding B-34: one line under the step, a Warning badge with its glyph and the words (never
+        // colour alone), then Looks right and Edit, both compact, 8 apart; and no side stripe or its column.
+        var line = note.Descendants(Wpf + "WrapPanel").Single(w => (string?)w.Attribute(Xaml + "Name") == "InferredLine");
+        var badge = line.Elements(Wpf + "ContentControl").Single();
+        Assert.Equal("{StaticResource Badge}", (string?)badge.Attribute("Style"));
+        Assert.Equal("Warning", (string?)badge.Attribute(Theme + "Badge.Tone"));
+        Assert.Equal("{StaticResource Icon.Warning}", (string?)badge.Attribute(Theme + "Badge.Glyph"));
+        Assert.Equal("{Binding InferredLine}", (string?)badge.Attribute("Content"));
+        Assert.Equal("{Binding VerificationTooltip}", (string?)badge.Attribute("ToolTip"));
+        Assert.Equal("0,0,8,0", (string?)badge.Attribute("Margin"));
+        Assert.Equal([confirm, edit], line.Elements(Wpf + "Button"));
+        Assert.All(line.Elements(Wpf + "Button"), b => Assert.Equal("True", (string?)b.Attribute(Theme + "Density.Compact")));
+        Assert.DoesNotContain(note.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Background") == "{DynamicResource Brush.confidence.low}");
+        Assert.DoesNotContain(note.Descendants(Wpf + "ColumnDefinition"), c => (string?)c.Attribute("Width") == "9");
     }
 
     [Fact]
@@ -191,5 +198,96 @@ public sealed class NoteControlsTests
         }
 
         throw new FileNotFoundException(file);
+    }
+
+    /// <summary>Review finding B-36: what was said is a Caption in text.secondary beside its rule, not monospace.</summary>
+    [Fact]
+    public void AQuoteIsACaptionBesideItsRuleNotMonospace()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var quote = note.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(Xaml + "Name") == "StepQuote");
+        Assert.Equal("2,0,0,0", (string?)quote.Attribute("BorderThickness"));
+        Assert.Equal("{DynamicResource Brush.border.strong}", (string?)quote.Attribute("BorderBrush"));
+        Assert.Equal("12,0,0,0", (string?)quote.Attribute("Padding"));
+        var words = quote.Elements(Wpf + "TextBlock").Single();
+        Assert.Equal("{StaticResource Text.Caption}", (string?)words.Attribute("Style"));
+        Assert.Equal("{DynamicResource Brush.text.secondary}", (string?)words.Attribute("Foreground"));
+        Assert.DoesNotContain(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Mono}");
+    }
+
+    /// <summary>
+    /// Review findings B-35 and R-02: a step's frame is 96 x 60 with only a state worth reading under it,
+    /// and under a narrow note the evidence moves under the step's words, the frame then its time in a
+    /// tabular Caption 8 from it; at 560 and up it stays beside them, the time in Text.Numeric.
+    /// </summary>
+    [Fact]
+    public void AStepStacksUnderANarrowNoteAndItsFrameIsSmall()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var frames = note.Descendants(Controls + "Repeater").Single(r => (string?)r.Attribute(Xaml + "Name") == "StepFrames");
+        var button = frames.Descendants(Wpf + "Button").First();
+        Assert.Equal("{DynamicResource Layout.step-frame-width}", (string?)button.Attribute("Width"));
+        Assert.Equal("{DynamicResource Layout.step-frame-height}", (string?)button.Attribute("Height"));
+        var caption = frames.Descendants(Wpf + "WrapPanel").Single(w => (string?)w.Attribute(Xaml + "Name") == "FrameCaption");
+        Assert.Equal("{Binding HasCaption, Converter={StaticResource Visible}}", (string?)caption.Attribute("Visibility"));
+        Assert.Contains(caption.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding StateWord}");
+
+        const string Narrow = "{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}";
+        var evidence = note.Descendants(Wpf + "Grid").Single(g => (string?)g.Attribute(Xaml + "Name") == "Evidence");
+        var stacked = evidence.Descendants(Wpf + "DataTrigger").First(t => (string?)t.Attribute("Binding") == Narrow);
+        Assert.Contains(stacked.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Grid.Row" && (string?)s.Attribute("Value") == "1");
+
+        var time = evidence.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute(Xaml + "Name") == "StepTime");
+        var style = time.Descendants(Wpf + "Style").Single();
+        Assert.Equal("{StaticResource Text.Numeric}", (string?)style.Attribute("BasedOn"));
+        var under = style.Descendants(Wpf + "DataTrigger").Single();
+        Assert.Contains(under.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Margin" && (string?)s.Attribute("Value") == "8,0,0,0");
+        Assert.Contains(under.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "FontSize" && (string?)s.Attribute("Value") == "{DynamicResource Size.sm}");
+
+        var code = File.ReadAllText(Path.Combine(Review.EnvelopeLayoutTests.Ui(), "Review", "NoteEditorViewModel.cs"));
+        Assert.Contains("public const double NarrowBelow = 560;", code, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding B-37: a draft on its way is a 20 px progress ring and the words in Body where the note
+    /// will be, then the note's shape in skeleton, not an Iris disc with a still glyph.
+    /// </summary>
+    [Fact]
+    public void ADraftOnItsWayIsARingAndTheNotesShapeInSkeleton()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var pane = note.Descendants(Wpf + "StackPanel").Single(p => (string?)p.Attribute(Xaml + "Name") == "DraftPendingPane");
+        Assert.DoesNotContain(pane.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource EmptyState.Disc}");
+
+        var ring = pane.Descendants(Wpf + "Control").Single(c => (string?)c.Attribute(Xaml + "Name") == "DraftingRing");
+        Assert.Equal("{StaticResource ProgressRing}", (string?)ring.Attribute("Style"));
+        Assert.Equal("{DynamicResource Icon.lg}", (string?)ring.Attribute("Width"));
+        Assert.Contains(pane.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding DraftPendingMessage}" && (string?)t.Attribute("Style") == "{StaticResource Text.Body}");
+        Assert.Equal(3, pane.Descendants(Wpf + "Border").Count(b => (string?)b.Attribute("Style") == "{StaticResource Skeleton}"));
+    }
+
+    /// <summary>
+    /// Review finding B-38: the footer is one size, Caption, with no size overrides; All screenshots is a
+    /// compact Secondary with a 16 px glyph and its count in Caption, Alt+2 in its tooltip and name, not a
+    /// fourth piece of text; and the footer is at least 44 high so it does not grow when the button appears.
+    /// </summary>
+    [Fact]
+    public void TheNotesFooterIsOneSizeAndDoesNotGrow()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var footer = note.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(Xaml + "Name") == "NoteFooter");
+        Assert.Equal("{DynamicResource Layout.note-footer-height}", (string?)footer.Attribute("MinHeight"));
+        Assert.DoesNotContain(footer.Descendants(Wpf + "TextBlock"), t => t.Attribute("FontSize") is not null);
+        Assert.DoesNotContain(footer.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.KeyHint}");
+
+        var button = footer.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(Xaml + "Name") == "AllScreenshots");
+        Assert.Equal("True", (string?)button.Attribute(Theme + "Density.Compact"));
+        Assert.Equal("Alt+2", (string?)button.Attribute("AutomationProperties.AcceleratorKey"));
+        Assert.Contains("Alt+2", (string?)button.Attribute("ToolTip"), StringComparison.Ordinal);
+        Assert.Null(button.Descendants(Controls + "Glyph").Single().Attribute("FontSize"));
+        Assert.Contains(button.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding StripHeader}" && (string?)t.Attribute("Style") == "{StaticResource Text.Caption}");
+
+        var hints = footer.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute(Xaml + "Name") == "NoteKeyHints");
+        Assert.DoesNotContain("↑", (string?)hints.Attribute("Text"), StringComparison.Ordinal);
     }
 }

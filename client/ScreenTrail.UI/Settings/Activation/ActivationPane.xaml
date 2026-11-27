@@ -24,15 +24,16 @@
                        controls:LiveRegion.Setting="Polite" />
 
             <StackPanel Margin="0,16,0,0" Visibility="{Binding FormVisibility}">
-                <TextBlock Margin="0,0,0,4" Style="{StaticResource Text.Label}" Text="Invite code" />
+                <Label Margin="0,0,0,4" Style="{StaticResource Field.Label}" Content="_Invite code" Target="{Binding ElementName=InviteCode}" />
                 <StackPanel Orientation="Horizontal">
                     <!-- Twenty characters in four groups of five (ADR-0009, "Guessing invite codes"): wide
                          enough for all of them in the mono face, typed in capitals as the invite shows them. -->
-                    <TextBox Width="{DynamicResource Layout.field-wide}"
+                    <TextBox x:Name="InviteCode" Width="{DynamicResource Layout.field-wide}"
                              MaxLength="64"
                              CharacterCasing="Upper"
                              Style="{StaticResource Input.Mono}"
                              Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}"
+                             theme:Field.HasError="{Binding Problem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="Invite code"
                              AutomationProperties.HelpText="Twenty letters and digits in four groups, like KX7PM-4R2WQ-9HTCE-B3NVA" />
                     <Button Margin="8,0,0,0"
@@ -41,12 +42,8 @@
                             Command="{Binding ActivateCommand}"
                             IsEnabled="{Binding CanActivate}" />
                 </StackPanel>
-                <TextBlock Margin="0,8,0,0"
-                           Style="{StaticResource Text.Error}"
-                           TextWrapping="Wrap"
-                           Text="{Binding Problem}"
-                           Visibility="{Binding ProblemVisibility}"
-                           controls:LiveRegion.Setting="Polite" />
+                <!-- Review finding B-12: 4 under the field, which shows its error edge. -->
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
             </StackPanel>
         </StackPanel>
     </Border>

@@ -27,6 +27,7 @@
     <sys:String x:Key="Icon.Settings">&#xE713;</sys:String>
     <sys:String x:Key="Icon.List">&#xE8FD;</sys:String>
     <sys:String x:Key="Icon.Diagnostic">&#xE9D9;</sys:String>
+    <sys:String x:Key="Icon.Keyboard">&#xE765;</sys:String>
     <sys:String x:Key="Icon.History">&#xE81C;</sys:String>
     <sys:String x:Key="Icon.Document">&#xE8A5;</sys:String>
     <sys:String x:Key="Icon.Photo">&#xEB9F;</sys:String>

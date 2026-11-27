@@ -41,10 +41,12 @@
         </Grid.RowDefinitions>
 
         <!-- What this is and how to change it, quietly, where the v0.5 pane had its title. -->
+        <!-- Only over a note (review finding E-10): "Click any line to edit it" above no note misled. -->
         <TextBlock Grid.Row="0"
                    Margin="24,16,24,12"
                    Style="{StaticResource Text.Muted}"
-                   Text="{Binding Guide}" />
+                   Text="{Binding Guide}"
+                   Visibility="{Binding ShowsNoteHints, Converter={StaticResource Visible}}" />
 
         <!-- Banners. Spec §7: never colour alone, so each carries a glyph and the kind as a word. -->
         <controls:Repeater Grid.Row="1" Margin="24,0,24,4" ItemsSource="{Binding Banners}">
@@ -77,39 +79,71 @@
                            Foreground="{DynamicResource Brush.state.danger}"
                            Text="{StaticResource Icon.Warning}" />
             </Border>
-            <TextBlock Margin="0,16,0,0"
-                       Style="{StaticResource Text.SectionHeading}"
-                       HorizontalAlignment="Center"
-                       TextAlignment="Center"
-                       Text="{Binding DraftFailedMessage}" />
-            <TextBlock Margin="0,8,0,0"
-                       Style="{StaticResource Text.Secondary}"
-                       HorizontalAlignment="Center"
-                       TextAlignment="Center"
-                       Text="Your screenshots and transcript are saved." />
-            <Button Margin="0,16,0,0"
-                    HorizontalAlignment="Center"
-                    Style="{StaticResource Button.Primary}"
-                    Content="Retry"
-                    Command="{Binding RetryDraftCommand}" />
-        </StackPanel>
-
-        <!-- ST-013: a draft queued for the backend is on its way, not failed, so there is no Retry. The
-             failed pane's shape in a calm tone: the content row, under the title and the banners. -->
-        <StackPanel Grid.Row="2"
-                    Margin="32,0"
-                    VerticalAlignment="Center"
-                    Visibility="{Binding DraftPending, Converter={StaticResource Visible}}">
-            <Border Style="{StaticResource EmptyState.Disc}">
-                <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.Sync}" />
-            </Border>
+            <!-- Review finding E-10: the heading in the product's voice, the reason in plain words (said
+                 only when the service gave one), that the session is kept, and "Try drafting again" only
+                 when a second try could work. -->
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
                        TextWrapping="Wrap"
-                       controls:LiveRegion.Setting="Polite"
-                       Text="{Binding DraftPendingMessage}" />
+                       Text="{Binding DraftFailedMessage}" />
+            <TextBlock x:Name="DraftFailedReason"
+                       Margin="0,8,0,0"
+                       Style="{StaticResource Text.Body}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Text="{Binding DraftFailedReason}"
+                       Visibility="{Binding HasDraftFailedReason, Converter={StaticResource Visible}}" />
+            <TextBlock Margin="0,8,0,0"
+                       Style="{StaticResource Text.Secondary}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Text="{Binding DraftFailedKept}" />
+            <Button x:Name="TryDraftingAgain"
+                    Margin="0,16,0,0"
+                    HorizontalAlignment="Center"
+                    Style="{StaticResource Button.Primary}"
+                    Content="Try drafting again"
+                    Command="{Binding RetryDraftCommand}"
+                    Visibility="{Binding CanTryDraftingAgain, Converter={StaticResource Visible}}" />
+        </StackPanel>
+
+        <!-- ST-013: a draft queued for the backend is on its way, not failed, so there is no Retry. Review
+             finding B-37: not an Iris disc with a still glyph (Iris is not for empty-state art, and nothing
+             said work was under way) but where the note will be, a 20 px progress ring and the words in
+             Body, then the note's shape in skeleton (a line at 60% and two steps, bg.hover, radius 4). The
+             ring and the blocks appear after 300 ms, and the ring holds still with reduce motion. -->
+        <StackPanel x:Name="DraftPendingPane"
+                    Grid.Row="2"
+                    Margin="24,16,24,0"
+                    VerticalAlignment="Top"
+                    Visibility="{Binding DraftPending, Converter={StaticResource Visible}}">
+            <StackPanel Orientation="Horizontal">
+                <Control x:Name="DraftingRing"
+                         Width="{DynamicResource Icon.lg}"
+                         Height="{DynamicResource Icon.lg}"
+                         VerticalAlignment="Center"
+                         Style="{StaticResource ProgressRing}"
+                         Foreground="{DynamicResource Brush.accent.primary}" />
+                <TextBlock Margin="8,0,0,0"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Body}"
+                           TextWrapping="Wrap"
+                           controls:LiveRegion.Setting="Polite"
+                           Text="{Binding DraftPendingMessage}" />
+            </StackPanel>
+            <Grid Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource Skeleton}" />
+            </Grid>
+            <Border Margin="0,16,0,0" Height="{DynamicResource Layout.control-height}" Style="{StaticResource Skeleton}" />
+            <Border Margin="0,8,0,0" Height="{DynamicResource Layout.control-height}" Style="{StaticResource Skeleton}" />
         </StackPanel>
 
         <ScrollViewer x:Name="NoteScroll"
@@ -158,128 +192,160 @@
                                     </Style>
                                 </Border.Style>
                                 <Grid>
+                                    <!-- No side stripe (review finding B-34: design system 7 bans them): an
+                                         inferred step is marked by its badge line alone, so the columns are the
+                                         same for every step and Alt+C moves nothing sideways. -->
                                     <Grid.ColumnDefinitions>
-                                        <!-- Reserved whether or not the rule is drawn. With Auto the column
-                                             collapses when the marker clears, so pressing Alt+C slid the step
-                                             sideways and left it out of line with its neighbours. -->
-                                        <ColumnDefinition Width="9" />
                                         <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-
-                                    <!-- The ⚠ rule down the left edge. One of three signals, not the signal. -->
-                                    <Border Grid.Column="0"
-                                            Width="3"
-                                            HorizontalAlignment="Left"
-                                            CornerRadius="1.5"
-                                            Background="{DynamicResource Brush.confidence.low}"
-                                            Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}" />
+                                    <!-- Review finding B-35: the second row holds the evidence under a narrow note. -->
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
                                     <!-- The number the ticket gives it, level with the text's first line. -->
-                                    <TextBlock Grid.Column="1"
+                                    <TextBlock Grid.Column="0"
                                                Margin="0,6,0,0"
                                                VerticalAlignment="Top"
                                                Style="{StaticResource Text.Secondary}"
                                                FontWeight="{DynamicResource Weight.semibold}"
                                                Text="{Binding Number, StringFormat={}{0}.}" />
 
-                                    <StackPanel Grid.Column="2">
+                                    <StackPanel Grid.Column="1">
                                         <TextBox Style="{StaticResource Input.InPlace}"
                                                  Margin="-8,0,0,0"
                                                  PreviewKeyDown="OnStepKeyDown"
                                                  Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
                                                  AutomationProperties.Name="{Binding Place}" />
 
-                                        <!-- What was said, set as a quotation: a rule at the left and the
-                                             monospace face, so it never reads as part of the step. -->
-                                        <Border Margin="0,4,0,0"
+                                        <!-- What was said, set as a quotation: a 2 px border.strong rule at the left,
+                                             12 in, so it never reads as part of the step. Caption in text.secondary,
+                                             not monospace (review finding B-36): speech is not a machine string. -->
+                                        <Border x:Name="StepQuote"
+                                                Margin="0,4,0,0"
                                                 Padding="12,0,0,0"
                                                 BorderBrush="{DynamicResource Brush.border.strong}"
                                                 BorderThickness="2,0,0,0"
                                                 Visibility="{Binding HasQuote, Converter={StaticResource Visible}}">
-                                            <TextBlock Style="{StaticResource Text.Mono}"
+                                            <TextBlock Style="{StaticResource Text.Caption}"
                                                        TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource Brush.text.muted}"
+                                                       Foreground="{DynamicResource Brush.text.secondary}"
                                                        Text="{Binding Quote}" />
                                         </Border>
 
-                                        <!-- Inferred (Spec v0.6.0 §5 S3): the glyph in confidence.low, the words
-                                             in body colour, then Looks right (Alt+C) and Edit. Glyph, words and
-                                             rule: readable with no colour at all (Spec §7). -->
-                                        <!-- The line is its own row so it wraps: inside the WrapPanel with the buttons, a
-                                             horizontal StackPanel measured it at infinite width and the narrow note cut it
-                                             mid word (it read "Inferred from screen o"). Review finding B-33. -->
-                                        <StackPanel Margin="0,8,0,0"
-                                                    Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}">
-                                            <Grid ToolTip="{Binding VerificationTooltip}">
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition Width="Auto" />
-                                                    <ColumnDefinition Width="*" />
-                                                </Grid.ColumnDefinitions>
-                                                <controls:Glyph Grid.Column="0"
-                                                                VerticalAlignment="Top"
-                                                                Style="{StaticResource Icon}"
-                                                                Foreground="{DynamicResource Brush.confidence.low}"
-                                                                FontSize="{DynamicResource Icon.sm}"
-                                                                Text="{StaticResource Icon.Warning}" />
-                                                <TextBlock Grid.Column="1"
-                                                           Margin="8,0,0,0"
-                                                           Style="{StaticResource Text.Body}"
-                                                           FontSize="{DynamicResource Size.sm}"
-                                                           TextWrapping="Wrap"
-                                                           Text="{Binding InferredLine}" />
-                                            </Grid>
-                                            <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
-                                                <Button Margin="0,0,8,0"
-                                                        Style="{StaticResource Button.Secondary}"
-                                                        theme:Density.Compact="True"
-                                                        Command="{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                        CommandParameter="{Binding}"
-                                                        Click="OnConfirmClick"
-                                                        AutomationProperties.Name="{Binding ConfirmName}"
-                                                        AutomationProperties.AcceleratorKey="Alt+C"
-                                                        AutomationProperties.HelpText="{Binding VerificationTooltip}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock VerticalAlignment="Center" Text="Looks right" />
-                                                        <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+C" />
-                                                    </StackPanel>
-                                                </Button>
-                                                <Button Style="{StaticResource Button.Ghost}"
-                                                        theme:Density.Compact="True"
-                                                        Content="Edit"
-                                                        Click="OnEditClick"
-                                                        AutomationProperties.Name="{Binding EditName}" />
-                                            </WrapPanel>
-                                        </StackPanel>
+                                        <!-- Inferred (Spec v0.6.0 §5 S3; review findings B-34, E-11): one line under the
+                                             step, a Warning badge "From the screen only" with its glyph, 8, Looks right
+                                             (Secondary, compact, its Alt+C in Micro), 8, Edit (Ghost, compact). Glyph,
+                                             words and the badge's fill: readable with no colour at all (Spec §7). It
+                                             wraps as a whole line under a narrow note; the badge's words never break
+                                             (B-33 cut a wrapping line mid word). -->
+                                        <WrapPanel x:Name="InferredLine"
+                                                   Margin="0,8,0,0"
+                                                   Orientation="Horizontal"
+                                                   Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}">
+                                            <ContentControl Margin="0,0,8,0"
+                                                            VerticalAlignment="Center"
+                                                            Style="{StaticResource Badge}"
+                                                            theme:Badge.Tone="Warning"
+                                                            theme:Badge.Glyph="{StaticResource Icon.Warning}"
+                                                            Content="{Binding InferredLine}"
+                                                            ToolTip="{Binding VerificationTooltip}" />
+                                            <Button Margin="0,0,8,0"
+                                                    Style="{StaticResource Button.Secondary}"
+                                                    theme:Density.Compact="True"
+                                                    Command="{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Click="OnConfirmClick"
+                                                    AutomationProperties.Name="{Binding ConfirmName}"
+                                                    AutomationProperties.AcceleratorKey="Alt+C"
+                                                    AutomationProperties.HelpText="{Binding VerificationTooltip}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock VerticalAlignment="Center" Text="Looks right" />
+                                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+C" />
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Style="{StaticResource Button.Ghost}"
+                                                    theme:Density.Compact="True"
+                                                    Content="Edit"
+                                                    Click="OnEditClick"
+                                                    AutomationProperties.Name="{Binding EditName}" />
+                                        </WrapPanel>
                                     </StackPanel>
 
-                                    <!-- When, on the session's clock: the transcript's own times. -->
-                                    <TextBlock Grid.Column="3"
-                                               Margin="16,8,16,0"
-                                               VerticalAlignment="Top"
-                                               Style="{StaticResource Text.Muted}"
-                                               Text="{Binding Time}" />
+                                    <!-- The evidence (review findings B-35, R-02): at 560 and up, beside the step, the
+                                         time in Text.Numeric and then the frame; under a narrower note, under the
+                                         step's words, the frame and then the time in a tabular Caption, 8 apart. -->
+                                    <Grid x:Name="Evidence">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Grid.Row" Value="0" />
+                                                <Setter Property="Grid.Column" Value="2" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Row" Value="1" />
+                                                        <Setter Property="Grid.Column" Value="1" />
+                                                        <Setter Property="Margin" Value="0,4,0,0" />
+                                                        <Setter Property="HorizontalAlignment" Value="Left" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <!-- The step's frame (the v0.5 screenshot column and "frame 2" chips go):
-                                         its thumbnail is the button. Enter or a click enlarges it over the note,
-                                         Space includes or excludes it and Del deletes it (v0.6.8), as in the
-                                         strip; what it is called on the ticket is under it. -->
-                                    <controls:Repeater Grid.Column="4" ItemsSource="{Binding Frames}">
+                                    <!-- When, on the session's clock: the transcript's own times. -->
+                                    <TextBlock x:Name="StepTime"
+                                               VerticalAlignment="Top"
+                                               Text="{Binding Time}">
+                                        <TextBlock.Style>
+                                            <Style BasedOn="{StaticResource Text.Numeric}" TargetType="TextBlock">
+                                                <Setter Property="Grid.Column" Value="0" />
+                                                <Setter Property="Margin" Value="16,8,16,0" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Column" Value="1" />
+                                                        <Setter Property="Margin" Value="8,0,0,0" />
+                                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                                        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+                                                        <Setter Property="LineHeight" Value="{DynamicResource Leading.caption}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <controls:Repeater x:Name="StepFrames" ItemsSource="{Binding Frames}">
+                                        <controls:Repeater.Style>
+                                            <Style TargetType="controls:Repeater">
+                                                <Setter Property="Grid.Column" Value="1" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Column" Value="0" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </controls:Repeater.Style>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type review:FrameChip}">
-                                                <StackPanel Width="128"
+                                                <!-- 96 x 60, radius 6 (review finding R-02): at 128 x 80 with its caption the
+                                                     card showed two steps at the default size. -->
+                                                <StackPanel Width="{DynamicResource Layout.step-frame-width}"
                                                             Margin="0,4,0,4"
                                                             Visibility="{Binding Present, Converter={StaticResource Visible}}">
-                                                    <Button Width="128"
-                                                            Height="80"
+                                                    <Button Width="{DynamicResource Layout.step-frame-width}"
+                                                            Height="{DynamicResource Layout.step-frame-height}"
                                                             Style="{StaticResource StepFrame}"
                                                             Tag="{Binding Id}"
                                                             Command="{Binding DataContext.ShowFrameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding Id}"
                                                             PreviewKeyDown="OnFrameKeyDown"
-                                                            ToolTip="{Binding DataContext.FrameTip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            ToolTip="{Binding Tip}"
                                                             AutomationProperties.Name="{Binding SpokenName}"
                                                             AutomationProperties.HelpText="{Binding DataContext.FrameHelp, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                                         <Border ClipToBounds="True" CornerRadius="{DynamicResource Radius.control}">
@@ -333,8 +399,13 @@
                                                             </Border.Style>
                                                         </Border>
                                                     </Button>
-                                                    <WrapPanel Margin="0,4,0,0" Orientation="Horizontal">
-                                                        <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.Muted}" Text="{Binding Place}" />
+                                                    <!-- Only a state worth reading here (R-02): "Screenshot 2" is the tooltip and
+                                                         the name, so an attached, unmasked frame has no line. -->
+                                                    <WrapPanel x:Name="FrameCaption"
+                                                               Margin="0,4,0,0"
+                                                               Orientation="Horizontal"
+                                                               Visibility="{Binding HasCaption, Converter={StaticResource Visible}}">
+                                                        <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.Muted}" Text="{Binding StateWord}" />
                                                         <StackPanel Orientation="Horizontal">
                                                             <StackPanel.Style>
                                                                 <Style TargetType="StackPanel">
@@ -353,6 +424,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </controls:Repeater>
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -408,6 +480,7 @@
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Style="{StaticResource Toast}"
+                theme:Motion.Enter="8"
                 Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center"
@@ -430,9 +503,13 @@
         </ContentControl>
 
         <!-- Under the note (Spec v0.6.0 §5 S3): the masking count and the save state, "2 items masked, none
-             left to review · Saved"; then the chords for this pane and the way to the whole strip. -->
-        <Border Grid.Row="3"
-                Padding="24,8"
+             left to review · Saved"; then the chords for this pane and the way to the whole strip. Review
+             finding B-38: one size, Caption, throughout; the button compact with its Alt+2 in the tooltip;
+             at least 44 high, so the footer does not grow when the button appears. -->
+        <Border x:Name="NoteFooter"
+                Grid.Row="3"
+                MinHeight="{DynamicResource Layout.note-footer-height}"
+                Padding="24,0"
                 BorderBrush="{DynamicResource Brush.border.subtle}"
                 BorderThickness="0,1,0,0">
             <Grid>
@@ -443,8 +520,8 @@
 
                 <WrapPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource Text.Secondary}"
-                               FontSize="{DynamicResource Size.sm}"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.text.secondary}"
                                Text="{Binding MaskingLabel}" />
 
                     <!-- The save state after a dot, and only when there is one: the harness persists nothing,
@@ -481,23 +558,27 @@
                 </WrapPanel>
 
                 <StackPanel Grid.Column="1" Margin="16,0,0,0" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,12,0"
+                    <TextBlock x:Name="NoteKeyHints"
+                               Margin="0,0,12,0"
                                VerticalAlignment="Center"
-                               Style="{StaticResource Text.Muted}"
-                               FontSize="{DynamicResource Size.xs}"
-                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save" />
+                               Style="{StaticResource Text.Caption}"
+                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save"
+                               Visibility="{Binding ShowsNoteHints, Converter={StaticResource Visible}}" />
 
                     <!-- The whole strip, in the note's place: the frames no step shows, Del and its undo. -->
-                    <Button Style="{StaticResource Button.Secondary}"
+                    <Button x:Name="AllScreenshots"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Secondary}"
+                            theme:Density.Compact="True"
                             Command="{Binding ShowAllScreenshotsCommand}"
                             Visibility="{Binding HasStrip, Converter={StaticResource Visible}}"
+                            ToolTip="All screenshots, Alt+2"
                             AutomationProperties.Name="{Binding AllScreenshotsName}"
                             AutomationProperties.AcceleratorKey="Alt+2">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Photo}" />
+                            <controls:Glyph Style="{StaticResource Icon}" Text="{StaticResource Icon.Photo}" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="All screenshots" />
-                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Muted}" Text="{Binding StripHeader}" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+2" />
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Caption}" Text="{Binding StripHeader}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>

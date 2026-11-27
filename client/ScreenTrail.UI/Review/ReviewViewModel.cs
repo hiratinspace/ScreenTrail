@@ -46,7 +46,8 @@ public sealed class ReviewViewModel : IAsyncDisposable
         Func<CancellationToken, Task>? discard = null,
         Func<string?>? discardBlocked = null,
         NextSessions? next = null,
-        Action? openSettings = null)
+        Action? openSettings = null,
+        Core.Notifications.DraftFailure? draftFailure = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         SessionId = session.SessionId;
@@ -55,7 +56,7 @@ public sealed class ReviewViewModel : IAsyncDisposable
         Strip = new FilmstripViewModel(session, frames);
         // The note carries each step's frame (Spec v0.6.0 §5 S3), the strip's own items, so a blur or an
         // exclusion there is what the step's row shows; pressing one opens it enlarged.
-        Note = new NoteEditorViewModel(session, write, confirm, discard, showFrame: OpenFrame, draftPending: draftPending, discardBlocked: discardBlocked, strip: Strip);
+        Note = new NoteEditorViewModel(session, write, confirm, discard, showFrame: OpenFrame, draftPending: draftPending, discardBlocked: discardBlocked, strip: Strip, draftFailure: draftFailure);
 
         // These two lambdas are all that keep the note as it arrived, an excluded frame and a frame inside
         // its undo window out of a publish, and the service trusts the list (T-172).
@@ -112,6 +113,7 @@ public sealed class ReviewViewModel : IAsyncDisposable
         }
 
         _disposed = true;
+        Publish.StopLookingUp();
         Strip.PropertyChanged -= OnStripChanged;
         Note.PropertyChanged -= OnNoteChanged;
         await Note.DisposeAsync().ConfigureAwait(true);

@@ -34,6 +34,12 @@
          back a deleted file without uninstalling. -->
     <Property Id="ARPNOMODIFY" Value="1" />
 
+    <!-- Review finding C-I1: what Installed apps and Programs and Features say beside the name. The About,
+         Help and Update links (ARPURLINFOABOUT, ARPHELPLINK, ARPCONTACT, and the bundle's AboutUrl, HelpUrl,
+         UpdateUrl) wait for the owner's domain and support address: the site's address is still a
+         placeholder, and a link to it in a fleet's Installed apps would go nowhere. -->
+    <Property Id="ARPCOMMENTS" Value="Session notes from remote support" />
+
     <!-- The Iris app icon (Spec v0.6.0 §2.0, v0.6.12) in Installed apps and Programs and Features, the same
          .ico the UI's executable carries, built from shared/design/brand by build-icons.py. The Start menu
          shortcut takes the executable's own icon, which is this one too. The path is from the repository
@@ -111,6 +117,20 @@
                      KeyPath="yes" />
     </Component>
 
+    <!-- Review finding C-I7, owner decision 4 (on): the UI starts at sign-in for whoever signs in, so a
+         silent deployment shows the tray icon and setup at the first sign-in, and a session can record.
+         In the background, and saying it is the machine's start: a technician who turns "Start UI at
+         login" off in Settings is not started (UiStart.StaysOutAtSignIn). The value's name is
+         InstalledFootprint.UiRunValue. -->
+    <Component Id="UiAtSignIn" Directory="INSTALLFOLDER" Guid="{3F0C2B8E-5D41-4A7B-9E36-1C8D7F2A6B94}">
+      <RegistryValue Root="HKLM"
+                     Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                     Name="ScreenTrail.UI"
+                     Type="string"
+                     Value="&quot;[INSTALLFOLDER]ScreenTrail.UI.exe&quot; --background --at-sign-in"
+                     KeyPath="yes" />
+    </Component>
+
     <!-- The backend's address, for every user of the machine: msiexec /i ScreenTrail.msi BACKENDURL=https://...
          An installed service reads it only from here, a key an ordinary user cannot change, and ignores
          SCREENTRAIL_BACKEND (DeploymentAddresses). The value already on the machine is read into a property of
@@ -143,7 +163,11 @@
                   Name="ScreenTrail"
                   Description="ScreenTrail: session notes from remote support"
                   Target="[INSTALLFOLDER]ScreenTrail.UI.exe"
-                  WorkingDirectory="INSTALLFOLDER" />
+                  WorkingDirectory="INSTALLFOLDER">
+          <!-- Review findings C-T6 and D-10: the app's identity (ToastContent.AppId), which the UI process
+               also says at start, so its toasts are ScreenTrail's and Windows lists it by name. -->
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="ScreenTrail.Client" />
+        </Shortcut>
         <RegistryValue Root="HKLM" Key="Software\ScreenTrail" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
       </Component>
     </StandardDirectory>
@@ -151,6 +175,7 @@
     <Feature Id="ScreenTrail" Title="ScreenTrail">
       <ComponentGroupRef Id="Payload" />
       <ComponentRef Id="ServiceAtSignIn" />
+      <ComponentRef Id="UiAtSignIn" />
       <ComponentRef Id="StartMenuShortcut" />
       <ComponentRef Id="BackendAddress" />
     </Feature>

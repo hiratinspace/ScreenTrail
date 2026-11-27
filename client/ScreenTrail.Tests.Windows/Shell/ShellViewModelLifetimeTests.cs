@@ -231,6 +231,33 @@ public sealed class ShellViewModelLifetimeTests
         await model.Released;
     }
 
+    /// <summary>
+    /// Review finding D-20: the pane on screen stays there while the next one loads, rather than a loading
+    /// card for every switch however quick, and is let go of when the next one arrives.
+    /// </summary>
+    [Fact]
+    public async Task ThePaneOnScreenStaysWhileTheNextLoads()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        var state = new ShellState();
+        var first = new Pane();
+        var second = new TaskCompletionSource<object?>();
+        using var model = new ShellViewModel(state, loadReview: (id, _) => id == "s1" ? Task.FromResult<object?>(first) : second.Task);
+
+        state.Connected(DraftReady("s1"));
+        Assert.Same(first, model.Content);
+
+        state.Observe(DraftReady("s2"));
+        Assert.Same(first, model.Content);
+        Assert.Equal(0, first.Disposed);
+
+        var next = new Pane();
+        second.SetResult(next);
+        await Task.Yield();
+        Assert.Same(next, model.Content);
+        Assert.Equal(1, first.Disposed);
+    }
+
     [Fact]
     public void AnotherSessionsPaneLetsGoOfTheOneBefore()
     {

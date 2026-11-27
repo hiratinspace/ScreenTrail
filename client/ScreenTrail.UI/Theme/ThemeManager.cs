@@ -21,8 +21,19 @@ public static class ThemeManager
 
     public static AppTheme Current { get; private set; } = AppTheme.Dark;
 
-    /// <summary>Spec §2.3: honour the OS "reduce motion" (Windows: "Show animations") setting.</summary>
-    public static bool ReduceMotion => !ClientAreaAnimation();
+    /// <summary>
+    /// Spec §2.3 and design system 9.5 (review finding D-32): nothing moves when Windows' "Animation effects"
+    /// is off, over Remote Desktop (where every frame of a fade is sent down the wire, and a technician on a
+    /// support call is often remote), or when the graphics card renders in software (render tier 0). Read
+    /// each time it is asked, so a change in Windows applies at the next motion.
+    /// </summary>
+    public static bool ReduceMotion => !ClientAreaAnimation() || RemoteSession() || SoftwareRendering();
+
+    /// <inheritdoc cref="ClientAreaAnimation"/>
+    internal static Func<bool> RemoteSession { get; set; } = () => SystemParameters.IsRemoteSession;
+
+    /// <inheritdoc cref="ClientAreaAnimation"/>
+    internal static Func<bool> SoftwareRendering { get; set; } = () => (System.Windows.Media.RenderCapability.Tier >> 16) == 0;
 
     public static AppTheme Effective(AppTheme requested) => SystemHighContrast() ? AppTheme.HighContrast : requested;
 
@@ -118,6 +129,58 @@ public static class ThemeManager
         };
     }
 
+    /// <summary>
+    /// Windows' Text size (review finding D-14, <see cref="Core.Shell.TextScale"/>): the scaled tokens are set
+    /// on the application's own resources, which win over the merged token dictionary, and every text style
+    /// reads them dynamically. Read now and again when Windows says an accessibility setting changed. Not
+    /// for a render, whose pictures stay at 100%.
+    /// </summary>
+    public static void FollowTextSize(ResourceDictionary resources)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+        ApplyTextSize(resources, TextScaleStored());
+        var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+        SystemEvents.UserPreferenceChanged += (_, e) =>
+        {
+            if (e.Category == UserPreferenceCategory.Accessibility)
+            {
+                dispatcher.BeginInvoke(() => ApplyTextSize(resources, TextScaleStored()));
+            }
+        };
+    }
+
+    /// <summary>The tokens at the stored Text size; at 100% the overrides are taken away and the tokens show.</summary>
+    internal static void ApplyTextSize(ResourceDictionary resources, object? stored)
+    {
+        var factor = Core.Shell.TextScale.Factor(stored);
+        var tokens = resources.MergedDictionaries.FirstOrDefault(d => d.Source?.OriginalString.EndsWith("Tokens.Common.g.xaml", StringComparison.Ordinal) == true);
+        foreach (var key in Core.Shell.TextScale.Keys)
+        {
+            if (factor == 1d || tokens?[key] is not double token)
+            {
+                resources.Remove(key);
+            }
+            else
+            {
+                resources[key] = Core.Shell.TextScale.Scaled(token, factor);
+            }
+        }
+    }
+
+    /// <summary>Where Windows keeps Text size; a seam like the others, so a test never changes the machine's.</summary>
+    internal static Func<object?> TextScaleStored { get; set; } = () =>
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Accessibility");
+            return key?.GetValue("TextScaleFactor");
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or System.IO.IOException)
+        {
+            return null;
+        }
+    };
+
     /// <summary>Windows' app mode may have changed: a System choice shows the palette it now asks for.</summary>
     internal static void ModeChanged(ResourceDictionary resources)
     {
@@ -165,12 +228,18 @@ public static class ThemeManager
         };
 
         var next = new ResourceDictionary { Source = new Uri($"pack://application:,,,/ScreenTrail.UI;component/Theme/{file}") };
-        if (_colors is not null)
+        // Replaced in place (review finding D-28): removing the old dictionary and then inserting the new one
+        // invalidated every resource twice per switch.
+        var index = _colors is null ? -1 : resources.MergedDictionaries.IndexOf(_colors);
+        if (index >= 0)
         {
-            resources.MergedDictionaries.Remove(_colors);
+            resources.MergedDictionaries[index] = next;
+        }
+        else
+        {
+            resources.MergedDictionaries.Insert(0, next);
         }
 
-        resources.MergedDictionaries.Insert(0, next);
         _colors = next;
         Current = theme;
         Applied?.Invoke(null, EventArgs.Empty);

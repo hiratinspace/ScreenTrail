@@ -25,6 +25,19 @@ public sealed class ConfirmCopyTests
         ["not-discarded"] = ConfirmCopy.NotDiscarded("The capture service did not answer. Check that it is running, then try again."),
     };
 
+    /// <summary>Review finding E-20: every button of every dialog has an access key, unique in that dialog.</summary>
+    [Theory]
+    [MemberData(nameof(Names))]
+    public void EveryButtonHasItsOwnAccessKey(string name)
+    {
+        var words = Every()[name];
+        string[] labels = words.Action is null ? [words.Cancel] : [words.Cancel, words.Action];
+        var keys = AccessKeys.Assign(labels).Select(AccessKeys.KeyOf).ToList();
+
+        Assert.All(keys, k => Assert.NotNull(k));
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+    }
+
     [Theory]
     [MemberData(nameof(Names))]
     public void TheButtonSaysWhatHappensAndNeverOk(string name)

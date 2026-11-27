@@ -33,9 +33,20 @@ public partial class NoteEditorView : UserControl
             {
                 await model.TickAsync();
             }
+
+            FollowTheWork();
         };
 
-        Loaded += (_, _) => _tick.Start();
+        Loaded += (_, _) => FollowTheWork();
+
+        // Review finding B-35: under 560 wide a step stacks, its frame and time under its words.
+        NoteScroll.SizeChanged += (_, e) =>
+        {
+            if (Model is { } model && e.WidthChanged)
+            {
+                model.IsNarrow = e.NewSize.Width < NoteEditorViewModel.NarrowBelow;
+            }
+        };
 
         // What Ctrl+Z means after Del on a step's frame depends on whether anything was typed since.
         AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => _typedSinceDelete = true));
@@ -206,8 +217,29 @@ public partial class NoteEditorView : UserControl
         }
     }
 
+    /// <summary>
+    /// Review finding D-29: the timer runs while there is something to write or count down, and stops when
+    /// there is not; an edit starts it again. It used to tick four times a second while Review was open.
+    /// </summary>
+    private void FollowTheWork()
+    {
+        if (IsLoaded && Model is { NeedsTick: true })
+        {
+            _tick.Start();
+        }
+        else
+        {
+            _tick.Stop();
+        }
+    }
+
     private void OnModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(NoteEditorViewModel.NeedsTick))
+        {
+            FollowTheWork();
+        }
+
         // A new delete, here or in the strip: nothing has been typed since it.
         if (e.PropertyName == nameof(NoteEditorViewModel.UndoToast) && Model is { HasUndoToast: true })
         {
