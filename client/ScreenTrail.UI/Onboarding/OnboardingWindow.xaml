@@ -285,7 +285,11 @@
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Note}" Visibility="{Binding NoteVisibility}" controls:LiveRegion.Setting="Polite" />
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" Visibility="{Binding BlockerVisibility}" controls:LiveRegion.Setting="Polite" />
                         <Grid>
-                            <Button HorizontalAlignment="Left" Style="{StaticResource Button.Ghost}" Content="_Back" AutomationProperties.Name="Back" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
+                            <!-- Review finding C-O7: Back is a Secondary button, its edge on the content's edge as in
+                                 Windows setup (a Ghost button's label sat inset from it), and is not there on
+                                 Welcome or Done, where it cannot act. Skip is shown only on a step with something
+                                 left undone (Activate before activation). -->
+                            <Button x:Name="BackButton" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="_Back" AutomationProperties.Name="Back" Command="{Binding BackCommand}" Visibility="{Binding BackVisibility}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                                 <Button Style="{StaticResource Button.Ghost}" Content="S_kip for now" AutomationProperties.Name="Skip for now" Command="{Binding SkipCommand}" Visibility="{Binding SkipVisibility}" />
                                 <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="C_ontinue" AutomationProperties.Name="Continue" Command="{Binding NextCommand}" IsEnabled="{Binding CanContinue}" Visibility="{Binding ContinueVisibility}" />

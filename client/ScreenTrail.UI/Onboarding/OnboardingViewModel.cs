@@ -97,6 +97,10 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [ObservableProperty]
     public partial bool CanGoBack { get; set; }
 
+    /// <summary>Review finding C-O7: Back is not there where it cannot act (Welcome, Done), rather than a dead control.</summary>
+    [ObservableProperty]
+    public partial Visibility BackVisibility { get; set; } = Visibility.Collapsed;
+
     [ObservableProperty]
     public partial Visibility SkipVisibility { get; set; } = Visibility.Collapsed;
 
@@ -250,6 +254,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
         NoteVisibility = Note.Length == 0 || Step == OnboardingStep.Done ? Visibility.Collapsed : Visibility.Visible;
         CanContinue = _wizard.CanContinue;
         CanGoBack = _wizard.CanGoBack;
+        BackVisibility = CanGoBack ? Visibility.Visible : Visibility.Collapsed;
         SkipVisibility = _wizard.CanSkip ? Visibility.Visible : Visibility.Collapsed;
         ContinueVisibility = Step == OnboardingStep.Done ? Visibility.Collapsed : Visibility.Visible;
         FinishVisibility = Step == OnboardingStep.Done ? Visibility.Visible : Visibility.Collapsed;

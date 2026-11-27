@@ -31,4 +31,14 @@ public sealed class OnboardingPolishTests
         Assert.Null(banner.Attribute(XName.Get("Banner.Tone", "clr-namespace:ScreenTrail.UI.Theme")));
         Assert.Equal("{StaticResource Icon.Lock}", (string?)banner.Attribute(XName.Get("Banner.Glyph", "clr-namespace:ScreenTrail.UI.Theme")));
     }
+
+    /// <summary>Review finding C-O7: Back is Secondary and hidden where it cannot act.</summary>
+    [Fact]
+    public void BackIsSecondaryAndOnlyThereWhenItCanAct()
+    {
+        var back = Named(Window(), "BackButton");
+        Assert.Equal("{StaticResource Button.Secondary}", (string?)back.Attribute("Style"));
+        Assert.Equal("{Binding BackVisibility}", (string?)back.Attribute("Visibility"));
+        Assert.Null(back.Attribute("IsEnabled"));
+    }
 }

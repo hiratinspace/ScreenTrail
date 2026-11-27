@@ -113,11 +113,13 @@ public sealed class OnboardingWizard(
     public bool CanGoBack => Step > OnboardingStep.Welcome && Step < OnboardingStep.Done;
 
     /// <summary>
-    /// Two steps can be skipped. Connect, because publishing can wait and capture cannot, and the owner
-    /// connects it anyway (Spec §5 S8 step 5); Activate, because its own words offer Settings later, and a device enrolled from the
-    /// environment (the M1 runbook) has no code to enter.
+    /// Skip is offered only where there is something left undone to skip (review finding C-O7): Activate
+    /// before this PC is activated, because its own words offer Settings later, and a device enrolled from
+    /// the environment (the M1 runbook) has no code to enter. Once activated there is nothing to skip, and
+    /// Connect is read only (the owner connects it, Spec §5 S8 step 5), so Skip and Continue did the same
+    /// thing there; both steps continue with Continue alone.
     /// </summary>
-    public bool CanSkip => Step is OnboardingStep.Connect or OnboardingStep.Activate;
+    public bool CanSkip => Step is OnboardingStep.Activate && !Activation.Activated;
 
     /// <summary>Why the technician cannot continue yet, or null.</summary>
     public string? Blocker => Step switch

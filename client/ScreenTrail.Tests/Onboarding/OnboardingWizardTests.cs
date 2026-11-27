@@ -104,6 +104,9 @@ public sealed class OnboardingWizardTests
         Assert.True(await wizard.Activation.ActivateAsync());
         Assert.True(wizard.CanContinue);
         Assert.Equal("Acme IT", wizard.Activation.TenantName);
+
+        // Review finding C-O7: activated, there is nothing left to skip; Continue alone goes on.
+        Assert.False(wizard.CanSkip);
     }
 
     [Fact]
@@ -198,17 +201,19 @@ public sealed class OnboardingWizardTests
     }
 
     [Fact]
-    public async Task SkippingConnectFinishesWithNothingConnected()
+    public async Task ConnectContinuesWithNothingConnectedAndOffersNoSkip()
     {
-        // AC2: skipped integrations → drafts still produced; Publish shows "Connect a PSA" (the
-        // publish pane's own rule). The wizard only has to let the technician past.
+        // AC2: nothing connected → drafts still produced; Publish shows "Connect a PSA" (the publish
+        // pane's own rule). The wizard only has to let the technician past. The step is read only, so
+        // Skip and Continue meant the same; Continue alone is offered (review finding C-O7).
         var integrations = new FakeIntegrations();
         var wizard = Wizard(integrations: integrations);
         wizard.Go(OnboardingStep.Connect);
         await wizard.LoadStepAsync();
 
-        Assert.True(wizard.CanSkip);
-        wizard.Skip();
+        Assert.False(wizard.CanSkip);
+        Assert.True(wizard.CanContinue);
+        wizard.Next();
 
         Assert.Equal(OnboardingStep.TryIt, wizard.Step);
         Assert.Equal(1, integrations.Listed);
@@ -232,7 +237,7 @@ public sealed class OnboardingWizardTests
         Assert.False(wizard.Integrations.Hudu.Connected);
         Assert.Null(wizard.Blocker);
         Assert.True(wizard.CanContinue);
-        Assert.True(wizard.CanSkip);
+        Assert.False(wizard.CanSkip);
 
         wizard.Next();
         Assert.Equal(OnboardingStep.TryIt, wizard.Step);
