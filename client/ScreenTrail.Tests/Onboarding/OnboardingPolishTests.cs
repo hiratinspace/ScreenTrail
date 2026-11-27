@@ -154,4 +154,19 @@ public sealed class OnboardingPolishTests
         Assert.Contains("ThemeManager.ReduceMotion", code, StringComparison.Ordinal);
         Assert.Contains("Waiting.Fade", code, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding C-T8: Done says the tray icon is the indicator between sessions and offers the taskbar
+    /// page of Windows Settings, through the same allowlist the permission fixes use.
+    /// </summary>
+    [Fact]
+    public void DoneOffersToKeepTheTrayIconInSight()
+    {
+        var button = Named(Named(Window(), "TrayHint"), "ShowTrayIcon");
+        Assert.Equal("{StaticResource Button.Secondary}", (string?)button.Attribute("Style"));
+        Assert.Equal("{Binding OpenFixCommand}", (string?)button.Attribute("Command"));
+        Assert.True(ScreenTrail.Core.Shell.ExternalLinks.TryFixLink(ScreenTrail.Core.Onboarding.OnboardingWizard.TaskbarSettings, out var target));
+        Assert.Equal("ms-settings:taskbar", target);
+        Assert.DoesNotContain('\u2014', ScreenTrail.Core.Onboarding.OnboardingWizard.TrayHint);
+    }
 }

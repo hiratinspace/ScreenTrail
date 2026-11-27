@@ -325,6 +325,20 @@
                                  Template="{StaticResource Pill.Picture}"
                                  AutomationProperties.Name="The recording pill, as it shows while ScreenTrail records" />
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Caption}" Text="This is on screen whenever ScreenTrail records. It never appears in the customer's screen share." />
+                        <!-- Review finding C-T8: between sessions the tray icon is the indicator (INV-4), and Windows 11
+                             puts a new icon in the overflow; the button opens the page that pins it. -->
+                        <StackPanel x:Name="TrayHint" Margin="0,24,0,0">
+                            <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{x:Static local:OnboardingViewModel.TrayHint}" />
+                            <Button x:Name="ShowTrayIcon"
+                                    Margin="0,8,0,0"
+                                    HorizontalAlignment="Left"
+                                    Style="{StaticResource Button.Secondary}"
+                                    Content="_Show the tray icon on the taskbar"
+                                    AutomationProperties.Name="Show the tray icon on the taskbar"
+                                    AutomationProperties.HelpText="Opens the taskbar page of Windows Settings."
+                                    Command="{Binding OpenFixCommand}"
+                                    CommandParameter="{x:Static local:OnboardingViewModel.TaskbarSettings}" />
+                        </StackPanel>
                         <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Everything here can be changed in Settings, and this setup can be run again from the tray." />
                     </StackPanel>
                 </Grid>

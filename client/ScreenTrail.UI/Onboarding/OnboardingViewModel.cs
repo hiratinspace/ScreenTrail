@@ -144,6 +144,12 @@ public sealed partial class OnboardingViewModel : ObservableObject
     /// <summary>What the card says once the test has stopped.</summary>
     public static string TestDrafting => OnboardingWizard.TestDrafting;
 
+    /// <summary>Done's line on the tray icon and the overflow (review finding C-T8).</summary>
+    public static string TrayHint => OnboardingWizard.TrayHint;
+
+    /// <summary>The Settings page the tray line's button opens, through <see cref="OpenFixCommand"/>'s allowlist.</summary>
+    public static string TaskbarSettings => OnboardingWizard.TaskbarSettings;
+
     private System.Windows.Threading.DispatcherTimer? _testClock;
 
     private void FollowTheTest()

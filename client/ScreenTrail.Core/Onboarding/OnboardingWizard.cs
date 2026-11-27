@@ -156,6 +156,15 @@ public sealed class OnboardingWizard(
     public string TestElapsed => TestStartedAt is { } at ? Elapsed(_time.GetUtcNow() - at) : string.Empty;
 
     /// <summary>What the card says once the test has stopped.</summary>
+    /// <summary>
+    /// Review finding C-T8: Windows 11 puts a new tray icon in the overflow flyout, and between sessions the
+    /// tray icon is the indicator (INV-4), so Done offers the Settings page that pins it.
+    /// </summary>
+    public const string TrayHint = "Between sessions ScreenTrail shows only its tray icon. Windows may tuck a new icon behind the arrow on the taskbar; turn ScreenTrail on under Other system tray icons to keep it in sight.";
+
+    /// <summary>The taskbar page of Windows Settings, where Other system tray icons are.</summary>
+    public const string TaskbarSettings = "ms-settings:taskbar";
+
     public const string TestDrafting = "The draft is on its way. It opens in Review when it is ready, usually within a minute.";
 
     private static string Elapsed(TimeSpan span)
