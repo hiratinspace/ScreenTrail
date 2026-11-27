@@ -63,7 +63,7 @@ public sealed partial class CaptureViewModel : ObservableObject
         (HotkeyAction.StartCapture, "Start capture"),
         (HotkeyAction.PauseOrResume, "Pause or resume"),
         (HotkeyAction.StopAndDraft, "Stop and draft"),
-        (HotkeyAction.MarkMoment, "Mark this moment"),
+        (HotkeyAction.MarkMoment, "Mark a moment"),
     ];
 
     private readonly CapturePanel _panel;

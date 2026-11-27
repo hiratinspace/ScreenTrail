@@ -58,7 +58,7 @@ public static class NoteBanners
         {
             banners.Add(new Banner(
                 BannerKind.Info,
-                "Drafted on this device only. Quality may be lower."));
+                "Drafted on this PC only. Quality may be lower."));
         }
 
         // Local-only mode is why a local draft happened, so saying both would be saying it twice. Said on

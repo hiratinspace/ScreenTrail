@@ -42,7 +42,7 @@ public sealed record HudControl(HudAction Action, string Name, string Hotkey)
 /// </summary>
 public static class HudControls
 {
-    public static HudControl Mark => new(HudAction.Mark, "Mark moment", Chord(HotkeyAction.MarkMoment));
+    public static HudControl Mark => new(HudAction.Mark, "Mark a moment", Chord(HotkeyAction.MarkMoment));
 
     public static HudControl Pause => new(HudAction.Pause, "Pause", Chord(HotkeyAction.PauseOrResume));
 

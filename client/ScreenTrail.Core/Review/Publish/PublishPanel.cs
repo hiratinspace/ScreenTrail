@@ -448,7 +448,7 @@ public sealed class PublishPanel
 
     private string DocumentationName => ProviderFor(Destination.KbArticle) is { } provider
         ? IntegrationNames.InSentence(provider)
-        : "the documentation platform";
+        : "the knowledge base";
 
     /// <summary>The result list (Spec §5 S3), one row per destination, in the order the form lists them.</summary>
     public IReadOnlyList<PublishResultRow> Rows

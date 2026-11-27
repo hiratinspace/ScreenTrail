@@ -81,7 +81,7 @@
                                     Style="{StaticResource Badge}"
                                     Content="Local-only"
                                     Visibility="{Binding LocalOnlyVisibility}"
-                                    AutomationProperties.Name="Local-only: nothing leaves this device but what you publish" />
+                                    AutomationProperties.Name="Local-only: nothing leaves this PC but what you publish" />
                 </StackPanel>
             </Grid>
         </ContentControl>

@@ -798,7 +798,7 @@ public partial class ShellWindow
                 Plain("Left a note on the workstation's asset record about the older driver."),
                 Plain("Confirmed with the office manager that printing works from both reception PCs."),
             ],
-            FollowUps = [.. draft.FollowUps, "Schedule the HP driver update for this machine after hours.", "Check the other reception PC's spooler recovery settings."],
+            FollowUps = [.. draft.FollowUps, "Schedule the HP driver update for this PC after hours.", "Check the other reception PC's spooler recovery settings."],
         };
     }
 

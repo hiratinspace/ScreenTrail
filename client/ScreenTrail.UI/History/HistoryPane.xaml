@@ -252,7 +252,7 @@
                         Command="{Binding BulkDiscardCommand}"
                         ToolTip="Discard the selected sessions. You will be asked to type how many."
                         AutomationProperties.Name="Discard the selected sessions"
-                        AutomationProperties.HelpText="Deletes the selected sessions' screenshots, transcripts and notes from this device. You will be asked to type how many." />
+                        AutomationProperties.HelpText="Deletes the selected sessions' screenshots, transcripts and notes from this PC. You will be asked to type how many." />
             </StackPanel>
 
             <!-- What the last discard did, or why it did not happen: beside the button, never a dialog,

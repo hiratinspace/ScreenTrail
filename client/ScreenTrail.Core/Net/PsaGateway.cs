@@ -323,7 +323,7 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
 
         if (token() is not { Length: > 0 } bearer)
         {
-            return GatewayAnswer.Refused<TOut>("This device is not enrolled yet, so nothing can be published.");
+            return GatewayAnswer.Refused<TOut>("This PC is not enrolled yet, so nothing can be published.");
         }
 
         using var request = build();
@@ -444,7 +444,7 @@ public sealed class PsaGateway(HttpClient http, Func<string?> token, IAuditLog? 
 
         return response.StatusCode switch
         {
-            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "This device may not publish. Its enrolment was revoked or its token expired.",
+            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "This PC may not publish. Its enrolment was revoked or its token expired.",
             HttpStatusCode.NotImplemented => "No PSA is connected. Your ScreenTrail admin connects one in the web admin.",
             _ => $"The backend answered {(int)response.StatusCode}.",
         };

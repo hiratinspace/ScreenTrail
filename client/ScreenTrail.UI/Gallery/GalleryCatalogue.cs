@@ -81,7 +81,7 @@ internal static class GalleryCatalogue
     /// <summary>A banner in every <c>theme:Banner.Tone</c> the Banner template draws.</summary>
     public static IReadOnlyList<(string Tone, string? Title, string Words)> Banners { get; } =
     [
-        ("Info", null, "Drafted on this device only. Quality may be lower."),
+        ("Info", null, "Drafted on this PC only. Quality may be lower."),
         ("Success", null, "Published to ticket #48213."),
         ("Warning", "Some steps may be missing", "Capture started late or was interrupted."),
         ("Danger", null, "ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin."),

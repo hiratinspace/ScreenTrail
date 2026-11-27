@@ -84,7 +84,7 @@ public static class FallbackDraft
             SuggestedTitle = $"{tool} session, {session.StartedAt.ToLocalTime():d MMM HH:mm}",
             SuggestedTimeMinutes = minutes,
             KbCandidate = false,
-            KbReason = "Drafted on this device without a model.",
+            KbReason = "Drafted on this PC without a model.",
             Source = DraftSource.Local,
             PromptVersion = PromptVersion,
         };

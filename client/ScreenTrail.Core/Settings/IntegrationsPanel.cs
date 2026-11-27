@@ -62,6 +62,7 @@ public static class IntegrationNames
     public static bool IsDemo(string provider) =>
         provider is not null && provider.StartsWith("demo-", StringComparison.Ordinal);
 
+    // The backend's own words, matched as it sends them, so the arrow stays.
     private const string Pointer = " in Settings → Integrations";
 
     private const string AskOwner = "Ask your ScreenTrail admin to ";

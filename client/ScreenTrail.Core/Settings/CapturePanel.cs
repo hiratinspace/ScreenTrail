@@ -198,7 +198,7 @@ public sealed class CapturePanel(ICaptureGateway gateway)
     /// </summary>
     public IReadOnlyList<ModelChoice> Models { get; } =
     [
-        new ModelChoice(null, "Automatic (Recommended)", $"Automatic uses {PlainName(SpeechModels.For(Environment.ProcessorCount).Name)} on this computer."),
+        new ModelChoice(null, "Automatic (Recommended)", $"Automatic uses {PlainName(SpeechModels.For(Environment.ProcessorCount).Name)} on this PC."),
         .. SpeechModels.All.Select(m => new ModelChoice(m.Name, PlainName(m.Name), m.Name switch
         {
             "tiny.en" => "The smallest download and the quickest, but it gets the most words wrong.",

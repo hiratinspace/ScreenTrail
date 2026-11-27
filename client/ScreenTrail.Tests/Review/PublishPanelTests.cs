@@ -278,7 +278,7 @@ public sealed class PublishPanelTests
         // not mapped; the pane asks for the platform's companies and shows the prompt beside the result.
         var panel = Panel(
             publish: r => [.. r.Destinations.Select(d => d == Destination.KbArticle
-                ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the documentation platform. Map it in Settings → Integrations, then publish the article again.", "needs_mapping")
+                ? new DestinationResult(d, false, null, "\"Acme Dental\" is not mapped to a company in the knowledge base. Map it in Settings → Integrations, then publish the article again.", "needs_mapping")
                 : new DestinationResult(d, true))],
             companies: () => [new CompanyChoice("7", "Acme Dental"), new CompanyChoice("9", "Bright Smiles")]);
         panel.Choose(new TicketMatch("48213", "Printer offline", "Acme Dental"));

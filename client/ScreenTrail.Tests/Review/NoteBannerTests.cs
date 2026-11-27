@@ -48,7 +48,7 @@ public sealed class NoteBannerTests
         var banners = NoteBanners.For(Session(localOnly: true, draft: local));
 
         Assert.Single(banners);
-        Assert.Equal("Drafted on this device only. Quality may be lower.", banners[0].Text);
+        Assert.Equal("Drafted on this PC only. Quality may be lower.", banners[0].Text);
     }
 
     [Fact]

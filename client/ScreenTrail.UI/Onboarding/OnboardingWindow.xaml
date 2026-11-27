@@ -175,7 +175,7 @@
                         <ContentControl Margin="0,24,0,0" Style="{StaticResource Banner}" theme:Banner.Glyph="{StaticResource Icon.Lock}">
                             <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your review." />
                         </ContentControl>
-                        <TextBlock Margin="0,24,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Setup takes about five minutes: activate this device, check what the machine allows, pick your remote tools, connect your PSA if you want to, and try a session." />
+                        <TextBlock Margin="0,24,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Setup takes about five minutes: activate this PC, check what the machine allows, pick your remote tools, connect your PSA if you want to, and try a session." />
                     </StackPanel>
 
                     <!-- 2. Activate: the code from the invite; the tenant's name on success. -->

@@ -52,18 +52,18 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
 
     private static readonly TimeSpan Margin = TimeSpan.FromMinutes(5);
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private const string ErasedRefusal = "Everything on this device is being deleted, so it was not activated.";
-    private const string ErasedSignIn = "Everything on this device is being deleted, so it did not sign in.";
-    private const string StoppingSignIn = "ScreenTrail is stopping, so this device did not sign in.";
+    private const string ErasedRefusal = "Everything on this PC is being deleted, so it was not activated.";
+    private const string ErasedSignIn = "Everything on this PC is being deleted, so it did not sign in.";
+    private const string StoppingSignIn = "ScreenTrail is stopping, so this PC did not sign in.";
 
     /// <summary>How long a sign-in waits for the backend before saying it did not answer.</summary>
     public static readonly TimeSpan SignInTimeout = TimeSpan.FromSeconds(20);
 
     /// <summary>What a sign-in the backend did not answer says, in place of "not enrolled".</summary>
-    public const string NotAnswered = "The backend did not answer, so this device could not sign in. Try again in a moment.";
+    public const string NotAnswered = "The backend did not answer, so this PC could not sign in. Try again in a moment.";
 
     /// <summary>What the device card says, and a sign-in the backend refused, once access was revoked.</summary>
-    public const string RevokedStanding = "This device's access was revoked. Ask your ScreenTrail admin for a new invite.";
+    public const string RevokedStanding = "This PC's access was revoked. Ask your ScreenTrail admin for a new invite.";
 
     private readonly HttpClient _http = http ?? throw new ArgumentNullException(nameof(http));
     private readonly IDeviceCredentials _credentials = credentials ?? throw new ArgumentNullException(nameof(credentials));
@@ -160,7 +160,7 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
     {
         if (_http.BaseAddress is null)
         {
-            return GatewayAnswer.Refused<ActivatedDeviceRow>(NoBackendNote ?? "No backend is configured, so this device cannot be activated.");
+            return GatewayAnswer.Refused<ActivatedDeviceRow>(NoBackendNote ?? "No backend is configured, so this PC cannot be activated.");
         }
 
         if (_erased)
@@ -319,12 +319,12 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
 
         if (_credentials.Load() is not { } credential)
         {
-            return "This device is not activated yet. Enter the code from your invite.";
+            return "This PC is not activated yet. Enter the code from your invite.";
         }
 
         if (_http.BaseAddress is null)
         {
-            return NoBackendNote ?? "No backend is configured, so this device cannot sign in.";
+            return NoBackendNote ?? "No backend is configured, so this PC cannot sign in.";
         }
 
         // Its own purpose, never Publish: the background renewal used to go out under Publish, so local-only
@@ -367,7 +367,7 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                return $"The backend answered {(int)response.StatusCode} when this device signed in.";
+                return $"The backend answered {(int)response.StatusCode} when this PC signed in.";
             }
 
             TokenAnswer? answer;

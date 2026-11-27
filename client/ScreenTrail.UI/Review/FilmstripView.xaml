@@ -328,10 +328,10 @@
                             Style="{StaticResource Button.Secondary}"
                             Command="{Binding ToggleOcrTextCommand}"
                             IsEnabled="{Binding Enlarged.HasOcrText}"
-                            AutomationProperties.Name="OCR text"
+                            AutomationProperties.Name="Screen text"
                             AutomationProperties.AcceleratorKey="T">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="OCR text" />
+                            <TextBlock VerticalAlignment="Center" Text="Screen text" />
                             <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="T" />
                         </StackPanel>
                     </Button>

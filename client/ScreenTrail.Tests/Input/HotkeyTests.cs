@@ -102,7 +102,7 @@ public sealed class HotkeyTests : IAsyncDisposable
         var conflict = bindings.Refused(HotkeyAction.MarkMoment, taken);
 
         Assert.Contains("Another application", conflict.Reason, StringComparison.Ordinal);
-        Assert.Contains("Mark moment", conflict.Reason, StringComparison.Ordinal);
+        Assert.Contains("Mark a moment", conflict.Reason, StringComparison.Ordinal);
         Assert.NotNull(conflict.Suggestion);
     }
 

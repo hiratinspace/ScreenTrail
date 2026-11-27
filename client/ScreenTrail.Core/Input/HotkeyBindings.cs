@@ -146,7 +146,7 @@ public sealed class HotkeyBindings
         HotkeyAction.StartCapture => "Start capture",
         HotkeyAction.PauseOrResume => "Pause",
         HotkeyAction.StopAndDraft => "Stop and draft",
-        HotkeyAction.MarkMoment => "Mark moment",
+        HotkeyAction.MarkMoment => "Mark a moment",
         HotkeyAction.DiscardSession => "Discard session",
         _ => action.ToString(),
     };

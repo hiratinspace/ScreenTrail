@@ -872,7 +872,7 @@ public sealed partial class PublishViewModel : ObservableObject
 
         if (Companies.Count == 0)
         {
-            MappingError = "The documentation platform listed no companies to choose from.";
+            MappingError = "The knowledge base listed no companies to choose from.";
             MappingErrorVisibility = Visibility.Visible;
         }
     }

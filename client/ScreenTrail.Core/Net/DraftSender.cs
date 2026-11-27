@@ -127,7 +127,7 @@ public sealed class DraftSender(
 
         if (token() is not { Length: > 0 } bearer)
         {
-            return SendOutcome.NotSent("This device is not enrolled yet, so the session was not sent.", NotEnrolledWait);
+            return SendOutcome.NotSent("This PC is not enrolled yet, so the session was not sent.", NotEnrolledWait);
         }
 
         var session = await store.LoadSessionAsync(item.SessionId, ct).ConfigureAwait(false);

@@ -170,7 +170,7 @@ public sealed class DeviceSignInEgressTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.ServiceUnavailable, "The backend answered 503 when this device signed in.")]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "The backend answered 503 when this PC signed in.")]
     [InlineData(HttpStatusCode.Unauthorized, DeviceSession.RevokedStanding)]
     public async Task ASignInThatFailsSaysWhyRatherThanNotEnrolled(HttpStatusCode status, string expected)
     {

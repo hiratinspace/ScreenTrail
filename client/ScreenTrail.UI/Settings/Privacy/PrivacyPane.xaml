@@ -9,7 +9,7 @@
         <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md. -->
         <Border Style="{StaticResource Settings.Tile}">
             <StackPanel>
-                <TextBlock Style="{StaticResource Text.TileHeading}" Text="What leaves this device" />
+                <TextBlock Style="{StaticResource Text.TileHeading}" Text="What leaves this PC" />
                 <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Body}" TextWrapping="Wrap"
                            Text="1. Captured and masked on this PC.&#10;2. One request drafts the note (or this PC drafts it, in local-only mode).&#10;3. You check it.&#10;4. You publish it.&#10;Nothing is published without your check." />
             </StackPanel>
@@ -24,7 +24,7 @@
                 </StackPanel>
                 <CheckBox Margin="0,8,0,0" Content="Send nothing for drafting; publish only what I ask" IsChecked="{Binding LocalOnly}" IsEnabled="{Binding LocalOnlyEditable}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding LocalOnlyLockVisibility}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Local-only keeps the screenshots on this device. Notes are drafted here from what was said and shown. They are plainer than a usual draft, and Review marks them." />
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Local-only keeps the screenshots on this PC. Notes are drafted here from what was said and shown. They are plainer than a usual draft, and Review marks them." />
             </StackPanel>
         </Border>
 
@@ -153,10 +153,10 @@
                     <Button Style="{StaticResource Button.Secondary}" Content="Export audit log" Command="{Binding ExportAuditCommand}" />
                     <Button Margin="8,0,0,0"
                             Style="{StaticResource Button.Danger}"
-                            Content="Delete everything on this device…"
+                            Content="Delete everything on this PC…"
                             Command="{Binding EraseEverythingCommand}"
-                            AutomationProperties.Name="Delete everything on this device"
-                            AutomationProperties.HelpText="Deletes every session, draft, screenshot and transcript on this device, with your settings and this device's sign-in. Notes already published stay on their tickets. You will be asked to type DELETE EVERYTHING." />
+                            AutomationProperties.Name="Delete everything on this PC"
+                            AutomationProperties.HelpText="Deletes every session, draft, screenshot and transcript on this PC, with your settings and this PC's sign-in. Notes already published stay on their tickets. You will be asked to type DELETE EVERYTHING." />
                 </StackPanel>
                 <!-- Why it did not happen (a session is being captured, the service is not answering, or it
                      refused): beside the button, never a dialog, and read out as it changes (Spec §4). -->
@@ -166,7 +166,7 @@
                            Text="{Binding EraseProblem}"
                            Visibility="{Binding EraseProblemVisibility}"
                            controls:LiveRegion.Setting="Assertive" />
-                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Delete removes every session, draft, screenshot and transcript on this device, with your settings and this device's sign-in. Notes already published stay on their tickets. You will type DELETE EVERYTHING to confirm. It cannot be undone." />
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Delete removes every session, draft, screenshot and transcript on this PC, with your settings and this PC's sign-in. Notes already published stay on their tickets. You will type DELETE EVERYTHING to confirm. It cannot be undone." />
             </StackPanel>
         </Border>
     </StackPanel>

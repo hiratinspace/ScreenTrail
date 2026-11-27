@@ -215,7 +215,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
         Title = Step switch
         {
             OnboardingStep.Welcome => "Welcome to ScreenTrail",
-            OnboardingStep.Activate => "Activate this device",
+            OnboardingStep.Activate => "Activate this PC",
             // Each title starts with its name in the step list (review finding E-17).
             OnboardingStep.Permissions => "Permissions: what this PC allows",
             OnboardingStep.Tools => "Your remote tools",

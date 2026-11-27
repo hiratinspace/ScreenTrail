@@ -111,7 +111,7 @@ public sealed class CapturePanelTests
         // Spec v0.7.1: "Automatic (Recommended)" like every recommended choice in Settings; which model it
         // runs is the helper line, in plain words, never the model's file name.
         Assert.Equal("Automatic (Recommended)", panel.SelectedModel.Label);
-        Assert.Equal("Automatic uses Balanced on this computer.", panel.SelectedModel.Hint);
+        Assert.Equal("Automatic uses Balanced on this PC.", panel.SelectedModel.Hint);
         Assert.False(panel.HasUnsavedEdits);
 
         // A model named in the settings is the one shown, however it is cased, and showing it changes nothing.

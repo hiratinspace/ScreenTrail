@@ -123,7 +123,7 @@ public sealed class OnboardingWizard(
     public string? Blocker => Step switch
     {
         OnboardingStep.Activate when !Activation.Activated => "Enter the code from your invite, or come back to this from Settings later.",
-        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this machine allows…",
+        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this PC allows…",
         OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "screen_capture") =>
             "Screen capture is blocked, so there is nothing to capture with. Fix that first.",
         OnboardingStep.TryIt when !_testDone => TestRunning

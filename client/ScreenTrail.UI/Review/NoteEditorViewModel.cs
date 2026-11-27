@@ -747,8 +747,8 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
 
     /// <summary>The button's help text: what it does, and why it is off when it is.</summary>
     public string DiscardHelp => DiscardHint is { } hint
-        ? $"{hint}. Deletes the screenshots, transcript and note from this device. You will be asked to type DISCARD."
-        : "Deletes the screenshots, transcript and note from this device. You will be asked to type DISCARD.";
+        ? $"{hint}. Deletes the screenshots, transcript and note from this PC. You will be asked to type DISCARD."
+        : "Deletes the screenshots, transcript and note from this PC. You will be asked to type DISCARD.";
 
     /// <summary>Why the discard did not happen, or null. Shown beside the button, never as a dialog.</summary>
     public string? DiscardError { get; private set; }

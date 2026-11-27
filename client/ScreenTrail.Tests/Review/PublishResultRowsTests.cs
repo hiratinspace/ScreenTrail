@@ -16,7 +16,7 @@ public sealed class PublishResultRowsTests
     private static readonly Uri Ticket = new("https://na.myconnectwise.net/ticket/48213");
     private static readonly Uri Article = new("https://docs.example.huducloud.com/kba/1");
 
-    private const string Unmapped = "\"Acme Dental\" is not mapped to a company in the documentation platform. Choose one below, or map it in Settings → Integrations.";
+    private const string Unmapped = "\"Acme Dental\" is not mapped to a company in the knowledge base. Choose one below, or map it in Settings → Integrations.";
 
     [Fact]
     public async Task EachLinkIsNamedForTheProviderItGoesTo()

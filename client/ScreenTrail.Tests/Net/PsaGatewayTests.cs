@@ -224,7 +224,7 @@ public sealed class PsaGatewayTests
 
         var answer = await Gateway(handler).StoreIntegrationAsync("hudu", "https://acme.huducloud.com", "key", TestContext.Current.CancellationToken);
 
-        Assert.Equal("This device may not publish. Its enrolment was revoked or its token expired.", answer.Refusal);
+        Assert.Equal("This PC may not publish. Its enrolment was revoked or its token expired.", answer.Refusal);
     }
 
     [Fact]

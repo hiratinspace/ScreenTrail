@@ -118,7 +118,7 @@ public sealed class HudTimelineTests
 
         var only = Assert.Single(timeline.Recent);
         Assert.Equal(HudEventKind.MomentMarked, only.Kind);
-        Assert.Equal("Moment marked", only.Text);
+        Assert.Equal("Marked moment", only.Text);
         Assert.Equal("14:13:20", only.Time);
     }
 
