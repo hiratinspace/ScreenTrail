@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -739,9 +740,15 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         Assert.Equal(technician, answer.Changes[3].By);
         Assert.Equal("Nowhere Inc", answer.Changes[3].PsaCompany);
         Assert.All(answer.Changes.Where(c => c.Action is "replaced" or "mappings_cleared" or "connected"), c => Assert.Equal("owner", c.By.Kind));
+        // Every name and value the owner is shown, but for the times: a time's fractional seconds can read
+        // ".6999927" (CI, 2026-11-27), and that is not a key's last four.
+        var shown = Shown(JsonDocument.Parse(body).RootElement)
+            .Where(text => !DateTimeOffset.TryParseExact(text, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            .ToList();
+        Assert.Contains("Nowhere Inc", shown);
         foreach (var secret in new[] { "hudu-key-5678", "hudu-key-9999", "5678", "9999", "PRIV-1234" })
         {
-            Assert.DoesNotContain(secret, body, StringComparison.Ordinal);
+            Assert.DoesNotContain(shown, text => text.Contains(secret, StringComparison.Ordinal));
         }
     }
 
@@ -1227,4 +1234,13 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         });
         return (tenantId, userId, deviceId);
     }
+
+    private static IEnumerable<string> Shown(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Object => element.EnumerateObject().SelectMany(p => Shown(p.Value).Prepend(p.Name)),
+        JsonValueKind.Array => element.EnumerateArray().SelectMany(Shown),
+        JsonValueKind.String => [element.GetString()!],
+        JsonValueKind.Number => [element.GetRawText()],
+        _ => [],
+    };
 }

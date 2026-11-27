@@ -157,7 +157,7 @@
                         <StackPanel Orientation="Horizontal">
                             <!-- Sync, not the shield (review finding E-05): the count is masking still to do, and the shield
                                  marks masking done in the events below. -->
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Sync}" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Sync}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Typography.NumeralAlignment="Tabular"
@@ -172,7 +172,7 @@
                             ToolTip="{Binding MicTooltip}"
                             Visibility="{Binding ShowMic, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{StaticResource Icon.Mic}" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{DynamicResource Icon.Mic}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding MicText}"
@@ -184,7 +184,7 @@
                             ToolTip="{Binding CloudTooltip}"
                             Visibility="{Binding ShowCloud, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{StaticResource Icon.Cloud}" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{DynamicResource Icon.Cloud}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding CloudText}"
@@ -201,7 +201,7 @@
                             AutomationProperties.Name="{Binding MarkButton.Name}"
                             AutomationProperties.AcceleratorKey="{Binding MarkButton.Hotkey}"
                             Visibility="{Binding ShowMarkControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Flag}" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Flag}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
@@ -219,7 +219,7 @@
                             AutomationProperties.Name="{Binding StopButton.Name}"
                             AutomationProperties.AcceleratorKey="{Binding StopButton.Hotkey}"
                             Visibility="{Binding ShowStopControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{StaticResource Icon.Stop}" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Stop}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"

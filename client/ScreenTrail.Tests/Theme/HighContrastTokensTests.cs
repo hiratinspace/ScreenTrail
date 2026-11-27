@@ -48,14 +48,19 @@ public sealed class HighContrastTokensTests
         // one the file names is a decision made in one place and not the other.
         using var tokens = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Design", "tokens.json")));
         var path = Path.Combine(AppContext.BaseDirectory, "Theme", "Tokens.HighContrast.xaml");
-        var colours = XDocument.Load(path).Root!.Elements()
-            .Where(e => e.Name.LocalName == "Color")
-            .ToDictionary(e => e.Attribute(X + "Key")!.Value, e => e.Value.Trim(), StringComparer.Ordinal);
+        // An x:Static object element, not "{x:Static ...}" as a Color's text: XAML does not read markup in
+        // element text, so every Token.* lookup in high contrast threw "Token is not valid" (the title bar
+        // asked for Token.bg.base, and every high contrast screen failed to open).
+        var root = XDocument.Load(path).Root!;
+        Assert.DoesNotContain(root.Elements(), e => e.Name.LocalName == "Color");
+        var colours = root.Elements()
+            .Where(e => e.Name == X + "Static")
+            .ToDictionary(e => e.Attribute(X + "Key")!.Value, e => e.Attribute("Member")!.Value, StringComparer.Ordinal);
 
         foreach (var colour in tokens.RootElement.GetProperty("color").EnumerateObject())
         {
             var systemColour = colour.Value.GetProperty("hc").GetString();
-            Assert.Equal($"{{x:Static SystemColors.{systemColour}Color}}", colours[$"Token.{colour.Name}"]);
+            Assert.Equal($"SystemColors.{systemColour}Color", colours[$"Token.{colour.Name}"]);
         }
     }
 

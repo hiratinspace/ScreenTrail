@@ -23,11 +23,12 @@ public sealed partial class RenderHarnessTests
         // in one and not the other would render the black and white contrast themes wrong, quietly.
         var path = Path.Combine(AppContext.BaseDirectory, "Theme", "Tokens.HighContrast.xaml");
         var fromXaml = new SortedDictionary<string, string>(StringComparer.Ordinal);
-        foreach (var element in XDocument.Load(path).Root!.Elements().Where(e => e.Name.LocalName == "Color"))
+        foreach (var element in XDocument.Load(path).Root!.Elements().Where(e => e.Name == X + "Static" && e.Attribute(X + "Key")!.Value.StartsWith("Token.", StringComparison.Ordinal)))
         {
             var key = element.Attribute(X + "Key")!.Value;
-            var match = StaticColour().Match(element.Value);
-            Assert.True(match.Success, $"{key} is not an x:Static SystemColors value: '{element.Value}'.");
+            var member = element.Attribute("Member")?.Value ?? string.Empty;
+            var match = StaticColour().Match(member);
+            Assert.True(match.Success, $"{key} is not an x:Static SystemColors value: '{member}'.");
             fromXaml[key["Token.".Length..]] = match.Groups[1].Value;
         }
 
@@ -183,7 +184,7 @@ public sealed partial class RenderHarnessTests
         return (0.2126 * Channel(r)) + (0.7152 * Channel(g)) + (0.0722 * Channel(b));
     }
 
-    [GeneratedRegex(@"^\{x:Static SystemColors\.(\w+)Color\}$")]
+    [GeneratedRegex(@"^SystemColors\.(\w+)Color$")]
     private static partial Regex StaticColour();
 
     [GeneratedRegex(@"^\{DynamicResource \{x:Static SystemColors\.(\w+)ColorKey\}\}$")]
