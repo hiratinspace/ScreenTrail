@@ -132,11 +132,15 @@ public sealed record ReceiptFact(string Value, string Caption);
 /// <param name="LinkText">"Open in ConnectWise", "Open in Hudu": the provider the link goes to, from what is connected.</param>
 public sealed record PublishResultRow(Destination Destination, string Label, ResultState State, Uri? Link, string? Error, string LinkText)
 {
+    /// <summary>
+    /// The icon the row's mark is drawn with, by its resource key (review finding A-24): a Segoe Fluent glyph
+    /// in the state's hue, not a "✓" or "✗" typed in the text font.
+    /// </summary>
     public string Mark => State switch
     {
-        ResultState.Sent => "✓",
-        ResultState.Failed => "✗",
-        _ => "?",
+        ResultState.Sent => "Icon.Check",
+        ResultState.Failed => "Icon.Close",
+        _ => "Icon.Unknown",
     };
 
     /// <summary>The glyph in words for a screen reader, which would otherwise say "question mark". Unchanged since v0.5.2.</summary>

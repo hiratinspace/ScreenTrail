@@ -50,16 +50,18 @@
                     <StackPanel>
                         <!-- The subject line, then Discard, a ghost button that turns danger on hover and on keyboard
                              focus and opens the typed DISCARD confirmation, then Publish, the screen's one filled
-                             button. Why a discard did not happen is said beside it, never in a dialog. -->
-                        <Grid Margin="0,0,0,12">
+                             button. The row holds only those three, so the subject keeps its width at 150% (review
+                             finding A-16); why either button waits is said on the reasons line under them, never in a
+                             dialog. -->
+                        <Grid Margin="0,0,0,4">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Column="0"
+                                       Margin="0,0,16,0"
                                        VerticalAlignment="Center"
                                        Style="{StaticResource Text.ScreenTitle}"
                                        TextTrimming="CharacterEllipsis"
@@ -67,26 +69,7 @@
                                        Text="{Binding Title}"
                                        ToolTip="{Binding Title}" />
 
-                            <TextBlock Grid.Column="1"
-                                       Margin="16,0,12,0"
-                                       MaxWidth="{DynamicResource Layout.content-max-width}"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource Text.Error}"
-                                       Visibility="{Binding Note.DiscardFailed, Converter={StaticResource Visible}}"
-                                       Text="{Binding Note.DiscardError}"
-                                       controls:LiveRegion.Setting="Assertive" />
-
-                            <!-- Why Discard is off while the session is being captured: beside it, as Publish's reason is
-                                 (Spec v0.4.3), since a disabled button's tooltip is out of a keyboard user's reach. -->
-                            <TextBlock Grid.Column="1"
-                                       Margin="16,0,12,0"
-                                       VerticalAlignment="Center"
-                                       Style="{StaticResource Text.Muted}"
-                                       Visibility="{Binding Note.DiscardHintVisible, Converter={StaticResource Visible}}"
-                                       Text="{Binding Note.DiscardHint}"
-                                       controls:LiveRegion.Setting="Polite" />
-
-                            <Button Grid.Column="2"
+                            <Button Grid.Column="1"
                                     Margin="0,0,8,0"
                                     Style="{StaticResource Button.Danger}"
                                     Content="Discard"
@@ -95,8 +78,8 @@
                                     AutomationProperties.Name="Discard this session"
                                     AutomationProperties.HelpText="{Binding Note.DiscardHelp}" />
 
-                            <!-- Publish, Ctrl+Enter. Disabled with its reason on the line below (v0.4.3). -->
-                            <Button Grid.Column="3"
+                            <!-- Publish, Ctrl+Enter. Disabled with its reason on the line below (v0.4.3, A-16). -->
+                            <Button Grid.Column="2"
                                     Style="{StaticResource Button.Primary}"
                                     Command="{Binding Publish.PublishCommand}"
                                     IsEnabled="{Binding Publish.CanPublish}"
@@ -112,7 +95,7 @@
                             </Button>
 
                             <!-- No PSA connected: Publish is replaced, not disabled, by the way to see what the owner has connected (Spec §5 S3). -->
-                            <Button Grid.Column="3"
+                            <Button Grid.Column="2"
                                     Style="{StaticResource Button.Secondary}"
                                     Content="See integrations"
                                     Command="{Binding Publish.OpenSettingsCommand}"
@@ -121,25 +104,47 @@
                                     AutomationProperties.HelpText="Opens Settings, Integrations. Your ScreenTrail admin connects a PSA in the web admin." />
                         </Grid>
 
-                        <!-- Beside Publish: why it waits, read out as it changes (v0.4.3), and what is still open. -->
-                        <StackPanel HorizontalAlignment="Right" MaxWidth="{DynamicResource Layout.content-max-width}">
-                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding Publish.BlockedVisibility}">
-                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Warning}" />
-                                <TextBlock Margin="8,0,0,0"
-                                           Style="{StaticResource Text.Secondary}"
-                                           FontSize="{DynamicResource Size.sm}"
-                                           TextAlignment="Right"
+                        <!-- The reasons line (review finding A-16): one Caption line under the buttons, right aligned,
+                             with its 16 px kept whether or not there is anything to say, so the envelope never jumps
+                             as a reason comes and goes. Publish's reason first, then Discard's, each read out as it
+                             changes (v0.4.3). -->
+                        <StackPanel x:Name="Reasons"
+                                    MinHeight="{DynamicResource Leading.caption}"
+                                    MaxWidth="{DynamicResource Layout.content-max-width}"
+                                    HorizontalAlignment="Right"
+                                    Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding Publish.BlockedVisibility}">
+                                <controls:Glyph Style="{StaticResource Icon}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.state.paused}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Warning}" />
+                                <TextBlock Margin="4,0,0,0"
+                                           Style="{StaticResource Text.Caption}"
+                                           Foreground="{DynamicResource Brush.text.secondary}"
                                            Text="{Binding Publish.BlockedBecause}"
                                            controls:LiveRegion.Setting="Polite" />
                             </StackPanel>
-                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding Publish.ConnectVisibility}">
-                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.offline}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Link}" />
-                                <TextBlock Margin="8,0,0,0"
-                                           Style="{StaticResource Text.Secondary}"
-                                           FontSize="{DynamicResource Size.sm}"
-                                           TextAlignment="Right"
+                            <StackPanel Orientation="Horizontal" Visibility="{Binding Publish.ConnectVisibility}">
+                                <controls:Glyph Style="{StaticResource Icon}" VerticalAlignment="Center" Foreground="{DynamicResource Brush.state.offline}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Link}" />
+                                <TextBlock Margin="4,0,0,0"
+                                           Style="{StaticResource Text.Caption}"
+                                           Foreground="{DynamicResource Brush.text.secondary}"
                                            Text="No PSA connected. Your ScreenTrail admin connects one in the web admin, then you can publish." />
                             </StackPanel>
+
+                            <!-- Why Discard is off while the session is being captured, said here as Publish's reason is
+                                 (Spec v0.4.3), since a disabled button's tooltip is out of a keyboard user's reach. -->
+                            <TextBlock Margin="16,0,0,0"
+                                       Style="{StaticResource Text.Muted}"
+                                       Visibility="{Binding Note.DiscardHintVisible, Converter={StaticResource Visible}}"
+                                       Text="{Binding Note.DiscardHint}"
+                                       controls:LiveRegion.Setting="Polite" />
+                            <TextBlock Margin="16,0,0,0"
+                                       Style="{StaticResource Text.Error}"
+                                       Visibility="{Binding Note.DiscardFailed, Converter={StaticResource Visible}}"
+                                       Text="{Binding Note.DiscardError}"
+                                       controls:LiveRegion.Setting="Assertive" />
+                        </StackPanel>
+
+                        <!-- What is still open in the note, under the reasons. -->
+                        <StackPanel HorizontalAlignment="Right" MaxWidth="{DynamicResource Layout.content-max-width}">
                             <StackPanel Margin="0,4,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
                                 <controls:Glyph Style="{StaticResource Icon}"
                                                 Foreground="{DynamicResource Brush.confidence.low}"
@@ -208,9 +213,10 @@
                     </Border>
                 </Grid>
 
-                <!-- After the panes in the tree, not before them: Tab follows the tree, and the timeline is the
+                <!-- 16 above it, layout.pane-gap, as under the envelope (review finding A-20).
+                     After the panes in the tree, not before them: Tab follows the tree, and the timeline is the
                      bottom row, so it comes last (ST-084 found it first, between Discard and the note). -->
-                <Border x:Name="TimelineRow" Grid.Row="2" Margin="0,12,0,0" SizeChanged="OnFormPartSizeChanged">
+                <Border x:Name="TimelineRow" Grid.Row="2" Margin="0,16,0,0" SizeChanged="OnFormPartSizeChanged">
                     <timeline:TimelineView DataContext="{Binding Timeline}" />
                 </Border>
             </Grid>

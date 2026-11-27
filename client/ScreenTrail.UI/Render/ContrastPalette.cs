@@ -128,6 +128,7 @@ internal sealed class ContrastPalette
         ["shell.pressed"] = "Window",
         ["selection.edge"] = "Highlight",
         ["skeleton.edge"] = "GrayText",
+        ["brand.frame.line"] = "WindowText",
     };
 
     public string Name { get; }

@@ -168,5 +168,7 @@
     <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />
     <Color x:Key="Token.skeleton.edge">#00000000</Color>
     <SolidColorBrush x:Key="Brush.skeleton.edge" Color="Transparent" />
+    <Color x:Key="Token.brand.frame.line">#B2A6EC</Color>
+    <SolidColorBrush x:Key="Brush.brand.frame.line" Color="#B2A6EC" />
     <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>
 </ResourceDictionary>

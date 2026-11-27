@@ -24,7 +24,9 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="History.Count" BasedOn="{StaticResource Text.Secondary}" TargetType="TextBlock">
+        <!-- The count beside the title is a Caption in text.muted (review finding A-15): the title is the
+             screen's name, the count a fact about it. -->
+        <Style x:Key="History.Count" BasedOn="{StaticResource Text.Caption}" TargetType="TextBlock">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Rows.Count}" Value="0">
                     <Setter Property="Visibility" Value="Collapsed" />
@@ -78,7 +80,9 @@
         <StackPanel Grid.Row="0">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Style="{StaticResource Text.ScreenTitle}" Text="All sessions" />
-                <TextBlock Margin="12,0,0,4"
+                <!-- 8 from the title, both at the bottom of the row, so the Caption sits on the title's line
+                     rather than nudged up off it. -->
+                <TextBlock Margin="8,0,0,0"
                            VerticalAlignment="Bottom"
                            Style="{StaticResource History.Count}"
                            Text="{Binding Status}"

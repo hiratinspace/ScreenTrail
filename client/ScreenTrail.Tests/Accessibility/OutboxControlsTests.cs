@@ -12,6 +12,7 @@ public sealed class OutboxControlsTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Controls = "clr-namespace:ScreenTrail.UI.Controls";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
     public void CtrlEnterPublishesAndCtrlTChangesTheTicket()
@@ -90,12 +91,26 @@ public sealed class OutboxControlsTests
 
         var glyph = Assert.Single(receipt.Descendants(Controls + "Glyph"), g => (string?)g.Attribute("Text") == "{Binding ReceiptGlyph}");
         var colours = glyph.Descendants(Wpf + "Setter").Select(s => (string?)s.Attribute("Value")).ToHashSet();
-        Assert.Contains("{DynamicResource Brush.shell.published}", colours);
-        Assert.Contains("{DynamicResource Brush.shell.paused}", colours);
-        Assert.Contains("{DynamicResource Brush.shell.recording}", colours);
+        Assert.Contains("{DynamicResource Brush.state.published}", colours);
+        Assert.Contains("{DynamicResource Brush.state.paused}", colours);
+        Assert.Contains("{DynamicResource Brush.state.danger}", colours);
 
-        // The receipt rule is the ribbon band (Spec §2.1).
-        Assert.Contains(receipt.Descendants(Wpf + "Border"), b => (string?)b.Attribute("BorderBrush") == "{DynamicResource Brush.brand.ribbon.band}");
+        // In a disc of the state's tint (review finding A-23).
+        var disc = glyph.Ancestors(Wpf + "Border").First();
+        Assert.Equal("ReceiptStateDisc", (string?)disc.Attribute(X + "Name"));
+        var tints = disc.Element(Wpf + "Border.Style")!.Descendants(Wpf + "Setter").Select(s => (string?)s.Attribute("Value")).ToHashSet();
+        Assert.Contains("{DynamicResource Brush.bg.success}", tints);
+        Assert.Contains("{DynamicResource Brush.bg.warning}", tints);
+        Assert.Contains("{DynamicResource Brush.bg.danger}", tints);
+        Assert.Equal("{DynamicResource Radius.pill}", (string?)disc.Attribute("CornerRadius"));
+
+        // The receipt rule is retired (design system §2.2): no plate in the card and no ribbon band, and the
+        // heading is Text.Title over a rule 16 under it.
+        Assert.DoesNotContain(receipt.Descendants(Wpf + "Border"), b => (string?)b.Attribute("BorderBrush") == "{DynamicResource Brush.brand.ribbon.band}");
+        Assert.DoesNotContain(receipt.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Background") == "{DynamicResource Brush.shell.bg}");
+        Assert.Equal("{StaticResource Text.Title}", (string?)heading.Attribute("Style"));
+        var divider = Assert.Single(receipt.Descendants(Wpf + "Border"), b => (string?)b.Attribute(X + "Name") == "ReceiptDivider");
+        Assert.Equal("0,16,0,0", (string?)divider.Attribute("Margin"));
     }
 
     [Theory]

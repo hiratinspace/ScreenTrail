@@ -55,11 +55,11 @@ public sealed class PublishResultRowsTests
     }
 
     [Theory]
-    [InlineData(true, null, ResultState.Sent, "✓", "Sent", "Published")]
-    [InlineData(false, null, ResultState.Failed, "✗", "Failed", "Failed")]
-    [InlineData(false, DestinationResult.Unknown, ResultState.NotConfirmed, "?", "Not confirmed", "Not confirmed")]
-    [InlineData(false, DestinationResult.TimedOut, ResultState.NotConfirmed, "?", "Not confirmed", "Not confirmed")]
-    [InlineData(false, DestinationResult.AlreadyPublished, ResultState.AlreadyPublished, "?", "Already published", "Already published")]
+    [InlineData(true, null, ResultState.Sent, "Icon.Check", "Sent", "Published")]
+    [InlineData(false, null, ResultState.Failed, "Icon.Close", "Failed", "Failed")]
+    [InlineData(false, DestinationResult.Unknown, ResultState.NotConfirmed, "Icon.Unknown", "Not confirmed", "Not confirmed")]
+    [InlineData(false, DestinationResult.TimedOut, ResultState.NotConfirmed, "Icon.Unknown", "Not confirmed", "Not confirmed")]
+    [InlineData(false, DestinationResult.AlreadyPublished, ResultState.AlreadyPublished, "Icon.Unknown", "Already published", "Already published")]
     public async Task EachRowSaysItsStateInAWordBesideTheGlyph(bool ok, string? kind, ResultState state, string mark, string badge, string spoken)
     {
         // The glyph is drawn in its state's colour, and the badge carries the word, so the state is never

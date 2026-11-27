@@ -26,9 +26,10 @@ public sealed class ReceiptMarkTests
         Assert.Equal(size, double.Parse((string)mark.Attribute("Height")!, System.Globalization.CultureInfo.InvariantCulture));
         Assert.InRange(size, 28, 48);
 
-        // On the frame plate, the ground §2.0 allows (never mid violet).
+        // On its own frame plate, the ground §2.0 allows (never mid violet), radius 8 (review finding A-23).
         var plate = mark.Ancestors(Wpf + "Border").First();
-        Assert.Equal("{DynamicResource Brush.shell.bg}", (string?)plate.Attribute("Background"));
+        Assert.Equal("{DynamicResource Brush.brand.frame}", (string?)plate.Attribute("Background"));
+        Assert.Equal("{DynamicResource Radius.card}", (string?)plate.Attribute("CornerRadius"));
     }
 
     [Fact]

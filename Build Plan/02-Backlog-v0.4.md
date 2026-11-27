@@ -2341,7 +2341,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-15 to A-17, A-20, E-27, A-23 to A-25
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the All sessions count as a Caption on the title's line (A-15; titles were 20/28 since ST-127), one reasons line under Discard and Publish that keeps its height (A-16), the bound ticket as words, not a box (A-17), 16 px pane gaps, a 176 px open timeline and the note's bar hidden while the form scrolls (A-20), the tooltips for trimmed text held by a test (E-27; the chip and rounding hint were built in ST-131 and ST-133), the receipt heading in its card with a tinted state disc and the mark on its own frame plate (A-23), icon marks and shared badge and link columns in 48 px rows (A-24), Display figures and one side card (A-25). Laptop: the Review pane at 1280 x 800 with the timeline open and at 1024 x 680 (one scroll bar), the envelope at 150% (the subject not cut by a reason), and the receipt in light, dark and high contrast.
 
 ### **ST-137 · Review: timeline, enlarged frame, strip**
 - **Findings:** A-21/E-23/E-24, A-22, A-26, A-27, D-21, D-27

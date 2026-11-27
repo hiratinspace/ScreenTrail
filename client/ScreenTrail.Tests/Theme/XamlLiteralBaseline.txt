@@ -11,7 +11,6 @@ Review/FilmstripView.xaml	Width	160	4
 Review/NoteEditorView.xaml	BorderThickness	2,0,0,0	1
 Review/NoteEditorView.xaml	CornerRadius	1.5	1
 Review/NoteEditorView.xaml	Margin	0,6,0,0	1
-Review/Publish/PublishPane.xaml	BorderThickness	0,0,0,4	1
 Review/Publish/PublishPane.xaml	Height	40	1
 Review/Publish/PublishPane.xaml	Width	40	1
 Review/Timeline/TimelineView.xaml	Height	18	1

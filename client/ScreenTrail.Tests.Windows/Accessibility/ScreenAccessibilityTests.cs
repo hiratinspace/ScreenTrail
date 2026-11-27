@@ -113,8 +113,16 @@ public sealed class ScreenAccessibilityTests(TheApplication app)
             var shell = await Screens.OpenAsync("review");
             try
             {
+                // At 1024 x 680 the note is longer than its pane. While the whole form scrolls the note's own
+                // bar is hidden and the form's is the one shown (review finding A-20: never two side by
+                // side), so one of the two is there to check, and only one.
                 var note = Audit.Descendants(shell).OfType<UI.Review.NoteEditorView>().Single();
-                Assert.True(Audit.ScrollBars(shell).Any(b => b.IsDescendantOf(note)), "The note shows no scroll bar at 1024 x 680, so this would check nothing.");
+                var form = Audit.Descendants(shell).OfType<UI.Review.ReviewPane>().Single().FormScroll;
+                var vertical = Audit.ScrollBars(shell).Where(b => b.Orientation == System.Windows.Controls.Orientation.Vertical).ToList();
+                var noteBar = vertical.Any(b => b.IsDescendantOf(note));
+                var formBar = vertical.Any(b => b.IsDescendantOf(form) && !b.IsDescendantOf(note) && b.TemplatedParent == form);
+                Assert.True(noteBar || formBar, "Neither the note nor the form shows a scroll bar at 1024 x 680, so this would check nothing.");
+                Assert.False(noteBar && formBar, "The note's scroll bar and the form's show side by side (review finding A-20).");
                 Assert.DoesNotContain(Audit.Descendants(shell).OfType<System.Windows.Controls.GridSplitter>(), s => s.IsVisible);
                 Assert.Empty(Audit.CoveredScrollBars(shell));
 
