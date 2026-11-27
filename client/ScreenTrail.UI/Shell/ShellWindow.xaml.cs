@@ -52,6 +52,7 @@ public partial class ShellWindow : Window
         _model = new ShellViewModel(state, loadReview, history, settings, clock, sessions, diagnostics, startService: startService);
         DataContext = _model;
         BindFind();
+        FollowTheTaskbarMark();
     }
 
     /// <summary>
@@ -62,6 +63,28 @@ public partial class ShellWindow : Window
 
     /// <summary>Review finding E-21: the rail's Keyboard shortcuts row and F1 open the shortcut sheet.</summary>
     public static System.Windows.Input.RoutedCommand ShortcutsCommand { get; } = new(nameof(ShortcutsCommand), typeof(ShellWindow));
+
+    /// <summary>
+    /// Review finding D-15: the taskbar button's overlay follows capture, drawn from the state tokens so it
+    /// follows the theme too: the 8 px recording dot, or the pause mark, in a 16 px box; none otherwise.
+    /// </summary>
+    private void FollowTheTaskbarMark()
+    {
+        void Show() => Taskbar.Overlay = TaskbarMarkImage.For(_model.TaskbarMark);
+        void Redraw(object? sender, EventArgs e) => Dispatcher.BeginInvoke(Show);
+        _model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ShellViewModel.TaskbarMark))
+            {
+                Show();
+            }
+        };
+
+        // The theme's event outlives the window, which a reopen builds again; let go of it on close.
+        Theme.ThemeManager.Applied += Redraw;
+        Closed += (_, _) => Theme.ThemeManager.Applied -= Redraw;
+        Show();
+    }
 
     private void BindFind()
     {

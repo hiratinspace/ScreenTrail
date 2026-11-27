@@ -282,7 +282,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         StatusLine = ShellStatus.ChipLine(shown);
         StatusTone = ShellStatus.Tone(snapshot);
         StatusAnnouncement = ShellStatus.Announcement(snapshot);
+        TaskbarMark = TaskbarOverlay.For(snapshot);
     }
+
+    /// <summary>The mark on the shell's taskbar button: recording, paused or none (review finding D-15).</summary>
+    [ObservableProperty]
+    public partial TaskbarMark TaskbarMark { get; set; }
 
     /// <summary>
     /// Shows what <see cref="ShellPanes"/> decided. The decisions (when Settings is read, when Review is
