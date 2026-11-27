@@ -41,8 +41,9 @@
          progress box, then Windows Installer's) and no ending. The standard window with the side theme:
          the full mark beside "Install ScreenTrail", one Install button, and a finish page with Launch,
          which starts the UI as the technician (the setup program's own process is not the elevated
-         one), so setup opens at once and starts the capture service (C-I4). No LicenseUrl: ScreenTrail
-         has no licence terms yet, and without one the window shows no licence link or check box. No
+         one), so setup opens at once and starts the capture service (C-I4). LicenseUrl is empty on purpose:
+         ScreenTrail has no licence terms yet, the hyperlink themes need the attribute present (WIX0010
+         without it), and an empty one shows no licence link or check box. No
          options page: the install folder is fixed (perMachine, Program Files). /quiet and /passive
          behave as before, and MSP tools install the MSI, which stays without a window. The logo is
          built by shared/design/brand/build-icons.py; the path is from the repository root, as the
@@ -50,6 +51,7 @@
     <BootstrapperApplication>
       <bal:WixStandardBootstrapperApplication Theme="hyperlinkSidebarLicense"
                                               LogoSideFile="installer\theme\logo-side.png"
+                                              LicenseUrl=""
                                               SuppressOptionsUI="yes"
                                               LaunchTarget="[ProgramFiles64Folder]ScreenTrail\ScreenTrail.UI.exe" />
     </BootstrapperApplication>
