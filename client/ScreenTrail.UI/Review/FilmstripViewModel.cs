@@ -288,6 +288,16 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
                 if (item.Thumbnail is null && _strip.Contains(item.Id))
                 {
                     await gate.WaitAsync(ct).ConfigureAwait(true);
+
+                    // Cancelling makes the loads on the pipe give up and free their places, and the wait can
+                    // take one of those places before it sees the token itself; it must not start one more
+                    // load for a pane that is gone (the laptop run of ClosingThePaneStopsTheThumbnailLoad).
+                    if (ct.IsCancellationRequested)
+                    {
+                        gate.Release();
+                        ct.ThrowIfCancellationRequested();
+                    }
+
                     loads.Add(LoadReleasingAsync(item));
                 }
             }
