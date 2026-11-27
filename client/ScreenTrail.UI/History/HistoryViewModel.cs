@@ -13,8 +13,11 @@ namespace ScreenTrail.UI.History;
 /// <param name="Frames">"7", or "7 (1 left out)" when frames were deleted unredacted, because that is a fact about coverage the technician should see before publishing.</param>
 /// <param name="NotConfirmed">A publish of the session may have reached the ticket and was never confirmed: said beside the status, never in place of it (contract v10).</param>
 /// <param name="Badge">The status as the rail draws it: its word, glyph and hue (spec v0.6.9 S4). Null draws the word alone.</param>
-public sealed record HistoryRow(string Id, string Started, string Duration, string Status, string Tool, string Frames, bool NotConfirmed = false, StatusBadge? Badge = null)
+public sealed record HistoryRow(string Id, string Started, string Duration, string Status, string Tool, string Frames, bool NotConfirmed = false, StatusBadge? Badge = null, string Session = "", string LeftOut = "")
 {
+    /// <summary>True when some of the screenshots are left out, for the muted caption after the count (review finding A-10).</summary>
+    public bool HasLeftOut => LeftOut.Length > 0;
+
     /// <summary>The status badge's glyph, beside its word.</summary>
     public string StatusGlyph => Badge?.Glyph ?? string.Empty;
 
@@ -25,9 +28,9 @@ public sealed record HistoryRow(string Id, string Started, string Duration, stri
     public static string NotConfirmedGlyph => StatusBadges.NotConfirmed.Glyph;
 
     /// <summary>The row as a screen reader says it (Spec §7); it read the record itself until ST-084.</summary>
-    public string Spoken => NotConfirmed
-        ? $"{Status}, publish not confirmed, started {Started}, {Duration}, {Tool}, {Frames} screenshots"
-        : $"{Status}, started {Started}, {Duration}, {Tool}, {Frames} screenshots";
+    public string Spoken => (NotConfirmed ? $"{Status}, publish not confirmed" : Status)
+        + $", started {Started}, {Duration}, {(Session.Length > 0 ? Session : Tool)}, {Frames} screenshots"
+        + (HasLeftOut ? $", {LeftOut.Trim('(', ')')}" : string.Empty);
 
     /// <summary>The second badge's words, or nothing for a row that has no such badge.</summary>
     public string NotConfirmedLabel => NotConfirmed ? SessionHistory.NotConfirmedLabel : string.Empty;
@@ -627,9 +630,13 @@ public sealed partial class HistoryViewModel : ObservableObject
             // The status in the rail's words, glyph and hue (spec v0.6.9 S4): "Partial capture", not "Partial".
             row.Status.Length == 0 ? row.Status : StatusBadges.Of(row.Status).Word,
             ToolNames.Display(row.Tool),
-            // "Left out", the note's words for the same screenshots, not "purged" (review finding E-05).
-            row.FramesPurged > 0 ? $"{row.Frames} ({row.FramesPurged} left out)" : row.Frames.ToString(CultureInfo.InvariantCulture),
+            row.Frames.ToString(CultureInfo.InvariantCulture),
             SessionHistory.MayMarkPublished(row),
-            row.Status.Length == 0 ? null : StatusBadges.Of(row.Status));
+            row.Status.Length == 0 ? null : StatusBadges.Of(row.Status),
+            // Which session it is, from the rail's own fields (review finding R-03).
+            InboxRail.SessionLine(row),
+            // "Left out", the note's words for the same screenshots, not "purged" (review finding E-05); a
+            // muted caption after the count, so the figures still line up (A-10).
+            row.FramesPurged > 0 ? string.Create(CultureInfo.InvariantCulture, $"({row.FramesPurged} left out)") : string.Empty);
     }
 }

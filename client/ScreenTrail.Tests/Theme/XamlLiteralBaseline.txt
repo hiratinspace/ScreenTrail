@@ -4,6 +4,7 @@
 Gallery/GalleryWindow.xaml	Height	160	1
 Gallery/GalleryWindow.xaml	Height	96	1
 Gallery/GalleryWindow.xaml	Width	96	1
+History/HistoryPane.xaml	Width	96	1
 Review/FilmstripView.xaml	Colour	#60000000	2
 Review/FilmstripView.xaml	Margin	3	1
 Review/FilmstripView.xaml	Margin	6	1

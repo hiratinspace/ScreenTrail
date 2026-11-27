@@ -108,14 +108,18 @@ public sealed class AllSessionsTableTests
         var history = Load("History", "HistoryPane.xaml");
         var table = Assert.Single(history.Descendants(Wpf + "DataGrid"));
         var columns = table.Element(Wpf + "DataGrid.Columns")!.Elements().ToList();
-        Assert.Equal(["Started", "Duration", "Status", "Tool", "Screenshots"], columns.Select(c => (string?)c.Attribute("Header")));
+        // Review findings R-03 and A-10: which session a row is takes the width the others leave, not Status,
+        // and the two numbers end the row.
+        Assert.Equal(["Started", "Session", "Status", "Duration", "Screenshots"], columns.Select(c => (string?)c.Attribute("Header")));
 
         var star = Assert.Single(columns, c => (string?)c.Attribute("Width") == "*");
-        Assert.Equal("Status", (string?)star.Attribute("Header"));
+        Assert.Equal("Session", (string?)star.Attribute("Header"));
+        var status = Assert.Single(columns, c => (string?)c.Attribute("Header") == "Status");
+        Assert.Equal("Auto", (string?)status.Attribute("Width"));
 
-        // At the 960 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
-        var least = columns.Where(c => c != star).Sum(c => double.Parse((string)c.Attribute("Width")!, CultureInfo.InvariantCulture))
-            + double.Parse((string)star.Attribute("MinWidth")!, CultureInfo.InvariantCulture);
+        // At the minimum nothing scrolls sideways: the fixed columns, and Session and Status at their least, fit.
+        static double Least(XElement c) => double.Parse((string?)c.Attribute("MinWidth") ?? (string)c.Attribute("Width")!, CultureInfo.InvariantCulture);
+        var least = columns.Sum(Least);
         Assert.True(least <= TableAtTheMinimum, $"The columns need {least} px and the table has {TableAtTheMinimum} at the smallest window.");
 
         // Nothing caps the table short of the pane, so the star column has the pane's width to fill.
@@ -128,6 +132,20 @@ public sealed class AllSessionsTableTests
             var numeric = (string?)text.Attribute("Header") is "Duration" or "Screenshots";
             Assert.Equal(numeric ? "{StaticResource History.CellNumber}" : "{StaticResource History.CellText}", (string?)text.Attribute("ElementStyle"));
         }
+
+        // The number columns' headers sit over their figures, on the right; the screenshots left out are a
+        // muted caption after the count, so the counts line up (A-10).
+        foreach (var figures in columns.Where(c => (string?)c.Attribute("Header") is "Duration" or "Screenshots"))
+        {
+            Assert.Equal("{StaticResource History.NumberHeader}", (string?)figures.Attribute("HeaderStyle"));
+        }
+
+        var shots = Assert.Single(columns, c => (string?)c.Attribute("Header") == "Screenshots");
+        Assert.Contains(shots.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding Frames}" && (string?)t.Attribute("Style") == "{StaticResource History.CellNumber}");
+        Assert.Contains(shots.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding LeftOut}" && (string?)t.Attribute("Style") == "{StaticResource Text.Caption}");
+        var header = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.NumberHeader");
+        Assert.Equal("{StaticResource Table.Header}", (string?)header.Attribute("BasedOn"));
+        Assert.Equal("Right", Setter(header, "HorizontalContentAlignment"));
 
         var trimmed = Assert.Single(history.Descendants(Wpf + "Style"), s => (string?)s.Attribute(Xaml + "Key") == "History.CellText");
         Assert.Equal("CharacterEllipsis", Setter(trimmed, "TextTrimming"));
