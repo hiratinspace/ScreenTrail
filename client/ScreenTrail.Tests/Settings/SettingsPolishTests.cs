@@ -52,4 +52,16 @@ public sealed class SettingsPolishTests
         Assert.Equal("0,16,0,12", (string?)headings[0].Attribute("Margin"));
         Assert.All(headings.Skip(1), h => Assert.Null(h.Attribute("Margin")));
     }
+
+    /// <summary>Review finding B-49: a hint under a choice starts at its label, 18 for the mark and 8 for the gap.</summary>
+    [Fact]
+    public void AHintUnderAChoiceStartsAtItsLabel()
+    {
+        var hint = Style(Components(), "Choice.Hint");
+        Assert.Equal("{StaticResource Inset.choice-hint}", Setter(hint, "Margin"));
+        var appearance = EmptyStateTests.View("Settings/Appearance", "AppearancePane.xaml");
+        var hints = appearance.Descendants(Wpf + "TextBlock").Where(t => (string?)t.Attribute("Style") == "{StaticResource Choice.Hint}").ToList();
+        Assert.Equal(2, hints.Count);
+        Assert.DoesNotContain(appearance.Descendants(Wpf + "TextBlock"), t => ((string?)t.Attribute("Margin"))?.StartsWith("24,", StringComparison.Ordinal) == true);
+    }
 }

@@ -802,6 +802,12 @@
         <Setter Property="HorizontalAlignment" Value="Left" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
     </Style>
+    <!-- A hint under a check box or radio button, at its label's left edge: the 18 px mark and its 8 px gap
+         (review finding B-49; at 24 the hint sat 2 px left of the label). Muted, wrapping. -->
+    <Style x:Key="Choice.Hint" BasedOn="{StaticResource Text.Muted}" TargetType="TextBlock">
+        <Setter Property="Margin" Value="{StaticResource Inset.choice-hint}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
     <Style x:Key="Segment" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
