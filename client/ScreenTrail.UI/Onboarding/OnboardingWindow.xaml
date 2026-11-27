@@ -155,10 +155,12 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <!-- Header: where the technician is in the setup, in words, and the step's title. -->
+            <!-- Header: where the technician is in the setup, in words, and the step's title. Review finding
+                 C-O8: the step heading is Display, 28/36, the role design system 3.2 names for it; at the
+                 24 px screen title it was every main-window screen's size, not a first-run moment. -->
             <StackPanel Grid.Row="0" Margin="32,24,32,16">
                 <TextBlock Style="{StaticResource Text.Muted}" Text="{Binding Progress}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.ScreenTitle}" Text="{Binding Title}" controls:LiveRegion.Setting="Polite" />
+                <TextBlock x:Name="StepTitle" Margin="0,4,0,0" Style="{StaticResource Text.Display}" Text="{Binding Title}" controls:LiveRegion.Setting="Polite" />
             </StackPanel>
 
             <ScrollViewer Grid.Row="1" Padding="32,0,16,0" VerticalScrollBarVisibility="Auto">
@@ -171,7 +173,7 @@
 
                     <!-- 1. Welcome -->
                     <StackPanel Visibility="{Binding WelcomeVisibility}">
-                        <TextBlock Style="{StaticResource Text.Body}" FontSize="{DynamicResource Size.lg}" TextWrapping="Wrap" Text="ScreenTrail watches your remote-support sessions and drafts the ticket note for you: what you did, in order, with the screenshots that show it." />
+                        <TextBlock x:Name="WelcomeLead" Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="ScreenTrail watches your remote-support sessions and drafts the ticket note for you: what you did, in order, with the screenshots that show it." />
                         <ContentControl Margin="0,24,0,0" Style="{StaticResource Banner}" theme:Banner.Glyph="{StaticResource Icon.Lock}">
                             <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your review." />
                         </ContentControl>
