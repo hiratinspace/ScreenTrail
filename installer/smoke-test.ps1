@@ -444,7 +444,10 @@ function Test-InstalledLayout([string]$ExpectedVersion) {
     }
     $run = Get-RunValue $machineRun 'ScreenTrail.Service'
     Check 'the service starts at sign-in from the machine Run key' ($run -eq "`"$serviceExe`"") "value: $run"
-    Check 'nothing starts the UI from the machine Run key' ($null -eq (Get-RunValue $machineRun 'ScreenTrail.UI'))
+    # Review finding C-I7, owner decision 4: the UI starts at sign-in for every user, in the background,
+    # and the flag lets one who turned "Start UI at login" off stay out (UiStart.StaysOutAtSignIn).
+    $uiRun = Get-RunValue $machineRun 'ScreenTrail.UI'
+    Check 'the UI starts at sign-in, in the background, from the machine Run key' ($uiRun -eq "`"$uiExe`" --background --at-sign-in") "value: $uiRun"
     Check 'Start menu shortcut' (Test-Path $shortcut)
     if (Test-Path $shortcut) {
         $target = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut).TargetPath
@@ -460,6 +463,7 @@ function Test-InstalledLayout([string]$ExpectedVersion) {
 function Test-Removed {
     Check 'the install folder is gone' (-not (Test-Path $installDir))
     Check 'the machine Run value is gone' ($null -eq (Get-RunValue $machineRun 'ScreenTrail.Service'))
+    Check 'the UI''s machine Run value is gone' ($null -eq (Get-RunValue $machineRun 'ScreenTrail.UI'))
     Check 'the Start menu shortcut is gone' (-not (Test-Path $shortcut))
     Check 'no ScreenTrail entry is left in Programs and Features' (@(Get-ArpEntries).Count -eq 0)
     Check 'no ScreenTrail process is running' (@(Get-Process -Name 'ScreenTrail.Service', 'ScreenTrail.UI' -ErrorAction SilentlyContinue).Count -eq 0)
