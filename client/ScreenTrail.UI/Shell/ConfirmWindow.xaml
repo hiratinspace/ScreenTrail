@@ -60,7 +60,8 @@
             <TextBox x:Name="Typed"
                      Style="{StaticResource Input.Mono}"
                      TextChanged="OnTyped"
-                     AutomationProperties.Name="{Binding Text, ElementName=Instruction}" />
+                     AutomationProperties.Name="{Binding Text, ElementName=Instruction}"
+                     AutomationProperties.HelpText="{Binding Consequence}" />
         </StackPanel>
         </Grid>
 
@@ -72,19 +73,24 @@
                 BorderBrush="{DynamicResource Brush.border.subtle}"
                 BorderThickness="0,1,0,0"
                 Padding="{DynamicResource Padding.dialog-footer}">
+        <!-- Review finding E-25: wherever focus starts (the phrase box, Cancel or the action), Narrator reads
+             what is lost with it, as the control's help text; it read the question and "Type DISCARD to
+             confirm, edit", never the consequence. -->
         <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
             <Button x:Name="Cancel"
                     Style="{StaticResource Button.Secondary}"
                     Content="{Binding Cancel}"
                     IsCancel="True"
                     Click="OnCancel"
-                    AutomationProperties.Name="{Binding Cancel}" />
+                    AutomationProperties.Name="{Binding Cancel}"
+                    AutomationProperties.HelpText="{Binding Consequence}" />
             <Button x:Name="Confirm"
                     Margin="8,0,0,0"
                     Style="{StaticResource Button.Danger}"
                     Content="{Binding Action}"
                     Click="OnConfirm"
-                    AutomationProperties.Name="{Binding Action, TargetNullValue=''}" />
+                    AutomationProperties.Name="{Binding Action, TargetNullValue=''}"
+                    AutomationProperties.HelpText="{Binding Consequence}" />
         </StackPanel>
         </Border>
     </StackPanel>

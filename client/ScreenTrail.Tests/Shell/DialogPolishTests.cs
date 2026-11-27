@@ -158,4 +158,17 @@ public sealed class DialogPolishTests
         Assert.Contains("CommandBinding(ShortcutsCommand", Code("Shell", "ShellWindow.xaml.cs"), StringComparison.Ordinal);
         Assert.Contains("new(\"F1\", \"This sheet\")", Code("Shell", "ShortcutSheet.xaml.cs"), StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding E-25: the phrase box and both buttons carry what is lost as their help text, so where
+    /// focus starts Narrator reads the consequence, not only the question and "Type DISCARD to confirm".
+    /// </summary>
+    [Theory]
+    [InlineData("Typed")]
+    [InlineData("Cancel")]
+    [InlineData("Confirm")]
+    public void WhereFocusStartsReadsWhatIsLost(string name)
+    {
+        Assert.Equal("{Binding Consequence}", (string?)Named(Dialog(), name).Attribute("AutomationProperties.HelpText"));
+    }
 }

@@ -32,6 +32,12 @@ public sealed class ConfirmWindowTests(TheApplication app)
                 Assert.True(dialog.IsLoaded, "The discard confirmation did not load.");
 
                 var typed = Audit.Descendants(dialog).OfType<TextBox>().Single();
+
+                // Review finding E-25 (a11y audit "Needs a person" item 6): focus starts in the phrase box,
+                // and Narrator reads what is lost with it.
+                await Audit.Settle();
+                Assert.Same(typed, System.Windows.Input.Keyboard.FocusedElement);
+                Assert.Equal(ConfirmCopy.DiscardSession.Consequence, System.Windows.Automation.AutomationProperties.GetHelpText(typed));
                 Assert.Equal(typeof(TextBox), typed.Style?.TargetType);
                 Assert.Contains("Mono", typed.FontFamily.Source, StringComparison.Ordinal);
 
@@ -75,6 +81,12 @@ public sealed class ConfirmWindowTests(TheApplication app)
                 Assert.True(mark.IsEnabled);
                 Assert.False(mark.IsDefault, "Enter vouches for the ticket by reflex.");
                 Assert.True(Screens.Named<Button>(dialog, "Not yet").IsDefault);
+
+                // E-25: focus starts on the safe button, which reads the consequence as its help text.
+                await Audit.Settle();
+                var focused = Assert.IsAssignableFrom<UIElement>(System.Windows.Input.Keyboard.FocusedElement);
+                Assert.False(string.IsNullOrEmpty(System.Windows.Automation.AutomationProperties.GetHelpText(focused)));
+                Assert.Equal(((ConfirmWords)dialog.DataContext).Consequence, System.Windows.Automation.AutomationProperties.GetHelpText(focused));
             }
             finally
             {
