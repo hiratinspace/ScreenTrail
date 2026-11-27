@@ -111,4 +111,27 @@ public sealed class SettingsPolishTests
 
         Assert.Equal("{DynamicResource Layout.row-height}", (string?)row.Attribute("MinHeight"));
     }
+
+    /// <summary>
+    /// Review finding B-42: the excluded apps and the custom patterns are list rows, 36 high under a rule,
+    /// the value at the left and its Remove at the right, not a word with a Ghost button after it.
+    /// </summary>
+    [Theory]
+    [InlineData("ExcludedList")]
+    [InlineData("PatternList")]
+    public void AListInATileIsRowsWithRemoveAtTheRight(string name)
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var row = Style(Components(), "Settings.ListRow");
+        Assert.Equal("{DynamicResource Layout.row-height}", Setter(row, "MinHeight"));
+        Assert.Equal("0,1,0,0", Setter(row, "BorderThickness"));
+
+        var privacy = EmptyStateTests.View("Settings/Privacy", "PrivacyPane.xaml");
+        var list = privacy.Descendants(controls + "Repeater").Single(r => (string?)r.Attribute(Xaml + "Name") == name);
+        var border = list.Descendants(Wpf + "DataTemplate").Single().Elements(Wpf + "Border").Single();
+        Assert.Equal("{StaticResource Settings.ListRow}", (string?)border.Attribute("Style"));
+        var grid = border.Elements(Wpf + "Grid").Single();
+        Assert.Equal(["*", "Auto"], grid.Descendants(Wpf + "ColumnDefinition").Select(c => (string?)c.Attribute("Width")));
+        Assert.Equal("1", (string?)grid.Elements(Wpf + "Button").Single().Attribute("Grid.Column"));
+    }
 }

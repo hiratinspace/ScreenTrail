@@ -1827,6 +1827,13 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.card}" />
     </Style>
+    <!-- A row of a list inside a Settings tile (review finding B-42): at least 36 high, a border.subtle rule
+         above it, the value at the left and its Remove at the right. -->
+    <Style x:Key="Settings.ListRow" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+    </Style>
     <!-- A Settings tile (v0.7.0, owner: Windows 11 style): one setting or one small group of them, a
          compact surface with a 4 px gap to the next, so a section reads as a stack of separate tiles rather
          than one long card each. Review finding B-40: radius 8, as every card is; at 6 the banners inside a

@@ -36,15 +36,23 @@
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[ExcludedApps]}" />
                 </StackPanel>
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Password managers, banking tabs and credential prompts are excluded already (Recommended). Browser tabs are matched by the page title shown in the browser's title bar, not by the web address. Add any process that must never be captured." />
-                <controls:Repeater Margin="0,8,0,0" ItemsSource="{Binding ExcludedProcesses}">
+                <!-- Review finding B-42: list rows, each 36 high under a rule, the name at the left and Remove
+                     at the right, where the Ghost button had read as a word after the name. -->
+                <controls:Repeater x:Name="ExcludedList" Margin="0,8,0,0" ItemsSource="{Binding ExcludedProcesses}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
-                                        Command="{Binding DataContext.RemoveProcessCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding StringFormat='Remove {0} from the excluded apps'}" />
-                            </StackPanel>
+                            <Border Style="{StaticResource Settings.ListRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource Text.Mono}" Foreground="{DynamicResource Brush.text.primary}" TextTrimming="CharacterEllipsis" Text="{Binding}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
+                                            Command="{Binding DataContext.RemoveProcessCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding StringFormat='Remove {0} from the excluded apps'}" />
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
@@ -79,15 +87,21 @@
                 <CheckBox Margin="0,4,0,0" Content="Email addresses" IsChecked="{Binding Emails}" />
 
                 <TextBlock Margin="0,16,0,8" Style="{StaticResource Text.Label}" Text="Custom patterns (regular expressions)" />
-                <controls:Repeater ItemsSource="{Binding CustomPatterns}">
+                <controls:Repeater x:Name="PatternList" ItemsSource="{Binding CustomPatterns}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Style="{StaticResource Text.Mono}" Text="{Binding}" VerticalAlignment="Center" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
-                                        Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                                        AutomationProperties.Name="{Binding StringFormat='Remove the pattern {0}'}" />
-                            </StackPanel>
+                            <Border Style="{StaticResource Settings.ListRow}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Style="{StaticResource Text.Mono}" Foreground="{DynamicResource Brush.text.primary}" TextTrimming="CharacterEllipsis" Text="{Binding}" ToolTip="{Binding}" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Button.Ghost}" theme:Density.Compact="True" Content="Remove"
+                                            Command="{Binding DataContext.RemovePatternCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                            AutomationProperties.Name="{Binding StringFormat='Remove the pattern {0}'}" />
+                                </Grid>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
