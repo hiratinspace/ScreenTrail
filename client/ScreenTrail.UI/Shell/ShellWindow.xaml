@@ -14,6 +14,11 @@
         MinWidth="960"
         MinHeight="680"
         Style="{StaticResource Window.Base}">
+    <!-- Review finding D-15: live state on the taskbar button, the recording dot or the pause mark (drawn in
+         ShellWindow.xaml.cs from the state tokens), with the status announcement as its words. -->
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="Taskbar" Description="{Binding StatusAnnouncement}" />
+    </Window.TaskbarItemInfo>
     <Window.Resources>
         <!-- The content area shows whatever the view model hands it, by type: a pane, or a sentence
              saying why there is none. Until 2026-09-25 it showed the pane's name. -->
@@ -220,6 +225,7 @@
                     Margin="24,16,24,0"
                     Style="{StaticResource Banner}"
                     theme:Banner.Tone="Warning"
+                    theme:Motion.FadeIn="True"
                     Visibility="{Binding BannerVisibility}">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -242,12 +248,12 @@
                 </Grid>
             </ContentControl>
 
-            <ContentControl x:Name="Pane"
-                            Grid.Row="1"
-                            Margin="{DynamicResource Padding.pane}"
-                            Content="{Binding Content}"
-                            ContentTemplateSelector="{StaticResource Shell.Content}"
-                            Focusable="False" />
+            <!-- Review finding D-26: each view's pane is built once, in a host of its own here, and the views
+                 switch by visibility with a 120 ms fade on the incoming one (ShellWindow.HostPanes). One
+                 ContentControl threw the whole Review pane away on every switch to All sessions and back. -->
+            <Grid x:Name="Pane"
+                  Grid.Row="1"
+                  Margin="{DynamicResource Padding.pane}" />
         </Grid>
     </Grid>
 </Window>

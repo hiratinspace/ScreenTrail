@@ -565,8 +565,15 @@ public sealed class LiveShell : IAsyncDisposable
     /// </summary>
     private async Task<object?> LoadReviewAsync(string sessionId, CancellationToken ct)
     {
+        // Review finding D-19: the session and what the tenant has connected are asked together, and the
+        // pane is returned without waiting for the suggested ticket's PSA lookup, which runs once it is
+        // on screen (below).
         var frames = new PipeReviewFrames(_connection);
-        var loaded = await frames.LoadAsync(sessionId, ct).ConfigureAwait(true);
+        var publisher = new PipePublisher(_connection);
+        var loading = frames.LoadAsync(sessionId, ct);
+        var asking = publisher.IntegrationsAsync(ct);
+        await Task.WhenAll(loading, asking).ConfigureAwait(true);
+        var loaded = await loading.ConfigureAwait(true);
         if (loaded?.Session is not { } session)
         {
             return null;
@@ -585,8 +592,7 @@ public sealed class LiveShell : IAsyncDisposable
         // The publish pane's delegates, over the pipe. What the tenant has connected is asked now, once,
         // so the pane opens saying "Ask your ScreenTrail admin to connect a PSA to publish" or ready, not guessing. The mapping prompt's
         // two calls (ST-097) ride the same connection.
-        var publisher = new PipePublisher(_connection);
-        var integrations = await publisher.IntegrationsAsync(ct).ConfigureAwait(true);
+        var integrations = await asking.ConfigureAwait(true);
         var publish = new PublishPanel(
             session,
             integrations,
@@ -605,17 +611,9 @@ public sealed class LiveShell : IAsyncDisposable
         // not the technician publishing, and the number came off their screen (S-44, S-45). Nor when
         // local-only is in force now for a session recorded before it was, or when the service will not
         // say whether it is.
-        if (await ReviewOpening.MayLookUpSuggestedTicketAsync(session.LocalOnly, session.SuggestedTicket, integrations.Count, LocalOnlyNowAsync, ct).ConfigureAwait(true)
-            && session.SuggestedTicket is { } hinted)
-        {
-            var matches = await publisher.SearchAsync(hinted, ct).ConfigureAwait(true);
-            if (matches.FirstOrDefault(m => m.Id == hinted) is { } match)
-            {
-                publish.Suggest(match);
-            }
-        }
-
-        return new ReviewViewModel(
+        // Asked after the pane is returned (review finding D-19), within five seconds, and stopped when the
+        // pane goes away (ReviewViewModel.DisposeAsync).
+        var review = new ReviewViewModel(
             session,
             frames,
             write: async (draft, c) =>
@@ -637,6 +635,15 @@ public sealed class LiveShell : IAsyncDisposable
             // The receipt's Next to check reads History's rows and opens one the way a History row does.
             next: new NextSessions(ListSessionsAsync, _state.OpenSession),
             openSettings: () => _state.NavigateToSettings("Integrations"));
+        if (session.SuggestedTicket is { } hinted)
+        {
+            _ = review.Publish.LookUpSuggestedAsync(
+                hinted,
+                c => ReviewOpening.MayLookUpSuggestedTicketAsync(session.LocalOnly, session.SuggestedTicket, integrations.Count, LocalOnlyNowAsync, c),
+                publisher.SearchAsync);
+        }
+
+        return review;
     }
 
     /// <summary>

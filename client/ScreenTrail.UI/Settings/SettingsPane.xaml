@@ -137,6 +137,7 @@
                 Grid.Column="0"
                 Grid.ColumnSpan="2"
                 Style="{StaticResource SaveBar}"
+                theme:Motion.FadeIn="True"
                 Visibility="{Binding BarVisibility}"
                 PreviewKeyDown="OnBarKeyDown"
                 IsVisibleChanged="OnBarVisibilityChanged">

@@ -62,17 +62,28 @@ public partial class App : Application, IDisposable
             return;
         }
 
-        // Dark for the screenshot harnesses below, which set each theme they draw. The application takes
-        // the technician's Settings, Appearance choice further down (ST-070). High contrast always wins:
-        // Apply substitutes it, so every caller gets that rather than only this one, and FollowSystem
-        // keeps it true if Windows switches while the app is running, as it keeps a System choice on
-        // Windows' app mode.
-        ThemeManager.Apply(AppTheme.Dark, Resources);
-        ThemeManager.FollowSystem(Resources);
-
         var args = e.Args;
         var screenshotIndex = Array.IndexOf(args, "--screenshot");
         var directory = screenshotIndex >= 0 && screenshotIndex + 1 < args.Length ? args[screenshotIndex + 1] : null;
+
+        // Dark for the screenshot harnesses below, which set each theme they draw. The application takes
+        // the technician's Settings, Appearance choice (ST-070), Windows' app mode until they choose, read
+        // before any window opens so nothing is drawn dark and repainted; it no longer loads the dark
+        // dictionary first and then its own (review finding D-28). High contrast always wins: Apply
+        // substitutes it, so every caller gets that rather than only this one, and FollowSystem keeps it
+        // true if Windows switches while the app is running, as it keeps a System choice on Windows' app mode.
+        var harness = Array.IndexOf(args, "--gallery") >= 0 || Array.IndexOf(args, "--note") >= 0 || directory is not null;
+        if (harness)
+        {
+            ThemeManager.Apply(AppTheme.Dark, Resources);
+        }
+        else
+        {
+            ThemeManager.Follow(new Core.Shell.ShellPreferencesStore(Core.Shell.ShellPreferencesStore.DefaultPath).Load().Appearance, Resources);
+            ThemeManager.FollowTextSize(Resources);
+        }
+
+        ThemeManager.FollowSystem(Resources);
 
         Window window;
         if (Array.IndexOf(args, "--gallery") >= 0)
@@ -133,10 +144,6 @@ public partial class App : Application, IDisposable
             // of the day begins by focusing a remote-support tool, not by opening us, and the pill and the tray
             // icon are the whole interface until there is a draft to review. A start from Start opens it.
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-
-            // ST-070: the theme the technician chose in Settings, Appearance; Windows' app mode until they
-            // choose. Read before any window opens, so nothing is drawn dark and then repainted.
-            ThemeManager.Follow(new Core.Shell.ShellPreferencesStore(Core.Shell.ShellPreferencesStore.DefaultPath).Load().Appearance, Resources);
 
             // ST-112, INV-6: the same check the service makes. An elevated UI (Run as administrator, or a
             // restart by Restart Manager from another program's elevated installer) opens links in an elevated

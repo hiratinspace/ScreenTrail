@@ -480,6 +480,7 @@
                 HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Style="{StaticResource Toast}"
+                theme:Motion.Enter="8"
                 Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
             <StackPanel Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center"

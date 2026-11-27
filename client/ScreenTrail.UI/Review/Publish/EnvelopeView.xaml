@@ -63,6 +63,11 @@
                                    Style="{StaticResource Text.Secondary}"
                                    Text="{Binding ToValue}"
                                    Visibility="{Binding NoTicketVisibility}" />
+                        <!-- Review finding D-19: the suggested ticket being looked up, after the pane opened. -->
+                        <StackPanel x:Name="LookingUp" Margin="0,0,12,0" VerticalAlignment="Center" Orientation="Horizontal" Visibility="{Binding LookingUpVisibility}">
+                            <Control VerticalAlignment="Center" Style="{StaticResource ProgressRing}" />
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Caption}" Text="{Binding LookingUpWords}" controls:LiveRegion.Setting="Polite" />
+                        </StackPanel>
                         <TextBlock Margin="0,0,12,0"
                                    VerticalAlignment="Center"
                                    Style="{StaticResource Text.Muted}"

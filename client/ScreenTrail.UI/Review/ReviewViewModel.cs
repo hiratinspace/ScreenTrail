@@ -113,6 +113,7 @@ public sealed class ReviewViewModel : IAsyncDisposable
         }
 
         _disposed = true;
+        Publish.StopLookingUp();
         Strip.PropertyChanged -= OnStripChanged;
         Note.PropertyChanged -= OnNoteChanged;
         await Note.DisposeAsync().ConfigureAwait(true);

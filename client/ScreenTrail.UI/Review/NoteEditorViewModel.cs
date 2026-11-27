@@ -258,6 +258,17 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
         _session = session;
         _showFrame = showFrame;
         _strip = strip;
+        if (strip is not null)
+        {
+            // A delete in the strip opens an undo window this pane's timer counts down (D-29).
+            strip.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(FilmstripViewModel.HasUndoToast))
+                {
+                    OnPropertyChanged(nameof(NeedsTick));
+                }
+            };
+        }
         _confirm = confirm ?? (_ => false);
         _discard = discard;
         _discardBlocked = discardBlocked;
@@ -556,6 +567,13 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     [ObservableProperty]
     private string _followUps;
 
+    /// <summary>
+    /// Whether the view's timer has anything to do (review finding D-29): an edit not yet written, a write
+    /// to retry, or a delete still inside its undo window. The view runs its timer only while this holds,
+    /// where it used to wake four times a second for as long as Review was open.
+    /// </summary>
+    public bool NeedsTick => !_disposed && (_save.Status != SaveStatus.Saved || (_strip?.HasUndoToast ?? false));
+
     /// <summary>Call on a UI timer. Cheap when there is nothing to write.</summary>
     public async Task TickAsync(CancellationToken ct = default)
     {
@@ -572,6 +590,7 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
 
         await _save.TickAsync(ct).ConfigureAwait(true);
         OnPropertyChanged(nameof(SaveLabel));
+        OnPropertyChanged(nameof(NeedsTick));
     }
 
     /// <summary>
@@ -853,6 +872,7 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     {
         _save.Touch();
         OnPropertyChanged(nameof(SaveLabel));
+        OnPropertyChanged(nameof(NeedsTick));
         OnPropertyChanged(nameof(UnverifiedLabel));
     }
 }

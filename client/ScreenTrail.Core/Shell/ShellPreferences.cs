@@ -116,19 +116,54 @@ public sealed class ShellPreferencesStore(string path)
         "ScreenTrail",
         "shell.json");
 
+    private readonly Lock _gate = new();
+
+    private ShellPreferences? _cached;
+
+    private DateTime _cachedStamp;
+
     public string Path => path;
 
+    /// <summary>
+    /// The preferences, read from the file only when it has changed since the last read or write (review
+    /// finding D-29): the shell asks on many clicks, on the UI thread, and each ask was a read and a parse.
+    /// The file's time is still looked at every time, so a file changed or deleted behind the shell (Erase
+    /// everything deletes it) is read again rather than written back from memory.
+    /// </summary>
     public ShellPreferences Load()
     {
         try
         {
-            return File.Exists(path)
+            var stamp = Stamp();
+            lock (_gate)
+            {
+                if (_cached is not null && stamp == _cachedStamp)
+                {
+                    return _cached;
+                }
+            }
+
+            var loaded = File.Exists(path)
                 ? JsonSerializer.Deserialize<ShellPreferences>(File.ReadAllText(path), Format) ?? new ShellPreferences()
                 : new ShellPreferences();
+            Remember(loaded, stamp);
+            return loaded;
         }
         catch (Exception ex) when (IsExpected(ex))
         {
             return new ShellPreferences();
+        }
+    }
+
+    /// <summary>The file's last write, or MinValue when there is none.</summary>
+    private DateTime Stamp() => File.Exists(path) ? File.GetLastWriteTimeUtc(path) : DateTime.MinValue;
+
+    private void Remember(ShellPreferences preferences, DateTime stamp)
+    {
+        lock (_gate)
+        {
+            _cached = preferences;
+            _cachedStamp = stamp;
         }
     }
 
@@ -148,6 +183,7 @@ public sealed class ShellPreferencesStore(string path)
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(preferences, Format));
             File.Move(temporary, path, overwrite: true);
+            Remember(preferences, Stamp());
             return true;
         }
         catch (Exception ex) when (IsExpected(ex))

@@ -662,6 +662,67 @@ public sealed partial class PublishViewModel : ObservableObject
         MatchesVisibility = Matches.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     }
 
+    /// <summary>The To row's words while the suggested ticket is looked up (review finding D-19).</summary>
+    [ObservableProperty]
+    public partial string LookingUpWords { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial Visibility LookingUpVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>Stops the lookup under way; null when none is. A delegate, so the token's owner is the lookup itself.</summary>
+    private Action? _stopLookup;
+
+    /// <summary>
+    /// Review finding D-19: the suggested ticket, looked up after the pane is on screen rather than before
+    /// it opens. The To row says "Looking up #48213" with the ring while the PSA is asked, for at most five
+    /// seconds; a match is suggested only if no ticket was picked meanwhile. <see cref="StopLookingUp"/> ends
+    /// it when the pane goes away.
+    /// </summary>
+    public async Task LookUpSuggestedAsync(string hinted, Func<CancellationToken, Task<bool>> may, Func<string, CancellationToken, Task<IReadOnlyList<TicketMatch>>> search)
+    {
+        _stopLookup?.Invoke();
+        using var lookup = new CancellationTokenSource();
+        _stopLookup = lookup.Cancel;
+        TicketMatch? match;
+        try
+        {
+            match = await SuggestedTicketLookup.RunAsync(
+                hinted,
+                may,
+                search,
+                () =>
+                {
+                    LookingUpWords = SuggestedTicketLookup.Words(hinted);
+                    LookingUpVisibility = Visibility.Visible;
+                    NoTicketVisibility = Visibility.Collapsed;
+                },
+                lookup.Token).ConfigureAwait(true);
+        }
+        finally
+        {
+            if (_stopLookup == lookup.Cancel)
+            {
+                _stopLookup = null;
+            }
+        }
+
+        LookingUpVisibility = Visibility.Collapsed;
+        if (lookup.IsCancellationRequested)
+        {
+            return;
+        }
+
+        if (match is not null && _panel.Ticket is null)
+        {
+            _panel.Suggest(match);
+        }
+
+        Refresh();
+    }
+
+    /// <summary>The pane is going away: the lookup stops and suggests nothing.</summary>
+    public void StopLookingUp() => _stopLookup?.Invoke();
+
     private void Refresh()
     {
         TicketLabel = _panel.Ticket?.Label ?? string.Empty;

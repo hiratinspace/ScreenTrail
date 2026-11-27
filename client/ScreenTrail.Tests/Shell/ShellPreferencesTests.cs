@@ -176,4 +176,29 @@ public sealed class ShellPreferencesTests : IDisposable
         }
     }
 
+    /// <summary>
+    /// Review finding D-29: a load is not a read while the file is as the store last left it, and a file
+    /// changed or deleted behind it (Erase everything) is read again rather than served from memory.
+    /// </summary>
+    [Fact]
+    public void ALoadReadsTheFileOnlyWhenItHasChanged()
+    {
+        var path = Path.Combine(_dir, "shell.json");
+        var store = new ShellPreferencesStore(path);
+        Assert.True(store.Save(new ShellPreferences { HudX = 10 }));
+        var stamp = File.GetLastWriteTimeUtc(path);
+
+        // Other words under the same time: the store does not read them, so it served its memory.
+        File.WriteAllText(path, "{\"HudX\": 99}");
+        File.SetLastWriteTimeUtc(path, stamp);
+        Assert.Equal(10, store.Load().HudX);
+
+        // Written again behind it: read.
+        File.SetLastWriteTimeUtc(path, stamp.AddSeconds(5));
+        Assert.Equal(99, store.Load().HudX);
+
+        // Deleted behind it: the defaults, not the last values.
+        File.Delete(path);
+        Assert.Equal(0, store.Load().HudX);
+    }
 }

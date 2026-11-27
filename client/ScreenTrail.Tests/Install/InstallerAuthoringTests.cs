@@ -605,6 +605,26 @@ public sealed class InstallerAuthoringTests
 
     private static XDocument Bundle() => XDocument.Load(Repo.File("installer", "Bundle.wxs"));
 
+    /// <summary>
+    /// Review finding D-28: the installed build arrives compiled (ReadyToRun), and the application loads
+    /// one colour dictionary at start, the technician's, not the dark one first; a theme switch replaces
+    /// the dictionary in place.
+    /// </summary>
+    [Fact]
+    public void StartUpDoesNoAvoidableWork()
+    {
+        Assert.Equal("true", Packaged()["PublishReadyToRun"]);
+
+        var app = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs"));
+        Assert.Equal(1, Regex.Count(app, @"ThemeManager\.Follow\("));
+        Assert.Equal(1, Regex.Count(app, @"ThemeManager\.Apply\(AppTheme\.Dark, Resources\)"));
+        Assert.True(app.IndexOf("if (harness)", StringComparison.Ordinal) < app.IndexOf("ThemeManager.Apply(AppTheme.Dark, Resources)", StringComparison.Ordinal));
+
+        var theme = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "Theme", "ThemeManager.cs"));
+        Assert.Contains("resources.MergedDictionaries[index] = next;", theme, StringComparison.Ordinal);
+        Assert.DoesNotContain("MergedDictionaries.Remove(_colors)", theme, StringComparison.Ordinal);
+    }
+
     /// <summary>The properties Packaging.props sets when the installer build asks for them.</summary>
     private static Dictionary<string, string> Packaged()
     {
