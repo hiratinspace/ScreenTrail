@@ -337,7 +337,7 @@ public sealed partial class HudViewModel : ObservableObject
 /// <summary>One line of the expanded pill: an icon for the kind, the kind in words, and the time.</summary>
 /// <param name="Glyph">Segoe Fluent Icons; decoration beside the words, hidden from a screen reader.</param>
 /// <param name="Text">The kind in words ("Screenshot taken").</param>
-/// <param name="Time">HH:mm:ss.</param>
+/// <param name="Time">HH:mm.</param>
 /// <param name="Spoken">The line as a screen reader says it.</param>
 public sealed record HudEventRow(string Glyph, string Text, string Time, string Spoken)
 {

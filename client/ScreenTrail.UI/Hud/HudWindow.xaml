@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hud="clr-namespace:ScreenTrail.UI.Hud"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         Title="ScreenTrail"
         SizeToContent="WidthAndHeight"
         WindowStyle="None"
@@ -266,17 +267,20 @@
              and Open in ScreenTrail (Spec §5 S2). Its own card under the pill, so it has room: inside the
              44 px pill it was three rows of 11 px text squeezed between the state and the buttons. A HUD a
              customer can see over a technician's shoulder holds no content (INV-10). -->
+        <!-- Design system 10.10 (review finding C-H10): 4 below the pill, 16 inside, the float radius, a 1 px
+             border.strong edge; the heading in Body strong, then 28 px rows of a 16 px glyph, 8, the event in
+             Body and its time in HH:mm at the right, a shell.line rule between them. -->
         <Border x:Name="Card"
                 Grid.Row="1"
-                Margin="0,8,0,0"
+                Margin="0,4,0,0"
                 HorizontalAlignment="Stretch"
-                Padding="{DynamicResource Padding.control}"
-                CornerRadius="{DynamicResource Radius.card}"
+                Padding="{DynamicResource Padding.card}"
+                CornerRadius="{DynamicResource Radius.float}"
                 Background="{DynamicResource Brush.shell.bg}"
-                BorderBrush="{DynamicResource Brush.shell.muted}"
+                BorderBrush="{DynamicResource Brush.border.strong}"
                 BorderThickness="1"
                 Visibility="{Binding Expanded, Converter={StaticResource Visible}}">
-            <StackPanel Margin="0,4,0,4">
+            <StackPanel>
                 <TextBlock Margin="0,0,0,8"
                            Style="{StaticResource Hud.Text}"
                            FontWeight="{DynamicResource Weight.semibold}"
@@ -285,8 +289,8 @@
                 <controls:Repeater ItemsSource="{Binding RecentEvents}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type hud:HudEventRow}">
-                            <Border Padding="0,6" BorderBrush="{DynamicResource Brush.shell.line}" BorderThickness="0,1,0,0">
-                                <Grid>
+                            <Border MinHeight="{DynamicResource Layout.hit-target-min}" BorderBrush="{DynamicResource Brush.shell.line}" BorderThickness="0,1,0,0">
+                                <Grid VerticalAlignment="Center">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="*" />
@@ -294,8 +298,8 @@
                                     </Grid.ColumnDefinitions>
                                     <controls:Glyph Grid.Column="0" Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{Binding Glyph}" />
                                     <TextBlock Grid.Column="1"
-                                               Margin="10,0,16,0"
-                                               Style="{StaticResource Hud.Meta}"
+                                               Margin="8,0,16,0"
+                                               Style="{StaticResource Hud.Text}"
                                                Text="{Binding Text}"
                                                AutomationProperties.Name="{Binding Spoken}" />
                                     <!-- The time is already in the row's spoken words beside it, so it is
@@ -311,7 +315,7 @@
                 </controls:Repeater>
 
                 <!-- Nothing yet: said, rather than an empty card that looks broken. -->
-                <Border Padding="0,6" BorderBrush="{DynamicResource Brush.shell.line}" BorderThickness="0,1,0,0">
+                <Border MinHeight="{DynamicResource Layout.hit-target-min}" BorderBrush="{DynamicResource Brush.shell.line}" BorderThickness="0,1,0,0">
                     <Border.Style>
                         <Style TargetType="Border">
                             <Setter Property="Visibility" Value="Collapsed" />
@@ -330,7 +334,8 @@
                      focusable buttons with one name read as the same control twice to a screen reader
                      (Accessibility Insights, SiblingUniqueAndFocusable). -->
                 <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
-                    <Button Style="{DynamicResource Hud.TextButton}"
+                    <Button Style="{DynamicResource Button.Secondary}"
+                            theme:Density.Compact="True"
                             Command="{Binding ReviewCommand}"
                             Content="Open in ScreenTrail"
                             ToolTip="Open this session in ScreenTrail. It can be edited once the session is stopped."

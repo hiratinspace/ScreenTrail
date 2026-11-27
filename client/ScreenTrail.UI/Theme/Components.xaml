@@ -2086,33 +2086,6 @@
         </Style.Triggers>
     </Style>
 
-    <!-- A worded button on the expanded pill (Mark moment, Open in ScreenTrail): outlined in shell.muted,
-         32 px tall, the control radius. -->
-    <Style x:Key="Hud.TextButton" BasedOn="{StaticResource Hud.IconButton}" TargetType="Button">
-        <Setter Property="Width" Value="NaN" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hud-control}" />
-        <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="{DynamicResource Radius.control}"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                                          RecognizesAccessKey="True" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <!-- Table: 36 px rows, a quiet header, a tint on hover and on the selected row. The tint, the accent
          mark at the row's leading edge and the keyboard focus outline are the row's, not its cells', so each
          runs the whole width of the table whatever the columns add up to (v0.6.6). High contrast selects

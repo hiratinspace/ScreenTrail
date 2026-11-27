@@ -31,7 +31,8 @@ public enum HudEventKind
 
 /// <param name="Kind">What happened.</param>
 /// <param name="Text">The kind in words, with its count ("2 screenshots masked").</param>
-/// <param name="Time">When the UI heard of it, <c>HH:mm:ss</c> local time.</param>
+/// <param name="Time">When the UI heard of it, <c>HH:mm</c> local time: the heading's form ("since 14:02"),
+/// not a second one with seconds (review finding C-H10).</param>
 public sealed record HudEvent(HudEventKind Kind, string Text, string Time)
 {
     /// <summary>The row as a screen reader says it.</summary>
@@ -138,7 +139,7 @@ public sealed class HudTimeline
 
     private bool Add(HudEventKind kind, string text)
     {
-        _recent.Insert(0, new HudEvent(kind, text, Now().ToString("HH:mm:ss", CultureInfo.InvariantCulture)));
+        _recent.Insert(0, new HudEvent(kind, text, Now().ToString("HH:mm", CultureInfo.InvariantCulture)));
         if (_recent.Count > Shown)
         {
             _recent.RemoveRange(Shown, _recent.Count - Shown);
