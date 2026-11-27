@@ -410,7 +410,7 @@ public sealed class OnboardingWizardTests
 
     private sealed class FakeCapabilities : ICapabilitiesGateway
     {
-        public IReadOnlyList<CapabilityStatus> Checks { get; set; } =
+        public IReadOnlyList<CapabilityStatus>? Checks { get; set; } =
         [
             new CapabilityStatus { Capability = "microphone", State = "ok", Message = "Microphone works." },
             new CapabilityStatus { Capability = "screen_capture", State = "ok", Message = "Screen capture works." },
@@ -505,5 +505,28 @@ public sealed class OnboardingWizardTests
         Assert.Equal(severity, row.Severity);
         Assert.Equal(severity == PermissionSeverity.OptionalMissing, row.Consequence.Length > 0);
         Assert.DoesNotContain('\u2014', PermissionRow.MicrophoneConsequence);
+    }
+
+    /// <summary>
+    /// Review finding C-I4: before the service answers, Permissions says it is starting it and waits on it
+    /// (the window checks again every two seconds); once it answers, the step goes on.
+    /// </summary>
+    [Fact]
+    public async Task PermissionsWaitsOnAServiceThatIsStarting()
+    {
+        var capabilities = new FakeCapabilities { Checks = null };
+        var wizard = Wizard(capabilities: capabilities);
+        wizard.Go(OnboardingStep.Permissions);
+        await wizard.LoadStepAsync();
+
+        Assert.True(wizard.WaitingOnService);
+        Assert.Equal(OnboardingWizard.WaitingForService, wizard.Blocker);
+        Assert.False(wizard.CanContinue);
+        Assert.DoesNotContain('\u2014', OnboardingWizard.WaitingForService);
+
+        capabilities.Checks = new FakeCapabilities().Checks;
+        await wizard.RecheckAsync();
+        Assert.False(wizard.WaitingOnService);
+        Assert.True(wizard.CanContinue);
     }
 }

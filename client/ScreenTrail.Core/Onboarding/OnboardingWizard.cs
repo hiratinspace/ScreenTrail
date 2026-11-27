@@ -165,6 +165,15 @@ public sealed class OnboardingWizard(
     /// <summary>The taskbar page of Windows Settings, where Other system tray icons are.</summary>
     public const string TaskbarSettings = "ms-settings:taskbar";
 
+    /// <summary>
+    /// The Permissions step before the service has answered (review finding C-I4): an opened app starts
+    /// the service itself, and the step checks again every two seconds until it answers.
+    /// </summary>
+    public const string WaitingForService = "Starting the capture service, then checking what this PC allows. This takes a few seconds.";
+
+    /// <summary>Whether the step is waiting on the service, with the ring beside its words, and checking again.</summary>
+    public bool WaitingOnService => Step == OnboardingStep.Permissions && !PermissionsKnown;
+
     public const string TestDrafting = "The draft is on its way. It opens in Review when it is ready, usually within a minute.";
 
     private static string Elapsed(TimeSpan span)
@@ -190,7 +199,7 @@ public sealed class OnboardingWizard(
     public string? Blocker => Step switch
     {
         OnboardingStep.Activate when !Activation.Activated => "Enter the code from your invite, or come back to this from Settings later.",
-        OnboardingStep.Permissions when !PermissionsKnown => "Checking what this PC allows…",
+        OnboardingStep.Permissions when !PermissionsKnown => WaitingForService,
         OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "screen_capture") =>
             "Screen capture is blocked, so there is nothing to capture with. Fix that first.",
         OnboardingStep.TryIt when !_testDone => TestRunning

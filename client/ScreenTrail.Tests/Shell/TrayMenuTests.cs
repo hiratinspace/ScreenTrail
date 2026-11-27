@@ -253,6 +253,34 @@ public sealed class TrayMenuTests
         Assert.Single(started);
     }
 
+    /// <summary>
+    /// Review finding C-I4: opened by hand with no service, the app starts it once after three seconds; a
+    /// service that has answered, or a cancelled start, is left alone.
+    /// </summary>
+    [Fact]
+    public async Task AnOpenedAppStartsTheServiceOnlyWhenNoneHasAnswered()
+    {
+        var waited = new List<TimeSpan>();
+        Task Wait(TimeSpan t, CancellationToken ct)
+        {
+            waited.Add(t);
+            return Task.CompletedTask;
+        }
+
+        var starts = 0;
+        Assert.True(await CaptureServiceStart.StartIfSilentAsync(() => false, Wait, () => starts++));
+        Assert.Equal(1, starts);
+        Assert.Equal([TimeSpan.FromSeconds(3)], waited);
+
+        Assert.False(await CaptureServiceStart.StartIfSilentAsync(() => true, Wait, () => starts++));
+        Assert.Equal(1, starts);
+
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        Assert.False(await CaptureServiceStart.StartIfSilentAsync(() => false, Task.Delay, () => starts++, cancelled.Token));
+        Assert.Equal(1, starts);
+    }
+
     [Theory]
     [InlineData(ServiceConnection.Unavailable, "Capture service not running")]
     [InlineData(ServiceConnection.Connecting, "Connecting to the capture service")]

@@ -169,4 +169,14 @@ public sealed class OnboardingPolishTests
         Assert.Equal("ms-settings:taskbar", target);
         Assert.DoesNotContain('\u2014', ScreenTrail.Core.Onboarding.OnboardingWizard.TrayHint);
     }
+
+    /// <summary>Review finding C-I4: the ring beside the blocker while Permissions waits on the service.</summary>
+    [Fact]
+    public void WaitingOnTheServiceShowsTheRing()
+    {
+        var line = Named(Window(), "BlockerLine");
+        var ring = Named(line, "WaitingRing");
+        Assert.Equal("{StaticResource ProgressRing}", (string?)ring.Attribute("Style"));
+        Assert.Equal("{Binding WaitingVisibility}", (string?)ring.Attribute("Visibility"));
+    }
 }

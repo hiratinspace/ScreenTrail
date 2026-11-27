@@ -357,7 +357,15 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Note}" Visibility="{Binding NoteVisibility}" controls:LiveRegion.Setting="Polite" />
-                        <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" Visibility="{Binding BlockerVisibility}" controls:LiveRegion.Setting="Polite" />
+                        <!-- Review finding C-I4: while the step waits on the service, the ring beside its words. -->
+                        <Grid x:Name="BlockerLine" Margin="0,0,0,12" Visibility="{Binding BlockerVisibility}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Control x:Name="WaitingRing" Grid.Column="0" Margin="0,0,8,0" VerticalAlignment="Top" Style="{StaticResource ProgressRing}" Visibility="{Binding WaitingVisibility}" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" controls:LiveRegion.Setting="Polite" />
+                        </Grid>
                         <Grid>
                             <!-- Review finding C-O7: Back is a Secondary button, its edge on the content's edge as in
                                  Windows setup (a Ghost button's label sat inset from it), and is not there on

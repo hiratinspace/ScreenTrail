@@ -152,6 +152,52 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
     private System.Windows.Threading.DispatcherTimer? _testClock;
 
+    private System.Windows.Threading.DispatcherTimer? _serviceCheck;
+
+    /// <summary>The ring beside the blocker while the Permissions step waits on the service (review finding C-I4).</summary>
+    [ObservableProperty]
+    public partial Visibility WaitingVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>
+    /// Review finding C-I4: while Permissions waits on a service that is starting, it checks again every two
+    /// seconds, so the step turns green when the service answers without a click on Check again.
+    /// </summary>
+    private void FollowTheService()
+    {
+        WaitingVisibility = _wizard.WaitingOnService ? Visibility.Visible : Visibility.Collapsed;
+        if (_wizard.WaitingOnService)
+        {
+            _serviceCheck ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(2), System.Windows.Threading.DispatcherPriority.Background, async (_, _) => await CheckServiceAgainAsync().ConfigureAwait(true), System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            _serviceCheck.Start();
+        }
+        else
+        {
+            _serviceCheck?.Stop();
+        }
+    }
+
+    private bool _checkingService;
+
+    private async Task CheckServiceAgainAsync()
+    {
+        if (_checkingService || !_wizard.WaitingOnService)
+        {
+            return;
+        }
+
+        _checkingService = true;
+        try
+        {
+            await _wizard.RecheckAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            _checkingService = false;
+        }
+
+        Refresh();
+    }
+
     private void FollowTheTest()
     {
         var test = _wizard.Test;
@@ -317,6 +363,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
         TestRunning = _wizard.TestRunning;
         CanStartTest = !_wizard.TestRunning;
         FollowTheTest();
+        FollowTheService();
         OnPropertyChanged(nameof(WelcomeVisibility));
         OnPropertyChanged(nameof(ActivateVisibility));
         OnPropertyChanged(nameof(PermissionsVisibility));
