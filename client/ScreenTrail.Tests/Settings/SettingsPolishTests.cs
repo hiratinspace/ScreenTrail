@@ -178,4 +178,27 @@ public sealed class SettingsPolishTests
             Assert.Equal(count, view.Descendants(Wpf + "ContentControl").Count(c => (string?)c.Attribute("Style") == "{StaticResource Settings.Locked}"));
         }
     }
+
+    /// <summary>
+    /// Review finding B-39: the microphone and the speech model are a tile of their own, not two more heading
+    /// levels inside Screenshots, and every Capture tile opens with its heading.
+    /// </summary>
+    [Fact]
+    public void TheMicrophoneIsATileOfItsOwnAndEveryTileHasAHeading()
+    {
+        var capture = EmptyStateTests.View("Settings/Capture", "CapturePane.xaml");
+        var tiles = capture.Descendants(Wpf + "Border").Where(b => (string?)b.Attribute("Style") == "{StaticResource Settings.Tile}").ToList();
+        foreach (var tile in tiles)
+        {
+            var first = tile.Elements(Wpf + "StackPanel").Single().Elements().First();
+            var heading = first.Name == Wpf + "TextBlock" ? first : first.Descendants(Wpf + "TextBlock").First();
+            Assert.Equal("{StaticResource Text.TileHeading}", (string?)heading.Attribute("Style"));
+        }
+
+        var microphone = tiles.Single(t => (string?)t.Attribute(Xaml + "Name") == "MicrophoneTile");
+        Assert.Contains(microphone.Descendants(Wpf + "ComboBox"), c => (string?)c.Attribute("AutomationProperties.Name") == "Speech model");
+        var screenshots = tiles.Single(t => t.Descendants(Wpf + "TextBlock").Any(x => (string?)x.Attribute("Text") == "Screenshots"));
+        Assert.DoesNotContain(screenshots.Descendants(Wpf + "TextBlock"), x => (string?)x.Attribute("Text") is "Microphone" or "Speech model");
+        Assert.Contains(tiles, t => (string?)t.Attribute(Xaml + "Name") == "StartWithWindowsTile");
+    }
 }

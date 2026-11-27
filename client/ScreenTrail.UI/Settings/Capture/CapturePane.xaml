@@ -86,7 +86,8 @@
             </StackPanel>
         </Border>
 
-        <!-- Screenshots and the microphone. -->
+        <!-- Screenshots. Review finding B-39: the microphone and the speech model are a tile of their own,
+             not two more heading levels inside this one (one group per tile, spec v0.7.0). -->
         <Border Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
@@ -103,11 +104,16 @@
                         </Style>
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
+            </StackPanel>
+        </Border>
 
-                <!-- ST-080 AC3: the device and its live level. The level is read only while this card is
-                     on screen with the window in front (the code-behind says when); nothing is recorded. -->
+        <!-- The microphone: Device, Level and Speech model, labelled fields 16 apart. ST-080 AC3: the level
+             is read only while this tile is on screen with the window in front (the code-behind says when);
+             nothing is recorded. -->
+        <Border x:Name="MicrophoneTile" Style="{StaticResource Settings.Tile}">
+            <StackPanel>
                 <StackPanel x:Name="MicrophoneCard">
-                    <StackPanel Margin="0,24,0,0" Orientation="Horizontal">
+                    <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Text.TileHeading}" Text="Microphone" />
                         <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[Microphone]}" />
                     </StackPanel>
@@ -123,7 +129,7 @@
                     <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Visibility="{Binding MicrophoneNoteVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding MicrophoneNote}" controls:LiveRegion.Setting="Polite" />
                     </ContentControl>
-                    <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
+                    <StackPanel Margin="0,16,0,0" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Label}" Text="Level" />
                         <ProgressBar Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Meter.Level}" Value="{Binding MicrophoneLevel, Mode=OneWay}" theme:Meter.Clipping="{Binding MicrophoneClipping, Mode=OneWay}" AutomationProperties.Name="Microphone level" AutomationProperties.HelpText="{Binding MicrophoneLevelStatus}" />
                     </StackPanel>
@@ -151,10 +157,14 @@
             </StackPanel>
         </Border>
 
-        <Border Style="{StaticResource Settings.Tile}">
-            <StackPanel Orientation="Horizontal">
-                <CheckBox Content="Start ScreenTrail when I sign in to Windows" IsChecked="{Binding StartUiAtLogin}" />
-                <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[StartAtSignIn]}" />
+        <!-- Every tile opens with its heading (B-39): this one was a lone check box. -->
+        <Border x:Name="StartWithWindowsTile" Style="{StaticResource Settings.Tile}">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Style="{StaticResource Text.TileHeading}" Text="Start with Windows" />
+                    <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[StartAtSignIn]}" />
+                </StackPanel>
+                <CheckBox Margin="0,8,0,0" Content="Start ScreenTrail when I sign in to Windows" IsChecked="{Binding StartUiAtLogin}" />
             </StackPanel>
         </Border>
 
