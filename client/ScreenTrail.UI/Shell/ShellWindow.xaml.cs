@@ -604,6 +604,7 @@ public partial class ShellWindow : Window
         // The service comes back for the passes below, which draw a working shell.
         state.Connected(new Shared.Ipc.CaptureStateSnapshot { State = "recording", SessionId = "preview", RemoteTool = "screenconnect", ElapsedMs = 12 * 60 * 1000 });
         await EnlargedAsync(state);
+        await StripAsync(state);
         await NoteAsync(state);
         await SettingsSectionsAsync(state);
         await FocusAsync(state);

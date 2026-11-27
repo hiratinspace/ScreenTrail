@@ -3,14 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              xmlns:review="clr-namespace:ScreenTrail.UI.Review"
+             xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              Background="Transparent"
              AutomationProperties.Name="Screenshots">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
 
-        <!-- A screenshot. Excluded ones are dimmed *and* say "excluded" (Spec §7: never colour alone, and
-             never opacity alone either) - and the word is outside the dimmed image, because fading the one
-             signal that makes the state readable is how the first version of this lost it. -->
+        <!-- A screenshot. An excluded one is not dimmed (review finding A-27): dimming muddied the thumbnail
+             and was a state drawn in opacity. It stays at full strength in its 1 px border.subtle frame, with
+             an "Excluded" Neutral badge and Icon.Hide 8 in from the image's top left, and its label line still
+             says "excluded" (Spec §7: never colour alone). -->
         <DataTemplate x:Key="FrameTemplate" DataType="{x:Type review:FrameItem}">
             <StackPanel Width="160">
                 <Border Width="160"
@@ -29,16 +31,24 @@
                                    Foreground="{DynamicResource Brush.text.muted}"
                                    Text="{StaticResource Icon.Photo}" />
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
+                        <ContentControl x:Name="ExcludedBadge"
+                                        Margin="8"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        theme:Badge.Glyph="{StaticResource Icon.Hide}"
+                                        Content="Excluded">
+                            <ContentControl.Style>
+                                <Style BasedOn="{StaticResource Badge}" TargetType="ContentControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Included}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
                     </Grid>
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Included}" Value="False">
-                                    <Setter Property="Opacity" Value="0.4" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
                 </Border>
                 <StackPanel Orientation="Horizontal" Margin="4,8,0,0">
                     <TextBlock Style="{StaticResource Text.Muted}" Foreground="{DynamicResource Brush.text.secondary}" Text="{Binding Label}" />
@@ -50,32 +60,22 @@
 
         <!-- A stretch with no screenshots because capture was deliberately off. The same width as a frame
              so the strip keeps its rhythm, and dashed rather than merely tinted so it reads as a gap
-             without relying on colour. -->
+             without relying on colour: a flat bg.info tile with a 1 px dashed border.strong edge (review
+             finding A-27; it was a gradient opacity mask in stripes, in a flat-fill product). -->
         <DataTemplate x:Key="GapTemplate" DataType="{x:Type review:GapItem}">
             <StackPanel Width="160">
-                <Border Width="160"
-                        Height="90"
-                        CornerRadius="{DynamicResource Radius.control}"
-                        BorderThickness="1"
-                        BorderBrush="{DynamicResource Brush.state.paused}"
-                        Background="{DynamicResource Brush.bg.surface}"
-                        ToolTip="{Binding Description}">
-                    <Border.OpacityMask>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" SpreadMethod="Repeat" MappingMode="Absolute">
-                            <GradientStop Offset="0" Color="#FFFFFFFF" />
-                            <GradientStop Offset="0.5" Color="#FFFFFFFF" />
-                            <GradientStop Offset="0.5" Color="#40FFFFFF" />
-                            <GradientStop Offset="1" Color="#40FFFFFF" />
-                            <LinearGradientBrush.Transform>
-                                <ScaleTransform ScaleX="8" />
-                            </LinearGradientBrush.Transform>
-                        </LinearGradientBrush>
-                    </Border.OpacityMask>
+                <Grid x:Name="GapTile" Width="160" Height="90" ToolTip="{Binding Description}">
+                    <Rectangle RadiusX="6"
+                               RadiusY="6"
+                               Fill="{DynamicResource Brush.bg.info}"
+                               Stroke="{DynamicResource Brush.border.strong}"
+                               StrokeThickness="1"
+                               StrokeDashArray="4 3" />
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Muted}"
                                Text="{Binding Duration}" />
-                </Border>
+                </Grid>
                 <TextBlock Margin="0,4,0,0"
                            Style="{StaticResource Text.Muted}"
                            TextWrapping="Wrap"
@@ -88,7 +88,8 @@
                                           Gap="{StaticResource GapTemplate}" />
     </UserControl.Resources>
 
-    <Grid Margin="24,16,16,0">
+    <!-- 16 round the strip, on the spacing scale (review finding A-27). -->
+    <Grid Margin="16,16,16,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -125,7 +126,7 @@
              before a KeyDown handler on it runs, so Space never excluded a frame (T-167). -->
         <ListBox Grid.Row="1"
                  x:Name="Strip"
-                 Margin="-8,8,0,0"
+                 Margin="0,8,0,0"
                  Style="{StaticResource Filmstrip}"
                  ItemsSource="{Binding Items}"
                  SelectedItem="{Binding Selected}"
@@ -168,8 +169,7 @@
 
             <TextBlock Grid.Column="1"
                        VerticalAlignment="Center"
-                       Style="{StaticResource Text.Muted}"
-                       FontSize="{DynamicResource Size.xs}"
+                       Style="{StaticResource Text.Caption}"
                        Text="Space include · Enter enlarge · B blur · Del delete" />
         </Grid>
 

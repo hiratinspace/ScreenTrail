@@ -139,4 +139,40 @@ public sealed class TimelineLayoutTests
         var collapses = paneBack.Descendants(Wpf + "DataTrigger").Single();
         Assert.Equal("{Binding Strip.IsEnlarged}", (string?)collapses.Attribute("Binding"));
     }
+
+    /// <summary>
+    /// Review finding A-27: the strip sits 16 in, on the scale, with no negative margin to cancel its items';
+    /// an excluded frame is not dimmed but carries an "Excluded" badge with Icon.Hide; the gap tile is a flat
+    /// bg.info fill with a dashed border.strong edge and no gradient; the key hint is a Caption.
+    /// </summary>
+    [Fact]
+    public void TheStripIsFlatOnTheGridWithNoOpacityStates()
+    {
+        var strip = EnvelopeLayoutTests.Load("Review", "FilmstripView.xaml");
+        var root = strip.Elements(Wpf + "Grid").Single();
+        Assert.Equal("16,16,16,0", (string?)root.Attribute("Margin"));
+        var list = strip.Descendants(Wpf + "ListBox").Single(l => (string?)l.Attribute(X + "Name") == "Strip");
+        Assert.Equal("0,8,0,0", (string?)list.Attribute("Margin"));
+
+        var frame = strip.Descendants(Wpf + "DataTemplate").Single(t => (string?)t.Attribute(X + "Key") == "FrameTemplate");
+        Assert.DoesNotContain(frame.Descendants(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Opacity");
+        var badge = frame.Descendants(Wpf + "ContentControl").Single(c => (string?)c.Attribute(X + "Name") == "ExcludedBadge");
+        Assert.Equal("Excluded", (string?)badge.Attribute("Content"));
+        Assert.Equal("{StaticResource Icon.Hide}", (string?)badge.Attribute(XName.Get("Badge.Glyph", "clr-namespace:ScreenTrail.UI.Theme")));
+        Assert.Equal("8", (string?)badge.Attribute("Margin"));
+
+        var gap = strip.Descendants(Wpf + "DataTemplate").Single(t => (string?)t.Attribute(X + "Key") == "GapTemplate");
+        Assert.DoesNotContain(gap.Descendants(), e => e.Name.LocalName.Contains("Gradient", StringComparison.Ordinal) || e.Name.LocalName.EndsWith("OpacityMask", StringComparison.Ordinal));
+        var tile = gap.Descendants(Wpf + "Rectangle").Single();
+        Assert.Equal("{DynamicResource Brush.bg.info}", (string?)tile.Attribute("Fill"));
+        Assert.Equal("{DynamicResource Brush.border.strong}", (string?)tile.Attribute("Stroke"));
+        Assert.Equal("4 3", (string?)tile.Attribute("StrokeDashArray"));
+
+        var hint = strip.Descendants(Wpf + "TextBlock").Single(t => ((string?)t.Attribute("Text"))?.StartsWith("Space include", StringComparison.Ordinal) == true);
+        Assert.Equal("{StaticResource Text.Caption}", (string?)hint.Attribute("Style"));
+        Assert.Null(hint.Attribute("FontSize"));
+
+        var renders = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Shell", "ShellWindow.Renders.cs"));
+        Assert.Contains("\"shell-review-strip\"", renders, StringComparison.Ordinal);
+    }
 }
