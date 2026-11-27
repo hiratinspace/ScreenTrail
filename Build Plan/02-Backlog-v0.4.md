@@ -2353,7 +2353,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-34/E-11, B-35, R-02, B-36 to B-38, E-10
 - **Blocked By:** ST-128 to ST-130, ST-133
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: a failed draft says why in plain words, with "Try drafting again" only when it can help and the reason carried over the pipe (E-10, IPC contract v16); E-11's words were in since ST-133; an inferred step is one badge line with no side stripe (B-34); a step stacks under a 560 px note with a 96 x 60 frame and no "screenshot N" line (B-35, R-02); quotes as Captions (B-36); a draft on its way as a ring and the note's shape (B-37); the footer in one size at 44 high (B-38). Follow-up: a `retry_draft` command so the live pane can offer Try drafting again. Laptop checks: the Windows suite and the note renders (default, narrow, pending, failed).
 
 ### **ST-139 · All sessions (including restoring the selection across reads, the rest of D-22)**
 - **Findings:** A-09, A-10, R-03, A-13 (Open)

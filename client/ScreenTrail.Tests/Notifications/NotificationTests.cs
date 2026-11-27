@@ -49,7 +49,7 @@ public sealed class NotificationTests
         var notice = Notices.For(Capture(CaptureStates.DraftFailed, reason: "The provider did not answer."));
 
         Assert.NotNull(notice);
-        Assert.Equal("Draft not created", notice.Title);
+        Assert.Equal("This session could not be drafted", notice.Title);
         Assert.Equal("Your screenshots and transcript are kept. Select to see why.", notice.Text);
         Assert.Equal(NotificationAction.Open, notice.Action);
         Assert.Equal(NotificationLevel.Warning, notice.Level);
@@ -180,7 +180,8 @@ public sealed class NotificationTests
         Assert.True(failure.ShowTimeline);
         Assert.True(failure.ShowFrames);
         Assert.True(failure.ShowTranscript);
-        Assert.Equal("We couldn't draft this session. Your screenshots and transcript are saved.", DraftFailure.Headline);
+        Assert.Equal("This session could not be drafted", DraftFailure.Headline);
+        Assert.Equal("Your screenshots and transcript are kept.", DraftFailure.Kept);
     }
 
     [Fact]
@@ -200,12 +201,31 @@ public sealed class NotificationTests
         // Spec §5 S3 as amended by v0.4.3: the reason sits beside the button rather than in a tooltip,
         // because a tooltip on a disabled control is the one place a keyboard user can never reach it.
         Assert.Equal(
-            "There is no note to publish yet. Retry the draft first.",
+            "There is no note to publish yet. Try drafting again first.",
             DraftFailure.For("The provider did not answer.").PublishDisabledReason);
 
         Assert.Equal(
             "There is no note to publish yet. It will be drafted when you are back online.",
             DraftFailure.Offline.PublishDisabledReason);
+    }
+
+    [Fact]
+    public void AFailureSaysWhyInPlainWordsAndNeverBlamesTheNetworkForSomethingElse()
+    {
+        // Review finding E-10: the reason was held and never shown, and every failure Retry could not help
+        // said "when you are back online", including a deployment with no provider at all.
+        var notSetUp = DraftFailure.For("No summarization provider is configured on this deployment, so this session was not drafted.");
+        Assert.Equal("Drafting is not set up for your company yet. Ask your ScreenTrail admin.", notSetUp.Plain);
+        Assert.Equal("There is no note to publish yet. Ask your ScreenTrail admin to set up drafting.", notSetUp.PublishDisabledReason);
+
+        var provider = DraftFailure.For("The provider did not answer.");
+        Assert.Equal("The provider did not answer.", provider.Plain);
+
+        // No reason: nothing under the heading that only repeats it, and no network sentence.
+        var silent = DraftFailure.For(null);
+        Assert.Null(silent.Plain);
+        Assert.Equal("There is no note to publish yet. This session could not be drafted.", silent.PublishDisabledReason);
+        Assert.DoesNotContain("online", (provider with { CanRetryNow = false }).PublishDisabledReason, StringComparison.Ordinal);
     }
 
     private static CaptureStateSnapshot Capture(string state, string? title = null, string? company = null, string? reason = null) => new()

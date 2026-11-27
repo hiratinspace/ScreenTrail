@@ -92,6 +92,9 @@
     <sys:Double x:Key="Layout.receipt-row-height">48</sys:Double>
     <sys:Double x:Key="Layout.transcript-clock-width">48</sys:Double>
     <sys:Double x:Key="Layout.toolbar-height">48</sys:Double>
+    <sys:Double x:Key="Layout.step-frame-width">96</sys:Double>
+    <sys:Double x:Key="Layout.step-frame-height">60</sys:Double>
+    <sys:Double x:Key="Layout.note-footer-height">44</sys:Double>
     <sys:Double x:Key="Layout.settings-nav-width">188</sys:Double>
     <sys:Double x:Key="Layout.search-text-inset">36</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>

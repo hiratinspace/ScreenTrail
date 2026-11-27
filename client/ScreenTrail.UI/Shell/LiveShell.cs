@@ -561,8 +561,15 @@ public sealed class LiveShell : IAsyncDisposable
             return null;
         }
 
-        // ST-013: a draft still on its way says so, rather than "We couldn't draft this session".
+        // ST-013: a draft still on its way says so, rather than that it could not be drafted.
         var draftPending = loaded.DraftPending;
+
+        // Why a failed draft failed, said under the heading (review finding E-10). Nothing over the pipe asks
+        // for a draft again yet, so this pane never offers to try: a button that cannot help is worse than
+        // none, and the Publish reason does not tell the technician to press it.
+        var draftFailure = session.Draft is null && !draftPending
+            ? Core.Notifications.DraftFailure.For(loaded.DraftFailure) with { CanRetryNow = false }
+            : null;
 
         // The publish pane's delegates, over the pipe. What the tenant has connected is asked now, once,
         // so the pane opens saying "Ask your ScreenTrail admin to connect a PSA to publish" or ready, not guessing. The mapping prompt's
@@ -576,6 +583,7 @@ public sealed class LiveShell : IAsyncDisposable
             publisher.PublishAsync,
             mapping: new CompanyMapping(publisher.CompaniesAsync, publisher.MapRefusedAsync),
             draftPending: draftPending,
+            draftFailure: draftFailure,
             earlierOutcomes: PipePublisher.Earlier(loaded.PublishOutcomes),
             reloadEarlier: c => publisher.EarlierAsync(sessionId, c));
 
@@ -611,6 +619,7 @@ public sealed class LiveShell : IAsyncDisposable
             timelineExpanded: _preferences.Load().TimelineExpanded,
             timelineToggled: expanded => _ = _preferences.Save(_preferences.Load() with { TimelineExpanded = expanded }),
             draftPending: draftPending,
+            draftFailure: draftFailure,
             discard: c => DiscardFromReviewAsync(sessionId, c),
             discardBlocked: () => _discards.ReviewBlockedBecause(sessionId),
 

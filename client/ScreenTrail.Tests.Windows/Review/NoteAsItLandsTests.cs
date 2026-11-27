@@ -23,6 +23,11 @@ public sealed class NoteAsItLandsTests
         Assert.Same(review.Strip.Items.OfType<FrameItem>().Single(i => i.Id == "f3"), chip.Item);
         Assert.Equal("screenshot 3", chip.Place);
         Assert.Equal("Step 1: Screenshot 3, attached as screenshot 3", chip.SpokenName);
+
+        // Review finding R-02: attached and unmasked, nothing under the picture; its name is the tooltip's first words.
+        Assert.Equal(string.Empty, chip.StateWord);
+        Assert.False(chip.HasCaption);
+        Assert.StartsWith("Screenshot 3. ", chip.Tip, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -38,6 +43,8 @@ public sealed class NoteAsItLandsTests
         Assert.Equal([("f3", false)], frames.Included);
         Assert.DoesNotContain("f3", review.Strip.IncludedFrameIds);
         Assert.Equal("not attached", chip.Place);
+        Assert.Equal("not attached", chip.StateWord);
+        Assert.True(chip.HasCaption);
 
         // Excluding an earlier frame renumbers what goes out, as the ticket will.
         await review.Note.ToggleFrameCommand.ExecuteAsync(chip);

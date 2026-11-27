@@ -79,7 +79,7 @@ public sealed class NoteBannerTests
         // Spec puts the reason next to the button rather than in a tooltip: a tooltip on a disabled control
         // is the one place a keyboard user can never reach it.
         Assert.Equal(
-            "There is no note to publish yet. Retry the draft first.",
+            "There is no note to publish yet. Try drafting again first.",
             NoteBanners.PublishBlockedBecause(Session(), ticketChosen: true));
 
         Assert.Equal(

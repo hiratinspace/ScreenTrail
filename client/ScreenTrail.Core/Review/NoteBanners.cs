@@ -86,7 +86,11 @@ public static class NoteBanners
     /// </summary>
     /// <param name="ticketChosen">A ticket has been picked in the right pane.</param>
     /// <param name="draftPending">The draft is queued for the backend (ST-013): on its way, not failed.</param>
-    public static string? PublishBlockedBecause(Session session, bool ticketChosen, bool offline = false, bool draftPending = false)
+    /// <param name="failure">
+    /// Why the draft failed, and whether trying again could help (review finding E-10), when it is known.
+    /// Null words it as a failure that can be tried again, as before.
+    /// </param>
+    public static string? PublishBlockedBecause(Session session, bool ticketChosen, bool offline = false, bool draftPending = false, Notifications.DraftFailure? failure = null)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -103,7 +107,7 @@ public static class NoteBanners
             // again - and §6's own copy rule says always offer the next step. Amendment v0.4.3.
             return offline
                 ? "There is no note to publish yet. It will be drafted when you are back online."
-                : "There is no note to publish yet. Retry the draft first.";
+                : failure?.PublishDisabledReason ?? "There is no note to publish yet. Try drafting again first.";
         }
 
         if (offline)

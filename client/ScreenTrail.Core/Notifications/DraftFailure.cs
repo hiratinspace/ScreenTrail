@@ -16,8 +16,17 @@ namespace ScreenTrail.Core.Notifications;
 /// </param>
 public sealed record DraftFailure(string Reason, bool CanRetryNow)
 {
-    /// <summary>Spec §6's wording, and the second half is the part that matters.</summary>
-    public const string Headline = "We couldn't draft this session. Your screenshots and transcript are saved.";
+    /// <summary>
+    /// The heading, in the product's voice (review finding E-10): no "We", like every other message. The
+    /// note pane, the balloon and the receipt all say it this way.
+    /// </summary>
+    public const string Headline = "This session could not be drafted";
+
+    /// <summary>The part that matters (Spec §6): said under the reason, always.</summary>
+    public const string Kept = "Your screenshots and transcript are kept.";
+
+    /// <summary>What a deployment with no drafting set up is told, in place of the service's words.</summary>
+    public const string NotSetUpReason = "Drafting is not set up for your company yet. Ask your ScreenTrail admin.";
 
     /// <summary>
     /// What the service says when the deployment has no model provider.
@@ -35,6 +44,18 @@ public sealed record DraftFailure(string Reason, bool CanRetryNow)
 
     /// <summary>True when nothing has failed yet and the work is queued (ST-064).</summary>
     public bool IsOffline { get; init; }
+
+    /// <summary>The deployment has no drafting provider, so no retry and no wait will help.</summary>
+    public bool IsNotSetUp => Reason.StartsWith(NoProvider, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// The reason in plain words, for the line under the heading (review finding E-10): the service's own
+    /// sentence, except that no provider becomes who can fix it. Null when the service gave none, so the
+    /// pane does not say "The draft could not be created" under "could not be drafted".
+    /// </summary>
+    public string? Plain => IsNotSetUp ? NotSetUpReason : Reason == Unknown ? null : Reason;
+
+    private const string Unknown = "The draft could not be created.";
 
     // These three are unconditional, which is the property worth keeping rather than the one worth
     // optimising away. Making them static to satisfy CA1822 would move the rule off the failure it
@@ -58,12 +79,18 @@ public sealed record DraftFailure(string Reason, bool CanRetryNow)
     /// keyboard user can never reach it, and changed the offline wording because telling somebody to
     /// retry something that cannot succeed makes them think the problem is theirs.
     /// </summary>
-    public string PublishDisabledReason => IsOffline || !CanRetryNow
-        ? "There is no note to publish yet. It will be drafted when you are back online."
-        : "There is no note to publish yet. Retry the draft first.";
+    /// <remarks>
+    /// Review finding E-10: it used to blame the network whenever Retry could not help, which a deployment
+    /// with no provider, or a failure with no reason, has nothing to do with.
+    /// </remarks>
+    public string PublishDisabledReason =>
+        IsOffline ? "There is no note to publish yet. It will be drafted when you are back online."
+        : IsNotSetUp ? "There is no note to publish yet. Ask your ScreenTrail admin to set up drafting."
+        : CanRetryNow ? "There is no note to publish yet. Try drafting again first."
+        : "There is no note to publish yet. This session could not be drafted.";
 
     public static DraftFailure For(string? reason) =>
-        new(string.IsNullOrWhiteSpace(reason) ? "The draft could not be created." : reason, CanRetry(reason));
+        new(string.IsNullOrWhiteSpace(reason) ? Unknown : reason, CanRetry(reason));
 
     /// <summary>
     /// Whether retrying could produce a different answer.

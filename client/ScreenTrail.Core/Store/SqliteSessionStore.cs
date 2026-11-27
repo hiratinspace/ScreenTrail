@@ -586,6 +586,14 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
         return moved > 0;
     }
 
+    public Task<string?> DraftFailureReasonAsync(string sessionId, CancellationToken ct = default) =>
+        QueryAsync<string?>(
+            "SELECT state_reason FROM sessions WHERE id = @id AND state = @failed",
+            async reader => await reader.ReadAsync(ct).ConfigureAwait(false) && !await reader.IsDBNullAsync(0, ct).ConfigureAwait(false) ? reader.GetString(0) : null,
+            ct,
+            ("@id", sessionId),
+            ("@failed", Shared.Ipc.CaptureStates.DraftFailed));
+
     public Task<IReadOnlyList<string>> ListSessionsInStatesAsync(IReadOnlyCollection<string> states, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(states);

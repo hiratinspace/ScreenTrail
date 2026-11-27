@@ -703,16 +703,16 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task AVersionFourteenUiIsTurnedAwayByAVersionFifteenService()
+    public async Task AVersionFifteenUiIsTurnedAwayByAVersionSixteenService()
     {
-        // Contract v15 (ST-031): the diagnostics reply's cpu_percent is real and absent while still being
-        // measured, where it was required and always 0, and capture_level is new. A v14 UI would fail on
-        // both, so it is refused at the handshake.
+        // Contract v16 (review finding E-10): the session reply gains draft_failure, the reason a failed
+        // draft recorded. A v15 UI would fail on the new member, so it is refused at the handshake. (v15,
+        // ST-031, made the diagnostics reply's cpu_percent real and added capture_level.)
         await StartServerAsync();
 
-        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 14, Token = IpcToken.Encode(_token), ClientName = "v14-ui" });
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 15, Token = IpcToken.Encode(_token), ClientName = "v15-ui" });
 
-        Assert.Equal(15, IpcContract.Version);
+        Assert.Equal(16, IpcContract.Version);
         Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
     }
 

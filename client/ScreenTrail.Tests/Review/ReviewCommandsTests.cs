@@ -55,6 +55,25 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task AFailedDraftsReasonTravelsWithTheSession()
+    {
+        // Review finding E-10: the store kept why a draft failed and Review never heard it, so the pane
+        // could only say that it had. The reply carries it while the session has no note, and not after.
+        var commands = await CommandsAsync();
+        var store = _store!;
+        await store.CreateSessionAsync(new NewSession("s1", DateTimeOffset.UnixEpoch, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null));
+        await store.FinalizeSessionAsync("s1", new FinalizeInfo(10_000, false));
+        await store.SetSessionStateAsync("s1", CaptureStates.DraftFailed, "The provider did not answer.");
+
+        var failed = Assert.IsType<SessionLoaded>(await commands.ReplyToAsync(new GetSessionCommand { RequestId = 1, SessionId = "s1" }));
+        Assert.Equal("The provider did not answer.", failed.DraftFailure);
+
+        await store.SaveDraftAsync("s1", Draft());
+        var drafted = Assert.IsType<SessionLoaded>(await commands.ReplyToAsync(new GetSessionCommand { RequestId = 2, SessionId = "s1" }));
+        Assert.Null(drafted.DraftFailure);
+    }
+
+    [Fact]
     public async Task TheSessionSaysWhatAnEarlierPublishLeftOnTheTicket()
     {
         // O3 (owner, review of #265): the pane opens with each destination as the last publish left it.

@@ -298,6 +298,14 @@ public sealed record SessionLoaded : IpcEvent
     [JsonPropertyName("draft_pending")]
     public bool DraftPending { get; init; }
 
+    /// <summary>
+    /// What the session's failed draft recorded as the reason (review finding E-10, contract v16), absent
+    /// when its draft has not failed or gave none. Review says it in plain words under the heading.
+    /// </summary>
+    [JsonPropertyName("draft_failure")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? DraftFailure { get; init; }
+
     [JsonPropertyName("publish_outcomes")]
     public IReadOnlyDictionary<string, string>? PublishOutcomes { get; init; }
 }

@@ -370,6 +370,8 @@ public sealed class RedactionResilienceTests : IAsyncDisposable
 
         public Task<int> CountAllPendingFramesAsync(CancellationToken ct = default) => inner.CountAllPendingFramesAsync(ct);
 
+        public Task<string?> DraftFailureReasonAsync(string sessionId, CancellationToken ct = default) => inner.DraftFailureReasonAsync(sessionId, ct);
+
         public Task<int> CountPendingFramesAsync(string sessionId, CancellationToken ct = default) => inner.CountPendingFramesAsync(sessionId, ct);
 
         public Task CreateSessionAsync(NewSession session, CancellationToken ct = default) => inner.CreateSessionAsync(session, ct);
