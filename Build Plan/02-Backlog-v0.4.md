@@ -2383,7 +2383,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** C-I1, C-I2/D-11, C-I3, C-I5, C-I6, C-T6/D-10
 - **Blocked By:** ST-126; owner: legal name and signing certificate
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built 2026-11-27 on `st-143-identity` (spec v0.7.23) as far as it goes without the owner: C-I2/D-11, C-I1 (comments), C-T6/D-10 (real toasts, balloon fallback), C-I5 (standard setup window with Launch), C-I6 (owner decision 9 as recommended). Waiting on the owner: the legal name (`ScreenTrailPublisher` and both Manufacturer values), the About, Help and Update links and support contact (needs the domain), the code-signing certificate (C-I3). Waiting on the laptop: the bundle build, setup pages, toasts, names in Task Manager and Settings, the icon at 100% and 150%.
 
 ### **ST-144 · Speed, motion, text size**
 - **Findings:** D-19, D-20, D-26, D-28, D-29, D-32, D-14, D-15
