@@ -2347,7 +2347,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-21/E-23/E-24, A-22, A-26, A-27, D-21, D-27
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the timeline as a quiet baseline with named, reachable frame markers that follow the strip's selection (A-21, E-23), a disclosure toggle heard as expanded or collapsed (E-24), transcript lines as a time and words (A-22), the enlarged frame's one toolbar row (A-26), the flat strip on the grid with an Excluded badge and a dashed gap tile, plus the shell-review-strip render (A-27), an enlarged frame that opens at once and decodes off the UI thread (D-21), and thumbnails four at a time over skeletons with a 120 ms fade (D-27). Laptop checks: the Windows suite, the new and changed renders, and the open and load timing.
 
 ### **ST-138 · Note pane**
 - **Findings:** B-34/E-11, B-35, R-02, B-36 to B-38, E-10

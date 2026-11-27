@@ -3,14 +3,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              xmlns:review="clr-namespace:ScreenTrail.UI.Review"
+             xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              Background="Transparent"
              AutomationProperties.Name="Screenshots">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="Visible" />
 
-        <!-- A screenshot. Excluded ones are dimmed *and* say "excluded" (Spec §7: never colour alone, and
-             never opacity alone either) - and the word is outside the dimmed image, because fading the one
-             signal that makes the state readable is how the first version of this lost it. -->
+        <!-- A screenshot. An excluded one is not dimmed (review finding A-27): dimming muddied the thumbnail
+             and was a state drawn in opacity. It stays at full strength in its 1 px border.subtle frame, with
+             an "Excluded" Neutral badge and Icon.Hide 8 in from the image's top left, and its label line still
+             says "excluded" (Spec §7: never colour alone). -->
         <DataTemplate x:Key="FrameTemplate" DataType="{x:Type review:FrameItem}">
             <StackPanel Width="160">
                 <Border Width="160"
@@ -20,25 +22,38 @@
                         BorderBrush="{DynamicResource Brush.border.subtle}"
                         Background="{DynamicResource Brush.bg.raised}"
                         ClipToBounds="True">
-                    <!-- The glyph sits under the image: it shows while the thumbnail loads, and is covered
-                         once it arrives. -->
+                    <!-- A skeleton cell sits under the image (review finding D-27): a flat bg.hover block,
+                         radius 6, shown only if the thumbnail takes more than 300 ms; the picture fades in
+                         over it in 120 ms rather than snapping in, at once with reduce motion. -->
                     <Grid>
-                        <controls:Glyph HorizontalAlignment="Center"
-                                   Style="{StaticResource Icon}"
-                                   FontSize="{DynamicResource Icon.lg}"
-                                   Foreground="{DynamicResource Brush.text.muted}"
-                                   Text="{StaticResource Icon.Photo}" />
-                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
+                        <Border x:Name="ThumbnailSkeleton"
+                                Style="{StaticResource Skeleton}"
+                                Height="Auto"
+                                Margin="0"
+                                CornerRadius="{DynamicResource Radius.control}" />
+                        <Image Source="{Binding Thumbnail, NotifyOnTargetUpdated=True}"
+                               Stretch="UniformToFill"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               theme:Waiting.FadeIn="True"
+                               AutomationProperties.Name="{Binding Label}" />
+                        <ContentControl x:Name="ExcludedBadge"
+                                        Margin="8"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Top"
+                                        theme:Badge.Glyph="{StaticResource Icon.Hide}"
+                                        Content="Excluded">
+                            <ContentControl.Style>
+                                <Style BasedOn="{StaticResource Badge}" TargetType="ContentControl">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Included}" Value="False">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentControl.Style>
+                        </ContentControl>
                     </Grid>
-                    <Border.Style>
-                        <Style TargetType="Border">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Included}" Value="False">
-                                    <Setter Property="Opacity" Value="0.4" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Border.Style>
                 </Border>
                 <StackPanel Orientation="Horizontal" Margin="4,8,0,0">
                     <TextBlock Style="{StaticResource Text.Muted}" Foreground="{DynamicResource Brush.text.secondary}" Text="{Binding Label}" />
@@ -50,32 +65,22 @@
 
         <!-- A stretch with no screenshots because capture was deliberately off. The same width as a frame
              so the strip keeps its rhythm, and dashed rather than merely tinted so it reads as a gap
-             without relying on colour. -->
+             without relying on colour: a flat bg.info tile with a 1 px dashed border.strong edge (review
+             finding A-27; it was a gradient opacity mask in stripes, in a flat-fill product). -->
         <DataTemplate x:Key="GapTemplate" DataType="{x:Type review:GapItem}">
             <StackPanel Width="160">
-                <Border Width="160"
-                        Height="90"
-                        CornerRadius="{DynamicResource Radius.control}"
-                        BorderThickness="1"
-                        BorderBrush="{DynamicResource Brush.state.paused}"
-                        Background="{DynamicResource Brush.bg.surface}"
-                        ToolTip="{Binding Description}">
-                    <Border.OpacityMask>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0" SpreadMethod="Repeat" MappingMode="Absolute">
-                            <GradientStop Offset="0" Color="#FFFFFFFF" />
-                            <GradientStop Offset="0.5" Color="#FFFFFFFF" />
-                            <GradientStop Offset="0.5" Color="#40FFFFFF" />
-                            <GradientStop Offset="1" Color="#40FFFFFF" />
-                            <LinearGradientBrush.Transform>
-                                <ScaleTransform ScaleX="8" />
-                            </LinearGradientBrush.Transform>
-                        </LinearGradientBrush>
-                    </Border.OpacityMask>
+                <Grid x:Name="GapTile" Width="160" Height="90" ToolTip="{Binding Description}">
+                    <Rectangle RadiusX="6"
+                               RadiusY="6"
+                               Fill="{DynamicResource Brush.bg.info}"
+                               Stroke="{DynamicResource Brush.border.strong}"
+                               StrokeThickness="1"
+                               StrokeDashArray="4 3" />
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Muted}"
                                Text="{Binding Duration}" />
-                </Border>
+                </Grid>
                 <TextBlock Margin="0,4,0,0"
                            Style="{StaticResource Text.Muted}"
                            TextWrapping="Wrap"
@@ -88,7 +93,8 @@
                                           Gap="{StaticResource GapTemplate}" />
     </UserControl.Resources>
 
-    <Grid Margin="24,16,16,0">
+    <!-- 16 round the strip, on the spacing scale (review finding A-27). -->
+    <Grid Margin="16,16,16,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -125,7 +131,7 @@
              before a KeyDown handler on it runs, so Space never excluded a frame (T-167). -->
         <ListBox Grid.Row="1"
                  x:Name="Strip"
-                 Margin="-8,8,0,0"
+                 Margin="0,8,0,0"
                  Style="{StaticResource Filmstrip}"
                  ItemsSource="{Binding Items}"
                  SelectedItem="{Binding Selected}"
@@ -168,8 +174,7 @@
 
             <TextBlock Grid.Column="1"
                        VerticalAlignment="Center"
-                       Style="{StaticResource Text.Muted}"
-                       FontSize="{DynamicResource Size.xs}"
+                       Style="{StaticResource Text.Caption}"
                        Text="Space include · Enter enlarge · B blur · Del delete" />
         </Grid>
 
@@ -192,181 +197,202 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Close on the heading's row, as a dialog's is, so the actions under the picture fit one
-                     row in the narrow screenshots pane beside the inbox rail (v0.6.4). Two rows took the
-                     picture's height, and at the 1024x680 minimum the blur box came out too small to show
-                     its own focus rings. First in the tree, so it is still the first Tab stop. -->
-                <Grid Grid.Row="0">
+                <!-- One toolbar row, 48 high (review finding A-26): Back to the note, the frame's name, then at the
+                     right Screen text, Blur a region and Close. Three rows of controls above and below the picture
+                     took the height a technician needs to check a screenshot for what should be masked. Back is
+                     first in the tree, so it is the first Tab stop; ReviewPane hides its own way back while a frame
+                     is enlarged, so there is one. OCR text and Blur keep the default 32, as their row did. -->
+                <Grid Grid.Row="0" MinHeight="{DynamicResource Layout.toolbar-height}">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0"
+                    <Button x:Name="BackFromEnlarged"
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Icon}"
+                            Content="{StaticResource Icon.Back}"
+                            Command="{Binding BackToNoteCommand}"
+                            ToolTip="Back to the note, Alt+1"
+                            AutomationProperties.Name="Back to the note"
+                            AutomationProperties.AcceleratorKey="Alt+1" />
+                    <TextBlock Grid.Column="1"
+                               Margin="8,0,0,0"
                                VerticalAlignment="Center"
-                               Style="{StaticResource Text.SectionHeading}"
+                               Style="{StaticResource Text.BodyStrong}"
                                TextWrapping="NoWrap"
                                TextTrimming="CharacterEllipsis"
                                Text="{Binding Enlarged.Label}" />
-                    <Button x:Name="CloseEnlarged"
-                            Grid.Column="1"
-                            Margin="12,0,0,0"
-                            Style="{StaticResource Button.Secondary}"
-                            Command="{Binding CloseEnlargedCommand}"
-                            AutomationProperties.Name="Close"
-                            AutomationProperties.AcceleratorKey="Esc">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="Close" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Esc" />
-                        </StackPanel>
-                    </Button>
-                </Grid>
+                        <Button x:Name="OcrText"
+                                Grid.Column="3"
+                                Margin="0,0,8,0"
+                                Height="{DynamicResource Layout.control-height}"
+                                Style="{StaticResource Button.Secondary}"
+                                Command="{Binding ToggleOcrTextCommand}"
+                                IsEnabled="{Binding Enlarged.HasOcrText}"
+                                AutomationProperties.Name="Screen text"
+                                AutomationProperties.AcceleratorKey="T">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Text="Screen text" />
+                                <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="T" />
+                            </StackPanel>
+                        </Button>
 
-                <Grid Grid.Row="1" Margin="0,12,0,0">
-                    <!-- TargetNullValue: the picture is bytes, dropped to null when the view lets go of it,
-                         and without it WPF tries to convert that null and logs a binding error each time. -->
-                    <Image x:Name="EnlargedImage"
-                           Source="{Binding Enlarged.Image, TargetNullValue={x:Null}}"
-                           Stretch="Uniform"
-                           SizeChanged="OnBlurLayoutChanged"
-                           AutomationProperties.Name="{Binding Enlarged.Label}" />
-
-                    <!-- A blur of this frame with no answer yet (review of #257): no picture is shown, because
-                         the one the service has may be from before it. Said instead of a blank. -->
-                    <TextBlock Margin="24"
-                               HorizontalAlignment="Center"
-                               VerticalAlignment="Center"
-                               Style="{StaticResource Text.Body}"
-                               TextAlignment="Center"
-                               Text="Waiting for the capture service to finish the last blur. The screenshot is hidden until it has."
-                               Visibility="{Binding Enlarged.WaitingForBlur, Converter={StaticResource Visible}}" />
-
-                    <!-- The blur surface. Transparent rather than absent, because a Canvas with no
-                         background receives no mouse events at all and the drag would never start. -->
-                    <Canvas x:Name="BlurSurface"
-                            Background="Transparent"
-                            Visibility="Collapsed"
-                            SizeChanged="OnBlurLayoutChanged"
-                            MouseLeftButtonDown="OnBlurDown"
-                            MouseMove="OnBlurMove"
-                            MouseLeftButtonUp="OnBlurUp">
-                        <Rectangle x:Name="BlurRect"
-                                   Visibility="Collapsed"
-                                   Fill="#60000000"
-                                   Stroke="{DynamicResource Brush.state.danger}"
-                                   StrokeThickness="2"
-                                   StrokeDashArray="4 3" />
-
-                        <!-- The keyboard's way to the same blur (ST-084 follow-up): B puts this box in the
-                             middle of the picture with focus on it, the arrows move it, Shift with them
-                             resizes it, Ctrl makes the steps bigger, Enter blurs what it covers and Esc puts
-                             it away. Not hit-testable, so a drag that starts over it still draws. Outlined
-                             in the window's own background colour under the dashes, so it shows on a light
-                             screenshot and a dark one; focused, two more rings just inside it, one light and
-                             one dark, for the same reason, each 3 px: over a dimmed light screenshot only the
-                             dark one stands out at 3:1, so it alone has to carry the change, on a small box
-                             too. Inside, so nothing drawn reaches past what is blurred: the outer edge of the
-                             box is the edge of the blur. -->
-                        <review:BlurBoxControl x:Name="KeyboardBox"
-                                               Visibility="Collapsed"
-                                               IsHitTestVisible="False"
-                                               FocusVisualStyle="{x:Null}"
-                                               AutomationProperties.Name="Region to blur"
-                                               AutomationProperties.HelpText="The arrow keys move it. Shift with an arrow makes it wider, narrower, taller or shorter. Add Ctrl for bigger steps. Enter blurs everything inside its outer edge, which cannot be undone. Esc puts it away.">
-                            <review:BlurBoxControl.Template>
-                                <ControlTemplate TargetType="review:BlurBoxControl">
-                                    <Grid>
-                                        <Rectangle Fill="#60000000"
-                                                   Stroke="{DynamicResource Brush.bg.base}"
-                                                   StrokeThickness="3" />
-                                        <Rectangle Stroke="{DynamicResource Brush.state.danger}"
-                                                   StrokeThickness="2"
-                                                   StrokeDashArray="4 3" />
-                                        <Rectangle x:Name="FocusOuter"
-                                                   Margin="3"
-                                                   Stroke="{DynamicResource Brush.text.primary}"
-                                                   StrokeThickness="3"
-                                                   Visibility="Hidden" />
-                                        <Rectangle x:Name="FocusInner"
-                                                   Margin="6"
-                                                   Stroke="{DynamicResource Brush.bg.base}"
-                                                   StrokeThickness="3"
-                                                   Visibility="Hidden" />
-                                    </Grid>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsKeyboardFocused" Value="True">
-                                            <Setter TargetName="FocusOuter" Property="Visibility" Value="Visible" />
-                                            <Setter TargetName="FocusInner" Property="Visibility" Value="Visible" />
+                        <!-- Danger styling, because the next drag destroys pixels for good. Spec §5 S3 asks
+                             for a region-draw overlay and calls it destructive; the button says so before the
+                             surface is even armed. -->
+                        <ToggleButton x:Name="BlurMode"
+                                      Grid.Column="4"
+                                      Margin="0,0,8,0"
+                                      Height="{DynamicResource Layout.control-height}"
+                                      AutomationProperties.Name="Blur a region"
+                                      AutomationProperties.AcceleratorKey="B"
+                                      Checked="OnBlurModeChanged"
+                                      Unchecked="OnBlurModeChanged">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton" BasedOn="{StaticResource Pill.Toggle}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
                                         </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </review:BlurBoxControl.Template>
-                        </review:BlurBoxControl>
-                    </Canvas>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Text="Blur a region" />
+                                <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="B" />
+                            </StackPanel>
+                        </ToggleButton>
 
-                    <!-- What the redaction engine read off this frame. The point is verification: a
-                         technician who can see the OCR text can tell a mask that worked from one that
-                         missed, which is the only way INV-1 gets checked by a human. -->
-                    <Border Background="{DynamicResource Brush.bg.surface}"
-                            Padding="12"
-                            Visibility="{Binding ShowOcrText, Converter={StaticResource Visible}}">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <TextBlock Style="{StaticResource Text.Mono}"
-                                       TextWrapping="Wrap"
-                                       Text="{Binding Enlarged.OcrText}" />
-                        </ScrollViewer>
-                    </Border>
+                    <Button x:Name="CloseEnlarged"
+                            Grid.Column="5"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Icon}"
+                            Content="{StaticResource Icon.Close}"
+                            Command="{Binding CloseEnlargedCommand}"
+                            ToolTip="Close, Esc"
+                            AutomationProperties.Name="Close"
+                            AutomationProperties.AcceleratorKey="Esc" />
                 </Grid>
 
-                <!-- The two buttons are one height (v0.6.8): each takes the control height itself, and neither
-                     has a margin above or below. Both styles had the height as a minimum only and the row's
-                     8 px bottom margin was on the first button alone, so the row stretched the toggle 8 px
-                     taller than its neighbour. The gap over the hint, when it wraps under them, is the hint's. -->
-                <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,12">
-                    <Button x:Name="OcrText"
-                            Margin="0,0,8,0"
-                            Height="{DynamicResource Layout.control-height}"
-                            Style="{StaticResource Button.Secondary}"
-                            Command="{Binding ToggleOcrTextCommand}"
-                            IsEnabled="{Binding Enlarged.HasOcrText}"
-                            AutomationProperties.Name="Screen text"
-                            AutomationProperties.AcceleratorKey="T">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="Screen text" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="T" />
-                        </StackPanel>
-                    </Button>
+                <!-- The picture in a 1 px border.subtle frame, 8 under the toolbar. -->
+                <Border x:Name="EnlargedFrame"
+                        Grid.Row="1"
+                        Margin="0,8,0,0"
+                        SizeChanged="OnEnlargedFrameSizeChanged"
+                        BorderBrush="{DynamicResource Brush.border.subtle}"
+                        BorderThickness="1"
+                        CornerRadius="{DynamicResource Radius.control}">
+                    <Grid>
+                        <!-- The frame as decoded off the UI thread for the width it is drawn at, the thumbnail until
+                             then (review finding D-21), scaled with the high-quality filter so the small text a
+                             technician checks before publishing is not jagged. -->
+                        <Image x:Name="EnlargedImage"
+                               Source="{Binding Enlarged.Showing}"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               SizeChanged="OnEnlargedImageSizeChanged"
+                               AutomationProperties.Name="{Binding Enlarged.Label}" />
 
-                    <!-- Danger styling, because the next drag destroys pixels for good. Spec §5 S3 asks
-                         for a region-draw overlay and calls it destructive; the button says so before the
-                         surface is even armed. -->
-                    <ToggleButton x:Name="BlurMode"
-                                  Height="{DynamicResource Layout.control-height}"
-                                  AutomationProperties.Name="Blur a region"
-                                  AutomationProperties.AcceleratorKey="B"
-                                  Checked="OnBlurModeChanged"
-                                  Unchecked="OnBlurModeChanged">
-                        <ToggleButton.Style>
-                            <Style TargetType="ToggleButton" BasedOn="{StaticResource Pill.Toggle}">
-                                <Style.Triggers>
-                                    <Trigger Property="IsChecked" Value="True">
-                                        <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ToggleButton.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="Blur a region" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="B" />
-                        </StackPanel>
-                    </ToggleButton>
+                        <!-- A blur of this frame with no answer yet (review of #257): no picture is shown, because
+                             the one the service has may be from before it. Said instead of a blank. -->
+                        <TextBlock Margin="24"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Body}"
+                                   TextAlignment="Center"
+                                   Text="Waiting for the capture service to finish the last blur. The screenshot is hidden until it has."
+                                   Visibility="{Binding Enlarged.WaitingForBlur, Converter={StaticResource Visible}}" />
 
-                    <TextBlock Margin="12,8,0,0"
-                               VerticalAlignment="Top"
-                               Style="{StaticResource Text.Muted}"
-                               Text="Drag over what should be covered, or move the box with the arrow keys (Shift resizes) and press Enter. This cannot be undone."
-                               Visibility="{Binding IsChecked, ElementName=BlurMode, Converter={StaticResource Visible}}" />
-                </WrapPanel>
+                        <!-- The blur surface. Transparent rather than absent, because a Canvas with no
+                             background receives no mouse events at all and the drag would never start. -->
+                        <Canvas x:Name="BlurSurface"
+                                Background="Transparent"
+                                Visibility="Collapsed"
+                                SizeChanged="OnBlurLayoutChanged"
+                                MouseLeftButtonDown="OnBlurDown"
+                                MouseMove="OnBlurMove"
+                                MouseLeftButtonUp="OnBlurUp">
+                            <Rectangle x:Name="BlurRect"
+                                       Visibility="Collapsed"
+                                       Fill="#60000000"
+                                       Stroke="{DynamicResource Brush.state.danger}"
+                                       StrokeThickness="2"
+                                       StrokeDashArray="4 3" />
+
+                            <!-- The keyboard's way to the same blur (ST-084 follow-up): B puts this box in the
+                                 middle of the picture with focus on it, the arrows move it, Shift with them
+                                 resizes it, Ctrl makes the steps bigger, Enter blurs what it covers and Esc puts
+                                 it away. Not hit-testable, so a drag that starts over it still draws. Outlined
+                                 in the window's own background colour under the dashes, so it shows on a light
+                                 screenshot and a dark one; focused, two more rings just inside it, one light and
+                                 one dark, for the same reason, each 3 px: over a dimmed light screenshot only the
+                                 dark one stands out at 3:1, so it alone has to carry the change, on a small box
+                                 too. Inside, so nothing drawn reaches past what is blurred: the outer edge of the
+                                 box is the edge of the blur. -->
+                            <review:BlurBoxControl x:Name="KeyboardBox"
+                                                   Visibility="Collapsed"
+                                                   IsHitTestVisible="False"
+                                                   FocusVisualStyle="{x:Null}"
+                                                   AutomationProperties.Name="Region to blur"
+                                                   AutomationProperties.HelpText="The arrow keys move it. Shift with an arrow makes it wider, narrower, taller or shorter. Add Ctrl for bigger steps. Enter blurs everything inside its outer edge, which cannot be undone. Esc puts it away.">
+                                <review:BlurBoxControl.Template>
+                                    <ControlTemplate TargetType="review:BlurBoxControl">
+                                        <Grid>
+                                            <Rectangle Fill="#60000000"
+                                                       Stroke="{DynamicResource Brush.bg.base}"
+                                                       StrokeThickness="3" />
+                                            <Rectangle Stroke="{DynamicResource Brush.state.danger}"
+                                                       StrokeThickness="2"
+                                                       StrokeDashArray="4 3" />
+                                            <Rectangle x:Name="FocusOuter"
+                                                       Margin="3"
+                                                       Stroke="{DynamicResource Brush.text.primary}"
+                                                       StrokeThickness="3"
+                                                       Visibility="Hidden" />
+                                            <Rectangle x:Name="FocusInner"
+                                                       Margin="6"
+                                                       Stroke="{DynamicResource Brush.bg.base}"
+                                                       StrokeThickness="3"
+                                                       Visibility="Hidden" />
+                                        </Grid>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                <Setter TargetName="FocusOuter" Property="Visibility" Value="Visible" />
+                                                <Setter TargetName="FocusInner" Property="Visibility" Value="Visible" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </review:BlurBoxControl.Template>
+                            </review:BlurBoxControl>
+                        </Canvas>
+
+                        <!-- What the redaction engine read off this frame. The point is verification: a
+                             technician who can see the OCR text can tell a mask that worked from one that
+                             missed, which is the only way INV-1 gets checked by a human. -->
+                        <Border Background="{DynamicResource Brush.bg.surface}"
+                                Padding="12"
+                                Visibility="{Binding ShowOcrText, Converter={StaticResource Visible}}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <TextBlock Style="{StaticResource Text.Mono}"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Enlarged.OcrText}" />
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Under the picture only while Blur a region is armed. -->
+                <TextBlock Grid.Row="2"
+                           Margin="0,8,0,0"
+                           Style="{StaticResource Text.Muted}"
+                           Text="Drag over what should be covered, or move the box with the arrow keys (Shift resizes) and press Enter. This cannot be undone."
+                           Visibility="{Binding IsChecked, ElementName=BlurMode, Converter={StaticResource Visible}}" />
 
                 <!-- Where the box is, in percent of the picture, said as it moves; then that the blur
                      landed. Numbers only: never what is under the box (INV-10). Set by the view. -->

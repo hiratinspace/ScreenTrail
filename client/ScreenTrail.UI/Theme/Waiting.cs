@@ -15,6 +15,9 @@ namespace ScreenTrail.UI.Theme;
 /// <item><c>theme:Waiting.Spin</c>: shown, the element's <see cref="RotateTransform"/> turns once a second,
 /// the one thing allowed to loop. With reduce motion on it stays still; the words beside it say what is
 /// happening.</item>
+/// <item><c>theme:Waiting.FadeIn</c>, on an Image whose Source binding has NotifyOnTargetUpdated: a picture
+/// arriving fades in over 120 ms (motion.state) above the skeleton it replaces, rather than snapping in
+/// (review finding D-27). With reduce motion on, or in a render, it is there at once.</item>
 /// </list>
 /// </summary>
 internal static class Waiting
@@ -23,6 +26,9 @@ internal static class Waiting
     public static readonly TimeSpan Delay = TimeSpan.FromMilliseconds(300);
 
     private static readonly TimeSpan Turn = TimeSpan.FromSeconds(1);
+
+    /// <summary>A picture's fade in over its skeleton: motion.state.</summary>
+    internal static readonly TimeSpan Fade = TimeSpan.FromMilliseconds(120);
 
     /// <summary>
     /// Shows a waiting mark at once rather than after <see cref="Delay"/>. The render harness turns it on:
@@ -54,6 +60,44 @@ internal static class Waiting
 
     public static readonly DependencyProperty SpinProperty = DependencyProperty.RegisterAttached(
         "Spin", typeof(bool), typeof(Waiting), new FrameworkPropertyMetadata(false, OnSpinChanged));
+
+    public static readonly DependencyProperty FadeInProperty = DependencyProperty.RegisterAttached(
+        "FadeIn", typeof(bool), typeof(Waiting), new FrameworkPropertyMetadata(false, OnFadeInChanged));
+
+    public static bool GetFadeIn(DependencyObject element) => (bool)element.GetValue(FadeInProperty);
+
+    public static void SetFadeIn(DependencyObject element, bool value) => element.SetValue(FadeInProperty, value);
+
+    private static void OnFadeInChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not FrameworkElement element)
+        {
+            return;
+        }
+
+        element.TargetUpdated -= OnFadeTarget;
+        if (e.NewValue is true)
+        {
+            element.TargetUpdated += OnFadeTarget;
+        }
+    }
+
+    private static void OnFadeTarget(object? sender, System.Windows.Data.DataTransferEventArgs e)
+    {
+        if (sender is not System.Windows.Controls.Image image || e.Property != System.Windows.Controls.Image.SourceProperty)
+        {
+            return;
+        }
+
+        if (image.Source is null || AtOnce || ThemeManager.ReduceMotion)
+        {
+            image.BeginAnimation(UIElement.OpacityProperty, null);
+            image.Opacity = 1;
+            return;
+        }
+
+        image.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0, 1, ThemeManager.Motion(new Duration(Fade))));
+    }
 
     private static readonly DependencyProperty TimerProperty = DependencyProperty.RegisterAttached(
         "Timer", typeof(DispatcherTimer), typeof(Waiting), new FrameworkPropertyMetadata(null));

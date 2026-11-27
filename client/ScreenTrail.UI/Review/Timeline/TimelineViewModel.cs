@@ -11,7 +11,8 @@ namespace ScreenTrail.UI.Review.Timeline;
 /// <param name="Position">Where it starts, as a fraction of the session.</param>
 /// <param name="Span">How much of the session a band covers; zero for a point.</param>
 /// <param name="FrameId">What clicking it selects. Only a frame marker has one.</param>
-public sealed record MarkerItem(TimelineMarkerKind Kind, double Position, double Span, string Tooltip, string? FrameId)
+/// <param name="Name">What a screen reader says for a frame marker, a button since review finding E-23: "Screenshot at 0:10".</param>
+public sealed record MarkerItem(TimelineMarkerKind Kind, double Position, double Span, string Tooltip, string? FrameId, string Name)
 {
     public bool IsBand => Span > 0;
 }
@@ -61,13 +62,18 @@ public sealed partial class TimelineViewModel : ObservableObject
     public partial double Height { get; set; }
 
     [ObservableProperty]
-    public partial string ToggleLabel { get; set; } = string.Empty;
-
-    [ObservableProperty]
     public partial Visibility TranscriptVisibility { get; set; } = Visibility.Collapsed;
 
     [ObservableProperty]
     public partial TranscriptLine? SelectedLine { get; set; }
+
+    /// <summary>
+    /// The frame selected in the strip, whose marker is drawn in Iris (review finding A-21): every other
+    /// frame marker is text.muted, so the track is quiet until something is chosen. The Review screen keeps
+    /// it in step with the strip.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? SelectedFrameId { get; set; }
 
     /// <summary>`Alt+T`, and the header button.</summary>
     [RelayCommand]
@@ -100,7 +106,6 @@ public sealed partial class TimelineViewModel : ObservableObject
     {
         Expanded = _state.Expanded;
         Height = _state.Height;
-        ToggleLabel = _state.Expanded ? "▾ Timeline and transcript" : "▸ Timeline and transcript";
         TranscriptVisibility = _state.Expanded ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -116,7 +121,7 @@ public sealed partial class TimelineViewModel : ObservableObject
             TimelineMarkerKind.Narration => "Said with no screenshot near it",
             _ => marker.Kind.ToString(),
         };
-        return new MarkerItem(marker.Kind, marker.Position, span, $"{when} · {what}", marker.FrameId);
+        return new MarkerItem(marker.Kind, marker.Position, span, $"{when} · {what}", marker.FrameId, $"{what} at {when}");
     }
 
     private string Describe()

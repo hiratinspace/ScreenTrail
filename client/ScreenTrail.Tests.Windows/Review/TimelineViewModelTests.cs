@@ -76,6 +76,9 @@ public sealed class TimelineViewModelTests
 
         Assert.Equal("f1", frame.FrameId);
         Assert.Contains("0:10", frame.Tooltip, StringComparison.Ordinal);
+
+        // The marker is a button since review finding E-23, named for when the screenshot was taken.
+        Assert.EndsWith(" at 0:10", frame.Name, StringComparison.Ordinal);
         Assert.True(band.IsBand);
         Assert.Contains("0:20", band.Tooltip, StringComparison.Ordinal);
         Assert.Contains("0:30", band.Tooltip, StringComparison.Ordinal);

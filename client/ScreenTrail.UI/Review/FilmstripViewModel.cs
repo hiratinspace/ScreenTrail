@@ -29,12 +29,31 @@ public sealed partial class FrameItem : StripItem
 
     /// <summary>What the strip draws: the frame decoded at thumbnail size, never the full picture (P2-3).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Showing))]
     private ImageSource? _thumbnail;
 
     /// <summary>The full image, held only while the frame is enlarged. Null the rest of the time.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WaitingForBlur))]
     private byte[]? _image;
+
+    /// <summary>
+    /// The full image decoded for the enlarged view (review finding D-21): off the UI thread, at the width it
+    /// is drawn at (<see cref="DecodeWidth"/>), frozen. Bound as bytes, WPF decoded it at native size on the
+    /// UI thread each time, and the view stalled before it showed anything.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Showing))]
+    private ImageSource? _picture;
+
+    /// <summary>The device pixels the enlarged picture is drawn across; 0 decodes at the image's own width.</summary>
+    internal int DecodeWidth { get; set; }
+
+    /// <summary>
+    /// What the enlarged view draws: the full picture once decoded, the thumbnail scaled up until then, so
+    /// Enter shows the frame at once. Nothing while a blur is pending: what is held may be from before it.
+    /// </summary>
+    public ImageSource? Showing => BlurPending ? null : Picture ?? Thumbnail;
 
     public override long TsMs => Cell.Frame.TsMs;
 
@@ -74,10 +93,42 @@ public sealed partial class FrameItem : StripItem
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WaitingForBlur))]
+    [NotifyPropertyChangedFor(nameof(Showing))]
     private bool _blurPending;
 
     /// <summary>Pending, with no picture to show: what the enlarged view says instead of a picture.</summary>
     public bool WaitingForBlur => BlurPending && Image is null;
+
+    partial void OnImageChanged(byte[]? value)
+    {
+        Picture = null;
+        if (value is not null)
+        {
+            _ = DecodeAsync(value);
+        }
+    }
+
+    /// <summary>Decodes again for a picture now drawn more than a quarter wider than it was decoded for.</summary>
+    internal void Redecode(int width)
+    {
+        DecodeWidth = width;
+        if (Image is { } image)
+        {
+            _ = DecodeAsync(image);
+        }
+    }
+
+    private async Task DecodeAsync(byte[] image)
+    {
+        var width = DecodeWidth;
+        var decoded = await Task.Run(() => Thumbnails.DecodeAt(image, width)).ConfigureAwait(true);
+
+        // Only if the bytes are still the ones asked for: a blur or a close may have replaced them meanwhile.
+        if (ReferenceEquals(Image, image))
+        {
+            Picture = decoded;
+        }
+    }
 
     internal void Refresh(FrameCell cell)
     {
@@ -220,20 +271,70 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
             return;
         }
 
+        // Up to four on the pipe at once, started in the strip's order (review finding D-27): one round trip
+        // per frame in turn filled a 150-frame strip top to bottom like popcorn. _thumbnailsAt is how far the
+        // load has started, which is what a frame put back by an undo asks.
         _thumbnailToken = ct;
-        for (var at = 0; at < _frameItems.Length; at++)
+        var frames = _frames;
+        var gate = new SemaphoreSlim(ThumbnailsInFlight);
+        var loads = new List<Task>();
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            _thumbnailsAt = at;
-            var item = _frameItems[at];
-            if (item.Thumbnail is null && _strip.Contains(item.Id))
+            for (var at = 0; at < _frameItems.Length; at++)
             {
-                await LoadThumbnailAsync(_frames, item, ct).ConfigureAwait(true);
+                ct.ThrowIfCancellationRequested();
+                _thumbnailsAt = at;
+                var item = _frameItems[at];
+                if (item.Thumbnail is null && _strip.Contains(item.Id))
+                {
+                    await gate.WaitAsync(ct).ConfigureAwait(true);
+
+                    // Cancelling makes the loads on the pipe give up and free their places, and the wait can
+                    // take one of those places before it sees the token itself; it must not start one more
+                    // load for a pane that is gone (the laptop run of ClosingThePaneStopsTheThumbnailLoad).
+                    if (ct.IsCancellationRequested)
+                    {
+                        gate.Release();
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    loads.Add(LoadReleasingAsync(item));
+                }
             }
+
+            await Task.WhenAll(loads).ConfigureAwait(true);
+            _thumbnailsAt = _frameItems.Length;
+        }
+        finally
+        {
+            // Cancelled part way: the loads already started finish (or see the token) before the gate goes.
+            try
+            {
+                await Task.WhenAll(loads).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                // Said once, by the loop above.
+            }
+
+            gate.Dispose();
         }
 
-        _thumbnailsAt = _frameItems.Length;
+        async Task LoadReleasingAsync(FrameItem item)
+        {
+            try
+            {
+                await LoadThumbnailAsync(frames, item, ct).ConfigureAwait(true);
+            }
+            finally
+            {
+                _ = gate.Release();
+            }
+        }
     }
+
+    /// <summary>How many thumbnails are asked for at once (review finding D-27).</summary>
+    internal const int ThumbnailsInFlight = 4;
 
     private static async Task LoadThumbnailAsync(IReviewFrames frames, FrameItem item, CancellationToken ct)
     {
@@ -251,7 +352,13 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
 
         try
         {
-            item.Thumbnail = Thumbnails.Decode(bytes);
+            // Decoded on a worker thread and frozen there (D-27), then set here on the UI thread; a blur that
+            // landed meanwhile has drawn its own, so this one is dropped.
+            var decoded = await Task.Run(() => Thumbnails.Decode(bytes), ct).ConfigureAwait(true);
+            if (ReferenceEquals(item.Cell.Frame, asked) && !item.BlurPending)
+            {
+                item.Thumbnail = decoded;
+            }
         }
         catch (Exception error) when (error is NotSupportedException or FormatException or IOException or ArgumentException or InvalidOperationException or System.Runtime.InteropServices.ExternalException)
         {
@@ -492,28 +599,75 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
             return;
         }
 
-        if (item is not null && item.Image is null && _frames is not null)
-        {
-            item.Image = await _frames.ImageAsync(item.Cell.Frame).ConfigureAwait(true);
-        }
-
-        if (item is not null && item.OcrText is null)
-        {
-            item.OcrText = _frames is not null
-                ? await _frames.OcrTextAsync(item.Cell.Frame).ConfigureAwait(true)
-                : item.Cell.Frame.OcrText;
-        }
-
-        // Enter on another frame while one is open moves the view without passing through Esc, so the
-        // frame being left lets go of what it held here, after the new one has loaded.
+        // Open first (review finding D-21): the view shows the thumbnail scaled up at once and the full
+        // picture replaces it once it has arrived and been decoded. It waited for two calls in turn before.
+        // Enter on another frame while one is open moves the view without passing through Esc, so the frame
+        // being left lets go of what it held here.
         if (Enlarged is { } previous && previous != item)
         {
             Release(previous);
         }
 
+        if (item is not null)
+        {
+            item.DecodeWidth = EnlargedDecodeWidth;
+        }
+
         Enlarged = item;
         ShowOcrText = false;
         OnPropertyChanged(nameof(IsEnlarged));
+        if (item is null)
+        {
+            return;
+        }
+
+        // The picture and what redaction read on it, both at once rather than one after the other.
+        var image = item.Image is null && _frames is not null ? _frames.ImageAsync(item.Cell.Frame) : Task.FromResult(item.Image);
+        var text = item.OcrText is not null ? Task.FromResult<string?>(item.OcrText)
+            : _frames is not null ? _frames.OcrTextAsync(item.Cell.Frame)
+            : Task.FromResult(item.Cell.Frame.OcrText);
+        await Task.WhenAll(image, text).ConfigureAwait(true);
+
+        // Closed, or another frame opened, while they came: this one holds nothing it is not showing.
+        if (Enlarged != item)
+        {
+            return;
+        }
+
+        item.Image = await image.ConfigureAwait(true);
+        item.OcrText = await text.ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// The device pixels the enlarged picture is drawn across, set by the view as its size changes, so the
+    /// picture is decoded for that width and not at the capture's 1920 or 3840 (review finding D-21). Grown by
+    /// more than a quarter while a frame is open, the picture is decoded again for the new width.
+    /// </summary>
+    public int EnlargedDecodeWidth
+    {
+        get => _enlargedDecodeWidth;
+        set
+        {
+            var old = _enlargedDecodeWidth;
+            _enlargedDecodeWidth = value;
+            if (Enlarged is { } item && old > 0 && value > old * 1.25)
+            {
+                item.Redecode(value);
+            }
+        }
+    }
+
+    private int _enlargedDecodeWidth;
+
+    /// <summary>
+    /// "Back to the note" on the enlarged frame's toolbar (review finding A-26): the frame closes and the strip
+    /// goes, as Alt+1 does, so there is one way back rather than two exits stacked 50 px apart.
+    /// </summary>
+    [RelayCommand]
+    private void BackToNote()
+    {
+        CloseEnlarged();
+        Browsing = false;
     }
 
     [RelayCommand]

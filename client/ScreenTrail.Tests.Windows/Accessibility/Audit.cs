@@ -562,11 +562,34 @@ internal static partial class Audit
                 continue;
             }
 
+            // A roving group (KeyboardNavigation.TabNavigation="Once", the timeline's frame markers, review
+            // finding A-21) is one stop: Tab lands on one of its controls and the arrows move between them, as
+            // in a list. Reached when Tab reaches any control in the group.
+            if (RovingGroup(control) is { } group && stops.Any(s => s.IsDescendantOf(group)))
+            {
+                continue;
+            }
+
             if (!stops.Any(s => ReferenceEquals(s, control) || s.IsDescendantOf(control)))
             {
                 findings.Add($"{Describe(control)} is never reached by Tab");
             }
         }
+    }
+
+    /// <summary>The nearest ancestor that makes its controls one Tab stop the arrows move within, or null.</summary>
+    private static DependencyObject? RovingGroup(DependencyObject control)
+    {
+        for (var at = VisualTreeHelper.GetParent(control); at is not null; at = VisualTreeHelper.GetParent(at))
+        {
+            if (KeyboardNavigation.GetTabNavigation(at) == KeyboardNavigationMode.Once
+                && KeyboardNavigation.GetDirectionalNavigation(at) is KeyboardNavigationMode.Cycle or KeyboardNavigationMode.Contained)
+            {
+                return at;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

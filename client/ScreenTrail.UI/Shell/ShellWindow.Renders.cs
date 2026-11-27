@@ -730,6 +730,31 @@ public partial class ShellWindow
         window.Close();
     }
 
+    /// <summary>
+    /// The whole strip over the note, as Alt+2 opens it (review finding A-27): the grid, its margins, the gap
+    /// tile and the selection had no render, so they were reviewed from the XAML alone.
+    /// </summary>
+    private async Task StripAsync(ShellState state)
+    {
+        state.OpenSession("preview");
+        await ThumbnailsAsync();
+        if (_model.Content is not ReviewViewModel review)
+        {
+            throw new InvalidOperationException("The Review pane did not open for the strip render.");
+        }
+
+        review.Strip.Browsing = true;
+        foreach (var theme in RenderThemes.All)
+        {
+            RenderThemeApplier.Apply(theme, Application.Current.Resources);
+            await SettleAsync();
+            Save(Shot("shell-review-strip", theme));
+        }
+
+        review.Strip.Browsing = false;
+        await SettleAsync();
+    }
+
     /// <summary>The enlarged frame over the Review pane, opened as Enter opens it.</summary>
     private async Task EnlargedAsync(ShellState state)
     {

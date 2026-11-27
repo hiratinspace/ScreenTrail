@@ -1,7 +1,39 @@
 <UserControl x:Class="ScreenTrail.UI.Review.Timeline.TimelineView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              AutomationProperties.Name="Timeline and transcript">
+    <UserControl.Resources>
+        <!-- A frame on the track (review findings A-21, E-23): an 8 px round mark in text.muted, Iris when it
+             is the selected frame, on a transparent 28 x 28 button so a pointer and a keyboard can both reach
+             it. No chrome: the mark is the button. Hover takes text.secondary. -->
+        <Style x:Key="Timeline.FrameMarker" TargetType="Button">
+            <Setter Property="Width" Value="{DynamicResource Layout.hit-target-min}" />
+            <Setter Property="Height" Value="{DynamicResource Layout.hit-target-min}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Ellipse x:Name="Mark"
+                                     Width="{DynamicResource Layout.state-dot}"
+                                     Height="{DynamicResource Layout.state-dot}"
+                                     Fill="{DynamicResource Brush.text.muted}" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource Brush.text.secondary}" />
+                            </Trigger>
+                            <Trigger Property="Tag" Value="Selected">
+                                <Setter TargetName="Mark" Property="Fill" Value="{DynamicResource Brush.accent.primary}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
     <!-- Spec §5 S3: 40 px of scrubber collapsed, 176 px with the transcript open (A-20). The track is drawn in
          code-behind from the markers' fractions, because a Canvas wants pixels and the model has none. -->
     <Border Style="{StaticResource Timeline}" Height="{Binding Height}">
@@ -19,35 +51,60 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="0"
-                        Style="{StaticResource Button.Ghost}"
-                        VerticalAlignment="Center"
-                        Content="{Binding ToggleLabel}"
-                        Command="{Binding ToggleCommand}"
-                        AutomationProperties.Name="Toggle the timeline and transcript panel"
-                        AutomationProperties.AcceleratorKey="Alt+T" />
+                <!-- Review finding E-24: a disclosure button, so a screen reader hears "collapsed" or "expanded"
+                     rather than a "▸" it cannot read. A chevron at 12, right when closed and down when open,
+                     8 from the words (design system 8). -->
+                <controls:DisclosureButton x:Name="Toggle"
+                                           Grid.Column="0"
+                                           Style="{StaticResource Button.Ghost}"
+                                           VerticalAlignment="Center"
+                                           IsExpanded="{Binding Expanded, Mode=OneWay}"
+                                           Command="{Binding ToggleCommand}"
+                                           AutomationProperties.Name="Timeline and transcript"
+                                           AutomationProperties.AcceleratorKey="Alt+T">
+                    <StackPanel Orientation="Horizontal">
+                        <controls:Glyph VerticalAlignment="Center" FontSize="{DynamicResource Icon.sm}">
+                            <controls:Glyph.Style>
+                                <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                    <Setter Property="Text" Value="{StaticResource Icon.ChevronRight}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Expanded}" Value="True">
+                                            <Setter Property="Text" Value="{StaticResource Icon.ChevronDown}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:Glyph.Style>
+                        </controls:Glyph>
+                        <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Timeline and transcript" />
+                    </StackPanel>
+                </controls:DisclosureButton>
                 <!-- Beside the toggle it belongs to: a key cap, as the envelope's Change carries Ctrl+T. -->
                 <Border Grid.Column="1" Margin="4,0,12,0" Style="{StaticResource KeyCap}">
                     <TextBlock Style="{StaticResource Text.KeyHint}" Text="Alt+T" />
                 </Border>
 
-                <!-- Dots are clicks, squares are frames, a flag is a marked moment, bands are gaps. -->
+                <!-- One baseline across the track (review finding A-21), and on it: small dots are clicks, round
+                     marks are screenshots, a flag is a marked moment, a short line is something said, bands are
+                     gaps. Each screenshot is a button (E-23), one Tab stop for the lot, arrows between them. -->
                 <Canvas Grid.Column="2"
                         x:Name="Track"
-                        Height="18"
+                        Height="{DynamicResource Layout.hit-target-min}"
                         VerticalAlignment="Center"
-                        ClipToBounds="True"
+                        KeyboardNavigation.TabNavigation="Once"
+                        KeyboardNavigation.DirectionalNavigation="Cycle"
                         AutomationProperties.Name="Timeline: clicks, screenshots, things said, pauses" />
 
                 <TextBlock Grid.Column="3"
                            Margin="12,0,0,0"
                            VerticalAlignment="Center"
-                           Style="{StaticResource Text.Muted}"
-                           FontSize="{DynamicResource Size.xs}"
+                           Style="{StaticResource Text.Caption}"
+                           Typography.NumeralAlignment="Tabular"
                            Text="{Binding Summary}" />
             </Grid>
 
-            <!-- The transcript: monospace, wall-clock stamped, one line per thing said. Selecting a line
+            <!-- The transcript: one line per thing said, in two columns (review finding A-22): the time to the
+                 minute in a 48 px Caption column, tabular and text.muted, then the words in Body, wrapping, on
+                 a 24 px line; rows 4 apart. Speech is prose, not a log, so no monospace. Selecting a line
                  highlights its frame in the filmstrip; a line with no frame highlights nothing. -->
             <ListBox Grid.Row="1"
                      Margin="0,4,0,8"
@@ -60,15 +117,29 @@
                      AutomationProperties.Name="Transcript">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
-                        <Setter Property="AutomationProperties.Name" Value="{Binding Display}" />
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}" />
+                        <Setter Property="Margin" Value="0,0,0,4" />
                     </Style>
                 </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Style="{StaticResource Text.Mono}"
-                                   FontSize="{DynamicResource Size.sm}"
-                                   TextWrapping="Wrap"
-                                   Text="{Binding Display}" />
+                        <Grid ToolTip="{Binding At}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Width="{DynamicResource Layout.transcript-clock-width}"
+                                       Style="{StaticResource Text.Caption}"
+                                       LineHeight="{DynamicResource Leading.section}"
+                                       Typography.NumeralAlignment="Tabular"
+                                       Text="{Binding Clock}" />
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Body}"
+                                       LineHeight="{DynamicResource Leading.section}"
+                                       TextWrapping="Wrap"
+                                       Text="{Binding Text}" />
+                        </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

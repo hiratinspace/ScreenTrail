@@ -144,5 +144,10 @@ public sealed class ReviewViewModel : IAsyncDisposable
         {
             Publish.FramesChanged();
         }
+
+        if (e.PropertyName is nameof(FilmstripViewModel.Selected))
+        {
+            Timeline.SelectedFrameId = (Strip.Selected as FrameItem)?.Id;
+        }
     }
 }

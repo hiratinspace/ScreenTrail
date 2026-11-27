@@ -294,7 +294,8 @@
                                                                      so a mask covers the same part at every size. -->
                                                                 <Viewbox Stretch="Uniform">
                                                                     <Grid Width="{Binding FrameWidth}" Height="{Binding FrameHeight}">
-                                                                        <Image Source="{Binding Item.Thumbnail}"
+                                                                        <Image RenderOptions.BitmapScalingMode="HighQuality"
+                                                                               Source="{Binding Item.Thumbnail}"
                                                                                Stretch="Fill"
                                                                                AutomationProperties.Name="{Binding Label}" />
                                                                         <controls:Repeater ItemsSource="{Binding Masks}">

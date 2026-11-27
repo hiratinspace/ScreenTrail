@@ -192,15 +192,24 @@
                                 <RowDefinition Height="*" />
                             </Grid.RowDefinitions>
 
-                            <!-- The way back, first in the Tab order, and the key that does it. -->
+                            <!-- The way back, first in the Tab order, and the key that does it. While a frame is
+                                 enlarged its toolbar carries the way back instead (review finding A-26). -->
                             <Button x:Name="BackToNote"
                                     Grid.Row="0"
                                     Margin="12,12,0,0"
                                     HorizontalAlignment="Left"
-                                    Style="{StaticResource Button.Ghost}"
                                     Click="OnBackToNote"
                                     AutomationProperties.Name="Back to the note"
                                     AutomationProperties.AcceleratorKey="Alt+1">
+                                <Button.Style>
+                                    <Style BasedOn="{StaticResource Button.Ghost}" TargetType="Button">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Strip.IsEnlarged}" Value="True">
+                                                <Setter Property="Visibility" Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Back}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Back to the note" />

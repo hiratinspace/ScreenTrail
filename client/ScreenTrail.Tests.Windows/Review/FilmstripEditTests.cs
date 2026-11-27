@@ -204,22 +204,23 @@ public sealed class FilmstripEditTests
         // middle threw "Collection was modified" out of an async-void Loaded handler and took the UI
         // process, and the staged delete, with it.
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        // Four are on the pipe at once (review finding D-27), so the sixth is deleted while the first four
+        // wait and the fifth waits for room.
         var frames = new RecordingFrames { Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
-        var strip = new FilmstripViewModel(Session(Frames(3)), frames);
+        var strip = new FilmstripViewModel(Session(Frames(6)), frames);
         var items = strip.Items.OfType<FrameItem>().ToList();
         var loading = strip.LoadImagesAsync(TestContext.Current.CancellationToken);
-        Assert.Equal(["f1"], frames.ThumbnailsAsked);
+        Assert.Equal(["f1", "f2", "f3", "f4"], frames.ThumbnailsAsked);
 
-        await strip.DeleteCommand.ExecuteAsync(items[1]);
+        await strip.DeleteCommand.ExecuteAsync(items[5]);
         frames.Gate.SetResult();
         await loading;
 
-        Assert.Equal(["f1", "f3"], strip.Items.OfType<FrameItem>().Select(item => item.Id));
-        Assert.NotNull(items[0].Thumbnail);
-        Assert.NotNull(items[2].Thumbnail);
+        Assert.Equal(["f1", "f2", "f3", "f4", "f5"], strip.Items.OfType<FrameItem>().Select(item => item.Id));
+        Assert.All(items.Take(5), item => Assert.NotNull(item.Thumbnail));
 
         // The deleted frame's picture is not pulled over the pipe for nobody.
-        Assert.Equal(["f1", "f3"], frames.ThumbnailsAsked);
+        Assert.Equal(["f1", "f2", "f3", "f4", "f5"], frames.ThumbnailsAsked);
     }
 
     [Fact]
@@ -244,11 +245,11 @@ public sealed class FilmstripEditTests
     [Fact]
     public async Task ClosingThePaneStopsTheThumbnailLoad()
     {
-        // E-105. The pane's Unloaded cancels the token; the load stops at the frame it was on rather than
-        // pulling the rest of the session over the shared pipe for a view that is gone.
+        // E-105. The pane's Unloaded cancels the token; the load stops with the four it had on the pipe
+        // (review finding D-27) rather than pulling the rest of the session for a view that is gone.
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
         var frames = new RecordingFrames { Gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously) };
-        var strip = new FilmstripViewModel(Session(Frames(5)), frames);
+        var strip = new FilmstripViewModel(Session(Frames(8)), frames);
         using var closing = new CancellationTokenSource();
         var loading = strip.LoadImagesAsync(closing.Token);
 
@@ -256,7 +257,7 @@ public sealed class FilmstripEditTests
         frames.Gate.SetResult();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => loading);
-        Assert.Equal(["f1"], frames.ThumbnailsAsked);
+        Assert.Equal(["f1", "f2", "f3", "f4"], frames.ThumbnailsAsked);
         Assert.All(strip.Items.OfType<FrameItem>(), item => Assert.Null(item.Thumbnail));
     }
 
