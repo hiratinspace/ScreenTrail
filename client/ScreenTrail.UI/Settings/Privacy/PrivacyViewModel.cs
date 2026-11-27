@@ -37,7 +37,7 @@ public sealed partial class PrivacyViewModel : ObservableObject
 
     public IReadOnlyList<string> TelemetryFields { get; } = PrivacyPanel.TelemetryFields;
 
-    public string TelemetryFieldList { get; } = string.Join(", ", PrivacyPanel.TelemetryFields);
+    public string TelemetryFieldList { get; } = PrivacyPanel.TelemetryFieldLines;
 
     public ObservableCollection<string> CustomPatterns { get; } = [];
 

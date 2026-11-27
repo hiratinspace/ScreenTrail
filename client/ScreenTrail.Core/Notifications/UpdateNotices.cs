@@ -27,7 +27,7 @@ public static class UpdateNotices
 
         return update.State == "ready" && update.AvailableVersion is { Length: > 0 } version
             ? new Notification(
-                $"Update ready: ScreenTrail {version}. Open Settings, then Updates, to install it",
+                $"Update ready: ScreenTrail {version}. Open Settings, then Updates, to install it.",
                 NotificationAction.None,
                 $"update-ready:{version}")
             : null;

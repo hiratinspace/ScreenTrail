@@ -11,7 +11,7 @@
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="What leaves this device" />
                 <TextBlock Margin="0,8,0,0" Style="{StaticResource Text.Body}" TextWrapping="Wrap"
-                           Text="Captured on this device → redacted on this device → one request to draft the note (or a plainer draft written here, in local-only mode) → you review → you publish. Nothing is published without your review." />
+                           Text="1. Captured and masked on this PC.&#10;2. One request drafts the note (or this PC drafts it, in local-only mode).&#10;3. You check it.&#10;4. You publish it.&#10;Nothing is published without your check." />
             </StackPanel>
         </Border>
 

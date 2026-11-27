@@ -224,6 +224,14 @@ public sealed class PrivacyPanelTests
     }
 
     [Fact]
+    public void EveryTelemetryFieldIsGlossedInPlainWords()
+    {
+        // Review finding E-18: the approver reads the exact names, the technician the words beside them.
+        Assert.All(PrivacyPanel.TelemetryFields, field => Assert.True(PrivacyPanel.TelemetryGlosses.ContainsKey(field), $"{field} has no gloss"));
+        Assert.Contains("duration_ms: how long the session was", PrivacyPanel.TelemetryFieldLines, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ExcludedProcessesAreNamesNotPaths()
     {
         var panel = new PrivacyPanel(new FakePrivacy());

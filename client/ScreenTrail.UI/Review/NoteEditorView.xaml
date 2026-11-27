@@ -484,7 +484,7 @@
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Muted}"
                                FontSize="{DynamicResource Size.xs}"
-                               Text="Alt+C looks right · Alt+↑↓ reorder · Ctrl+S save" />
+                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save" />
 
                     <!-- The whole strip, in the note's place: the frames no step shows, Del and its undo. -->
                     <Button Style="{StaticResource Button.Secondary}"

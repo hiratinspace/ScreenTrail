@@ -226,16 +226,16 @@ public sealed class PublishPanel
     /// <summary>Two characters match half the tickets in a PSA, and each search is a round trip to it.</summary>
     public const int MinimumQueryLength = 3;
 
-    public const string ConnectPrompt = "Ask your ScreenTrail owner to connect a PSA to publish";
+    public const string ConnectPrompt = "Ask your ScreenTrail owner to connect a PSA to publish.";
 
     /// <summary>Everything chosen landed. Publishing again would post it all a second time.</summary>
     public const string AlreadyPublished = "Already published";
 
     /// <summary>Some of it landed. Publishing again would post that part a second time; Retry sends the rest.</summary>
-    public const string PartlyPublished = "Already partly published. Retry sends only what failed";
+    public const string PartlyPublished = "Already partly published. Retry sends only what failed.";
 
     /// <summary>Something may already be on the ticket. Publish, Ctrl+Enter and Retry wait until the technician says they looked.</summary>
-    public const string CheckTheTicketFirst = "This may already be on the ticket. Check the ticket, then confirm below before publishing again, so nothing is added twice";
+    public const string CheckTheTicketFirst = "This may already be on the ticket. Check the ticket, then confirm below before publishing again, so nothing is added twice.";
 
     private readonly Session _session;
     private readonly Func<string, CancellationToken, Task<IReadOnlyList<TicketMatch>>> _search;
