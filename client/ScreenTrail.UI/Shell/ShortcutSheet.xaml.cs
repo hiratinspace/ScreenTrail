@@ -18,6 +18,7 @@ public partial class ShortcutSheet : Window
     public ShortcutSheet()
     {
         InitializeComponent();
+        Theme.FitToWorkArea.Apply(this);
     }
 
     /// <summary>One line of the sheet: the keys, and what they do. Only keys go in <paramref name="Keys"/>; where they work goes in the words.</summary>

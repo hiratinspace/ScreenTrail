@@ -65,4 +65,29 @@ public sealed class HudPlacementTests
         // What the virtual screen looks like on a locked or headless machine. Docking is the safe answer.
         Assert.False(HudPlacement.IsOnScreen(10, 10, 220, 44, []));
     }
+
+    [Theory]
+    // Docked top right on a 1920 wide monitor: 24 from the edge, the timer becoming the paused words.
+    [InlineData(1716, 180, 420, 1476)]
+    // And back again: the right edge stays where it was.
+    [InlineData(1476, 420, 180, 1716)]
+    // In the left half it keeps its left edge.
+    [InlineData(24, 180, 420, 24)]
+    // Kept inside: a left-anchored pill that would run past the right edge is moved back.
+    [InlineData(800, 180, 1300, 620)]
+    // And a right-anchored one wider than the room to its left stops at the monitor's left edge.
+    [InlineData(1716, 180, 2000, 0)]
+    // Placed across the edge on purpose: it grows leftward and is not pulled back inside.
+    [InlineData(1800, 180, 420, 1560)]
+    [InlineData(1800, 420, 180, 2040)]
+    public void AWidthChangeKeepsTheEdgeThePillIsDockedTo(double left, double oldWidth, double newWidth, double expected) =>
+        Assert.Equal(expected, HudPlacement.LeftAfterResize(left, oldWidth, newWidth, 0, 1920));
+
+    [Fact]
+    public void OnASecondMonitorTheHalvesAreThatMonitors()
+    {
+        // The second monitor runs from 1920 to 3840: a pill at 2000 is in its left half.
+        Assert.Equal(2000, HudPlacement.LeftAfterResize(2000, 180, 420, 1920, 3840));
+        Assert.Equal(3396, HudPlacement.LeftAfterResize(3636, 180, 420, 1920, 3840));
+    }
 }

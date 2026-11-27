@@ -111,9 +111,20 @@ public partial class ConfirmWindow : Window
             dialog.Owner = owner;
             dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
+        else
+        {
+            // Review finding D-08: asked from the tray with the shell closed, the dialog had no owner and no
+            // taskbar button, and one click elsewhere lost it behind other windows with the question still
+            // open. Alone, it has a taskbar button, stays on top for its short life, and opens in the middle
+            // of the monitor under the pointer, where the tray menu was, rather than the primary one.
+            dialog.ShowInTaskbar = true;
+            dialog.Topmost = true;
+            Theme.Placement.CentreUnderThePointer(dialog);
+        }
 
         return dialog.ShowDialog() == true;
     }
+
 
     private void FocusStart()
     {

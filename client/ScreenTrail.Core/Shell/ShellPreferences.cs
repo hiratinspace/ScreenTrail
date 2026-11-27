@@ -48,6 +48,13 @@ public sealed record ShellPreferences
     public bool Maximised { get; init; }
 
     /// <summary>
+    /// Where the shell window was closed, one per arrangement of monitors, most recent first (review finding
+    /// D-04). <see cref="Width"/>, <see cref="Height"/> and <see cref="Maximised"/> were never read or written;
+    /// they stay so an older file still parses.
+    /// </summary>
+    public WindowPlacementList Placements { get; init; } = WindowPlacementList.Empty;
+
+    /// <summary>
     /// Where the HUD sits, so it comes back where the technician left it (Spec §5 S2 "position persists").
     /// </summary>
     public double HudX { get; init; }

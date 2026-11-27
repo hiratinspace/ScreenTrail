@@ -43,6 +43,12 @@ public sealed class DiagnosticsPanel
     public const string NotConnected = "Not connected to the capture service. Capture state unknown.";
 
     /// <summary>
+    /// The headline while the panel's first question is out (review finding D-09): the window opens at once
+    /// rather than after the answer, and says it is asking rather than that nothing answered.
+    /// </summary>
+    public const string AskingHeadline = "Asking the capture service";
+
+    /// <summary>
     /// The privacy-pause row: "no", or why capture is paused (a password field, an excluded app). It was
     /// "Suppressed", the state machine's word, not the technician's.
     /// </summary>
@@ -102,14 +108,20 @@ public sealed class DiagnosticsPanel
 
     private readonly Diagnostics? _diagnostics;
 
-    private DiagnosticsPanel(Diagnostics? diagnostics)
+    private readonly bool _asking;
+
+    private DiagnosticsPanel(Diagnostics? diagnostics, bool asking = false)
     {
         _diagnostics = diagnostics;
-        Rows = diagnostics is null ? UnansweredRows() : AnsweredRows(diagnostics);
+        _asking = asking;
+        Rows = diagnostics is null ? UnansweredRows(asking) : AnsweredRows(diagnostics);
     }
 
     /// <summary>The panel when the service is not answering. Every count is unknown rather than zero.</summary>
     public static DiagnosticsPanel Unanswered { get; } = new(null);
+
+    /// <summary>The panel before the first answer: every count unknown, and the headline says it is asking.</summary>
+    public static DiagnosticsPanel Asking { get; } = new(null, asking: true);
 
     public static DiagnosticsPanel From(Diagnostics diagnostics)
     {
@@ -152,7 +164,7 @@ public sealed class DiagnosticsPanel
     public bool Answered => _diagnostics is not null;
 
     /// <summary>What the panel says about capture, in one line a customer can read over a shoulder.</summary>
-    public string Headline => _diagnostics?.Headline ?? NotConnected;
+    public string Headline => _diagnostics?.Headline ?? (_asking ? AskingHeadline : NotConnected);
 
     public IReadOnlyList<DiagnosticsLine> Rows { get; }
 
@@ -188,7 +200,7 @@ public sealed class DiagnosticsPanel
 
         var text = new StringBuilder()
             .Append("ScreenTrail diagnostics ").Append(at.ToUniversalTime().ToString("u", CultureInfo.InvariantCulture)).AppendLine()
-            .AppendLine(NotConnected);
+            .AppendLine(_asking ? AskingHeadline : NotConnected);
         foreach (var row in Rows)
         {
             text.Append(row.Label.ToLowerInvariant().PadRight(17)).AppendLine(row.Value);
@@ -232,9 +244,9 @@ public sealed class DiagnosticsPanel
         { } count => $"{count.ToString(CultureInfo.InvariantCulture)} ({HookFallbacksMeaning})",
     };
 
-    private static IReadOnlyList<DiagnosticsLine> UnansweredRows() =>
+    private static IReadOnlyList<DiagnosticsLine> UnansweredRows(bool asking) =>
     [
-        new("Scope", "Not connected to the capture service"),
+        new("Scope", asking ? Unknown : "Not connected to the capture service"),
         new("Microphone", Unknown),
         new(PrivacyPause, Unknown),
         new(NotYetMasked, Unknown),

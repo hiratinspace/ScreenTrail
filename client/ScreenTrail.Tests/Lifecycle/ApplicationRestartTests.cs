@@ -10,6 +10,9 @@ namespace ScreenTrail.Tests.Lifecycle;
 /// </summary>
 public sealed class ApplicationRestartTests
 {
+    /// <summary>The UI registers to be restarted in the tray, as a start nobody asked to see (review finding D-03).</summary>
+    private const string UiRegister = "RestartRegistration.Register(Core.Lifecycle.UiStart.BackgroundFlag)";
+
     [Fact]
     public void OnlyRestartManagersRestartAndNotAfterACrashAHangOrAReboot()
     {
@@ -91,9 +94,9 @@ public sealed class ApplicationRestartTests
         // made; the registration sits with it, after every one of them.
         var app = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs"));
 
-        var register = app.IndexOf("RestartRegistration.Register()", StringComparison.Ordinal);
+        var register = app.IndexOf(UiRegister, StringComparison.Ordinal);
         Assert.True(register > 0, "the UI does not register for restart");
-        Assert.Equal(register, app.LastIndexOf("RestartRegistration.Register()", StringComparison.Ordinal));
+        Assert.Equal(register, app.LastIndexOf(UiRegister, StringComparison.Ordinal));
         foreach (var harness in new[] { "new GalleryWindow(", "HudPreview.CaptureAsync(", "new Review.NotePreviewWindow(", "new ShellWindow(directory)" })
         {
             var at = app.IndexOf(harness, StringComparison.Ordinal);
@@ -114,13 +117,33 @@ public sealed class ApplicationRestartTests
         var guard = app.IndexOf("StartGuard.Decide(Platform.Lifecycle.StartFactsReader.Read())", StringComparison.Ordinal);
         Assert.True(guard > 0, "the UI does not check itself at start");
         Assert.Equal(guard, app.LastIndexOf("StartGuard.Decide(", StringComparison.Ordinal));
-        Assert.True(guard < app.IndexOf("RestartRegistration.Register()", StringComparison.Ordinal), "the UI registers before the check");
+        Assert.True(guard < app.IndexOf(UiRegister, StringComparison.Ordinal), "the UI registers before the check");
         Assert.True(guard < app.IndexOf("_live = new Shell.LiveShell();", StringComparison.Ordinal), "the live shell is made before the check");
 
         var refused = app.IndexOf("if (unfit != Core.Lifecycle.StartRefusal.None)", guard, StringComparison.Ordinal);
         var exits = app.IndexOf("Shutdown(0);", guard, StringComparison.Ordinal);
-        Assert.True(refused > guard && exits > refused && exits < app.IndexOf("RestartRegistration.Register()", StringComparison.Ordinal), "a refused UI does not exit before it registers");
+        Assert.True(refused > guard && exits > refused && exits < app.IndexOf(UiRegister, StringComparison.Ordinal), "a refused UI does not exit before it registers");
         Assert.True(app.IndexOf("RefusalEventLog.Write(unfit, ui: true)", guard, StringComparison.Ordinal) is var logged && logged > refused && logged < exits, "a refused UI is not recorded");
+    }
+
+    [Fact]
+    public void ASecondUiExitsAfterTheCheckAndBeforeItRegisters()
+    {
+        // Review finding D-02: a second copy made a second tray icon and pill. It exits before it registers
+        // for restart or makes a live shell, and after the start-up check, so a refused copy never takes the
+        // running one's place. The sign-in value carries the background flag (D-03).
+        var app = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs"));
+        var guard = app.IndexOf("StartGuard.Decide(", StringComparison.Ordinal);
+        var take = app.IndexOf("Shell.SingleInstance.Take(opensWindow)", StringComparison.Ordinal);
+
+        Assert.True(take > guard, "the one-copy check comes after the start-up check");
+        Assert.True(take < app.IndexOf(UiRegister, StringComparison.Ordinal), "a second copy registers for restart");
+        Assert.True(app.IndexOf("Shutdown(0);", take, StringComparison.Ordinal) < app.IndexOf(UiRegister, StringComparison.Ordinal), "a second copy does not exit");
+        Assert.Contains("_live.StartAsync(opensWindow)", app, StringComparison.Ordinal);
+
+        var signIn = File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "Shell", "StartAtLogin.cs"));
+        Assert.DoesNotContain("ProcessPath}\\\"\"", signIn, StringComparison.Ordinal);
+        Assert.Equal(3, System.Text.RegularExpressions.Regex.Count(signIn, @"UiStart\.SignInCommand\("));
     }
 
     /// <summary>A file in the repository, found from the test binary the way InstallerAuthoringTests finds one.</summary>

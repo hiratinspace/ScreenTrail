@@ -1,5 +1,6 @@
 using System.IO;
 using Microsoft.Win32;
+using ScreenTrail.Core.Lifecycle;
 
 namespace ScreenTrail.UI.Shell;
 
@@ -22,19 +23,29 @@ internal static class StartAtLogin
     /// A technician who had "Start UI at login" on before the rename has a value under the old name that
     /// starts a program the upgrade removed. It is replaced by today's value pointing at this program, so
     /// the setting stays on; with no old value there is nothing to do. Called once at the window's start.
+    ///
+    /// A value written before the sign-in start said <see cref="UiStart.BackgroundFlag"/> gains it, or the
+    /// UI would open its window at every sign-in now that a plain start opens one (review finding D-03).
     /// </summary>
     public static void MigrateLegacyValue()
     {
         try
         {
             using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
-            if (run?.GetValue(LegacyValueName) is not string)
+            if (run is null)
             {
                 return;
             }
 
-            run.SetValue(ValueName, $"\"{Environment.ProcessPath}\"");
-            run.DeleteValue(LegacyValueName, throwOnMissingValue: false);
+            if (run.GetValue(LegacyValueName) is string)
+            {
+                run.SetValue(ValueName, UiStart.SignInCommand(Environment.ProcessPath!));
+                run.DeleteValue(LegacyValueName, throwOnMissingValue: false);
+            }
+            else if (UiStart.IsSignInCommandWithoutTheFlag(run.GetValue(ValueName) as string, Environment.ProcessPath!))
+            {
+                run.SetValue(ValueName, UiStart.SignInCommand(Environment.ProcessPath!));
+            }
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
@@ -49,7 +60,7 @@ internal static class StartAtLogin
             using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true) ?? Registry.CurrentUser.CreateSubKey(RunKey);
             if (enabled)
             {
-                run.SetValue(ValueName, $"\"{Environment.ProcessPath}\"");
+                run.SetValue(ValueName, UiStart.SignInCommand(Environment.ProcessPath!));
             }
             else
             {

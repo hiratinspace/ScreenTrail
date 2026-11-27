@@ -2278,13 +2278,13 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - Verify: `dotnet test` (Mac), the Windows CI screenshots
 
 ### **ST-126 · Window lifecycle bugs**
-- **Findings:** D-01, D-02, D-03, D-05, D-07, D-08, D-09, D-13, C-H1/D-16, D-04, D-06
+- **Findings:** D-01, D-02, D-03, D-05, D-07, D-08, D-09, D-13, C-H1/D-16, D-04 (D-06 moved to ST-127)
 - **Blocked By:** none
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open, laptop checks owed (`windows-checklist.md`: second monitor at another scale, Start while running, tray Open on a minimised window, sheet at 1080p 150%, a tray confirm with the shell closed, a dark open, the pill's paused words at the top right, the window's place across a dock and undock). Left: the diagnostics ring after 300 ms waits for ProgressRing (ST-130); the pill's card opening upward is ST-134; the onboarding window's saved place.
 
 ### **ST-127 · Tokens: design-system change log, generator emits `Radius.pill` 999, elevation, `Icons.xaml`, line heights, HC keys**
-- **Findings:** A-29, A-30, A-31/B-57, design-system §13
+- **Findings:** A-29, A-30, A-31/B-57, design-system §13, D-06 (from ST-126: `layout.pane-padding-narrow` 16 under `rail-narrow-below`, then the shell's `MinWidth` 960; at 960 with the 24 padding All sessions' columns need 656 px of 646)
 - **Blocked By:** none
 - **Laptop:** Yes (fonts, round ends, icon coverage)
 - **Status:** Open
