@@ -346,7 +346,7 @@ Window default 1280×800, minimum 1024×680.
 │ To check  2                 │ To    #48213 Printer offline · Acme Dental            Change Ctrl+T │
 │▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔│       Matched from the ScreenConnect window title                  │
 │ Acme Dental      14 min ago │ As    (•) Internal note  ( ) Discussion: the customer sees it      │
-│ Printer offline: print spo… │ Time  0:15  12 min, rounded up to 15                               │
+│ Printer offline: print spo… │ Time  0:15  Rounded up from 12 min                                 │
 │ #48213 · ScreenConnect · 12 │ Also  [x] Time entry  [x] KB article in Hudu: "Restart a stopped…" │
 │ Northwind Legal    2 h ago  │ 1 inferred step not checked                                        │
 │ Outlook keeps asking for a… │ ─────────────────────────────────────────────────────────────────  │
@@ -367,7 +367,7 @@ Window default 1280×800, minimum 1024×680.
 - **Envelope header.** Four labelled lines, each a value read in one pass.
   - **To:** the bound ticket as a value, "#48213 Printer offline · Acme Dental", with why it was matched ("Matched from the ScreenConnect window title") and Change (`Ctrl+T`), which opens the ticket picker in place. With no ticket, To reads "No ticket yet" with Choose a ticket, and Publish is disabled with its reason beside it.
   - **As:** a visible two-way choice, Internal note (default, v0.4.1 Q2) or "Discussion: the customer sees it". Never hidden behind Options.
-  - **Time:** the time entry and its rounding ("0:15, 12 min, rounded up to 15"), editable in place.
+  - **Time:** the time entry and its rounding ("0:15, Rounded up from 12 min"), editable in place.
   - **Also:** the other destinations as checkboxes, "Time entry" and "KB article in Hudu: <title>", the KB default following `kb_candidate` with its reason.
   - Beside Publish, what is still open ("1 inferred step not checked") and, when disabled, the reason (v0.4.3).
 - **Publish is the one filled button** on the screen (Iris, `text.on-accent`), `Ctrl+Enter`. Discard stays ghost.
@@ -378,7 +378,7 @@ Window default 1280×800, minimum 1024×680.
   - **Subject line** is the note's own title, without "Review:". Discard (ghost, GhostDanger) then Publish (filled, send glyph, "Ctrl+Enter" inside the button). Under them, right-aligned: the reason Publish waits (amber warning glyph, a polite live region, also the button's help text) and what is still open ("1 inferred step not checked", `confidence.low` glyph). With no PSA, Publish is replaced by the secondary button "See integrations", which opens Settings at Integrations (read-only, v0.6.15), the reason reads "Ask your ScreenTrail owner to connect a PSA to publish", and the line under it reads "No PSA connected. Your ScreenTrail owner connects one in the web admin, then you can publish."
   - **To:** the ticket chip ("#48213" semibold, then "Printer offline · Acme Dental"), "Matched from the <tool> window title" only for a suggested ticket, and Change or Choose a ticket with its "Ctrl+T" key cap. The picker opens under the value with focus in the search; the arrows move through the matches, `Enter` or a click takes one and closes it, `Esc` closes it and focus returns to Change.
   - **As:** a segmented control, "Internal note" (lock glyph) and "Discussion: the customer sees it"; the chosen one is the selection tint, semibold, with a 2 px accent bar, so high contrast keeps the bar and the weight.
-  - **Time:** stays whole minutes ("15" then "min"), not "0:15", so the T-386 check on what is typed is unchanged; the note reads "12 min, rounded up to 15" (or "15 min" when nothing was rounded).
+  - **Time:** stays whole minutes ("15" then "min"), not "0:15", so the T-386 check on what is typed is unchanged; the note reads "Rounded up from 12 min" (or "15 min" when nothing was rounded; v0.7.11, review finding E-27, so it stays on one line at 150%).
   - **Also:** a chip for each destination, the ticket note first (it can be unticked after an earlier publish, O3), then "Time entry" and "KB article in Hudu: “<title>”"; the article's `kb_reason` is a muted line under the chips. The O3 "I checked ticket #N" warning sits under the envelope.
   - **Receipt heading** sits on a frame plate (`shell.bg`, `shell.text`) ruled with a 4 px `brand.ribbon.band`, with a glyph in a ring in the `shell.*` state colour: Sent "Published to ticket #N" (check, green), Partial "Partly published to ticket #N" (warning, amber), Not confirmed "Not confirmed on ticket #N" (question, amber), Failed "Not published to ticket #N" (cross, red). The subline is company, ticket summary and the time it landed. The §6 summary line shows when the heading does not say it all.
   - **Rows** add what went there beside the destination ("Internal note", "0:15", the article's title). Retry and "Map and publish the article" are secondary buttons on the receipt, so Open next is its one filled button; the mapping prompt and the not-confirmed check each lead with a glyph and a word.

@@ -1639,19 +1639,10 @@
         </Setter>
     </Style>
 
-    <!-- The shell's capture state: the badge at body-adjacent size, because it is read, not glanced at. -->
-    <Style x:Key="Badge.Status" BasedOn="{StaticResource Badge}" TargetType="ContentControl">
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-        <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-        <Setter Property="Padding" Value="10,3" />
-    </Style>
-
     <!-- State dot: colour as indicator (Spec §2.1 v0.4.2), always next to a text label -->
     <Style x:Key="StateDot" TargetType="Ellipse">
-        <Setter Property="Width" Value="10" />
-        <Setter Property="Height" Value="10" />
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Height" Value="8" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Fill" Value="{DynamicResource Brush.state.recording}" />
     </Style>
@@ -2442,12 +2433,34 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
     </Style>
 
-    <!-- The capture state on the frame (Spec §3, status chip): the words in shell.text, the dot and the
-         border in the shell.* colour of the state. -->
-    <Style x:Key="Badge.Frame" BasedOn="{StaticResource Badge.Status}" TargetType="ContentControl">
+    <!-- The capture state on the frame (Spec §3, status chip; design system 2.3, review finding A-03): a 28 px
+         pill, 12 at the sides, a border.strong edge in every state, Body words in shell.text. Its own
+         template, with no panel round the content, so the words can trim to the rail's width. -->
+    <Style x:Key="Rail.StatusChip" TargetType="ContentControl">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.bg}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.offline}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border MinHeight="{TemplateBinding MinHeight}"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{DynamicResource Thickness.border}"
+                            CornerRadius="{DynamicResource Radius.pill}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- The rail's search: a field on the frame, its edge in shell.muted (3:1 and more on shell.bg). -->

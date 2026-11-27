@@ -86,28 +86,17 @@
             <!-- The words are a TextBlock inside the badge, named and announced there: a ContentControl
                  has no automation peer, so a name or a live region on the badge itself reached no screen
                  reader (ST-084). -->
-            <!-- On the frame (Spec §3, status chip): the dot and the border in the shell.* colour of the
-                 state, the words in shell.text, since state colours are indicators, not text (§2.1). -->
+            <!-- On the frame (Spec §3, status chip; design system 2.3, review findings A-03, D-25, E-27): a 28 px
+                 pill with a border.strong edge in every state (a red outline read as an error field), an 8 px
+                 dot in the shell.* colour of the state, and the words in shell.text, since state colours are
+                 indicators, not text (§2.1). One line at any width or text size: the words trim, and the time
+                 sits apart in tabular figures and never trims, so the chip neither wraps nor wobbles as the
+                 seconds go by. The tooltip and the name carry the whole line. -->
             <ContentControl Grid.Row="0"
                             Margin="16,12,16,4"
-                            HorizontalAlignment="Left">
-                <ContentControl.Style>
-                    <Style BasedOn="{StaticResource Badge.Frame}" TargetType="ContentControl">
-                        <Style.Triggers>
-                            <!-- Recording keeps a neutral edge (v0.7.0): a red outline read as an error field, and
-                                 the red dot, the word and the timer already say it. -->
-                            <DataTrigger Binding="{Binding StatusTone}" Value="Recording">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding StatusTone}" Value="Paused">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.paused}" />
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding StatusTone}" Value="Scope">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.scope}" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </ContentControl.Style>
+                            HorizontalAlignment="Left"
+                            Style="{StaticResource Rail.StatusChip}"
+                            ToolTip="{Binding StatusLine}">
                 <DockPanel>
                     <!-- The shared StateDot, with each tone's colour on the frame. -->
                     <Ellipse Margin="0,0,8,0" DockPanel.Dock="Left">
@@ -128,11 +117,22 @@
                             </Style>
                         </Ellipse.Style>
                     </Ellipse>
+                    <!-- The time: drawn, not read on its own (a Glyph has no automation peer); the words' name carries it. -->
+                    <controls:Glyph x:Name="StatusTime"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    DockPanel.Dock="Right"
+                                    Style="{StaticResource Text.Numeric}"
+                                    Foreground="{DynamicResource Brush.shell.text}"
+                                    TextWrapping="NoWrap"
+                                    Text="{Binding StatusTime}" />
                     <!-- Announced on the state without the clock, so a recording is not read out every second. -->
                     <TextBlock VerticalAlignment="Center"
-                               TextWrapping="Wrap"
-                               Text="{Binding Status}"
-                               AutomationProperties.Name="{Binding Status, StringFormat='Capture state: {0}'}"
+                               Style="{StaticResource Text.Frame}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"
+                               Text="{Binding StatusWords}"
+                               AutomationProperties.Name="{Binding StatusLine, StringFormat='Capture state: {0}'}"
                                controls:LiveRegion.Setting="Polite"
                                controls:LiveRegion.Key="{Binding StatusAnnouncement}" />
                 </DockPanel>
