@@ -362,8 +362,17 @@ public partial class ShellWindow
             return;
         }
 
-        var top = element.TransformToAncestor(content).Transform(new Point(0, 0)).Y;
-        scroller.ScrollToVerticalOffset(Math.Max(0, top - 24));
+        if (scroller.CanContentScroll)
+        {
+            // A table scrolls by row, so its offsets are rows, not pixels: let the row panel bring it in.
+            element.BringIntoView();
+        }
+        else
+        {
+            var top = element.TransformToAncestor(content).Transform(new Point(0, 0)).Y;
+            scroller.ScrollToVerticalOffset(Math.Max(0, top - 24));
+        }
+
         await SettleAsync();
         if (!Shows(scroller, element))
         {
@@ -371,10 +380,17 @@ public partial class ShellWindow
         }
     }
 
+    /// <summary>
+    /// Whether <paramref name="element"/> lies inside the scroll viewer's view, in pixels. The view is the
+    /// content presenter's box, not ViewportHeight: a DataGrid scrolls by row (CanContentScroll), so its
+    /// ViewportHeight counts rows, and its column header sits inside the scroll viewer above the presenter.
+    /// Comparing a cell's pixels with a row count failed focus-list-row on a row in plain view.
+    /// </summary>
     private static bool Shows(ScrollViewer scroller, FrameworkElement element)
     {
-        var box = element.TransformToAncestor(scroller).TransformBounds(new Rect(element.RenderSize));
-        return box.Top >= 0 && box.Bottom <= scroller.ViewportHeight;
+        var view = scroller.Template?.FindName("PART_ScrollContentPresenter", scroller) as FrameworkElement ?? scroller;
+        var box = element.TransformToAncestor(view).TransformBounds(new Rect(element.RenderSize));
+        return box.Top >= -0.5 && box.Bottom <= view.ActualHeight + 0.5;
     }
 
     /// <summary>Undoes what a render's prepare step added.</summary>
