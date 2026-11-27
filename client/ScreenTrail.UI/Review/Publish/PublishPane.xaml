@@ -15,12 +15,18 @@
         <KeyBinding Key="Return" Command="{Binding OpenNextCommand}" />
     </UserControl.InputBindings>
     <UserControl.Resources>
-        <!-- A figure in the facts row: the number large, what it counts small under it. -->
-        <Style x:Key="Receipt.Figure" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{DynamicResource Font.display}" />
-            <Setter Property="FontSize" Value="{DynamicResource Size.xl}" />
-            <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <!-- A figure in the facts row (review finding A-25): Text.Display 28/36 in tabular lining figures, so
+             the numbers line up across the row; what it counts is a Caption 4 under it. -->
+        <Style x:Key="Receipt.Figure" BasedOn="{StaticResource Text.Display}" TargetType="TextBlock">
             <Setter Property="TextWrapping" Value="NoWrap" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+            <Setter Property="Typography.NumeralStyle" Value="Lining" />
+        </Style>
+        <!-- A count in the side card: Body strong in tabular figures, right aligned. -->
+        <Style x:Key="Receipt.Count" BasedOn="{StaticResource Text.BodyStrong}" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+            <Setter Property="Typography.NumeralStyle" Value="Lining" />
         </Style>
     </UserControl.Resources>
 
@@ -296,7 +302,7 @@
                                     <DataTemplate>
                                         <StackPanel Margin="0,0,12,0" AutomationProperties.Name="{Binding Caption}">
                                             <TextBlock Style="{StaticResource Receipt.Figure}" Text="{Binding Value}" />
-                                            <TextBlock Style="{StaticResource Text.Muted}" Text="{Binding Caption}" />
+                                            <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Caption}" Text="{Binding Caption}" />
                                         </StackPanel>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -308,53 +314,53 @@
                 </StackPanel>
             </Border>
 
-            <!-- Next to check, then the day so far. Open next is the receipt's one filled button. -->
+            <!-- Next to check and the day so far, one card (review finding A-25): the next session and Open next,
+                 a rule, then Published and Left to check with their counts right aligned. Top aligned; the
+                 space under it is left empty, as a document's is. Open next is the receipt's one filled button. -->
             <StackPanel Grid.Column="2" Width="{DynamicResource Layout.side-column}" VerticalAlignment="Top">
-                <Border Style="{StaticResource Card}" Padding="{DynamicResource Padding.card}" AutomationProperties.Name="Next to check">
+                <Border x:Name="SideCard" Style="{StaticResource Card}">
                     <StackPanel>
-                        <TextBlock Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Next to check" />
-                        <StackPanel Visibility="{Binding NextVisibility}">
-                            <TextBlock Style="{StaticResource Text.BodyStrong}" Text="{Binding NextTitle}" />
-                            <TextBlock Margin="0,4,0,12" Style="{StaticResource Text.Muted}" Text="{Binding NextMeta}" />
-                            <Button x:Name="OpenNextButton"
-                                    Style="{StaticResource Button.Primary}"
-                                    HorizontalAlignment="Stretch"
-                                    Command="{Binding OpenNextCommand}"
-                                    AutomationProperties.Name="Open next"
-                                    AutomationProperties.AcceleratorKey="Enter">
-                                <StackPanel Orientation="Horizontal">
-                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Forward}" />
-                                    <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open next" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
-                                </StackPanel>
-                            </Button>
+                        <StackPanel AutomationProperties.Name="Next to check">
+                            <TextBlock Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Next to check" />
+                            <StackPanel Visibility="{Binding NextVisibility}">
+                                <TextBlock Style="{StaticResource Text.BodyStrong}" Text="{Binding NextTitle}" />
+                                <TextBlock Margin="0,4,0,12" Style="{StaticResource Text.Muted}" Text="{Binding NextMeta}" />
+                                <Button x:Name="OpenNextButton"
+                                        Style="{StaticResource Button.Primary}"
+                                        HorizontalAlignment="Stretch"
+                                        Command="{Binding OpenNextCommand}"
+                                        AutomationProperties.Name="Open next"
+                                        AutomationProperties.AcceleratorKey="Enter">
+                                    <StackPanel Orientation="Horizontal">
+                                        <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Forward}" />
+                                        <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open next" />
+                                        <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource Text.Secondary}" Text="Nothing else to check right now." Visibility="{Binding NoNextVisibility}" />
                         </StackPanel>
-                        <TextBlock Style="{StaticResource Text.Secondary}" Text="Nothing else to check right now." Visibility="{Binding NoNextVisibility}" />
-                    </StackPanel>
-                </Border>
 
-                <Border Margin="0,16,0,0"
-                        Style="{StaticResource Card}"
-                        Background="Transparent"
-                        BorderBrush="{DynamicResource Brush.border.strong}"
-                        Visibility="{Binding TodayVisibility}"
-                        AutomationProperties.Name="Today">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Today" />
-                        <TextBlock Grid.Row="1" Style="{StaticResource Text.Body}" Text="Published" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Text.BodyStrong}" Text="{Binding TodayPublished}" />
-                        <TextBlock Grid.Row="2" Margin="0,4,0,0" Style="{StaticResource Text.Body}" Text="Left to check" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" Style="{StaticResource Text.BodyStrong}" Text="{Binding TodayLeft}" />
-                    </Grid>
+                        <StackPanel Visibility="{Binding TodayVisibility}" AutomationProperties.Name="Today">
+                            <Border Margin="0,16" BorderBrush="{DynamicResource Brush.border.subtle}" BorderThickness="0,1,0,0" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Today" />
+                                <TextBlock Grid.Row="1" Style="{StaticResource Text.Body}" Text="Published" />
+                                <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Receipt.Count}" Text="{Binding TodayPublished}" />
+                                <TextBlock Grid.Row="2" Margin="0,4,0,0" Style="{StaticResource Text.Body}" Text="Left to check" />
+                                <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" Style="{StaticResource Receipt.Count}" Text="{Binding TodayLeft}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Grid>

@@ -129,6 +129,47 @@ public sealed class EnvelopeLayoutTests
         Assert.Equal("{Binding Text, RelativeSource={RelativeSource Self}}", setters["ToolTip"]);
     }
 
+    /// <summary>
+    /// Review finding A-25: the receipt's figures are Text.Display in tabular figures with a Caption 4 under,
+    /// and Next to check and Today are one card, a rule between them, never a second card style (the
+    /// transparent Today card outlined in border.strong).
+    /// </summary>
+    [Fact]
+    public void TheReceiptsFiguresLineUpAndItsSideColumnIsOneCard()
+    {
+        var receipt = Load("Review", "Publish", "PublishPane.xaml");
+        Setters StyleOf(string key) => new(receipt.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key));
+
+        var figure = StyleOf("Receipt.Figure");
+        Assert.Equal("{StaticResource Text.Display}", figure.BasedOn);
+        Assert.Equal("Tabular", figure["Typography.NumeralAlignment"]);
+        var count = StyleOf("Receipt.Count");
+        Assert.Equal("{StaticResource Text.BodyStrong}", count.BasedOn);
+        Assert.Equal("Tabular", count["Typography.NumeralAlignment"]);
+        Assert.Equal("Right", count["HorizontalAlignment"]);
+
+        var caption = receipt.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding Caption}");
+        Assert.Equal("{StaticResource Text.Caption}", (string?)caption.Attribute("Style"));
+        Assert.Equal("0,4,0,0", (string?)caption.Attribute("Margin"));
+
+        var side = Named(receipt, "SideCard");
+        Assert.Equal("{StaticResource Card}", (string?)side.Attribute("Style"));
+        Assert.Null(side.Attribute("Background"));
+        var cards = side.Parent!.Elements(Wpf + "Border").ToList();
+        Assert.Single(cards);
+        var names = side.Descendants().Select(e => (string?)e.Attribute("AutomationProperties.Name")).Where(n => n is not null).ToList();
+        Assert.Contains("Next to check", names);
+        Assert.Contains("Today", names);
+        Assert.All(side.Descendants(Wpf + "TextBlock").Where(t => ((string?)t.Attribute("Text"))?.StartsWith("{Binding Today", StringComparison.Ordinal) == true), t => Assert.Equal("{StaticResource Receipt.Count}", (string?)t.Attribute("Style")));
+    }
+
+    private sealed class Setters(XElement style)
+    {
+        public string? BasedOn => (string?)style.Attribute("BasedOn");
+
+        public string? this[string property] => (string?)style.Elements(Wpf + "Setter").SingleOrDefault(s => (string?)s.Attribute("Property") == property)?.Attribute("Value");
+    }
+
     private static XElement Named(XElement root, string name) =>
         root.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
 
