@@ -160,10 +160,11 @@
                 <TextBlock x:Name="StepTitle" Margin="0,4,0,0" Style="{StaticResource Text.Display}" Text="{Binding Title}" controls:LiveRegion.Setting="Polite" />
             </StackPanel>
 
-            <ScrollViewer Grid.Row="1" Padding="32,0,16,0" VerticalScrollBarVisibility="Auto">
+            <!-- Review finding D-30: a new step opens at its top and fades in (OnboardingWindow.xaml.cs). -->
+            <ScrollViewer x:Name="StepScroller" Grid.Row="1" Padding="32,0,16,0" VerticalScrollBarVisibility="Auto">
                 <!-- Top-aligned, so a step with little in it is not stretched into a card the height of the
                      window, and no wider than the readable width, from the left, in a window made large. -->
-                <Grid Margin="0,0,16,16" VerticalAlignment="Top">
+                <Grid x:Name="StepContent" Margin="0,0,16,16" VerticalAlignment="Top">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MaxWidth="{DynamicResource Layout.content-max-width}" />
                     </Grid.ColumnDefinitions>

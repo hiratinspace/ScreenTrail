@@ -130,4 +130,28 @@ public sealed class OnboardingPolishTests
         Assert.Contains(parts.Descendants(Wpf + "Control"), c => (string?)c.Attribute("Template") == "{StaticResource Pill.Picture}");
         Assert.Empty(parts.Descendants(Wpf + "Button"));
     }
+
+    /// <summary>
+    /// Review finding D-30: a new step opens at its top and fades in over motion.state, and not at all with
+    /// reduce motion on. The window's code is read as text: the Mac cannot run a WPF window.
+    /// </summary>
+    [Fact]
+    public void ANewStepOpensAtItsTopAndFadesIn()
+    {
+        var window = Window();
+        Assert.Equal("ScrollViewer", Named(window, "StepScroller").Name.LocalName);
+        Assert.Equal("Grid", Named(window, "StepContent").Name.LocalName);
+
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!Directory.Exists(Path.Combine(folder.FullName, "ScreenTrail.UI")))
+        {
+            folder = folder.Parent!;
+        }
+
+        var code = File.ReadAllText(Path.Combine(folder.FullName, "ScreenTrail.UI", "Onboarding", "OnboardingWindow.xaml.cs"));
+        Assert.Contains("nameof(OnboardingViewModel.Step)", code, StringComparison.Ordinal);
+        Assert.Contains("StepScroller.ScrollToTop()", code, StringComparison.Ordinal);
+        Assert.Contains("ThemeManager.ReduceMotion", code, StringComparison.Ordinal);
+        Assert.Contains("Waiting.Fade", code, StringComparison.Ordinal);
+    }
 }
