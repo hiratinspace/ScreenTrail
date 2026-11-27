@@ -135,7 +135,8 @@ public sealed class InstallerAuthoringTests
         var standard = Assert.Single(Bundle().Descendants(bal + "WixStandardBootstrapperApplication"));
         Assert.Empty(Bundle().Descendants(bal + "WixInternalUIBootstrapperApplication"));
         Assert.Equal("hyperlinkSidebarLicense", (string?)standard.Attribute("Theme"));
-        Assert.Null(standard.Attribute("LicenseUrl"));
+        // Present and empty: WiX requires it for the hyperlink themes, and empty shows no licence link.
+        Assert.Equal(string.Empty, (string?)standard.Attribute("LicenseUrl"));
         Assert.Null(standard.Attribute("LicenseFile"));
         Assert.Equal("yes", (string?)standard.Attribute("SuppressOptionsUI"));
         Assert.Equal($@"[ProgramFiles64Folder]ScreenTrail\{InstalledFootprint.UiExecutable}", (string?)standard.Attribute("LaunchTarget"));
