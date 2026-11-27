@@ -152,7 +152,12 @@ public sealed class OnboardingWizardTests
         Assert.Equal(blocked.Message, mic.Message);
         Assert.True(ExternalLinks.TryFixLink(mic.FixLink, out _), "the Fix button opens only a link it accepts");
         Assert.True(wizard.CanContinue, "a blocked microphone is a worse session, not a blocked setup");
-        Assert.Contains("without narration", wizard.Blocker ?? wizard.Note, StringComparison.OrdinalIgnoreCase);
+        // Review finding C-O4: a warning, not a failure, and what it means is said under its own row; the
+        // footer no longer says it 360 px lower.
+        Assert.Equal(PermissionSeverity.OptionalMissing, mic.Severity);
+        Assert.Contains("without narration", mic.Consequence, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(wizard.Note);
+        Assert.Null(wizard.Blocker);
 
         capabilities.Checks = [.. capabilities.Checks.Select(c => c.Capability == "microphone" ? c with { State = "ok", Message = "Microphone works.", FixHint = null, FixLink = null } : c)];
         await wizard.RecheckAsync();
@@ -445,5 +450,20 @@ public sealed class OnboardingWizardTests
             Stopped = true;
             return Task.FromResult(true);
         }
+    }
+
+    /// <summary>Review finding C-O4: each permission's severity, and the consequence only where one follows.</summary>
+    [Theory]
+    [InlineData("microphone", true, PermissionSeverity.Ok)]
+    [InlineData("microphone", false, PermissionSeverity.OptionalMissing)]
+    [InlineData("screen_capture", false, PermissionSeverity.Blocking)]
+    [InlineData("input_hooks", false, PermissionSeverity.Blocking)]
+    [InlineData("screen_capture", true, PermissionSeverity.Ok)]
+    public void APermissionSaysHowMuchItMatters(string capability, bool ok, PermissionSeverity severity)
+    {
+        var row = new PermissionRow(capability, capability, ok, "message", null);
+        Assert.Equal(severity, row.Severity);
+        Assert.Equal(severity == PermissionSeverity.OptionalMissing, row.Consequence.Length > 0);
+        Assert.DoesNotContain('\u2014', PermissionRow.MicrophoneConsequence);
     }
 }

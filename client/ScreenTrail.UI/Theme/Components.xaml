@@ -1851,6 +1851,23 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.card}" />
     </Style>
+    <!-- Grouped card (design system 10.5, review finding C-O4): one card whose rows are divided by a
+         border.subtle rule, rather than a stack of single-row cards. The card has no padding; each row is
+         16,12 and at least 48 high; the first row has no rule above it. -->
+    <Style x:Key="Card.Group" BasedOn="{StaticResource Card}" TargetType="Border">
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style x:Key="Card.GroupRow" TargetType="Border">
+        <Setter Property="Padding" Value="16,12" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.group-row-height}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
     <!-- What is wrong with the field above it, 4 below it (review finding B-12): the 12 px warning glyph in
          state.danger, 4, and the words in Text.Error, wrapping, read out as they change. The same line the
          field's own theme:Field.Error draws, for a field whose words need the width of the row or a live

@@ -41,4 +41,32 @@ public sealed class OnboardingPolishTests
         Assert.Equal("{Binding BackVisibility}", (string?)back.Attribute("Visibility"));
         Assert.Null(back.Attribute("IsEnabled"));
     }
+
+    /// <summary>
+    /// Review finding C-O4: the permissions are one grouped card of divided rows, each led by a 16 px glyph
+    /// with no disc: the check, the warning for the microphone, the close glyph for what capture needs. The
+    /// consequence is a Caption under the row's message.
+    /// </summary>
+    [Fact]
+    public void PermissionsAreOneGroupedCardOfGlyphRows()
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var window = Window();
+        var card = Named(window, "PermissionsCard");
+        Assert.Equal("{StaticResource Card.Group}", (string?)card.Attribute("Style"));
+        var row = card.Descendants(Wpf + "DataTemplate").Single().Elements().Single();
+        Assert.Equal("{StaticResource Card.GroupRow}", (string?)row.Attribute("Style"));
+        Assert.Empty(row.Descendants(Wpf + "Ellipse"));
+        Assert.Equal("{StaticResource Onboarding.Mark}", (string?)row.Descendants(controls + "Glyph").Single().Attribute("Style"));
+        Assert.Contains(row.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding Consequence}" && (string?)t.Attribute("Style") == "{StaticResource Text.Caption}");
+
+        var mark = window.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(Xaml + "Key") == "Onboarding.Mark");
+        var triggers = mark.Descendants(Wpf + "DataTrigger").Select(t => (string?)t.Attribute("Value")).ToList();
+        Assert.Equal(["{x:Static core:PermissionSeverity.Ok}", "{x:Static core:PermissionSeverity.OptionalMissing}"], triggers);
+        Assert.Contains(mark.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Value") == "{DynamicResource Brush.state.danger}");
+
+        var components = EmptyStateTests.View("Theme", "Components.xaml");
+        var group = components.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(Xaml + "Key") == "Card.GroupRow");
+        Assert.Contains(group.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Value") == "{DynamicResource Layout.group-row-height}");
+    }
 }

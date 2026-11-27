@@ -37,10 +37,37 @@ public interface ITestSession
     Task<bool> StopAsync(CancellationToken ct = default);
 }
 
+/// <summary>How much a permission's state matters (review finding C-O4), which picks its glyph and colour.</summary>
+public enum PermissionSeverity
+{
+    /// <summary>Allowed: the check in state.published.</summary>
+    Ok,
+
+    /// <summary>Not allowed, and sessions still work without it (the microphone): the warning in state.paused.</summary>
+    OptionalMissing,
+
+    /// <summary>Not allowed, and capture needs it (screen capture, input hooks): the close glyph in state.danger.</summary>
+    Blocking,
+}
+
 /// <param name="FixLink">A Windows Settings deep link when there is one, so the fix is one click.</param>
 public sealed record PermissionRow(string Capability, string Label, bool Ok, string Message, string? FixLink)
 {
+    /// <summary>What a missing microphone means, said under its row rather than in the step's footer (review finding C-O4).</summary>
+    public const string MicrophoneConsequence = "Sessions are drafted from screenshots alone, without narration, until this is on.";
+
     public string Mark => Ok ? "✓" : "✗";
+
+    /// <summary>
+    /// The microphone missing is a worse session, not a broken setup, so it is not drawn as the red failure
+    /// a blocked screen capture is (review finding C-O4).
+    /// </summary>
+    public PermissionSeverity Severity => Ok ? PermissionSeverity.Ok
+        : Capability == "microphone" ? PermissionSeverity.OptionalMissing
+        : PermissionSeverity.Blocking;
+
+    /// <summary>What follows from the row's state, under its message, or empty.</summary>
+    public string Consequence => Severity == PermissionSeverity.OptionalMissing ? MicrophoneConsequence : string.Empty;
 
     /// <summary>What the fix button says: the page it opens, for the microphone, whose page is Windows' privacy settings.</summary>
     public string FixLabel => Capability == "microphone" ? "Open Windows privacy settings" : "Fix in Windows Settings";
@@ -137,8 +164,6 @@ public sealed class OnboardingWizard(
     /// <summary>What the step says beside its content, or null: the microphone's consequence, the test's outcome.</summary>
     public string? Note => Step switch
     {
-        OnboardingStep.Permissions when Permissions.Any(p => !p.Ok && p.Capability == "microphone") =>
-            "Without the microphone, sessions are drafted without narration, from screenshots alone. Fix it now or later in Windows Settings.",
         OnboardingStep.Tools when _toolsRefused is { } notSaved => notSaved,
         OnboardingStep.TryIt when !_testDone && _testRefused is { } refused => refused,
         OnboardingStep.TryIt when _testDone => "The draft is on its way. It opens in Review when it is ready, usually within a minute.",
