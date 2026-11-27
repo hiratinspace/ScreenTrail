@@ -162,8 +162,8 @@ public sealed partial class HudViewModel : ObservableObject
 
     public bool Visible => Snapshot.Visible;
 
-    /// <summary>The masking chip: beside the sync glyph, the number of screenshots still being masked.</summary>
-    public string RedactionText => Snapshot.PendingRedactions.ToString(CultureInfo.InvariantCulture);
+    /// <summary>The masking segment: beside the shield, "Masking 3" (review finding C-H11).</summary>
+    public string RedactionText => Snapshot.Masking ?? string.Empty;
 
     /// <summary>The chip in words, for its tooltip and a screen reader.</summary>
     public string RedactionSpoken => Snapshot.PendingRedactions == 1

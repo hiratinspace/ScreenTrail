@@ -66,6 +66,13 @@ public sealed record HudSnapshot(
     /// </summary>
     public long? SessionMs { get; init; }
 
+    /// <summary>
+    /// The masking segment's words beside the shield: "Masking 3"; null with nothing to mask. A shield beside
+    /// a bare number read as "3 masked", the opposite of 3 screenshots still hidden until masking finishes
+    /// (review finding C-H11, design system amendment 20).
+    /// </summary>
+    public string? Masking => PendingRedactions > 0 ? string.Create(CultureInfo.InvariantCulture, $"Masking {PendingRedactions}") : null;
+
     /// <summary>The session's clock, mm:ss or h:mm:ss; null outside a session.</summary>
     public string? Timer => SessionMs is { } ms ? HudState.Elapsed(ms) : null;
 

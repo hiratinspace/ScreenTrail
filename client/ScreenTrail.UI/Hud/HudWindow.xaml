@@ -173,14 +173,15 @@
                                     Text="{Binding Timer}"
                                     Visibility="{Binding ShowTimer, Converter={StaticResource Visible}}" />
 
-                    <!-- The masking chip: screenshots still being masked. -->
+                    <!-- The masking segment: screenshots still being masked. -->
                     <Border Style="{StaticResource Hud.Segment}"
                             ToolTip="{Binding RedactionSpoken}"
                             Visibility="{Binding ShowRedactions, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <!-- Sync, not the shield (review finding E-05): the count is masking still to do, and the shield
-                                 marks masking done in the events below. -->
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Sync}" />
+                            <!-- The shield and "Masking 3" (review finding C-H11, design system amendment 20): the word
+                                 says the count is masking still to do, where a shield beside a bare number read as
+                                 that many done. -->
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Shield}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Typography.NumeralAlignment="Tabular"

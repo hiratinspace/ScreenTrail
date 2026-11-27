@@ -259,6 +259,17 @@ public sealed class HudStateTests
     }
 
     /// <summary>
+    /// Review finding C-H11, design system amendment 20: the masking backlog is the shield and "Masking 3",
+    /// never a bare number that reads as a count of screenshots already masked; nothing at zero.
+    /// </summary>
+    [Fact]
+    public void TheMaskingBacklogSaysMaskingAndItsCount()
+    {
+        Assert.Equal("Masking 3", HudState.For(Capture(CaptureStates.Recording, elapsedMs: 1_000, pending: 3)).Masking);
+        Assert.Null(HudState.For(Capture(CaptureStates.Recording, elapsedMs: 1_000)).Masking);
+    }
+
+    /// <summary>
     /// Review finding C-H12: finishing up after Stop is the turning ring with no hue. It was amber with a
     /// still ellipsis for up to 20 seconds, which said "something needs you" and looked frozen.
     /// </summary>
