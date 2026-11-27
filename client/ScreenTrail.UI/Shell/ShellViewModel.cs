@@ -320,7 +320,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case PaneAction.ShowReview:
                 // Back to the session it already had, from another view: its pane again, edits and all,
                 // rather than the other view's pane left on screen (T-159). Still loading, it says so.
-                Content = _review.Current ?? Loading;
+                // A load under way may still hold the pane it replaces (D-20); that one is not this session's.
+                Content = IsLoadingReview ? Loading : _review.Current ?? Loading;
                 break;
             case PaneAction.History:
                 _historyPane ??= _history?.Invoke();
@@ -381,11 +382,26 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private async Task LoadReviewAsync(string sessionId)
     {
         var load = ++_loads;
-        Content = Loading;
-        _review.Hold(null);
+
+        // Review finding D-20: what is on screen stays there while the next pane loads, rather than the
+        // loading card replacing it for at least a frame on every switch, however quick. Only a load still
+        // going after 300 ms swaps to the card, and the pane it replaces is let go of then.
+        _loadingLoad = load;
+        _ = ShowLoadingIfSlowAsync(load);
 
         // A load the close cancelled ends this task as cancelled, which nothing observes and nothing reports.
-        var pane = _loadReview is null ? null : await _loadReview(sessionId, _closing).ConfigureAwait(true);
+        object? pane;
+        try
+        {
+            pane = _loadReview is null ? null : await _loadReview(sessionId, _closing).ConfigureAwait(true);
+        }
+        finally
+        {
+            if (_loadingLoad == load)
+            {
+                _loadingLoad = 0;
+            }
+        }
 
         // Only the latest load shows anything: one for another session, or for this one again once its
         // draft arrived, may have finished first.
@@ -397,6 +413,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         if (pane is null)
         {
+            _review.Hold(null);
             _panes.Failed(sessionId);
             if (_panes.View == ShellView.Review)
             {
@@ -411,5 +428,35 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             Content = pane;
         }
+    }
+
+    /// <summary>The Review load under way, or 0 (review finding D-20).</summary>
+    private int _loadingLoad;
+
+    /// <summary>Whether the latest Review load is still under way: any other step (a new load, nothing to review) ends it.</summary>
+    private bool IsLoadingReview => _loadingLoad != 0 && _loadingLoad == _loads;
+
+    /// <summary>
+    /// The loading card, once a load has taken longer than <see cref="Theme.Waiting.Delay"/> (300 ms; at once
+    /// in a render), and the pane it replaces let go of; nothing when the load has finished or another began.
+    /// </summary>
+    private async Task ShowLoadingIfSlowAsync(int load)
+    {
+        if (!Theme.Waiting.AtOnce)
+        {
+            await Task.Delay(Theme.Waiting.Delay).ConfigureAwait(true);
+        }
+
+        if (_disposed || load != _loads || !IsLoadingReview)
+        {
+            return;
+        }
+
+        if (_panes.View == ShellView.Review)
+        {
+            Content = Loading;
+        }
+
+        _review.Hold(null);
     }
 }
