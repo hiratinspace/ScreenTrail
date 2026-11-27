@@ -39,74 +39,81 @@
             </Style.Triggers>
         </Style>
 
-        <!-- One row of the step list on the frame (Spec §5 S8, as built v0.6.7). A step behind is a tick,
-             the step in hand a ring in shell.accent round its number with the row on shell.hover inside a
-             shell.accent edge (the Highlight outline that stays in high contrast) and its name in
-             semibold, a step ahead a thin ring: three shapes, and the row's spoken name says which. -->
+        <!-- One row of the step list on the frame (Spec §5 S8), a nav row (design system 10.4, review finding
+             C-O3): 32 high, rows 2 apart, radius 6, 12 at the sides. A step behind is a 12 px tick in
+             shell.published; a step ahead a 20 px ring in shell.muted round its number in Micro; the step in
+             hand is the one selection, bg.surface with the selection bar and its name in Body strong, no
+             outline. "Optional" is a Neutral badge. Three shapes, and the row's spoken name says which. -->
         <DataTemplate x:Key="Onboarding.StepRow">
-            <Border x:Name="Row"
-                    Margin="0,0,0,4"
-                    Padding="{StaticResource Padding.control}"
-                    MinHeight="{DynamicResource Layout.row-height}"
-                    Background="Transparent"
-                    BorderBrush="Transparent"
-                    BorderThickness="1"
-                    CornerRadius="{DynamicResource Radius.control}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid Grid.Column="0"
-                          Width="{DynamicResource Space.5}"
-                          Height="{DynamicResource Space.5}"
-                          VerticalAlignment="Center">
-                        <Ellipse x:Name="Ring" Stroke="{DynamicResource Brush.shell.muted}" StrokeThickness="1" />
-                        <controls:Glyph x:Name="Tick"
-                                        HorizontalAlignment="Center"
-                                        Style="{StaticResource Icon}"
-                                        Foreground="{DynamicResource Brush.shell.text}"
-                                        Text="{StaticResource Icon.Check}"
-                                        Visibility="Collapsed" />
-                        <!-- The number is in the row's spoken name; on its own it would be read as a stray digit, so it
-                             is a Glyph, which a screen reader does not see. -->
-                        <controls:Glyph x:Name="Number"
-                                        HorizontalAlignment="Center"
+            <Grid Margin="0,0,0,2">
+                <Border x:Name="Row"
+                        Padding="{StaticResource Padding.control}"
+                        MinHeight="{DynamicResource Layout.nav-row-height}"
+                        Background="Transparent"
+                        CornerRadius="{DynamicResource Radius.control}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid Grid.Column="0"
+                              Width="{DynamicResource Icon.lg}"
+                              Height="{DynamicResource Icon.lg}"
+                              VerticalAlignment="Center">
+                            <Ellipse x:Name="Ring" Stroke="{DynamicResource Brush.shell.muted}" StrokeThickness="1" />
+                            <controls:Glyph x:Name="Tick"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource Icon}"
+                                            FontSize="{DynamicResource Icon.sm}"
+                                            Foreground="{DynamicResource Brush.shell.published}"
+                                            Text="{StaticResource Icon.Check}"
+                                            Visibility="Collapsed" />
+                            <!-- The number is in the row's spoken name; on its own it would be read as a stray digit, so it
+                                 is a Glyph, which a screen reader does not see. -->
+                            <controls:Glyph x:Name="Number"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Style="{StaticResource Text.FrameMuted}"
+                                            FontSize="{DynamicResource Size.xs}"
+                                            Text="{Binding Number}" />
+                        </Grid>
+                        <TextBlock x:Name="StepName"
+                                   Grid.Column="1"
+                                   Margin="12,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Frame}"
+                                   Foreground="{DynamicResource Brush.shell.muted}"
+                                   TextWrapping="NoWrap"
+                                   Text="{Binding Name}"
+                                   AutomationProperties.Name="{Binding Spoken}" />
+                        <!-- "Optional", a Neutral badge; its words are a Glyph, since they are in the spoken name too. -->
+                        <ContentControl x:Name="Optional"
+                                        Grid.Column="2"
+                                        Margin="8,0,0,0"
                                         VerticalAlignment="Center"
-                                        Style="{StaticResource Text.FrameMuted}"
-                                        Text="{Binding Number}" />
+                                        Style="{StaticResource Badge}"
+                                        Focusable="False">
+                            <controls:Glyph Style="{StaticResource Text.Frame}" FontSize="{DynamicResource Size.xs}" Text="{Binding Tag}" />
+                        </ContentControl>
                     </Grid>
-                    <TextBlock x:Name="StepName"
-                               Grid.Column="1"
-                               Margin="12,0,0,0"
-                               VerticalAlignment="Center"
-                               Style="{StaticResource Text.Frame}"
-                               Foreground="{DynamicResource Brush.shell.muted}"
-                               TextWrapping="NoWrap"
-                               Text="{Binding Name}"
-                               AutomationProperties.Name="{Binding Spoken}" />
-                    <!-- "Optional" is in the spoken name too. -->
-                    <controls:Glyph Grid.Column="2"
-                                    Margin="8,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource Text.FrameMuted}"
-                                    Text="{Binding Tag}" />
-                </Grid>
-            </Border>
+                </Border>
+                <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+            </Grid>
             <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Tag}" Value="">
+                    <Setter TargetName="Optional" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding IsDone}" Value="True">
                     <Setter TargetName="Ring" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Number" Property="Visibility" Value="Collapsed" />
                     <Setter TargetName="Tick" Property="Visibility" Value="Visible" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding IsCurrent}" Value="True">
-                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource Brush.shell.hover}" />
-                    <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Brush.shell.accent}" />
-                    <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource Brush.shell.accent}" />
-                    <Setter TargetName="Ring" Property="StrokeThickness" Value="{DynamicResource Focus.width}" />
+                    <Setter TargetName="Row" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
+                    <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
                     <Setter TargetName="Number" Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
-                    <Setter TargetName="Number" Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
                     <Setter TargetName="StepName" Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
                     <Setter TargetName="StepName" Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
                 </DataTrigger>
