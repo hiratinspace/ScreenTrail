@@ -103,7 +103,8 @@
                 </StackPanel>
 
                 <StackPanel Tag="Privacy">
-                    <TextBlock Style="{StaticResource Settings.Group}" Text="Privacy and redaction" />
+                    <!-- The nav's word (review finding E-17); redaction is inside, as Redaction patterns. -->
+                    <TextBlock Style="{StaticResource Settings.Group}" Text="Privacy" />
                     <privacy:PrivacyPane DataContext="{Binding Privacy}" />
                 </StackPanel>
 

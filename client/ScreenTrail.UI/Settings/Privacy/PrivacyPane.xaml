@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
-             AutomationProperties.Name="Privacy and redaction">
+             AutomationProperties.Name="Privacy">
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
 
         <!-- Spec §5 S6 "What leaves this device": the data flow in plain language, matching docs/security/data-flow.md. -->

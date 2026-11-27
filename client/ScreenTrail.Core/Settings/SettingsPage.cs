@@ -203,7 +203,8 @@ public sealed class CaptureSection(CapturePanel panel, Func<bool, Task>? startAt
     public const string Screenshots = "Screenshots";
     public const string Microphone = "Microphone";
     public const string SpeechModel = "Speech model";
-    public const string StartAtSignIn = "Start at sign-in";
+    /// <summary>The checkbox's own words, so the list of changes names what the technician ticked (E-17).</summary>
+    public const string StartAtSignIn = "Start ScreenTrail when I sign in to Windows";
 
     private readonly CapturePanel _panel = panel ?? throw new ArgumentNullException(nameof(panel));
 
