@@ -7,6 +7,7 @@ public sealed class SkeletonTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private static readonly XNamespace Theme = "clr-namespace:ScreenTrail.UI.Theme";
 
     [Fact]
     public void ABlockIsFlatAndStillAndWaitsBeforeItShows()
@@ -18,18 +19,35 @@ public sealed class SkeletonTests
         Assert.Equal("{DynamicResource Radius.sm}", setters["CornerRadius"]);
         Assert.Equal("0", setters["Opacity"]);
 
-        // One step to full after 300 ms: no shimmer, no pulse, no repeat.
-        var appear = Assert.Single(skeleton.Descendants(Wpf + "DoubleAnimation"));
-        Assert.Equal("0:0:0.3", (string?)appear.Attribute("BeginTime"));
-        Assert.Equal("Opacity", (string?)appear.Attribute("Storyboard.TargetProperty"));
-        Assert.DoesNotContain(skeleton.Descendants(), e => e.Attribute("RepeatBehavior") is not null || e.Name.LocalName.Contains("Gradient", StringComparison.Ordinal));
+        // One step to full after 300 ms, from code (theme:Waiting.Appear): no shimmer, no pulse, no repeat.
+        Assert.Equal("True", setters["theme:Waiting.Appear"]);
+        Assert.DoesNotContain(skeleton.Descendants(), e => e.Name.LocalName.Contains("Storyboard", StringComparison.Ordinal) || e.Name.LocalName.Contains("Gradient", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void TheProgressRingWaitsTheSame300Ms()
+    public void TheProgressRingWaitsTheSame300MsAndTurnsFromCode()
     {
         var ring = ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "ProgressRing");
-        Assert.Contains(ring.Descendants(Wpf + "DoubleAnimation"), a => (string?)a.Attribute("BeginTime") == "0:0:0.3" && (string?)a.Attribute("Storyboard.TargetProperty") == "Opacity");
+        Assert.Contains(ring.Descendants(), e => (string?)e.Attribute(X + "Name") == "Ring" && (string?)e.Attribute(Theme + "Waiting.Appear") == "True");
+        Assert.Contains(ring.Descendants(), e => (string?)e.Attribute(X + "Name") == "Arc" && (string?)e.Attribute(Theme + "Waiting.Spin") == "True");
+    }
+
+    /// <summary>
+    /// Spec §2.3, §7: a storyboard declared in XAML runs whatever Windows' animation setting says, so no
+    /// view or style declares one; motion starts from code, through ThemeManager.Motion. The Windows suite
+    /// audits the live windows for this; ST-130's ring and skeleton broke it, and the ring kept turning
+    /// with reduce motion on.
+    /// </summary>
+    [Fact]
+    public void NoXamlDeclaresAStoryboard()
+    {
+        var ui = Ui();
+        var declaring = Directory.EnumerateFiles(ui, "*.xaml", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => XDocument.Load(f).Descendants().Any(e => e.Name.LocalName is "BeginStoryboard" or "Storyboard"))
+            .Select(f => Path.GetRelativePath(ui, f));
+        Assert.Empty(declaring);
     }
 
     [Fact]
@@ -46,5 +64,19 @@ public sealed class SkeletonTests
         Assert.Contains(style.Descendants(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Visibility" && (string?)s.Attribute("Value") == "Collapsed");
         Assert.Equal(asking, (string?)style.Descendants(Wpf + "DataTrigger").Single().Attribute("Value"));
         Assert.All(lines, l => Assert.Contains(block, l.Ancestors()));
+    }
+
+    private static string Ui()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            var candidate = Path.Combine(directory.FullName, "client", "ScreenTrail.UI");
+            if (Directory.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+
+        throw new DirectoryNotFoundException("client/ScreenTrail.UI was not found above the test output directory");
     }
 }
