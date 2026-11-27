@@ -2145,8 +2145,11 @@
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
                         <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" />
-                        <!-- Over the cells, the grid line along the row's bottom edge included. -->
+                        <!-- Over the cells, the grid line along the row's bottom edge included. Inside the selection
+                             edge by its width (0, or 2 in high contrast), where both are Highlight: drawn on the
+                             edge, focus on a selected row changed nothing on screen. -->
                         <Rectangle x:Name="FocusOutline"
+                                   Margin="{DynamicResource Thickness.selected-edge}"
                                    RadiusX="4"
                                    RadiusY="4"
                                    SnapsToDevicePixels="True"
