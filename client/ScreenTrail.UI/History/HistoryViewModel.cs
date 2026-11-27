@@ -78,6 +78,9 @@ public sealed partial class HistoryViewModel : ObservableObject
     /// </summary>
     private bool _quiet = true;
 
+    /// <summary>True while <see cref="Show"/> reconciles the rows, when the table's selection changes are not the technician's.</summary>
+    private bool _reconciling;
+
     /// <summary>The mark's question is up or its answer is on its way (<see cref="OneAtATime"/>).</summary>
     private readonly OneAtATime _marking = new();
 
@@ -202,6 +205,12 @@ public sealed partial class HistoryViewModel : ObservableObject
 
     /// <summary>Raised after a discard or a mark as published the service carried out, so the pane can put focus back on the list.</summary>
     public event EventHandler? Discarded;
+
+    /// <summary>
+    /// Raised after the rows are shown again, so the pane can make the table's selection <see cref="Selected"/>:
+    /// a row the service changed is a new row object, which the table drops from its selection.
+    /// </summary>
+    public event EventHandler? SelectionRestored;
 
     /// <summary>The rows the technician has selected, in the order the table shows them.</summary>
     public IReadOnlyList<HistoryRow> Selected => _selected;
@@ -332,7 +341,15 @@ public sealed partial class HistoryViewModel : ObservableObject
         ToolChoice = ToolChoices.FirstOrDefault(c => string.Equals(c.Value, chosen, StringComparison.OrdinalIgnoreCase)) ?? ToolChoices[0];
     }
 
-    /// <summary>The rows the filters keep, and the line that says how many.</summary>
+    /// <summary>
+    /// The rows the filters keep, and the line that says how many.
+    ///
+    /// Review finding D-22: the rows are reconciled by id, as the rail's are, not cleared and added again.
+    /// Clearing them scrolled the table to the top and dropped the selection whenever the list was read,
+    /// so a technician choosing three sessions to discard lost them when another session started. The
+    /// selection is kept by id across a read and a filter change; a row the filters hide leaves it. A
+    /// discard or a mark that went through starts from nothing selected (<see cref="Forget"/>).
+    /// </summary>
     private void Show()
     {
         if (_quiet)
@@ -340,22 +357,41 @@ public sealed partial class HistoryViewModel : ObservableObject
             return;
         }
 
-        Rows.Clear();
-        _sessions.Clear();
-        Select([]);
+        var keep = _selected.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
         OnPropertyChanged(nameof(Filter));
         OnPropertyChanged(nameof(FiltersVisibility));
         OnPropertyChanged(nameof(ClearFiltersVisibility));
+        _sessions.Clear();
+        _reconciling = true;
+        try
+        {
+            if (_all is null)
+            {
+                Rows.Clear();
+            }
+            else
+            {
+                var shown = new List<HistoryRow>();
+                foreach (var row in HistoryFilters.Apply(_all, Filter, _time.GetUtcNow(), _zone))
+                {
+                    _sessions[row.Id] = row;
+                    shown.Add(Format(row));
+                }
+
+                Reconcile(Rows, shown);
+            }
+        }
+        finally
+        {
+            _reconciling = false;
+        }
+
+        Select(Rows.Where(r => keep.Contains(r.Id)));
+        SelectionRestored?.Invoke(this, EventArgs.Empty);
         if (_all is null)
         {
             Status = "The capture service did not answer.";
             return;
-        }
-
-        foreach (var row in HistoryFilters.Apply(_all, Filter, _time.GetUtcNow(), _zone))
-        {
-            _sessions[row.Id] = row;
-            Rows.Add(Format(row));
         }
 
         var filtered = Filter.IsActive;
@@ -369,10 +405,68 @@ public sealed partial class HistoryViewModel : ObservableObject
         };
     }
 
+    /// <summary>
+    /// Makes <paramref name="rows"/> read as <paramref name="shown"/> with the fewest changes: a row whose
+    /// session is gone is taken out, one still there stays the same object unless what it shows changed,
+    /// and new ones go in at their place. The table keeps its scroll position and its unchanged rows.
+    /// </summary>
+    internal static void Reconcile(ObservableCollection<HistoryRow> rows, IReadOnlyList<HistoryRow> shown)
+    {
+        var ids = shown.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+        for (var i = rows.Count - 1; i >= 0; i--)
+        {
+            if (!ids.Contains(rows[i].Id))
+            {
+                rows.RemoveAt(i);
+            }
+        }
+
+        for (var i = 0; i < shown.Count; i++)
+        {
+            var want = shown[i];
+            var at = -1;
+            for (var j = i; j < rows.Count; j++)
+            {
+                if (string.Equals(rows[j].Id, want.Id, StringComparison.Ordinal))
+                {
+                    at = j;
+                    break;
+                }
+            }
+
+            if (at < 0)
+            {
+                rows.Insert(i, want);
+                continue;
+            }
+
+            if (at != i)
+            {
+                rows.Move(at, i);
+            }
+
+            if (!Equals(rows[i], want))
+            {
+                rows[i] = want;
+            }
+        }
+    }
+
+    /// <summary>After a discard or a mark that went through, the list is read again with nothing selected.</summary>
+    private void Forget() => _selected = [];
+
     /// <summary>The table's selection changed. The pane calls this; the table's selection is not bindable.</summary>
     public void Select(IEnumerable<HistoryRow> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);
+
+        // While the rows are reconciled the table drops a changed row from its selection; that is not the
+        // technician choosing anything, and Show puts the selection back once the rows are in.
+        if (_reconciling)
+        {
+            return;
+        }
+
         var chosen = rows.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
         var before = _selected.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
         _selected = [.. Rows.Where(r => chosen.Contains(r.Id))];
@@ -434,6 +528,7 @@ public sealed partial class HistoryViewModel : ObservableObject
             case ConfirmedOutcome.Declined:
                 return;
             case ConfirmedOutcome.Done:
+                Forget();
                 await RefreshAsync().ConfigureAwait(true);
                 Notice = ids.Count == 1 ? "1 session discarded." : string.Create(CultureInfo.CurrentCulture, $"{ids.Count} sessions discarded.");
                 Discarded?.Invoke(this, EventArgs.Empty);
@@ -479,6 +574,7 @@ public sealed partial class HistoryViewModel : ObservableObject
             case ConfirmedOutcome.Declined:
                 return;
             case ConfirmedOutcome.Done:
+                Forget();
                 await RefreshAsync().ConfigureAwait(true);
                 Notice = MarkAsPublished.Done;
                 Discarded?.Invoke(this, EventArgs.Empty);
