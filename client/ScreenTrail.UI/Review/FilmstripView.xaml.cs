@@ -26,10 +26,14 @@ public partial class FilmstripView : UserControl
     public FilmstripView()
     {
         InitializeComponent();
-        _tick.Tick += (_, _) => Model?.Tick();
+        _tick.Tick += (_, _) =>
+        {
+            Model?.Tick();
+            FollowTheToast();
+        };
         Loaded += async (_, _) =>
         {
-            _tick.Start();
+            FollowTheToast();
             if (Model is not { } model)
             {
                 return;
@@ -109,8 +113,29 @@ public partial class FilmstripView : UserControl
     /// The OCR text panel covers the picture, and the blur box with it. A box nobody can see must not be
     /// one Enter applies, so showing the text puts the box away (ST-084 follow-up review).
     /// </summary>
+    /// <summary>
+    /// Review finding D-29: the timer counts down the undo toast's five seconds, so it runs while the toast
+    /// is up and not otherwise; it used to tick four times a second while Review was open.
+    /// </summary>
+    private void FollowTheToast()
+    {
+        if (IsLoaded && Model is { HasUndoToast: true })
+        {
+            _tick.Start();
+        }
+        else
+        {
+            _tick.Stop();
+        }
+    }
+
     private void OnModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(FilmstripViewModel.HasUndoToast))
+        {
+            FollowTheToast();
+        }
+
         if (e.PropertyName == nameof(FilmstripViewModel.ShowOcrText) && Model is { ShowOcrText: true } && BlurMode.IsChecked == true)
         {
             BlurMode.IsChecked = false;
