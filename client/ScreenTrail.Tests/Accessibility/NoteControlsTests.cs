@@ -13,6 +13,7 @@ public sealed class NoteControlsTests
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly XNamespace Controls = "clr-namespace:ScreenTrail.UI.Controls";
+    private static readonly XNamespace Theme = "clr-namespace:ScreenTrail.UI.Theme";
 
     [Fact]
     public void AStepsFrameIsAButtonThatOpensItAndTakesSpace()
@@ -102,15 +103,20 @@ public sealed class NoteControlsTests
         var edit = Assert.Single(Buttons(note), b => (string?)b.Attribute("Content") == "Edit");
         Assert.Equal("{Binding EditName}", (string?)edit.Attribute("AutomationProperties.Name"));
 
-        // The words beside the glyph, in confidence.low (never colour alone).
-        Assert.Contains(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
-        Assert.Contains(note.Descendants(Controls + "Glyph"), g => (string?)g.Attribute("Foreground") == "{DynamicResource Brush.confidence.low}");
-
-        // The words wrap on their own row: beside the buttons in a WrapPanel they were measured at infinite
-        // width and the narrow note cut them mid word (review finding B-33).
-        var line = note.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding InferredLine}");
-        Assert.Equal("Wrap", (string?)line.Attribute("TextWrapping"));
-        Assert.DoesNotContain(line.Ancestors(), e => e.Name == Wpf + "WrapPanel");
+        // Review finding B-34: one line under the step, a Warning badge with its glyph and the words (never
+        // colour alone), then Looks right and Edit, both compact, 8 apart; and no side stripe or its column.
+        var line = note.Descendants(Wpf + "WrapPanel").Single(w => (string?)w.Attribute(Xaml + "Name") == "InferredLine");
+        var badge = line.Elements(Wpf + "ContentControl").Single();
+        Assert.Equal("{StaticResource Badge}", (string?)badge.Attribute("Style"));
+        Assert.Equal("Warning", (string?)badge.Attribute(Theme + "Badge.Tone"));
+        Assert.Equal("{StaticResource Icon.Warning}", (string?)badge.Attribute(Theme + "Badge.Glyph"));
+        Assert.Equal("{Binding InferredLine}", (string?)badge.Attribute("Content"));
+        Assert.Equal("{Binding VerificationTooltip}", (string?)badge.Attribute("ToolTip"));
+        Assert.Equal("0,0,8,0", (string?)badge.Attribute("Margin"));
+        Assert.Equal([confirm, edit], line.Elements(Wpf + "Button"));
+        Assert.All(line.Elements(Wpf + "Button"), b => Assert.Equal("True", (string?)b.Attribute(Theme + "Density.Compact")));
+        Assert.DoesNotContain(note.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Background") == "{DynamicResource Brush.confidence.low}");
+        Assert.DoesNotContain(note.Descendants(Wpf + "ColumnDefinition"), c => (string?)c.Attribute("Width") == "9");
     }
 
     [Fact]
