@@ -249,7 +249,7 @@ public sealed partial class InboxRailViewModel : ObservableObject
         var searching = Query.Trim().Length > 0;
         Notice = items.Count > 0 ? string.Empty
             : searching ? InboxRail.NoMatch(Query)
-            : SessionHistory.Empty;
+            : SessionHistory.EmptyWhile(_state.Snapshot.KnownCapture);
         ClearSearchVisibility = items.Count == 0 && searching ? Visibility.Visible : Visibility.Collapsed;
         Sync(_open);
     }

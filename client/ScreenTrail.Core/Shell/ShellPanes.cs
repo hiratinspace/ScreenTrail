@@ -174,7 +174,8 @@ public static class ShellStatus
 {
     public const string Connecting = "Connecting to the capture service…";
 
-    public const string NotConnected = "Not connected to the capture service";
+    /// <summary>The banner's subject, word for word, so the rail and the banner beside it agree (E-16).</summary>
+    public const string NotConnected = TrayPresence.NotRunning;
 
     public const string Unknown = "Capture state unknown";
 

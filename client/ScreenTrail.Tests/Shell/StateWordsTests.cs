@@ -1,3 +1,4 @@
+using ScreenTrail.Core.History;
 using ScreenTrail.Core.Hud;
 using ScreenTrail.Core.Review;
 using ScreenTrail.Core.Shell;
@@ -61,5 +62,26 @@ public sealed class StateWordsTests
 
         var skipping = new CaptureStateSnapshot { State = CaptureStates.Suppressed, Reason = CaptureReasons.OutOfScope, ScopeProcess = "OUTLOOK" };
         Assert.Equal("Not capturing: Outlook", HudState.For(skipping).State.Text);
+    }
+
+    [Theory]
+    [InlineData(CaptureStates.Recording)]
+    [InlineData(CaptureStates.Paused)]
+    [InlineData(CaptureStates.Suppressed)]
+    public void AnEmptyListWhileRecordingSaysWhereTheSessionWillBeNotHowToStartOne(string state)
+    {
+        // Review finding E-16: "press Ctrl+Alt+R to start one now" beside a rail that says Recording.
+        var words = SessionHistory.EmptyWhile(new CaptureStateSnapshot { State = state, SessionId = "s1" });
+
+        Assert.Equal("No sessions yet. This session appears here when you stop it.", words);
+        Assert.Equal(SessionHistory.Empty, SessionHistory.EmptyWhile(new CaptureStateSnapshot { State = CaptureStates.Idle }));
+        Assert.Equal(SessionHistory.Empty, SessionHistory.EmptyWhile(null));
+    }
+
+    [Fact]
+    public void TheRailAndTheBannerNameADownServiceAlike()
+    {
+        Assert.Equal("Capture service not running", ShellStatus.NotConnected);
+        Assert.EndsWith("Start the capture service from the banner, then try again.", ConfirmedAction.NotConnected, StringComparison.Ordinal);
     }
 }

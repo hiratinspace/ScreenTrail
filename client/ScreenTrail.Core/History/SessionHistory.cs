@@ -113,6 +113,16 @@ public static class SessionHistory
         ? $"No sessions yet. Start a remote session and ScreenTrail will capture it, or press {Input.HotkeyText.Unbroken(Input.HotkeyAction.StartCapture)} to start one now."
         : "No sessions yet. Start a remote session and ScreenTrail will capture it.";
 
+    /// <summary>What the session under way says in its place (review finding E-16).</summary>
+    public const string EmptyWhileRecording = "No sessions yet. This session appears here when you stop it.";
+
+    /// <summary>
+    /// The empty list's words for what capture is doing now (review finding E-16): while a session is under
+    /// way, telling the technician to press the chord to start one contradicted the rail's "Recording".
+    /// </summary>
+    public static string EmptyWhile(Shared.Ipc.CaptureStateSnapshot? capture) =>
+        Hud.HudState.SessionUnderWay(capture) is not null ? EmptyWhileRecording : Empty;
+
     /// <summary>The words History and the tray use for a publish that may have reached the ticket and was never confirmed.</summary>
     public const string NotConfirmedLabel = "Not confirmed";
 

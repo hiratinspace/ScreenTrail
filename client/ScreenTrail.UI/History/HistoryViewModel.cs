@@ -361,7 +361,7 @@ public sealed partial class HistoryViewModel : ObservableObject
         var filtered = Filter.IsActive;
         Status = (Rows.Count, _all.Count) switch
         {
-            (_, 0) => SessionHistory.Empty,
+            (_, 0) => SessionHistory.EmptyWhile(_state.Snapshot.KnownCapture),
             (0, _) => HistoryFilters.NoMatch,
             (var n, var all) when filtered => string.Create(CultureInfo.CurrentCulture, $"{n} of {all} sessions"),
             (1, _) => "1 session",
