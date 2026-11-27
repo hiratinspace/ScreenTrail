@@ -22,6 +22,7 @@ public sealed class DeadStylesTests
 
     [Theory]
     [InlineData("PasswordBox")]
+    [InlineData("controls:ToggleSwitch")]
     public void AnUnusedImplicitStyleIsGone(string targetType)
     {
         Assert.DoesNotContain(ChoiceStatesTests.Components().Elements(Wpf + "Style"), s => (string?)s.Attribute("TargetType") == targetType);

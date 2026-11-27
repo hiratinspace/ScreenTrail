@@ -76,17 +76,6 @@
                              theme:Field.Placeholder="For example keepass" />
                 </StackPanel>
 
-                <TextBlock Text="Toggle" />
-                <StackPanel Style="{StaticResource Row}">
-                    <controls:ToggleSwitch IsChecked="True" />
-                    <TextBlock Margin="8,0,24,0" Style="{StaticResource Text.Body}" Text="Auto-start on remote session" VerticalAlignment="Center" />
-                    <controls:ToggleSwitch IsChecked="False" />
-                    <TextBlock Margin="8,0,24,0" Style="{StaticResource Text.Body}" Text="Email addresses" VerticalAlignment="Center" />
-                    <controls:ToggleSwitch IsChecked="True" IsLocked="True" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" Text="Local-only mode" VerticalAlignment="Center" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Muted}" Text="Set by your ScreenTrail owner" VerticalAlignment="Center" />
-                </StackPanel>
-
                 <TextBlock Text="Badges and state indicators" />
                 <StackPanel Style="{StaticResource Row}">
                     <ContentControl Content="Draft" Style="{StaticResource Badge}" />

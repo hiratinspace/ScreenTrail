@@ -947,65 +947,6 @@
         <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
 
-    <!-- Toggle: default and locked (admin). Off is an outlined track, on is the accent, as Windows 11 draws it. -->
-    <Style TargetType="controls:ToggleSwitch">
-        <Setter Property="Width" Value="40" />
-        <Setter Property="Height" Value="20" />
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Pill}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="controls:ToggleSwitch">
-                    <Grid VerticalAlignment="Center" Background="Transparent">
-                        <Border x:Name="Track"
-                                Width="40"
-                                Height="20"
-                                Background="{DynamicResource Brush.bg.raised}"
-                                BorderBrush="{DynamicResource Brush.text.secondary}"
-                                BorderThickness="1"
-                                CornerRadius="10" />
-                        <Ellipse x:Name="Thumb"
-                                 Width="12"
-                                 Height="12"
-                                 Margin="4,0,0,0"
-                                 HorizontalAlignment="Left"
-                                 Fill="{DynamicResource Brush.text.secondary}" />
-                        <Path x:Name="Lock"
-                              Width="8"
-                              Height="10"
-                              HorizontalAlignment="Center"
-                              VerticalAlignment="Center"
-                              Data="M2,4 V3 A2,2 0 0 1 6,3 V4 H7 V9 H1 V4 Z"
-                              Fill="{DynamicResource Brush.text.on-accent}"
-                              Stretch="Uniform"
-                              Visibility="Collapsed" />
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                            <Setter TargetName="Thumb" Property="Width" Value="14" />
-                            <Setter TargetName="Thumb" Property="Height" Value="14" />
-                        </Trigger>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
-                            <Setter TargetName="Thumb" Property="Margin" Value="0,0,4,0" />
-                            <Setter TargetName="Thumb" Property="Fill" Value="{DynamicResource Brush.text.on-accent}" />
-                        </Trigger>
-                        <Trigger Property="IsLocked" Value="True">
-                            <Setter TargetName="Lock" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="Thumb" Property="Visibility" Value="Collapsed" />
-                            <Setter Property="Cursor" Value="Arrow" />
-                            <Setter Property="Opacity" Value="0.7" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
     <!-- Combo box (read-only, the only kind the views use): the input's chrome, a chevron, and a raised
          surface for the list. -->
     <Style x:Key="ComboBox.Toggle" TargetType="ToggleButton">

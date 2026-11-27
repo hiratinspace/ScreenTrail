@@ -33,17 +33,6 @@ public sealed class ControlEdgeTokensTests
         Assert.Equal("{DynamicResource Brush.text.muted}", Setter(Style("", targetType), "BorderBrush"));
     }
 
-    [Fact]
-    public void TheOffToggleDrawsItsTrackAndThumbInTextSecondary()
-    {
-        var template = Style("", "controls:ToggleSwitch");
-        var track = Named(template, "Track");
-        var thumb = Named(template, "Thumb");
-
-        Assert.Equal("{DynamicResource Brush.text.secondary}", track.Attribute("BorderBrush")?.Value);
-        Assert.Equal("{DynamicResource Brush.text.secondary}", thumb.Attribute("Fill")?.Value);
-    }
-
     /// <summary>
     /// The note's in-place fields (Spec v0.6.8 §5 S3): a faint edge at rest, so a field can be told from a
     /// heading before the pointer is over it. border.strong, the quiet edge the secondary buttons carry:
@@ -113,9 +102,6 @@ public sealed class ControlEdgeTokensTests
         style.Elements().Where(e => e.Name.LocalName == "Setter")
             .SingleOrDefault(s => s.Attribute("Property")?.Value == property)
             ?.Attribute("Value")?.Value;
-
-    private static XElement Named(XElement root, string name) =>
-        root.Descendants().Single(e => e.Attribute(X + "Name")?.Value == name);
 
     private static XDocument Components() => Load("Components.xaml");
 
