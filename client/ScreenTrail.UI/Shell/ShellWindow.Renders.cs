@@ -129,6 +129,32 @@ public partial class ShellWindow
         await settings.UndoCommand.ExecuteAsync(null);
         await SettleAsync();
 
+        // The bar mid-save (inventory 1.1: SaveBarState.Saving was never drawn): Privacy's save held open
+        // until the bar has been drawn, with its ring, which appears after 300 ms (design system 10.8).
+        settings.Privacy.Telemetry = !settings.Privacy.Telemetry;
+        SamplePrivacy.Hold = new TaskCompletionSource<string?>();
+        var saving = settings.SaveCommand.ExecuteAsync(null);
+        await SettleAsync();
+        await Task.Delay(400).ConfigureAwait(true);
+        if (!settings.IsSaving)
+        {
+            throw new InvalidOperationException("settings-saving: the Save bar is not saving.");
+        }
+
+        foreach (var theme in RenderThemes.All)
+        {
+            RenderThemeApplier.Apply(theme, Application.Current.Resources);
+            await SettleAsync();
+            Save(Shot("settings-saving", theme));
+        }
+
+        SamplePrivacy.Hold.SetResult(null);
+        SamplePrivacy.Hold = null;
+        await saving;
+        settings.Privacy.Telemetry = !settings.Privacy.Telemetry;
+        await settings.SaveCommand.ExecuteAsync(null);
+        await SettleAsync();
+
         // Back to the window's own height, and to the top, for whatever renders next.
         var pane = Find(this, element => element is Settings.SettingsPane);
         if (pane is not null && Find(pane, e => e is ScrollViewer) is ScrollViewer back)
