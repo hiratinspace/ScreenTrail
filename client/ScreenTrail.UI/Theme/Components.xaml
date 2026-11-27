@@ -1823,12 +1823,13 @@
     </Style>
     <!-- A Settings tile (v0.7.0, owner: Windows 11 style): one setting or one small group of them, a
          compact surface with a 4 px gap to the next, so a section reads as a stack of separate tiles rather
-         than one long card each. -->
+         than one long card each. Review finding B-40: radius 8, as every card is; at 6 the banners inside a
+         tile had rounder corners than the tile. -->
     <Style x:Key="Settings.Tile" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
         <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="16,12" />
         <Setter Property="Margin" Value="0,0,0,4" />
     </Style>
