@@ -2389,7 +2389,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** D-19, D-20, D-26, D-28, D-29, D-32, D-14, D-15
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All eight findings: ReadyToRun and one theme at start (D-28), idle timers and cached preferences (D-29), the session opening before the PSA answers (D-19), the pane kept while the next loads (D-20 a), persistent pane hosts with a fade (D-26), the motion helper and DS 9.5 reduce motion (D-32), Text size (D-14), the taskbar overlay (D-15). Not done: the jump list, the draft filled in place (D-20 b), hiding the window on close, the per-template hover and popup motion, rows as minimums. Laptop: the Windows checks in spec v0.7.24.
 
 ---
 
