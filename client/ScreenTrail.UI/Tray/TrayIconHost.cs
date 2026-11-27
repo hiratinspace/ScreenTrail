@@ -52,6 +52,7 @@ public sealed class TrayIconHost : IDisposable
     private Bitmap? _stateGlyph;
     private Font? _menuFont;
     private Font? _stateFont;
+    private Font? _shortcutFont;
 
     public TrayIconHost()
         : this(ReadLightTaskbar)
@@ -334,6 +335,7 @@ public sealed class TrayIconHost : IDisposable
         _stateGlyph = null;
         _menuFont?.Dispose();
         _stateFont?.Dispose();
+        _shortcutFont?.Dispose();
     }
 
     /// <summary>
@@ -410,7 +412,7 @@ public sealed class TrayIconHost : IDisposable
     }
 
     /// <summary>
-    /// Pads each item to at least 28 device-independent pixels at the menu's DPI: back to its own padding,
+    /// Pads each item to at least 32 device-independent pixels at the menu's DPI: back to its own padding,
     /// laid out, then whatever it lacks added above and below.
     /// </summary>
     private void FitItems(Forms.ContextMenuStrip menu) => FitItems(menu, menu.DeviceDpi);
@@ -453,7 +455,9 @@ public sealed class TrayIconHost : IDisposable
         // 4 on every side inside the menu (design system 10.7), so the rounded hover row sits clear of the edge.
         var inset = (int)Math.Round(4 * deviceDpi / 96.0);
         menu.Padding = new Forms.Padding(inset);
-        var floor = (int)Math.Ceiling(28 * deviceDpi / 96.0);
+        // 32 at the menu's DPI (design system 10.7, review finding C-T4): 28 read dense beside Windows'
+        // own menus. Spec §7's 28 px target is met with room.
+        var floor = (int)Math.Ceiling(32 * deviceDpi / 96.0);
         var items = menu.Items.OfType<Forms.ToolStripMenuItem>().ToList();
         foreach (var item in items)
         {
@@ -567,6 +571,16 @@ public sealed class TrayIconHost : IDisposable
             _menuFont = font;
             _stateFont?.Dispose();
             _stateFont = new Font(font, FontStyle.Bold);
+
+            // The chord beside a row, 12 px in the same face (review finding C-T4).
+            var shortcut = new Font(family, 12f * 72 / 96, FontStyle.Regular);
+            if (_menu.Renderer is TrayMenuRenderer renderer)
+            {
+                renderer.ShortcutFont = shortcut;
+            }
+
+            _shortcutFont?.Dispose();
+            _shortcutFont = shortcut;
         }
 
         if (_menu.Items.Count > 0 && _menu.Items[0] is Forms.ToolStripMenuItem state && !ReferenceEquals(state.Font, _stateFont))

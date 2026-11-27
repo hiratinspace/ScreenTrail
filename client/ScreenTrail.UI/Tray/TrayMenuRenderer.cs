@@ -32,7 +32,7 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         return name switch
         {
             "bg.surface" or "bg.hover" or "bg.pressed" or "bg.selected" or "bg.danger" => SystemColors.Window,
-            "text.primary" or "text.secondary" => SystemColors.WindowText,
+            "text.primary" or "text.secondary" or "state.danger" => SystemColors.WindowText,
             "text.muted" => SystemColors.GrayText,
             "accent.primary" => SystemColors.Highlight,
             "text.on-accent" => SystemColors.HighlightText,
@@ -63,7 +63,10 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
 
             // A disabled row keeps its words at 4.5:1 (Spec §2.1, v0.5.0) rather than the system's grey.
             _ when !item.Enabled => Token("text.muted"),
-            _ when hotkey => Token("text.secondary"),
+
+            // The chord is quieter than the words (review finding C-T4), and Discard reads as what it is.
+            _ when hotkey => Token("text.muted"),
+            _ when Destructive(item) => Token("state.danger"),
             _ => Token("text.primary"),
         };
     }
@@ -126,8 +129,16 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
     internal static Color BackgroundColour(Forms.ToolStripItem item)
     {
         ArgumentNullException.ThrowIfNull(item);
-        return HighContrast ? Token("accent.primary") : Token(item.Pressed ? "bg.pressed" : "bg.hover");
+        return HighContrast ? Token("accent.primary")
+            : Destructive(item) ? Token("bg.danger")
+            : Token(item.Pressed ? "bg.pressed" : "bg.hover");
     }
+
+    /// <summary>Whether the row deletes something: "Discard session…", drawn in the danger colour (review finding C-T4).</summary>
+    internal static bool Destructive(Forms.ToolStripItem item) => (item.Tag as TrayRowTag)?.Command == Core.Shell.TrayCommand.Discard;
+
+    /// <summary>The chord's face: 12 px, as TrayIconHost sets it from the tokens; the row's own when unset.</summary>
+    internal Font? ShortcutFont { get; set; }
 
     /// <summary>The menu's scale: its DPI over 96, since every pixel value in design system 10.7 is at 96.</summary>
     internal static float Scale(Forms.ToolStrip? strip) => (strip?.DeviceDpi ?? 96) / 96f;
@@ -144,11 +155,29 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         return path;
     }
 
+    /// <summary>
+    /// A row's words at 12 from its left edge and its chord in 12 px, right aligned 12 from its right edge
+    /// (design system 10.7, review finding C-T4), with GDI's TextRenderer for ClearType.
+    /// </summary>
     protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        var hotkey = e.Item is Forms.ToolStripMenuItem { ShortcutKeyDisplayString: { Length: > 0 } shown } && e.Text == shown;
-        Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, e.TextRectangle, TextColour(e.Item, hotkey), e.TextFormat);
+        var item = e.Item;
+        var hotkey = item is Forms.ToolStripMenuItem { ShortcutKeyDisplayString: { Length: > 0 } shown } && e.Text == shown;
+        var colour = TextColour(item, hotkey);
+        var inset = (int)Math.Round(12 * Scale(e.ToolStrip));
+        const Forms.TextFormatFlags Line = Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine;
+        if (hotkey)
+        {
+            var chord = new Rectangle(0, 0, item.Width - inset, item.Height);
+            Forms.TextRenderer.DrawText(e.Graphics, e.Text, ShortcutFont ?? e.TextFont, chord, colour, Line | Forms.TextFormatFlags.Right | Forms.TextFormatFlags.NoPrefix);
+            return;
+        }
+
+        // The words run up to where the layout put their own end, so they never reach the chord.
+        var words = new Rectangle(inset, 0, Math.Max(0, Math.Min(item.Width - inset, e.TextRectangle.Right) - inset), item.Height);
+        var prefix = e.TextFormat & (Forms.TextFormatFlags.HidePrefix | Forms.TextFormatFlags.NoPrefix);
+        Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, words, colour, Line | Forms.TextFormatFlags.Left | Forms.TextFormatFlags.EndEllipsis | prefix);
     }
 
     protected override void OnRenderSeparator(Forms.ToolStripSeparatorRenderEventArgs e)
