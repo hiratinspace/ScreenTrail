@@ -16,8 +16,37 @@ namespace ScreenTrail.UI.Theme;
 /// DWM's caption colour attributes exist from Windows 11 (build 22000). On Windows 10 the calls return an
 /// error and the title bar stays as Windows draws it, which is the right fallback: nothing else changes.
 /// </remarks>
+/// <summary>What a window's caption is drawn as (review finding D-12).</summary>
+internal enum TitleBarCaption
+{
+    /// <summary>The frame's shell.bg under shell.text, joining the main window's rail.</summary>
+    Frame,
+
+    /// <summary>The dialog's own bg.surface under text.primary, so the caption and the body are one sheet.</summary>
+    Surface,
+}
+
 internal static class TitleBar
 {
+    /// <summary>
+    /// Review finding D-12: the dialog, the shortcut sheet and diagnostics take <see cref="TitleBarCaption.Surface"/>;
+    /// with the frame's caption over a bg.base body a small dialog read as two sheets.
+    /// </summary>
+    public static readonly DependencyProperty CaptionProperty = DependencyProperty.RegisterAttached(
+        "Caption", typeof(TitleBarCaption), typeof(TitleBar), new PropertyMetadata(TitleBarCaption.Frame, OnCaptionChanged));
+
+    public static TitleBarCaption GetCaption(Window window) => (TitleBarCaption)window.GetValue(CaptionProperty);
+
+    public static void SetCaption(Window window, TitleBarCaption value) => window.SetValue(CaptionProperty, value);
+
+    private static void OnCaptionChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is Window window && GetTint(window) && new WindowInteropHelper(window).Handle != IntPtr.Zero)
+        {
+            Apply(window);
+        }
+    }
+
     public static readonly DependencyProperty TintProperty = DependencyProperty.RegisterAttached(
         "Tint", typeof(bool), typeof(TitleBar), new PropertyMetadata(false, OnTintChanged));
 
@@ -40,14 +69,16 @@ internal static class TitleBar
     public static TitleBarTint Current(FrameworkElement window)
     {
         ArgumentNullException.ThrowIfNull(window);
+        var surface = window is Window w && GetCaption(w) == TitleBarCaption.Surface;
         if (ThemeManager.Current == AppTheme.HighContrast
-            || window.TryFindResource("Token.shell.bg") is not Color frame
-            || window.TryFindResource("Token.shell.text") is not Color text)
+            || window.TryFindResource(surface ? "Token.bg.surface" : "Token.shell.bg") is not Color caption
+            || window.TryFindResource(surface ? "Token.text.primary" : "Token.shell.text") is not Color text
+            || window.TryFindResource("Token.border.strong") is not Color edge)
         {
             return TitleBarTint.System;
         }
 
-        return TitleBarTint.For(highContrast: false, Hex(frame), Hex(text));
+        return TitleBarTint.For(highContrast: false, Hex(caption), Hex(text), Hex(edge));
     }
 
     private static void OnTintChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)

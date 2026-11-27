@@ -61,7 +61,7 @@ public sealed class DiscardControlsTests
         Assert.Equal("OnSelectionChanged", (string?)table.Attribute("SelectionChanged"));
 
         var bulk = Assert.Single(Buttons(history), b => (string?)b.Attribute("Command") == "{Binding BulkDiscardCommand}");
-        Assert.Equal("Discard selected", (string?)bulk.Attribute("Content"));
+        Assert.Equal("D_iscard selected", (string?)bulk.Attribute("Content"));
         Assert.StartsWith("Discard selected", (string?)bulk.Attribute("AutomationProperties.Name"), StringComparison.Ordinal);
         Assert.Equal("{StaticResource Button.Danger}", (string?)bulk.Attribute("Style"));
 

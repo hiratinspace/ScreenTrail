@@ -22,7 +22,8 @@ public sealed class LabelGapTests
         var gaps = new List<string>();
         var measured = 0;
 
-        foreach (var label in pane.Descendants(Wpf + "TextBlock").Where(t => (string?)t.Attribute("Style") == "{StaticResource Text.Label}"))
+        // A field label is a Field.Label with an access key since review finding E-20.
+        foreach (var label in pane.Descendants().Where(t => (string?)t.Attribute("Style") is "{StaticResource Text.Label}" or "{StaticResource Field.Label}"))
         {
             // A label in a heading row (with its Changed badge) is measured from the row.
             var above = label.Parent?.Name == Wpf + "StackPanel" && (string?)label.Parent.Attribute("Orientation") == "Horizontal" ? label.Parent : label;
@@ -36,7 +37,7 @@ public sealed class LabelGapTests
             var gap = Side((string?)above.Attribute("Margin"), 3) + Side((string?)next.Attribute("Margin"), 1);
             if (gap != 4)
             {
-                gaps.Add($"{label.Attribute("Text")}: {gap}");
+                gaps.Add($"{label.Attribute("Text") ?? label.Attribute("Content")}: {gap}");
             }
         }
 

@@ -183,16 +183,16 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,0,4" Style="{StaticResource Text.Label}" Text="Company in ConnectWise" />
-                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,4" Style="{StaticResource Text.Label}" Text="Company in Hudu" />
-                    <TextBox Grid.Row="1"
+                    <Label Grid.Row="0" Grid.Column="0" Margin="0,0,0,4" Style="{StaticResource Field.Label}" Content="Com_pany in ConnectWise" Target="{Binding ElementName=NewPsaCompanyBox}" />
+                    <Label Grid.Row="0" Grid.Column="1" Margin="8,0,0,4" Style="{StaticResource Field.Label}" Content="Company in _Hudu" Target="{Binding ElementName=NewDocCompanyBox}" />
+                    <TextBox x:Name="NewPsaCompanyBox" Grid.Row="1"
                              Grid.Column="0"
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewPsaCompany, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="Exactly as ConnectWise names it"
                              AutomationProperties.Name="Company in ConnectWise"
                              AutomationProperties.HelpText="Exactly as ConnectWise names it" />
-                    <ComboBox Grid.Row="1"
+                    <ComboBox x:Name="NewDocCompanyBox" Grid.Row="1"
                               Grid.Column="1"
                               Margin="8,0,0,0"
                               ItemsSource="{Binding Companies}"

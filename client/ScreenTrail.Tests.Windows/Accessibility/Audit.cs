@@ -246,7 +246,9 @@ internal static partial class Audit
     {
         var shown = control switch
         {
-            ContentControl { Content: string text } => text,
+            // A button's words are drawn by an AccessText, which shows "C_ontinue" as "Continue" with the
+            // o underlined (review finding E-20), so the underscore is not part of the label.
+            ContentControl { Content: string text } => WithoutAccessKey(text),
             ContentControl { Content: TextBlock block } => block.Text,
             _ => null,
         };
@@ -256,6 +258,29 @@ internal static partial class Audit
         }
 
         return Words(name).Contains(Words(shown), StringComparison.Ordinal) ? null : shown.Trim();
+    }
+
+    /// <summary>The words an AccessText draws: a single underscore marks the access key and is not shown; two are one.</summary>
+    private static string WithoutAccessKey(string text)
+    {
+        var builder = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            if (text[i] == '_')
+            {
+                if (i + 1 < text.Length && text[i + 1] == '_')
+                {
+                    _ = builder.Append('_');
+                    i++;
+                }
+
+                continue;
+            }
+
+            _ = builder.Append(text[i]);
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>Lower case, "&amp;" as "and", everything that is not a letter or a digit as one space.</summary>

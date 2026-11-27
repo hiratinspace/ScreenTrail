@@ -152,7 +152,7 @@ public sealed class FootNavTests
     {
         var shell = EmptyStateTests.View("Shell", "ShellWindow.xaml");
         var items = shell.Descendants(Wpf + "Button").Where(b => ((string?)b.Attribute("Style"))?.Contains("Foot", StringComparison.Ordinal) == true || (string?)b.Attribute("Style") == "{StaticResource Rail.FootItem}").ToList();
-        Assert.Equal(3, items.Count);
+        Assert.Equal(4, items.Count);
         Assert.Null(items[0].Attribute("Margin"));
         Assert.All(items.Skip(1), b => Assert.Equal("0,2,0,0", (string?)b.Attribute("Margin")));
         Assert.Equal("8", (string?)items[0].Parent!.Parent!.Attribute("Padding"));

@@ -82,7 +82,7 @@ public sealed class SettingsSaveBarTests(TheApplication app)
                 Assert.True(model.Page.HasPendingChanges, "Esc outside the bar threw the changes away.");
 
                 // Esc on the bar is Undo changes.
-                var undo = Audit.Descendants(pane).OfType<Button>().Single(b => b.Content as string == "Undo changes");
+                var undo = Audit.Descendants(pane).OfType<Button>().Single(b => b.Content as string == "_Undo changes");
                 _ = undo.Focus();
                 await Audit.Settle();
                 Assert.True(Keys.Press(shell, Key.Escape), "Esc on the bar was not handled.");

@@ -181,7 +181,7 @@
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center" Orientation="Horizontal">
                     <Button Style="{StaticResource Button.Secondary}"
-                            Content="Undo changes"
+                            Content="_Undo changes" AutomationProperties.Name="Undo changes"
                             Command="{Binding UndoCommand}"
                             AutomationProperties.HelpText="Puts every section back to what was last saved. Esc does the same while the bar has focus." />
                     <!-- The bar's one filled button, the key beside its word as Publish carries Ctrl+Enter, and out of
@@ -198,7 +198,8 @@
                              button's rest width, so the bar does not jump (review finding B-46). -->
                         <Grid>
                             <StackPanel Orientation="Horizontal" Visibility="{Binding RestVisibility}">
-                                <TextBlock VerticalAlignment="Center" Text="Save" />
+                                <!-- Review finding E-20: Alt+S, as well as Ctrl+S. -->
+                                <AccessText VerticalAlignment="Center" Text="_Save" />
                                 <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Ctrl+S" />
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Visibility="{Binding SavingVisibility}">

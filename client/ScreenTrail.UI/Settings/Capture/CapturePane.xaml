@@ -51,9 +51,9 @@
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[StartingAndStopping]}" />
                 </StackPanel>
                 <CheckBox Margin="0,8,0,0" Content="Start a session by itself when a remote tool takes focus" IsChecked="{Binding AutoStart}" />
-                <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="Stop when no remote tool has been in front for" />
+                <Label Margin="0,16,0,4" Style="{StaticResource Field.Label}" Content="Stop _when no remote tool has been in front for" Target="{Binding ElementName=GraceSlider}" />
                 <StackPanel Orientation="Horizontal">
-                    <Slider Width="{DynamicResource Layout.slider-width}" Minimum="30" Maximum="300" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding GraceSeconds}" AutomationProperties.Name="Seconds with no remote tool in front before stopping" />
+                    <Slider x:Name="GraceSlider" Width="{DynamicResource Layout.slider-width}" Minimum="30" Maximum="300" TickFrequency="10" IsSnapToTickEnabled="True" Value="{Binding GraceSeconds}" AutomationProperties.Name="Seconds with no remote tool in front before stopping" />
                     <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding GraceSeconds}" />
                     <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="seconds" />
                 </StackPanel>
@@ -124,8 +124,8 @@
                         <TextBlock Style="{StaticResource Text.TileHeading}" Text="Microphone" />
                         <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[Microphone]}" />
                     </StackPanel>
-                    <TextBlock Margin="0,8,0,4" Style="{StaticResource Text.Label}" Text="Device" />
-                    <ComboBox Width="{DynamicResource Layout.field-wide}" HorizontalAlignment="Left" ItemsSource="{Binding MicrophoneOptions}" SelectedItem="{Binding SelectedMicrophone}" DisplayMemberPath="Label" AutomationProperties.Name="Microphone">
+                    <Label Margin="0,8,0,4" Style="{StaticResource Field.Label}" Content="De_vice" Target="{Binding ElementName=MicrophoneDevice}" />
+                    <ComboBox x:Name="MicrophoneDevice" Width="{DynamicResource Layout.field-wide}" HorizontalAlignment="Left" ItemsSource="{Binding MicrophoneOptions}" SelectedItem="{Binding SelectedMicrophone}" DisplayMemberPath="Label" AutomationProperties.Name="Microphone">
                         <ComboBox.ItemContainerStyle>
                             <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                                 <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
@@ -144,14 +144,14 @@
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding MicrophoneApplies, Mode=OneWay}" />
                 </StackPanel>
                 <StackPanel Margin="0,16,0,4" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Label}" Text="Speech model" />
+                    <Label VerticalAlignment="Center" Style="{StaticResource Field.Label}" Content="Speech mode_l" Target="{Binding ElementName=SpeechModel}" />
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[SpeechModel]}" />
                 </StackPanel>
 
                 <!-- Never empty (v0.6.8): the default, "Automatic (Recommended)", is a line of its own and is
                      what a new installation shows. Each line by its plain name, as the sensitivity's are; what
                      the chosen one is, and which model Automatic runs, is the helper line under it (v0.7.1). -->
-                <ComboBox Width="{DynamicResource Layout.field-wide}" HorizontalAlignment="Left" ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Label" AutomationProperties.Name="Speech model" AutomationProperties.HelpText="{Binding ModelHint}">
+                <ComboBox x:Name="SpeechModel" Width="{DynamicResource Layout.field-wide}" HorizontalAlignment="Left" ItemsSource="{Binding Models}" SelectedItem="{Binding SelectedModel}" DisplayMemberPath="Label" AutomationProperties.Name="Speech model" AutomationProperties.HelpText="{Binding ModelHint}">
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
