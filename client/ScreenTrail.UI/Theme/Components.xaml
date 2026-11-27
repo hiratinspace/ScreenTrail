@@ -525,7 +525,7 @@
         <Style.Triggers>
             <!-- The error is said with the field: its UI Automation item status. -->
             <Trigger Property="theme:Field.HasError" Value="True">
-                <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+                <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}, TargetNullValue=''}" />
             </Trigger>
             <!-- Hover darkens the edge and leaves the fill (review finding B-10): a grey fill is what the
                  disabled look is made of, so a hovered field looked switched off. -->
@@ -1143,7 +1143,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="theme:Field.HasError" Value="True">
                             <Setter TargetName="ErrorEdge" Property="Visibility" Value="Visible" />
-                            <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}}" />
+                            <Setter Property="AutomationProperties.ItemStatus" Value="{Binding (theme:Field.Error), RelativeSource={RelativeSource Self}, TargetNullValue=''}" />
                         </Trigger>
                         <Trigger Property="theme:Field.Error" Value="{x:Null}">
                             <Setter TargetName="ErrorLine" Property="Visibility" Value="Collapsed" />

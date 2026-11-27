@@ -239,4 +239,17 @@ public sealed class SettingsPolishTests
         var error = row.Elements(Wpf + "ContentControl").Single();
         Assert.Equal(("1", "1", "2"), ((string?)error.Attribute("Grid.Row"), (string?)error.Attribute("Grid.Column"), (string?)error.Attribute("Grid.ColumnSpan")));
     }
+
+    /// <summary>
+    /// A field marked with theme:Field.HasError alone (B-12: its words are on the line under it) has no
+    /// Field.Error, and the error trigger's ItemStatus refuses null: 84 binding errors on the Settings render
+    /// in CI. The binding falls back to empty.
+    /// </summary>
+    [Fact]
+    public void AnErrorEdgeWithoutWordsBindsNoNullItemStatus()
+    {
+        var setters = Components().Descendants(Wpf + "Setter").Where(s => (string?)s.Attribute("Property") == "AutomationProperties.ItemStatus" && ((string?)s.Attribute("Value"))?.Contains("theme:Field.Error", StringComparison.Ordinal) == true).ToList();
+        Assert.NotEmpty(setters);
+        Assert.All(setters, s => Assert.Contains("TargetNullValue=''", (string?)s.Attribute("Value"), StringComparison.Ordinal));
+    }
 }
