@@ -21,37 +21,46 @@
         <StackPanel Margin="{DynamicResource Padding.pane}">
         <!-- The question with its kind's glyph beside it, never colour alone (Spec §1.1): a warning in
              state.danger for what destroys something, in state.paused for a notice that something did not
-             happen, the info glyph in accent.primary for any other question. Set as it loads. -->
-        <Grid>
+             happen, the info glyph in text.secondary for any other question (no Iris on an icon at rest,
+             design system 2.2). Set as it loads. Review finding B-51: the glyph is 20 with 12 after it, and
+             everything under the question starts at the question's text, so the glyph hangs. -->
+        <Grid x:Name="Question">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <controls:Glyph x:Name="Mark"
+                            Grid.Row="0"
                             Grid.Column="0"
-                            Margin="0,4,12,0"
+                            Margin="0,2,12,0"
                             VerticalAlignment="Top"
-                            Style="{StaticResource Icon}" />
-            <TextBlock Grid.Column="1" Style="{StaticResource Text.SectionHeading}" Text="{Binding Heading}" />
-        </Grid>
+                            Style="{StaticResource Icon}"
+                            FontSize="{DynamicResource Icon.lg}" />
+            <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource Text.SectionHeading}" Text="{Binding Heading}" />
 
         <!-- What is actually lost, in the words a technician would use. A dialog that says "are you
              sure?" asks a question nobody can answer; this one says what disappears. -->
         <!-- A notice's reason sits on the warning banner, as the app's other "this did not happen" lines
              do (§3 Banner); a question's consequence is plain text. -->
-        <ContentControl x:Name="ConsequenceBox" Margin="0,8,0,0" Focusable="False" IsTabStop="False">
-            <TextBlock Style="{StaticResource Text.Body}" Text="{Binding Consequence}" />
+        <ContentControl x:Name="ConsequenceBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Focusable="False" IsTabStop="False">
+            <TextBlock Style="{StaticResource Text.Secondary}" Text="{Binding Consequence}" />
         </ContentControl>
 
         <!-- Typed rather than clicked (Spec §3) for irreversible data loss. Input.Mono, not Text.Mono: that
              is a TextBlock style, and WPF refuses a style for another type the moment the window is built. -->
-        <StackPanel x:Name="TypedPart" Margin="0,16,0,0" Visibility="Collapsed">
+        <StackPanel x:Name="TypedPart" Grid.Row="2" Grid.Column="1" Margin="0,16,0,0" Visibility="Collapsed">
             <TextBlock x:Name="Instruction" Margin="0,0,0,8" Style="{StaticResource Text.Label}" />
             <TextBox x:Name="Typed"
                      Style="{StaticResource Input.Mono}"
                      TextChanged="OnTyped"
                      AutomationProperties.Name="{Binding Text, ElementName=Instruction}" />
         </StackPanel>
+        </Grid>
 
         </StackPanel>
         </StackPanel>

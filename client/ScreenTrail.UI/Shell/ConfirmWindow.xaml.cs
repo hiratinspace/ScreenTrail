@@ -47,7 +47,7 @@ public partial class ConfirmWindow : Window
         Mark.Text = words.Action is null || words.Tone == ConfirmTone.Danger ? "" : "";
         Mark.SetResourceReference(
             System.Windows.Controls.TextBlock.ForegroundProperty,
-            words.Action is null ? "Brush.state.paused" : words.Tone == ConfirmTone.Danger ? "Brush.state.danger" : "Brush.accent.primary");
+            words.Action is null ? "Brush.state.paused" : words.Tone == ConfirmTone.Danger ? "Brush.state.danger" : "Brush.text.secondary");
 
         if (words.Action is null)
         {
