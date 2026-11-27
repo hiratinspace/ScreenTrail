@@ -144,8 +144,9 @@
         <TextBlock Margin="0,0,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
 
         <!-- Your data, the danger zone at the end of Privacy: export the audit log; delete everything, typed
-             (INV-12), with the capture guard (#280). Both act at once and are never on the Save bar. -->
-        <Border Style="{StaticResource Settings.Tile}" Margin="0,16,0,4" BorderBrush="{DynamicResource Brush.state.danger}">
+             (INV-12), with the capture guard (#280). Both act at once and are never on the Save bar. Review
+             finding B-41: outlined like its neighbours, not in red; the danger is the Delete button's. -->
+        <Border x:Name="YourData" Style="{StaticResource Settings.Tile}">
             <StackPanel>
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="Your data" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="These act straight away. They are not part of Save." />

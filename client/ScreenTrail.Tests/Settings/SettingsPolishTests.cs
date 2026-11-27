@@ -26,4 +26,16 @@ public sealed class SettingsPolishTests
     {
         Assert.Equal("{DynamicResource Radius.card}", Setter(Style(Components(), "Settings.Tile"), "CornerRadius"));
     }
+
+    /// <summary>Review finding B-41: "Your data" is outlined like its neighbours; the danger is its Delete button's.</summary>
+    [Fact]
+    public void YourDataIsATileLikeTheOthers()
+    {
+        var privacy = EmptyStateTests.View("Settings/Privacy", "PrivacyPane.xaml");
+        var tile = privacy.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(Xaml + "Name") == "YourData");
+        Assert.Equal("{StaticResource Settings.Tile}", (string?)tile.Attribute("Style"));
+        Assert.Null(tile.Attribute("BorderBrush"));
+        Assert.Null(tile.Attribute("Margin"));
+        Assert.Contains(tile.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Style") == "{StaticResource Button.Danger}");
+    }
 }
