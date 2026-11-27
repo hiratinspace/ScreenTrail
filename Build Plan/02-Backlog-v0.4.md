@@ -2323,7 +2323,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** E-01 to E-03, E-05 to E-08, E-11 to E-13, E-16 to E-18, glossary
 - **Blocked By:** none
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. One commit per finding, spec v0.7.13. State words from one table (E-01, E-02: `SuppressionWords`). Chords as bound, from `HotkeyText`, set by the service's HotkeyHost and the UI's PipeCapture; the shortcut sheet lists the bound chords (E-03, owner decision 11). "Masking" and the sync glyph (E-05), "screenshot" (E-06), "All sessions" (E-07), `Durations` (E-08), "From the screen only" (E-11), no internal words, sizes and status codes to the log (E-12), the tray's names and one reason when the service is down (E-13, words part), empty screens by state (E-16), nav and heading alike (E-17), small copy (E-18), and the glossary: "your ScreenTrail admin" (owner decision 7), "this PC", "Mark a moment", "Screen text", "knowledge base". Left for ST-135: the tray's "Start the capture service" row and the banner's Start, which is wired to nothing yet (the not-discarded notice already points at it). Left for a backend ticket: the backend's own sentences still say "ScreenTrail owner". Laptop (optional): rebind Pause, then check the pill's tooltip, the tray and the shortcut sheet.
 
 ### **ST-134 · Recording pill**
 - **Findings:** C-H2 to C-H12, D-17
