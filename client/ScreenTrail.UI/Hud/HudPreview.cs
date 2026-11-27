@@ -4,6 +4,7 @@ using ScreenTrail.Core.Capabilities;
 using ScreenTrail.Core.Hud;
 using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Ipc;
+using ScreenTrail.UI.Gallery;
 using ScreenTrail.UI.Render;
 
 namespace ScreenTrail.UI.Hud;
@@ -68,6 +69,50 @@ internal static class HudPreview
             window.Close();
         }
 
+        foreach (var (name, state) in ButtonStates())
+        {
+            var window = new HudWindow { DataContext = For(CaptureStates.Recording, elapsedMs: 761_000), WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = -4000 };
+            window.Show();
+            window.UpdateLayout();
+            var buttons = Descendants(window).OfType<System.Windows.Controls.Primitives.ButtonBase>().Where(b => b.IsVisible).ToList();
+            if (buttons.Count == 0)
+            {
+                throw new InvalidOperationException($"hud-{name}: the pill has no buttons to draw.");
+            }
+
+            foreach (var button in buttons)
+            {
+                ForcedState.Apply(button, state);
+            }
+
+            foreach (var theme in RenderThemes.All)
+            {
+                RenderThemeApplier.Apply(theme, Application.Current.Resources);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Render);
+                window.UpdateLayout();
+                WindowRenderer.Save(window, Path.Combine(directory, RenderThemes.FileName($"hud-{name}", theme)), prepare: () => state == GalleryState.Focused ? Rings(buttons) : null);
+            }
+
+            window.Close();
+        }
+
+        // The pill at 150% and in a 200% render (C-H13), in dark and light, recording and clicked open.
+        foreach (var (name, model) in new[] { ("recording", For(CaptureStates.Recording, elapsedMs: 761_000)), ("expanded", Expanded()) })
+        {
+            var window = new HudWindow { DataContext = model, WindowStartupLocation = WindowStartupLocation.Manual, Left = -4000, Top = -4000 };
+            window.Show();
+            foreach (var theme in new[] { RenderTheme.Dark, RenderTheme.Light })
+            {
+                RenderThemeApplier.Apply(theme, Application.Current.Resources);
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Render);
+                window.UpdateLayout();
+                WindowRenderer.Save(window, Path.Combine(directory, RenderThemes.FileName($"hud-{name}-150pct", theme)), scale: 1.5);
+                WindowRenderer.Save(window, Path.Combine(directory, RenderThemes.FileName($"hud-{name}-200pct", theme)), scale: 2);
+            }
+
+            window.Close();
+        }
+
         // The tray's quick menu beside the pill: the two indicators INV-4 rests on (Spec §5 S1, v0.6.10).
         Tray.TrayMenuPreview.Capture(directory);
 
@@ -94,6 +139,36 @@ internal static class HudPreview
         var paused = For(CaptureStates.Paused, elapsedMs: 95_000, reason: CaptureReasons.User);
         paused.Expanded = true;
         yield return ("expanded-paused", paused, HudTone.Paused);
+
+        // Review finding C-H13: every state the pill has words for, not only the spec's list. The pill is
+        // put away between sessions (INV-4), but these words exist and are shown while it is up.
+        yield return ("finishing", For(CaptureStates.Finalizing), HudTone.Paused);
+        yield return ("not-recording", For(CaptureStates.Idle), HudTone.Idle);
+        yield return ("draft-ready", For(CaptureStates.DraftReady), HudTone.Idle);
+        yield return ("draft-failed", For(CaptureStates.DraftFailed), HudTone.Idle);
+        yield return ("draft-pending", For(CaptureStates.DraftPending), HudTone.Idle);
+        yield return ("suppressed-sensitive", For(CaptureStates.Suppressed, reason: CaptureReasons.SensitiveContext), HudTone.Paused);
+
+        // A reason this build has not heard of falls back to the plain word.
+        yield return ("suppressed-other", For(CaptureStates.Suppressed, reason: "new_reason"), HudTone.Paused);
+
+        // A process name too long for the pill, which must trim and not push the buttons off (C-H2).
+        yield return ("out-of-scope-long", For(CaptureStates.Suppressed, reason: CaptureReasons.OutOfScope, process: "CONTOSOFIELDSERVICEMANAGEMENTCONSOLE"), HudTone.Scope);
+
+        var offline = For(CaptureStates.Recording, elapsedMs: 761_000, microphone: CapabilityState.Blocked, online: false);
+        offline.Expanded = true;
+        yield return ("expanded-offline-no-mic", offline, HudTone.Recording);
+    }
+
+    /// <summary>
+    /// The pill's buttons hovered, pressed and with keyboard focus (C-H13), every button in the state at
+    /// once so one render shows each. Forced with the buttons' own triggers (<see cref="ForcedState"/>).
+    /// </summary>
+    private static IEnumerable<(string Name, GalleryState State)> ButtonStates()
+    {
+        yield return ("buttons-hover", GalleryState.Hover);
+        yield return ("buttons-pressed", GalleryState.Pressed);
+        yield return ("buttons-focused", GalleryState.Focused);
     }
 
     /// <summary>
@@ -118,6 +193,42 @@ internal static class HudPreview
         time.At(14, 14, 3);
         shell.Observe(Capture(CaptureStates.Recording, elapsedMs: 761_000, pending: 1));
         return model;
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
+    {
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            yield return child;
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
+        }
+    }
+
+    /// <summary>The buttons' focus rings, drawn as the shell's focus renders draw them, taken away after.</summary>
+    private static Removal Rings(IEnumerable<System.Windows.Controls.Primitives.ButtonBase> buttons)
+    {
+        var added = new List<(System.Windows.Documents.AdornerLayer Layer, System.Windows.Documents.Adorner Ring)>();
+        foreach (var button in buttons)
+        {
+            if (button.FocusVisualStyle is { } style && System.Windows.Documents.AdornerLayer.GetAdornerLayer(button) is { } layer)
+            {
+                var ring = new FocusRingAdorner(button, style);
+                layer.Add(ring);
+                layer.UpdateLayout();
+                added.Add((layer, ring));
+            }
+        }
+
+        return new Removal(() => added.ForEach(a => a.Layer.Remove(a.Ring)));
+    }
+
+    private sealed class Removal(Action undo) : IDisposable
+    {
+        public void Dispose() => undo();
     }
 
     /// <summary>The design token each tone must actually appear in, read from the live dictionary.</summary>
