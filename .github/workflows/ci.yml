@@ -310,10 +310,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $notes = Get-ChildItem $out -Filter 'note-*.png'
           if ($notes.Count -lt 18) { throw "Expected 18 note-pane screenshots, found $($notes.Count)." }
+          # A pane that drew nothing is its background and a few edge pixels, under 8 colours. The sparsest
+          # real state is the drafting note in high contrast: a disc, a glyph and one sentence in two system
+          # colours, 19 to 21 (ST-132 added it; the floor of 20 was set when the sparsest was 32).
           $counts = Select-String -Path $log -Pattern 'distinct colours' -AllMatches
           foreach ($line in $counts) {
             if ($line -match '(\d+) distinct colours') {
-              if ([int]$Matches[1] -lt 20) { throw "$line - the note pane rendered nothing." }
+              if ([int]$Matches[1] -lt 12) { throw "$line - the note pane rendered nothing." }
             }
           }
           # A binding to a property that does not exist does not throw and does not stop the layout - it
