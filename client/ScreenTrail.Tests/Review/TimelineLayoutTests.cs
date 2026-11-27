@@ -98,4 +98,45 @@ public sealed class TimelineLayoutTests
         var name = transcript.Descendants(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == "AutomationProperties.Name");
         Assert.Equal("{Binding Spoken}", (string?)name.Attribute("Value"));
     }
+
+    /// <summary>
+    /// Review finding A-26: the enlarged frame has one 48 px toolbar, Back (an icon button, Alt+1), the frame's
+    /// name in Body strong, then Screen text, Blur a region and Close (an icon button, Esc); the picture sits
+    /// in a 1 px border.subtle frame under it, and the blur hint is under the picture. The pane's own way back
+    /// goes while a frame is enlarged, so there is one.
+    /// </summary>
+    [Fact]
+    public void TheEnlargedFrameHasOneToolbarRow()
+    {
+        var strip = EnvelopeLayoutTests.Load("Review", "FilmstripView.xaml");
+        var view = strip.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(X + "Name") == "EnlargedView");
+        var grid = view.Element(Wpf + "Grid")!;
+        var toolbar = grid.Elements(Wpf + "Grid").Single(g => (string?)g.Attribute("Grid.Row") == "0");
+        Assert.Equal("{DynamicResource Layout.toolbar-height}", (string?)toolbar.Attribute("MinHeight"));
+
+        var names = toolbar.Elements().Where(e => e.Name.LocalName is "Button" or "ToggleButton").Select(e => (string?)e.Attribute(X + "Name")).ToList();
+        Assert.Equal(["BackFromEnlarged", "OcrText", "BlurMode", "CloseEnlarged"], names);
+        var back = toolbar.Elements(Wpf + "Button").First();
+        Assert.Equal("{StaticResource Button.Icon}", (string?)back.Attribute("Style"));
+        Assert.Equal("{Binding BackToNoteCommand}", (string?)back.Attribute("Command"));
+        Assert.Equal("Alt+1", (string?)back.Attribute("AutomationProperties.AcceleratorKey"));
+        var close = toolbar.Elements(Wpf + "Button").Last();
+        Assert.Equal("{StaticResource Button.Icon}", (string?)close.Attribute("Style"));
+        Assert.Equal("{StaticResource Icon.Close}", (string?)close.Attribute("Content"));
+        Assert.Equal("Esc", (string?)close.Attribute("AutomationProperties.AcceleratorKey"));
+        var label = toolbar.Elements(Wpf + "TextBlock").Single();
+        Assert.Equal("{StaticResource Text.BodyStrong}", (string?)label.Attribute("Style"));
+
+        var frame = grid.Elements(Wpf + "Border").Single(b => (string?)b.Attribute("Grid.Row") == "1");
+        Assert.Equal("{DynamicResource Brush.border.subtle}", (string?)frame.Attribute("BorderBrush"));
+        Assert.Contains(frame.Descendants(Wpf + "Image"), i => (string?)i.Attribute(X + "Name") == "EnlargedImage");
+        var hint = grid.Elements(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Grid.Row") == "2");
+        Assert.Equal("{Binding IsChecked, ElementName=BlurMode, Converter={StaticResource Visible}}", (string?)hint.Attribute("Visibility"));
+        Assert.Empty(grid.Elements(Wpf + "WrapPanel"));
+
+        var review = EnvelopeLayoutTests.Load("Review", "ReviewPane.xaml");
+        var paneBack = review.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(X + "Name") == "BackToNote");
+        var collapses = paneBack.Descendants(Wpf + "DataTrigger").Single();
+        Assert.Equal("{Binding Strip.IsEnlarged}", (string?)collapses.Attribute("Binding"));
+    }
 }

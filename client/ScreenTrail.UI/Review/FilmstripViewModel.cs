@@ -516,6 +516,17 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
         OnPropertyChanged(nameof(IsEnlarged));
     }
 
+    /// <summary>
+    /// "Back to the note" on the enlarged frame's toolbar (review finding A-26): the frame closes and the strip
+    /// goes, as Alt+1 does, so there is one way back rather than two exits stacked 50 px apart.
+    /// </summary>
+    [RelayCommand]
+    private void BackToNote()
+    {
+        CloseEnlarged();
+        Browsing = false;
+    }
+
     [RelayCommand]
     private void CloseEnlarged()
     {
