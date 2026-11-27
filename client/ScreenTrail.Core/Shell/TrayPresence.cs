@@ -22,9 +22,17 @@ public enum TrayIcon
 }
 
 /// <param name="Tooltip">Spec §5 S1's wording. A process name at most, never a window title (INV-10).</param>
-/// <param name="StateLine">The menu's first row, which is not interactive.</param>
+/// <param name="StateLine">The menu's first row, which is not interactive: the state alone.</param>
 public sealed record TrayPresence(TrayIcon Icon, string Tooltip, string StateLine, int DraftsReady)
 {
+    /// <summary>
+    /// Between sessions, what waits: "2 drafts ready, 1 publish not confirmed", the menu's header's second
+    /// line in small muted text; null when nothing does, and always while a session is captured (INV-4).
+    /// It was joined to the state with middle dots, a run-on that set the menu's width and buried "Not
+    /// recording" (review finding C-T5).
+    /// </summary>
+    public string? Counts { get; init; }
+
     /// <summary>
     /// What the tray shows, derived from the last thing the service said (ST-071).
     ///
@@ -115,7 +123,7 @@ public sealed record TrayPresence(TrayIcon Icon, string Tooltip, string StateLin
             }
         }
 
-        return new TrayPresence(icon, tooltip, string.Join(" · ", parts), drafts);
+        return new TrayPresence(icon, tooltip, detail, drafts) { Counts = parts.Count > 1 ? string.Join(", ", parts.Skip(1)) : null };
     }
 
     /// <summary>The longest tooltip Windows shows whole for a tray icon.</summary>

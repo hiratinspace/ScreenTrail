@@ -457,6 +457,7 @@ public sealed class TrayIconHost : IDisposable
         // 4 on every side inside the menu (design system 10.7), so the rounded hover row sits clear of the edge.
         var inset = (int)Math.Round(4 * deviceDpi / 96.0);
         menu.Padding = new Forms.Padding(inset);
+        menu.MaximumSize = new System.Drawing.Size((int)Math.Round(TrayMenuRenderer.MaxWidth * deviceDpi / 96.0), 0);
         // 32 at the menu's DPI (design system 10.7, review finding C-T4): 28 read dense beside Windows'
         // own menus. Spec §7's 28 px target is met with room.
         var floor = (int)Math.Ceiling(32 * deviceDpi / 96.0);
@@ -470,11 +471,13 @@ public sealed class TrayIconHost : IDisposable
         }
 
         menu.PerformLayout();
-        var header = (int)Math.Ceiling(TrayMenuRenderer.HeaderHeight * deviceDpi / 96.0);
         foreach (var item in items)
         {
-            // The state row is 36 (design system 10.7), the others at least 32.
-            var lacking = Math.Max(0, ((item.Tag as TrayRowTag)?.Kind == TrayRowKind.State ? header : floor) - item.Height);
+            // The state row is 36 (design system 10.7), taller with its counts under it; the others at least 32.
+            var wanted = item.Tag is TrayRowTag { Kind: TrayRowKind.State } state
+                ? TrayMenuRenderer.HeaderLayout(item.Width, item.Font, state.Detail, _shortcutFont ?? item.Font, deviceDpi / 96f).Height
+                : floor;
+            var lacking = Math.Max(0, wanted - item.Height);
             var above = lacking / 2;
             item.Padding = new Forms.Padding(item.Padding.Left, _padding.Top + above, _padding.Right, _padding.Bottom + lacking - above);
         }
@@ -539,7 +542,7 @@ public sealed class TrayIconHost : IDisposable
             return new Forms.ToolStripSeparator { Tag = new TrayRowTag(row.Kind, row.Command), AccessibleRole = Forms.AccessibleRole.Separator };
         }
 
-        var item = new Forms.ToolStripMenuItem { Tag = new TrayRowTag(row.Kind, row.Command), ImageScaling = Forms.ToolStripItemImageScaling.None };
+        var item = new Forms.ToolStripMenuItem { Tag = new TrayRowTag(row.Kind, row.Command, row.Detail), ImageScaling = Forms.ToolStripItemImageScaling.None };
         var command = row.Command;
         item.Click += (_, _) => Invoke(command);
         Fill(item, row);
@@ -556,12 +559,19 @@ public sealed class TrayIconHost : IDisposable
             item.Text = text;
         }
 
+        // The header's second line changes with the counts; the row is the same row (ApplyRows).
+        if (item.Tag is TrayRowTag tag && tag.Detail != row.Detail)
+        {
+            item.Tag = tag with { Detail = row.Detail };
+        }
+
         item.ShortcutKeyDisplayString = row.Hotkey;
         item.ShowShortcutKeys = row.Hotkey is not null;
         item.Enabled = row.Enabled;
 
-        // Read as the words; the chord, a global hotkey rather than a menu shortcut, as its description.
-        item.AccessibleName = row.Name;
+        // Read as the words (the header with its second line); the chord, a global hotkey rather than a
+        // menu shortcut, as its description.
+        item.AccessibleName = row.Spoken;
         item.AccessibleDescription = row.Hotkey is { } chord ? $"Hotkey {chord}" : null;
     }
 

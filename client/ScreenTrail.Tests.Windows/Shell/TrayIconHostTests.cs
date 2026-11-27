@@ -158,7 +158,7 @@ public sealed class TrayIconHostTests
                     }
 
                     var item = Assert.IsType<System.Windows.Forms.ToolStripMenuItem>(items[i]);
-                    Assert.Equal(rows[i].Name, item.AccessibleName);
+                    Assert.Equal(rows[i].Spoken, item.AccessibleName);
                     Assert.Equal(rows[i].Enabled, item.Enabled);
                     Assert.Equal(rows[i].Hotkey, item.ShowShortcutKeys ? item.ShortcutKeyDisplayString : null);
                 }

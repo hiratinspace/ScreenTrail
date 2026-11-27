@@ -197,6 +197,24 @@ public sealed class TrayMenuTests
     }
 
     [Fact]
+    public void TheHeaderSaysTheStateAloneAndWhatWaitsOnItsSecondLine()
+    {
+        // Review finding C-T5: "Not capturing · 2 drafts ready · 1 publish not confirmed" was one dotted
+        // run-on that set the menu's width and buried the state. Now the state, then the counts below it.
+        var rows = TrayMenu.For(new ShellSnapshot(ServiceConnection.Connected, new CaptureStateSnapshot { State = CaptureStates.Idle, DraftsReady = 2, PublishesUnconfirmed = 1 }, ShellView.Review, null), pillHidden: false);
+
+        Assert.Equal("Not recording", rows[0].Name);
+        Assert.Equal("2 drafts ready, 1 publish not confirmed", rows[0].Detail);
+        Assert.Equal("Not recording. 2 drafts ready, 1 publish not confirmed", rows[0].Spoken);
+
+        // While a session is captured there is no second line (INV-4), and an item has none.
+        var recording = Rows(Capture(CaptureStates.Recording) with { DraftsReady = 2 });
+        Assert.Null(recording[0].Detail);
+        Assert.Equal(recording[0].Name, recording[0].Spoken);
+        Assert.All(rows.Skip(1), r => Assert.Null(r.Detail));
+    }
+
+    [Fact]
     public void WithTheServiceNotRunningTheFirstRowStartsIt()
     {
         // Review finding E-13: the main window's banner offers Start; the tray, the only thing on screen

@@ -75,10 +75,14 @@ public enum TrayRowKind
 
 /// <param name="Text">The words, with <c>&amp;</c> before the access key; an <c>&amp;</c> that is text is not used.</param>
 /// <param name="Hotkey">The default global chord that does the same, shown on the right ("Ctrl+Alt+P"), or null.</param>
-public sealed record TrayRow(TrayRowKind Kind, TrayCommand Command, string Text, string? Hotkey, bool Enabled)
+/// <param name="Detail">The state row's second line, what waits between sessions (<see cref="TrayPresence.Counts"/>), or null.</param>
+public sealed record TrayRow(TrayRowKind Kind, TrayCommand Command, string Text, string? Hotkey, bool Enabled, string? Detail = null)
 {
-    /// <summary>The words without the access key's marker: what a screen reader says and a test compares.</summary>
+    /// <summary>The words without the access key's marker: what a test compares.</summary>
     public string Name => Text.Replace("&", string.Empty, StringComparison.Ordinal);
+
+    /// <summary>What a screen reader says: the words, then the second line when there is one.</summary>
+    public string Spoken => Detail is { } more ? $"{Name}. {more}" : Name;
 
     /// <summary>The access key, upper case, or null for a row that has none.</summary>
     public char? AccessKey => Text.IndexOf('&', StringComparison.Ordinal) is var at and >= 0 && at + 1 < Text.Length
@@ -146,7 +150,7 @@ public static class TrayMenu
         var presence = TrayPresence.From(snapshot);
         var connected = snapshot.Connection == ServiceConnection.Connected;
         var capture = connected ? snapshot.Capture : null;
-        var rows = new List<TrayRow> { TrayRow.Line(TrayRowKind.State, presence.StateLine) };
+        var rows = new List<TrayRow> { TrayRow.Line(TrayRowKind.State, presence.StateLine) with { Detail = presence.Counts } };
 
         // The first block. While a session is under way, or the UI does not know whether one is: Pause or
         // Resume, Stop and draft, Discard, each enabled only where the service accepts it now (the pill's

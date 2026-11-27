@@ -167,9 +167,9 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         var colour = TextColour(item, hotkey);
         var scale = Scale(e.ToolStrip);
         var inset = (int)Math.Round(12 * scale);
-        if ((item.Tag as TrayRowTag)?.Kind == Core.Shell.TrayRowKind.State)
+        if (item.Tag is TrayRowTag { Kind: Core.Shell.TrayRowKind.State } state)
         {
-            Header(e.Graphics, item, e.Text ?? string.Empty, e.TextFont ?? item.Font, colour, scale);
+            Header(e.Graphics, item, e.Text ?? string.Empty, e.TextFont ?? item.Font, colour, scale, state.Detail, ShortcutFont ?? item.Font);
             return;
         }
 
@@ -196,18 +196,49 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
     /// is disabled so it cannot be chosen, and WinForms drew its image through the disabled filter, so the
     /// red dot and the amber bars were grey in the one place the menu restates the state (INV-4).
     /// </summary>
-    private static void Header(Graphics graphics, Forms.ToolStripItem item, string text, Font font, Color colour, float scale)
+    private static void Header(Graphics graphics, Forms.ToolStripItem item, string text, Font font, Color colour, float scale, string? detail, Font small)
     {
-        var line = (int)Math.Round(HeaderHeight * scale);
+        var layout = HeaderLayout(item.Width, font, detail, small, scale);
         if (item.Image is { } glyph)
         {
             var side = (int)Math.Round(16 * scale);
-            graphics.DrawImage(glyph, new Rectangle((int)Math.Round(12 * scale), (line - side) / 2, side, side));
+            graphics.DrawImage(glyph, new Rectangle((int)Math.Round(12 * scale), layout.State.Top + ((layout.State.Height - side) / 2), side, side));
         }
 
+        Forms.TextRenderer.DrawText(graphics, text, font, layout.State, colour, Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine | Forms.TextFormatFlags.Left | Forms.TextFormatFlags.EndEllipsis | Forms.TextFormatFlags.NoPrefix);
+        if (detail is not null && layout.Counts is { } counts)
+        {
+            // What waits, on its own line in Caption text.muted, 4 below the state (review finding C-T5).
+            Forms.TextRenderer.DrawText(graphics, detail, small, counts, Token("text.muted"), CountsFormat);
+        }
+    }
+
+    private const Forms.TextFormatFlags CountsFormat = Forms.TextFormatFlags.Left | Forms.TextFormatFlags.Top | Forms.TextFormatFlags.WordBreak | Forms.TextFormatFlags.NoPrefix;
+
+    /// <summary>The widest the menu grows (design system 10.7): the header's second line wraps rather than widening it.</summary>
+    internal const int MaxWidth = 360;
+
+    /// <summary>
+    /// Where the state row's parts go, for drawing it and for sizing it alike: the state's line, the
+    /// counts' block under it when there are counts, and the row's height. With no counts the state is
+    /// centred in 36; with counts it sits 6 from the top, the counts 4 below it, and 8 under them.
+    /// </summary>
+    internal static (Rectangle State, Rectangle? Counts, int Height) HeaderLayout(int width, Font font, string? detail, Font small, float scale)
+    {
         var left = (int)Math.Round(36 * scale);
-        var words = new Rectangle(left, 0, Math.Max(0, item.Width - left - (int)Math.Round(12 * scale)), line);
-        Forms.TextRenderer.DrawText(graphics, text, font, words, colour, Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine | Forms.TextFormatFlags.Left | Forms.TextFormatFlags.EndEllipsis | Forms.TextFormatFlags.NoPrefix);
+        var room = Math.Max(1, width - left - (int)Math.Round(12 * scale));
+        if (detail is null)
+        {
+            var line = (int)Math.Round(HeaderHeight * scale);
+            return (new Rectangle(left, 0, room, line), null, line);
+        }
+
+        var top = (int)Math.Round(6 * scale);
+        var stateHeight = Forms.TextRenderer.MeasureText("Ag", font, new Size(room, int.MaxValue), Forms.TextFormatFlags.SingleLine).Height;
+        var countsTop = top + stateHeight + (int)Math.Round(4 * scale);
+        var countsHeight = Forms.TextRenderer.MeasureText(detail, small, new Size(room, int.MaxValue), CountsFormat).Height;
+        var height = Math.Max((int)Math.Round(HeaderHeight * scale), countsTop + countsHeight + (int)Math.Round(8 * scale));
+        return (new Rectangle(left, top, room, stateHeight), new Rectangle(left, countsTop, room, countsHeight), height);
     }
 
     /// <summary>Nothing: the one image, the state row's glyph, is drawn undimmed by <see cref="Header"/>.</summary>
@@ -225,4 +256,4 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
 }
 
 /// <summary>What the host hangs on each menu item, so the renderer knows a state line from a hint from an item.</summary>
-internal sealed record TrayRowTag(Core.Shell.TrayRowKind Kind, Core.Shell.TrayCommand Command);
+internal sealed record TrayRowTag(Core.Shell.TrayRowKind Kind, Core.Shell.TrayCommand Command, string? Detail = null);

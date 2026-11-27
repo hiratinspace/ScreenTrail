@@ -5,6 +5,7 @@ using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
 using ScreenTrail.Tests.Sessions;
+using ScreenTrail.Tests.Shell;
 
 namespace ScreenTrail.Tests.History;
 
@@ -105,7 +106,7 @@ public sealed class NotConfirmedTests
 
         // The menu's row always says it. The tooltip says it when the whole of it fits in what Windows
         // shows, and otherwise keeps to the state, whole ("drafting the note" is the one that is too long).
-        Assert.Equal(line, presence.StateLine);
+        TrayHeader.Is(line, presence);
         var whole = "ScreenTrail · " + line;
         var stateOnly = whole[..whole.LastIndexOf(" · ", StringComparison.Ordinal)];
         Assert.Equal(state == CaptureStates.DraftPending ? stateOnly : whole, presence.Tooltip);
@@ -135,7 +136,7 @@ public sealed class NotConfirmedTests
         var presence = Presence(new CaptureStateSnapshot { State = CaptureStates.DraftReady, SessionId = "s1", RemoteTool = "screenconnect", ElapsedMs = 3_900_000, PublishesUnconfirmed = 12 });
 
         Assert.Equal("ScreenTrail · Draft ready: ScreenConnect (1:05:00)", presence.Tooltip);
-        Assert.Equal("Draft ready: ScreenConnect (1:05:00) · 12 publishes not confirmed", presence.StateLine);
+        TrayHeader.Is("Draft ready: ScreenConnect (1:05:00) · 12 publishes not confirmed", presence);
     }
 
     [Fact]
