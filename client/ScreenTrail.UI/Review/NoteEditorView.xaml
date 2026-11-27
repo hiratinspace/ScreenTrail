@@ -182,8 +182,12 @@
                                         <ColumnDefinition Width="24" />
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
+                                    <!-- Review finding B-35: the second row holds the evidence under a narrow note. -->
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
 
                                     <!-- The number the ticket gives it, level with the text's first line. -->
                                     <TextBlock Grid.Column="0"
@@ -254,31 +258,77 @@
                                         </WrapPanel>
                                     </StackPanel>
 
-                                    <!-- When, on the session's clock: the transcript's own times. -->
-                                    <TextBlock Grid.Column="2"
-                                               Margin="16,8,16,0"
-                                               VerticalAlignment="Top"
-                                               Style="{StaticResource Text.Muted}"
-                                               Text="{Binding Time}" />
+                                    <!-- The evidence (review findings B-35, R-02): at 560 and up, beside the step, the
+                                         time in Text.Numeric and then the frame; under a narrower note, under the
+                                         step's words, the frame and then the time in a tabular Caption, 8 apart. -->
+                                    <Grid x:Name="Evidence">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Grid.Row" Value="0" />
+                                                <Setter Property="Grid.Column" Value="2" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Row" Value="1" />
+                                                        <Setter Property="Grid.Column" Value="1" />
+                                                        <Setter Property="Margin" Value="0,4,0,0" />
+                                                        <Setter Property="HorizontalAlignment" Value="Left" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
 
-                                    <!-- The step's frame (the v0.5 screenshot column and "frame 2" chips go):
-                                         its thumbnail is the button. Enter or a click enlarges it over the note,
-                                         Space includes or excludes it and Del deletes it (v0.6.8), as in the
-                                         strip; what it is called on the ticket is under it. -->
-                                    <controls:Repeater Grid.Column="3" ItemsSource="{Binding Frames}">
+                                    <!-- When, on the session's clock: the transcript's own times. -->
+                                    <TextBlock x:Name="StepTime"
+                                               VerticalAlignment="Top"
+                                               Text="{Binding Time}">
+                                        <TextBlock.Style>
+                                            <Style BasedOn="{StaticResource Text.Numeric}" TargetType="TextBlock">
+                                                <Setter Property="Grid.Column" Value="0" />
+                                                <Setter Property="Margin" Value="16,8,16,0" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Column" Value="1" />
+                                                        <Setter Property="Margin" Value="8,0,0,0" />
+                                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                                        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+                                                        <Setter Property="LineHeight" Value="{DynamicResource Leading.caption}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <controls:Repeater x:Name="StepFrames" ItemsSource="{Binding Frames}">
+                                        <controls:Repeater.Style>
+                                            <Style TargetType="controls:Repeater">
+                                                <Setter Property="Grid.Column" Value="1" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}" Value="True">
+                                                        <Setter Property="Grid.Column" Value="0" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </controls:Repeater.Style>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate DataType="{x:Type review:FrameChip}">
-                                                <StackPanel Width="128"
+                                                <!-- 96 x 60, radius 6 (review finding R-02): at 128 x 80 with its caption the
+                                                     card showed two steps at the default size. -->
+                                                <StackPanel Width="{DynamicResource Layout.step-frame-width}"
                                                             Margin="0,4,0,4"
                                                             Visibility="{Binding Present, Converter={StaticResource Visible}}">
-                                                    <Button Width="128"
-                                                            Height="80"
+                                                    <Button Width="{DynamicResource Layout.step-frame-width}"
+                                                            Height="{DynamicResource Layout.step-frame-height}"
                                                             Style="{StaticResource StepFrame}"
                                                             Tag="{Binding Id}"
                                                             Command="{Binding DataContext.ShowFrameCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding Id}"
                                                             PreviewKeyDown="OnFrameKeyDown"
-                                                            ToolTip="{Binding DataContext.FrameTip, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            ToolTip="{Binding Tip}"
                                                             AutomationProperties.Name="{Binding SpokenName}"
                                                             AutomationProperties.HelpText="{Binding DataContext.FrameHelp, RelativeSource={RelativeSource AncestorType=UserControl}}">
                                                         <Border ClipToBounds="True" CornerRadius="{DynamicResource Radius.control}">
@@ -332,8 +382,13 @@
                                                             </Border.Style>
                                                         </Border>
                                                     </Button>
-                                                    <WrapPanel Margin="0,4,0,0" Orientation="Horizontal">
-                                                        <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.Muted}" Text="{Binding Place}" />
+                                                    <!-- Only a state worth reading here (R-02): "Screenshot 2" is the tooltip and
+                                                         the name, so an attached, unmasked frame has no line. -->
+                                                    <WrapPanel x:Name="FrameCaption"
+                                                               Margin="0,4,0,0"
+                                                               Orientation="Horizontal"
+                                                               Visibility="{Binding HasCaption, Converter={StaticResource Visible}}">
+                                                        <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.Muted}" Text="{Binding StateWord}" />
                                                         <StackPanel Orientation="Horizontal">
                                                             <StackPanel.Style>
                                                                 <Style TargetType="StackPanel">
@@ -352,6 +407,7 @@
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </controls:Repeater>
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </DataTemplate>

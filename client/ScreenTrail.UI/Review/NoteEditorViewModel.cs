@@ -43,7 +43,22 @@ public sealed partial class FrameChip : ObservableObject
     /// <summary>Where it goes, as the ticket says it: "screenshot 2", "not attached" or "withheld".</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SpokenName))]
+    [NotifyPropertyChangedFor(nameof(StateWord))]
+    [NotifyPropertyChangedFor(nameof(HasCaption))]
     private string _place = "not attached";
+
+    /// <summary>
+    /// What the line under the thumbnail says (review finding R-02): only a state worth reading there, "not
+    /// attached" or "withheld". "Screenshot 2" moved to the tooltip and the name, so an attached frame's row
+    /// is no taller than its picture.
+    /// </summary>
+    public string StateWord => Place.StartsWith("screenshot", StringComparison.Ordinal) ? string.Empty : Place;
+
+    /// <summary>Whether there is a line under the thumbnail at all: a state word or a masked count.</summary>
+    public bool HasCaption => StateWord.Length > 0 || Masks.Count > 0;
+
+    /// <summary>"Screenshot 2. Enter or click to enlarge, ...": the frame's name, then how to act on it.</summary>
+    public string Tip => $"{Label}. {NoteLanding.FrameTip}";
 
     /// <summary>Still in the strip. A deleted frame leaves its step's row too, and comes back if the delete is undone.</summary>
     [ObservableProperty]
@@ -72,6 +87,7 @@ public sealed partial class FrameChip : ObservableObject
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MaskedLabel))]
+    [NotifyPropertyChangedFor(nameof(HasCaption))]
     private IReadOnlyList<MaskBox> _masks;
 
     /// <summary>"2 masked" under the thumbnail, or empty.</summary>
@@ -480,6 +496,17 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
 
     /// <summary>The landing line and the key hints are about a note; with none (failed or on its way) they go.</summary>
     public bool ShowsNoteHints => HasDraft;
+
+    /// <summary>
+    /// The note is narrower than <see cref="NarrowBelow"/> (review finding B-35), set by the view as it
+    /// resizes. A step is then two rows, its text the full width and its frame and time under it, rather
+    /// than its words squeezed into a 150 px column beside them.
+    /// </summary>
+    [ObservableProperty]
+    private bool _isNarrow;
+
+    /// <summary>The note width under which a step stacks (B-35).</summary>
+    public const double NarrowBelow = 560;
 
     /// <summary>
     /// The draft is on its way from the backend (ST-013). Review used to say drafting had failed and offer

@@ -37,6 +37,15 @@ public partial class NoteEditorView : UserControl
 
         Loaded += (_, _) => _tick.Start();
 
+        // Review finding B-35: under 560 wide a step stacks, its frame and time under its words.
+        NoteScroll.SizeChanged += (_, e) =>
+        {
+            if (Model is { } model && e.WidthChanged)
+            {
+                model.IsNarrow = e.NewSize.Width < NoteEditorViewModel.NarrowBelow;
+            }
+        };
+
         // What Ctrl+Z means after Del on a step's frame depends on whether anything was typed since.
         AddHandler(System.Windows.Controls.Primitives.TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => _typedSinceDelete = true));
         DataContextChanged += (_, e) =>

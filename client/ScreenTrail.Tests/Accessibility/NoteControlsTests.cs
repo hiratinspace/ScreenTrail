@@ -42,7 +42,8 @@ public sealed class NoteControlsTests
 
         var frame = Assert.Single(Buttons(note), b => (string?)b.Attribute("Tag") == "{Binding Id}");
         Assert.Equal("{Binding DataContext.FrameHelp, RelativeSource={RelativeSource AncestorType=UserControl}}", (string?)frame.Attribute("AutomationProperties.HelpText"));
-        Assert.Equal("{Binding DataContext.FrameTip, RelativeSource={RelativeSource AncestorType=UserControl}}", (string?)frame.Attribute("ToolTip"));
+        // Its name first ("Screenshot 2. Enter or click to enlarge, ..."), since R-02 took it from under the image.
+        Assert.Equal("{Binding Tip}", (string?)frame.Attribute("ToolTip"));
 
         // Ctrl+Z is heard on the way down, before a text box takes it for its own undo.
         Assert.Equal("OnNoteKeyDown", (string?)note.Attribute("PreviewKeyDown"));
@@ -212,5 +213,38 @@ public sealed class NoteControlsTests
         Assert.Equal("{StaticResource Text.Caption}", (string?)words.Attribute("Style"));
         Assert.Equal("{DynamicResource Brush.text.secondary}", (string?)words.Attribute("Foreground"));
         Assert.DoesNotContain(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Mono}");
+    }
+
+    /// <summary>
+    /// Review findings B-35 and R-02: a step's frame is 96 x 60 with only a state worth reading under it,
+    /// and under a narrow note the evidence moves under the step's words, the frame then its time in a
+    /// tabular Caption 8 from it; at 560 and up it stays beside them, the time in Text.Numeric.
+    /// </summary>
+    [Fact]
+    public void AStepStacksUnderANarrowNoteAndItsFrameIsSmall()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var frames = note.Descendants(Controls + "Repeater").Single(r => (string?)r.Attribute(Xaml + "Name") == "StepFrames");
+        var button = frames.Descendants(Wpf + "Button").First();
+        Assert.Equal("{DynamicResource Layout.step-frame-width}", (string?)button.Attribute("Width"));
+        Assert.Equal("{DynamicResource Layout.step-frame-height}", (string?)button.Attribute("Height"));
+        var caption = frames.Descendants(Wpf + "WrapPanel").Single(w => (string?)w.Attribute(Xaml + "Name") == "FrameCaption");
+        Assert.Equal("{Binding HasCaption, Converter={StaticResource Visible}}", (string?)caption.Attribute("Visibility"));
+        Assert.Contains(caption.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding StateWord}");
+
+        const string Narrow = "{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=UserControl}}";
+        var evidence = note.Descendants(Wpf + "Grid").Single(g => (string?)g.Attribute(Xaml + "Name") == "Evidence");
+        var stacked = evidence.Descendants(Wpf + "DataTrigger").First(t => (string?)t.Attribute("Binding") == Narrow);
+        Assert.Contains(stacked.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Grid.Row" && (string?)s.Attribute("Value") == "1");
+
+        var time = evidence.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute(Xaml + "Name") == "StepTime");
+        var style = time.Descendants(Wpf + "Style").Single();
+        Assert.Equal("{StaticResource Text.Numeric}", (string?)style.Attribute("BasedOn"));
+        var under = style.Descendants(Wpf + "DataTrigger").Single();
+        Assert.Contains(under.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Margin" && (string?)s.Attribute("Value") == "8,0,0,0");
+        Assert.Contains(under.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "FontSize" && (string?)s.Attribute("Value") == "{DynamicResource Size.sm}");
+
+        var code = File.ReadAllText(Path.Combine(Review.EnvelopeLayoutTests.Ui(), "Review", "NoteEditorViewModel.cs"));
+        Assert.Contains("public const double NarrowBelow = 560;", code, StringComparison.Ordinal);
     }
 }

@@ -2,6 +2,8 @@
 // Read by XamlLiteralRatchetTests, which fails if any count goes up or down. Do not edit by hand;
 // rewrite it with SCREENTRAIL_XAML_BASELINE=update (see the test's doc comment). file, kind, value, count.
 Gallery/GalleryWindow.xaml	Height	160	1
+Gallery/GalleryWindow.xaml	Height	96	1
+Gallery/GalleryWindow.xaml	Width	96	1
 Review/FilmstripView.xaml	Colour	#60000000	2
 Review/FilmstripView.xaml	Margin	3	1
 Review/FilmstripView.xaml	Margin	6	1
@@ -11,6 +13,7 @@ Review/NoteEditorView.xaml	Margin	0,6,0,0	1
 Review/Publish/PublishPane.xaml	Height	40	1
 Review/Publish/PublishPane.xaml	Width	40	1
 Settings/SettingsPane.xaml	Height	8	1
+Settings/SettingsPane.xaml	MinWidth	96	1
 Settings/SettingsPane.xaml	Width	8	1
 Theme/Components.xaml	BorderThickness	2	1
 Theme/Components.xaml	BorderThickness	3	2
@@ -20,6 +23,7 @@ Theme/Components.xaml	Height	12	2
 Theme/Components.xaml	Height	16	1
 Theme/Components.xaml	Height	40	1
 Theme/Components.xaml	Height	8	2
+Theme/Components.xaml	Height	96	1
 Theme/Components.xaml	Margin	-3	3
 Theme/Components.xaml	Margin	0,1	1
 Theme/Components.xaml	MinHeight	12	1
