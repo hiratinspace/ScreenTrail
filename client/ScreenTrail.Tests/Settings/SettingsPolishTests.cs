@@ -155,4 +155,27 @@ public sealed class SettingsPolishTests
         Assert.Equal("{StaticResource Text.BodyStrong}", (string?)promise.Attribute("Style"));
         Assert.DoesNotContain(privacy.Descendants(Wpf + "TextBlock"), t => ((string?)t.Attribute("Text"))?.Contains("1. ", StringComparison.Ordinal) == true);
     }
+
+    /// <summary>
+    /// Review finding B-47: a locked setting says it was decided, with a 12 px lock in text.secondary and a
+    /// Caption, under each of the four controls a policy can set; it was a muted line like any hint.
+    /// </summary>
+    [Fact]
+    public void ALockedSettingSaysItWasDecided()
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var locked = Style(Components(), "Settings.Locked");
+        var glyph = locked.Descendants(controls + "Glyph").Single();
+        Assert.Equal("{DynamicResource Icon.Lock}", (string?)glyph.Attribute("Text"));
+        Assert.Equal("{DynamicResource Icon.sm}", (string?)glyph.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource Brush.text.secondary}", (string?)glyph.Attribute("Foreground"));
+        Assert.Equal("{StaticResource Text.Caption}", (string?)locked.Descendants(Wpf + "TextBlock").Single().Attribute("Style"));
+
+        var uses = new[] { ("Settings/Privacy", "PrivacyPane.xaml", 2), ("Settings/Capture", "CapturePane.xaml", 1), ("Update", "UpdatesPane.xaml", 1) };
+        foreach (var (folder, file, count) in uses)
+        {
+            var view = EmptyStateTests.View(folder, file);
+            Assert.Equal(count, view.Descendants(Wpf + "ContentControl").Count(c => (string?)c.Attribute("Style") == "{StaticResource Settings.Locked}"));
+        }
+    }
 }

@@ -33,7 +33,7 @@
                 </StackPanel>
                 <RadioButton Margin="0,8,0,0" GroupName="Scope" Content="Remote-tool windows and admin tools (Recommended)" IsChecked="{Binding RemoteToolsOnly}" IsEnabled="{Binding ScopeEditable}" />
                 <RadioButton Margin="0,4,0,0" GroupName="Scope" Content="All windows during a session" IsChecked="{Binding AllWindows}" IsEnabled="{Binding ScopeEditable}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding ScopeLockedNote, Mode=OneTime}" Visibility="{Binding ScopeLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding ScopeLockedNote, Mode=OneTime}" Visibility="{Binding ScopeLockVisibility}" />
                 <ContentControl Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Margin="0,8,0,0" Visibility="{Binding ScopeWarningVisibility}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding ScopeWarning}" controls:LiveRegion.Setting="Assertive" />

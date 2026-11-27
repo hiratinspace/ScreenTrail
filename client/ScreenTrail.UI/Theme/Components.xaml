@@ -1827,6 +1827,32 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.card}" />
     </Style>
+    <!-- A setting the admin's policy decided (INV-11, review finding B-47): under the control, which keeps
+         its value in the disabled colours, a 12 px lock in text.secondary, 4, and the Caption "Set by your
+         ScreenTrail admin" (the Content), so a locked setting reads as decided rather than broken. Where
+         the policy is known, its detail is the ToolTip. -->
+    <Style x:Key="Settings.Locked" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <StackPanel Background="Transparent" Orientation="Horizontal">
+                        <controls:Glyph VerticalAlignment="Center"
+                                        Style="{StaticResource Icon}"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Foreground="{DynamicResource Brush.text.secondary}"
+                                        Text="{DynamicResource Icon.Lock}" />
+                        <TextBlock Margin="4,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Caption}"
+                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}" />
+                    </StackPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- A row of a list inside a Settings tile (review finding B-42): at least 36 high, a border.subtle rule
          above it, the value at the left and its Remove at the right. -->
     <Style x:Key="Settings.ListRow" TargetType="Border">

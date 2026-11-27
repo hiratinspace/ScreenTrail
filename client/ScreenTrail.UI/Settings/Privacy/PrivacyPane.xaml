@@ -66,7 +66,7 @@
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[LocalOnlyMode]}" />
                 </StackPanel>
                 <CheckBox Margin="0,8,0,0" Content="Send nothing for drafting; publish only what I ask" IsChecked="{Binding LocalOnly}" IsEnabled="{Binding LocalOnlyEditable}" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding LocalOnlyLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding LocalOnlyLockVisibility}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Local-only keeps the screenshots on this PC. Notes are drafted here from what was said and shown. They are plainer than a usual draft, and Review marks them." />
             </StackPanel>
         </Border>
@@ -178,7 +178,7 @@
                     <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Numeric}" Text="{Binding RetentionDays}" />
                     <TextBlock Margin="4,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="days" />
                 </StackPanel>
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding RetentionLockVisibility}" />
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding LockedBecause}" ToolTip="{Binding LockedDetail}" AutomationProperties.HelpText="{Binding LockedDetail}" Visibility="{Binding RetentionLockVisibility}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding RetentionLabel}" />
             </StackPanel>
         </Border>
