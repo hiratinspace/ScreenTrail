@@ -65,6 +65,17 @@ public sealed class InboxRailTests
         Assert.Equal(age, InboxRail.Age(Now.AddHours(-hoursAgo), Now, Utc));
 
     [Theory]
+    [InlineData(0.01, "Now")]
+    [InlineData(14.0 / 60, "14m")]
+    [InlineData(2.5, "2h")]
+    [InlineData(20, "Wed")]
+    [InlineData(24 * 3, "Mon")]
+    [InlineData(24 * 10, "2 Nov")]
+    [InlineData(24 * 400, "Oct 2025")]
+    public void TheRowDrawsTheAgeCompact(double hoursAgo, string age) =>
+        Assert.Equal(age, InboxRail.ShortAge(Now.AddHours(-hoursAgo), Now, Utc));
+
+    [Theory]
     [InlineData(8_000, "Under 1 min")]
     [InlineData(12 * 60_000, "12 min")]
     [InlineData(65 * 60_000, "1 h 5 min")]

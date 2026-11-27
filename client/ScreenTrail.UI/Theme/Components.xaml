@@ -2610,6 +2610,17 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+    <!-- A row's age: the meta line's look in tabular figures, never trimmed (review finding A-34). -->
+    <Style x:Key="Rail.RowAge" BasedOn="{StaticResource Text.Numeric}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsOpen}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="Rail.RowMeta" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />

@@ -25,7 +25,8 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Rail.RowTitle}" Text="{Binding Title}" />
-                <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Rail.RowMeta}" Text="{Binding Age}" />
+                <!-- The age, compact ("40m"), in Caption with tabular figures, so the title keeps the room (A-34). -->
+                <TextBlock Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Rail.RowAge}" Text="{Binding Age}" />
                 <TextBlock Grid.Row="1"
                            Grid.Column="0"
                            Grid.ColumnSpan="2"
