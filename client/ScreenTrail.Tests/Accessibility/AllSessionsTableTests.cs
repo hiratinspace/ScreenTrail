@@ -49,13 +49,11 @@ public sealed class AllSessionsTableTests
     [Fact]
     public void ASelectedRowIsMarkedByShapeAsWellAsTint()
     {
-        // The tint is the window colour in high contrast and faint on white, so the row carries the list
-        // row's accent mark at its leading edge too.
+        // The tint is faint on white, so the row carries the one selection bar at its leading edge too
+        // (design system 10.4: collapsed and never hit-tested, from the SelectionBar style).
         var row = Style("Table.Row");
         var mark = Assert.Single(row.Descendants(Wpf + "Rectangle"), r => (string?)r.Attribute(Xaml + "Name") == "Indicator");
-        Assert.Equal("{DynamicResource Brush.accent.primary}", (string?)mark.Attribute("Fill"));
-        Assert.Equal("Collapsed", (string?)mark.Attribute("Visibility"));
-        Assert.Equal("False", (string?)mark.Attribute("IsHitTestVisible"));
+        Assert.Equal("{StaticResource SelectionBar}", (string?)mark.Attribute("Style"));
 
         var selected = Assert.Single(TemplateTriggers(row), t => (string?)t.Attribute("Property") == "IsSelected");
         Assert.Contains(selected.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Indicator" && (string?)s.Attribute("Value") == "Visible");

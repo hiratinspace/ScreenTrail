@@ -50,20 +50,23 @@ public sealed class InboxRailControlsTests
     }
 
     [Fact]
-    public void TheOpenRowIsThePanesTabWithTheRibbonBand()
+    public void TheOpenRowTakesTheOneSelection()
     {
+        // Design system 10.4, review finding A-01: bg.surface with a border.subtle edge, radius 6 all round,
+        // and the selection bar. No tab: no one-sided edge and no band across the top.
         var row = Style("Rail.Row");
-        var band = Assert.Single(row.Descendants(Wpf + "Border"), b => (string?)b.Attribute(Xaml + "Name") == "Band");
-        Assert.Equal("4", (string?)band.Attribute("Height"));
-        Assert.Equal("{DynamicResource Brush.brand.ribbon.band}", (string?)band.Attribute("Background"));
+        Assert.DoesNotContain(row.Descendants(Wpf + "Border"), b => (string?)b.Attribute(Xaml + "Name") == "Band");
+        var chrome = Assert.Single(row.Descendants(Wpf + "Border"), b => (string?)b.Attribute(Xaml + "Name") == "Chrome");
+        Assert.Equal("{DynamicResource Radius.control}", (string?)chrome.Attribute("CornerRadius"));
+        Assert.Equal("{DynamicResource Thickness.border}", (string?)chrome.Attribute("BorderThickness"));
+        var bar = Assert.Single(row.Descendants(Wpf + "Rectangle"), r => (string?)r.Attribute(Xaml + "Name") == "Indicator");
+        Assert.Equal("{StaticResource SelectionBar}", (string?)bar.Attribute("Style"));
 
         var open = Assert.Single(row.Descendants(Wpf + "DataTrigger"), t => (string?)t.Attribute("Binding") == "{Binding IsOpen}");
         var setters = open.Elements(Wpf + "Setter").ToList();
-        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Band" && (string?)s.Attribute("Value") == "Visible");
-
-        // The pane's own background, so the row joins it, and the Highlight edge that stays in high contrast.
-        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Chrome" && (string?)s.Attribute("Property") == "Background" && (string?)s.Attribute("Value") == "{DynamicResource Brush.bg.base}");
-        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Chrome" && (string?)s.Attribute("Property") == "BorderBrush" && (string?)s.Attribute("Value") == "{DynamicResource Brush.shell.accent}");
+        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Indicator" && (string?)s.Attribute("Value") == "Visible");
+        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Chrome" && (string?)s.Attribute("Property") == "Background" && (string?)s.Attribute("Value") == "{DynamicResource Brush.bg.surface}");
+        Assert.Contains(setters, s => (string?)s.Attribute("TargetName") == "Chrome" && (string?)s.Attribute("Property") == "BorderBrush" && (string?)s.Attribute("Value") == "{DynamicResource Brush.border.subtle}");
     }
 
     [Fact]
