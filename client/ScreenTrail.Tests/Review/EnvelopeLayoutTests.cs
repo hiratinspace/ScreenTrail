@@ -10,6 +10,7 @@ public sealed class EnvelopeLayoutTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private static readonly string[] CaptionStyles = ["{StaticResource Text.Caption}", "{StaticResource Text.Muted}", "{StaticResource Text.Error}"];
 
     /// <summary>
     /// Review finding A-15: a screen title is 20/28, not the 24 that outweighed the note, and the count
@@ -29,6 +30,38 @@ public sealed class EnvelopeLayoutTests
         var beside = history.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Style") == "{StaticResource History.Count}");
         Assert.Equal("8,0,0,0", (string?)beside.Attribute("Margin"));
         Assert.Equal("Bottom", (string?)beside.Attribute("VerticalAlignment"));
+    }
+
+    /// <summary>
+    /// Review finding A-16: the title row is the title, Discard and Publish, nothing else, so a reason never
+    /// takes the subject's width; every reason is on one Caption line under the buttons that keeps its
+    /// height when empty, Publish's first, so the envelope does not jump.
+    /// </summary>
+    [Fact]
+    public void TheReasonsAreOneLineUnderTheButtonsThatKeepsItsHeight()
+    {
+        var review = Load("Review", "ReviewPane.xaml");
+        var card = review.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(X + "Name") == "EnvelopeCard");
+        var parts = card.Element(Wpf + "StackPanel")!.Elements().ToList();
+
+        var row = parts[0];
+        Assert.Equal("Grid", row.Name.LocalName);
+        Assert.Equal("0,0,0,4", (string?)row.Attribute("Margin"));
+        Assert.Equal(3, row.Descendants(Wpf + "ColumnDefinition").Count());
+        Assert.Single(row.Elements(Wpf + "TextBlock"));
+        Assert.Equal("{Binding Title}", (string?)row.Element(Wpf + "TextBlock")!.Attribute("Text"));
+
+        var reasons = parts[1];
+        Assert.Equal("Reasons", (string?)reasons.Attribute(X + "Name"));
+        Assert.Equal("{DynamicResource Leading.caption}", (string?)reasons.Attribute("MinHeight"));
+        Assert.Equal("Right", (string?)reasons.Attribute("HorizontalAlignment"));
+        var said = reasons.Descendants(Wpf + "TextBlock").Select(t => (string?)t.Attribute("Text")).ToList();
+        Assert.True(said.IndexOf("{Binding Publish.BlockedBecause}") < said.IndexOf("{Binding Note.DiscardHint}"), "Publish's reason comes first");
+        Assert.Contains("{Binding Note.DiscardError}", said);
+        Assert.All(reasons.Descendants(Wpf + "TextBlock"), t => Assert.Contains((string?)t.Attribute("Style"), CaptionStyles));
+
+        var envelope = card.Descendants().Single(e => e.Name.LocalName == "EnvelopeView");
+        Assert.Equal("0,8,0,0", (string?)envelope.Attribute("Margin"));
     }
 
     internal static XElement Load(params string[] path) => XDocument.Load(Path.Combine([Ui(), .. path])).Root!;
