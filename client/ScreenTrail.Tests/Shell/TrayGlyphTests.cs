@@ -89,6 +89,28 @@ public sealed class TrayGlyphTests
     }
 
     /// <summary>The frame sizes in an .ico's directory, smallest first. A width byte of 0 means 256.</summary>
+    /// <summary>
+    /// Review finding C-I6, owner decision 9: the app icon is one scheme at every small size, the small
+    /// glyph's, from 16 to 48; the full mark only from 64. The mid glyph's scheme at 32 to 48 made the same
+    /// app two icons on two monitors at different scales.
+    /// </summary>
+    [Fact]
+    public void TheAppIconIsOneSchemeFrom16To48()
+    {
+        var folder = new DirectoryInfo(AppContext.BaseDirectory);
+        while (!File.Exists(Path.Combine(folder.FullName, "shared", "design", "brand", "build-icons.py")))
+        {
+            folder = folder.Parent!;
+        }
+
+        var script = File.ReadAllText(Path.Combine(folder.FullName, "shared", "design", "brand", "build-icons.py"));
+        var sizes = System.Text.RegularExpressions.Regex.Matches(script, @"^\s+(\d+): ""([a-z0-9-]+\.svg)"",", System.Text.RegularExpressions.RegexOptions.Multiline)
+            .ToDictionary(m => int.Parse(m.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture), m => m.Groups[2].Value);
+        Assert.Equal(AppSizes, sizes.Keys.Order());
+        Assert.All(AppSizes.Where(px => px <= 48), px => Assert.Equal("app-icon-small.svg", sizes[px]));
+        Assert.All(AppSizes.Where(px => px >= 64), px => Assert.Equal("app-icon-256.svg", sizes[px]));
+    }
+
     private static int[] Sizes(byte[] ico)
     {
         Assert.Equal(0, BitConverter.ToUInt16(ico, 0));

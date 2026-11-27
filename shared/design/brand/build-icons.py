@@ -5,8 +5,9 @@
 
 Writes, under client/ScreenTrail.UI/Assets/:
 
-- app.ico: the window, taskbar and executable icon. 16, 20 and 24 from app-icon-small.svg (small glyph),
-  32, 40 and 48 from glyph-mid-on-navy.svg (mid glyph), 64, 128 and 256 from app-icon-256.svg (full mark).
+- app.ico: the window, taskbar and executable icon. 16 to 48 from app-icon-small.svg (small glyph, one
+  scheme at every small size: review finding C-I6, owner decision 9), 64, 128 and 256 from
+  app-icon-256.svg (full mark).
 - Tray/tray-<state>-<light|dark>.ico for idle, recording, paused, offline and draftready: 16, 20 and 24
   from the -16 file, 32, 40 and 48 from the -32 file. The tray picks the frame for the screen's DPI.
 
@@ -47,9 +48,11 @@ APP_SIZES = {
     16: "app-icon-small.svg",
     20: "app-icon-small.svg",
     24: "app-icon-small.svg",
-    32: "glyph-mid-on-navy.svg",
-    40: "glyph-mid-on-navy.svg",
-    48: "glyph-mid-on-navy.svg",
+    # Review finding C-I6, owner decision 9: one scheme at 16 to 48. The mid glyph's (an Iris ribbon and an
+    # ink screen 1.08:1 on the plate) made the same app two icons on two monitors at different scales.
+    32: "app-icon-small.svg",
+    40: "app-icon-small.svg",
+    48: "app-icon-small.svg",
     64: "app-icon-256.svg",
     128: "app-icon-256.svg",
     256: "app-icon-256.svg",

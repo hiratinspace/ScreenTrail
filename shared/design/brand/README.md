@@ -33,10 +33,11 @@ The app's `.ico` and the tray icons are built from these files; see "Building th
 | File | Use |
 |---|---|
 | `app-icon-256.svg` | App icon tile (frame, full mark), 32 px and up: the .ico at 64, 128 and 256 |
-| `app-icon-small.svg` | App icon tile with the small glyph, 16 to 24 px: the .ico at 16, 20 and 24 |
+| `app-icon-small.svg` | App icon tile with the small glyph, 16 to 48 px: the .ico at 16 to 48 |
 
-The .ico packs the small glyph at 16, 20 and 24, the mid glyph at 32 and 48, and the full mark at 64, 128
-and 256.
+The .ico packs the small glyph at 16 to 48 and the full mark at 64, 128 and 256: one scheme at every small
+size (review finding C-I6, owner decision 9, 2026-11-27). The mid glyph's scheme at 32 to 48 made the same
+app two icons on two monitors at different scales.
 
 ## Lockups
 
@@ -87,7 +88,7 @@ masks correctly, and writes:
 
 | Output | Frames |
 |---|---|
-| `client/ScreenTrail.UI/Assets/app.ico` | 16, 20, 24 from `app-icon-small.svg`; 32, 40, 48 from `glyph-mid-on-navy.svg`; 64, 128, 256 from `app-icon-256.svg` |
+| `client/ScreenTrail.UI/Assets/app.ico` | 16 to 48 from `app-icon-small.svg`; 64, 128, 256 from `app-icon-256.svg` |
 | `client/ScreenTrail.UI/Assets/Tray/tray-<state>-<light\|dark>.ico` | 16, 20, 24 from the `-16` file; 32, 40, 48 from the `-32` file |
 
 Frames below 256 are 32-bit BMP, the 256 frame is PNG. The UI uses `app.ico` as the executable's icon and
