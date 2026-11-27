@@ -117,7 +117,7 @@
                     <TextBlock Style="{StaticResource Text.TileHeading}" Text="Usage telemetry" />
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[UsageTelemetry]}" />
                 </StackPanel>
-                <CheckBox Margin="0,8,0,0" Content="Send one usage record per session, to count the minutes ScreenTrail saves" IsChecked="{Binding Telemetry}" />
+                <CheckBox Margin="0,8,0,0" Content="Send one usage record per session. It never holds text from a session." IsChecked="{Binding Telemetry}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="Exactly these fields, and never any text from a session:" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding TelemetryFieldList}" />
             </StackPanel>

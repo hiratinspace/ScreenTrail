@@ -185,7 +185,8 @@ public sealed class TrayAndDiagnosticsTests
         var text = Sample().ToClipboardText(new DateTimeOffset(2026, 9, 13, 17, 0, 0, TimeSpan.Zero));
 
         Assert.Contains("redaction queue  4", text, StringComparison.Ordinal);
-        Assert.Contains("keystrokes held  17", text, StringComparison.Ordinal);
+        Assert.Contains("typing ignored   17", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("held", text, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("egress blocked   2", text, StringComparison.Ordinal);
         Assert.Contains("hook fallbacks   3", text, StringComparison.Ordinal);
         Assert.Contains("local-only       yes", text, StringComparison.Ordinal);
@@ -326,10 +327,22 @@ public sealed class TrayAndDiagnosticsTests
 
         Assert.True(panel.Answered);
         Assert.Equal("Not capturing: outlook", panel.Headline);
-        Assert.Equal("4", panel.Rows.Single(r => r.Label == "Redaction queue").Value);
+        Assert.Equal("4", panel.Rows.Single(r => r.Label == DiagnosticsPanel.NotYetMasked).Value);
         Assert.Equal("yes", panel.Rows.Single(r => r.Label == "Local-only").Value);
         Assert.Equal("240 MB", panel.Rows.Single(r => r.Label == "Memory").Value);
         Assert.Equal(Sample().ToClipboardText(DateTimeOffset.UnixEpoch), panel.ToClipboardText(DateTimeOffset.UnixEpoch));
+    }
+
+    [Fact]
+    public void TheTypingRowSaysTheKeysWereIgnoredNotHeld()
+    {
+        // Review finding E-04: the row read "Keystrokes held" over the count of keyboard events dropped out
+        // of scope, the opposite of INV-2, in the panel an approver opens to check that no keys are kept.
+        var panel = DiagnosticsPanel.From(Sample());
+
+        Assert.Equal("17", panel.Rows.Single(r => r.Label == DiagnosticsPanel.TypingIgnored).Value);
+        Assert.DoesNotContain(panel.Rows, r => r.Label.Contains("held", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(DiagnosticsPanel.FromReply(null).Rows, r => r.Label.Contains("held", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

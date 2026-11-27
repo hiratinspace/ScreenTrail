@@ -13,6 +13,19 @@ namespace ScreenTrail.Tests.Settings;
 public sealed class PrivacyPanelTests
 {
     [Fact]
+    public void TheRetentionLineSaysTheNoteIsKept()
+    {
+        // Review finding X1 (G17): the line said notes were deleted with the rest, but the purge keeps the
+        // note text and the session row (RetentionJob). An approver can check that on disk.
+        var line = PrivacyPanel.RetentionLine(3);
+
+        Assert.StartsWith("Sessions older than 3 days lose their screenshots", line, StringComparison.Ordinal);
+        Assert.Contains("The note, the session's entry in All sessions and the audit log are kept.", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("notes", line, StringComparison.Ordinal);
+        Assert.Contains("older than 1 day lose", PrivacyPanel.RetentionLine(1), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task LoadShowsTheSettingsAndWhichFieldsTheAdminLocked()
     {
         var gateway = new FakePrivacy

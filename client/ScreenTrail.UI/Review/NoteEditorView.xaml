@@ -241,38 +241,49 @@
                                         <!-- Inferred (Spec v0.6.0 §5 S3): the glyph in confidence.low, the words
                                              in body colour, then Looks right (Alt+C) and Edit. Glyph, words and
                                              rule: readable with no colour at all (Spec §7). -->
-                                        <WrapPanel Margin="0,8,0,0"
-                                                   Orientation="Horizontal"
-                                                   Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}">
-                                            <StackPanel Margin="0,0,12,0" VerticalAlignment="Center" Orientation="Horizontal" ToolTip="{Binding VerificationTooltip}">
-                                                <controls:Glyph Style="{StaticResource Icon}"
+                                        <!-- The line is its own row so it wraps: inside the WrapPanel with the buttons, a
+                                             horizontal StackPanel measured it at infinite width and the narrow note cut it
+                                             mid word ("Inferred from screen o"). Review finding B-33. -->
+                                        <StackPanel Margin="0,8,0,0"
+                                                    Visibility="{Binding NeedsVerification, Converter={StaticResource Visible}}">
+                                            <Grid ToolTip="{Binding VerificationTooltip}">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <controls:Glyph Grid.Column="0"
+                                                                VerticalAlignment="Top"
+                                                                Style="{StaticResource Icon}"
                                                                 Foreground="{DynamicResource Brush.confidence.low}"
                                                                 FontSize="{DynamicResource Size.sm}"
                                                                 Text="&#xE7BA;" />
-                                                <TextBlock Margin="8,0,0,0"
-                                                           VerticalAlignment="Center"
+                                                <TextBlock Grid.Column="1"
+                                                           Margin="8,0,0,0"
                                                            Style="{StaticResource Text.Body}"
                                                            FontSize="{DynamicResource Size.sm}"
+                                                           TextWrapping="Wrap"
                                                            Text="{Binding InferredLine}" />
-                                            </StackPanel>
-                                            <Button Margin="0,0,8,0"
-                                                    Style="{StaticResource Button.Secondary}"
-                                                    Command="{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                                    CommandParameter="{Binding}"
-                                                    Click="OnConfirmClick"
-                                                    AutomationProperties.Name="{Binding ConfirmName}"
-                                                    AutomationProperties.AcceleratorKey="Alt+C"
-                                                    AutomationProperties.HelpText="{Binding VerificationTooltip}">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock VerticalAlignment="Center" Text="Looks right" />
-                                                    <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+C" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource Button.Ghost}"
-                                                    Content="Edit"
-                                                    Click="OnEditClick"
-                                                    AutomationProperties.Name="{Binding EditName}" />
-                                        </WrapPanel>
+                                            </Grid>
+                                            <WrapPanel Margin="0,8,0,0" Orientation="Horizontal">
+                                                <Button Margin="0,0,8,0"
+                                                        Style="{StaticResource Button.Secondary}"
+                                                        Command="{Binding DataContext.ConfirmStepCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding}"
+                                                        Click="OnConfirmClick"
+                                                        AutomationProperties.Name="{Binding ConfirmName}"
+                                                        AutomationProperties.AcceleratorKey="Alt+C"
+                                                        AutomationProperties.HelpText="{Binding VerificationTooltip}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock VerticalAlignment="Center" Text="Looks right" />
+                                                        <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+C" />
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Style="{StaticResource Button.Ghost}"
+                                                        Content="Edit"
+                                                        Click="OnEditClick"
+                                                        AutomationProperties.Name="{Binding EditName}" />
+                                            </WrapPanel>
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <!-- When, on the session's clock: the transcript's own times. -->

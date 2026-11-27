@@ -229,7 +229,6 @@
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </controls:Repeater>
-                                <Button Margin="0,12,0,0" MinWidth="96" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="Save" Command="{Binding SaveToolsCommand}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>

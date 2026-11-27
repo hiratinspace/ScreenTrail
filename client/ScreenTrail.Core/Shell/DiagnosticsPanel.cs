@@ -42,6 +42,31 @@ public sealed class DiagnosticsPanel
 
     public const string NotConnected = "Not connected to the capture service. Capture state unknown.";
 
+    /// <summary>
+    /// The privacy-pause row: "no", or why capture is paused (a password field, an excluded app). It was
+    /// "Suppressed", the state machine's word, not the technician's.
+    /// </summary>
+    public const string PrivacyPause = "Privacy pause";
+
+    /// <summary>Screenshots taken but not masked yet, so not readable anywhere until this reaches zero (INV-1).</summary>
+    public const string NotYetMasked = "Not yet masked";
+
+    /// <summary>Screenshots the service let go under load.</summary>
+    public const string ScreenshotsDropped = "Screenshots dropped";
+
+    /// <summary>
+    /// Keyboard events dropped because the window in front was out of scope (INV-6). The row said
+    /// "Keystrokes held", the opposite of what the count is, in the panel an approver opens to check that
+    /// no keys are kept (INV-2). Review finding E-04.
+    /// </summary>
+    public const string TypingIgnored = "Typing ignored";
+
+    /// <summary>Requests the egress guard refused to let leave this PC (INV-8).</summary>
+    public const string BlockedUploads = "Blocked uploads";
+
+    /// <summary>The client's version.</summary>
+    public const string Version = "Version";
+
     /// <summary>The row for the title-change hook's fallbacks (ST-031).</summary>
     public const string HookFallbacks = "Hook fallbacks";
 
@@ -186,17 +211,17 @@ public sealed class DiagnosticsPanel
     private static IReadOnlyList<DiagnosticsLine> RowsAfterScope(Diagnostics d) =>
     [
         new("Microphone", d.Microphone ?? "none"),
-        new("Suppressed", d.Suppression ?? "no"),
-        new("Redaction queue", d.RedactionBacklog.ToString(CultureInfo.InvariantCulture)),
-        new("Frames dropped", d.FramesDropped.ToString(CultureInfo.InvariantCulture)),
-        new("Keystrokes held", d.KeystrokesDropped.ToString(CultureInfo.InvariantCulture)),
-        new("Egress blocked", d.EgressBlocked.ToString(CultureInfo.InvariantCulture)),
+        new(PrivacyPause, d.Suppression ?? "no"),
+        new(NotYetMasked, d.RedactionBacklog.ToString(CultureInfo.InvariantCulture)),
+        new(ScreenshotsDropped, d.FramesDropped.ToString(CultureInfo.InvariantCulture)),
+        new(TypingIgnored, d.KeystrokesDropped.ToString(CultureInfo.InvariantCulture)),
+        new(BlockedUploads, d.EgressBlocked.ToString(CultureInfo.InvariantCulture)),
         new(HookFallbacks, HookFallbacksValue(d.NameHookRefusals)),
         new("Local-only", d.LocalOnly ? "yes" : "no"),
         new("Policy", d.PolicyVersion),
         new(Cpu, CpuValue(d.CpuPercent)),
         new(Memory, MemoryValue(d.WorkingSetBytes)),
-        new("Client", d.ClientVersion),
+        new(Version, d.ClientVersion),
     ];
 
     /// <summary>The count, unknown when the service could not know it, and what it means when it is not 0.</summary>
@@ -211,16 +236,16 @@ public sealed class DiagnosticsPanel
     [
         new("Scope", "Not connected to the capture service"),
         new("Microphone", Unknown),
-        new("Suppressed", Unknown),
-        new("Redaction queue", Unknown),
-        new("Frames dropped", Unknown),
-        new("Keystrokes held", Unknown),
-        new("Egress blocked", Unknown),
+        new(PrivacyPause, Unknown),
+        new(NotYetMasked, Unknown),
+        new(ScreenshotsDropped, Unknown),
+        new(TypingIgnored, Unknown),
+        new(BlockedUploads, Unknown),
         new(HookFallbacks, Unknown),
         new("Local-only", Unknown),
         new("Policy", Unknown),
         new(Cpu, Unknown),
         new(Memory, Unknown),
-        new("Client", Unknown),
+        new(Version, Unknown),
     ];
 }
