@@ -165,7 +165,14 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         var item = e.Item;
         var hotkey = item is Forms.ToolStripMenuItem { ShortcutKeyDisplayString: { Length: > 0 } shown } && e.Text == shown;
         var colour = TextColour(item, hotkey);
-        var inset = (int)Math.Round(12 * Scale(e.ToolStrip));
+        var scale = Scale(e.ToolStrip);
+        var inset = (int)Math.Round(12 * scale);
+        if ((item.Tag as TrayRowTag)?.Kind == Core.Shell.TrayRowKind.State)
+        {
+            Header(e.Graphics, item, e.Text ?? string.Empty, e.TextFont ?? item.Font, colour, scale);
+            return;
+        }
+
         const Forms.TextFormatFlags Line = Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine;
         if (hotkey)
         {
@@ -178,6 +185,34 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         var words = new Rectangle(inset, 0, Math.Max(0, Math.Min(item.Width - inset, e.TextRectangle.Right) - inset), item.Height);
         var prefix = e.TextFormat & (Forms.TextFormatFlags.HidePrefix | Forms.TextFormatFlags.NoPrefix);
         Forms.TextRenderer.DrawText(e.Graphics, e.Text, e.TextFont, words, colour, Line | Forms.TextFormatFlags.Left | Forms.TextFormatFlags.EndEllipsis | prefix);
+    }
+
+    /// <summary>The height of the state row's first line, at 96 dpi (design system 10.7).</summary>
+    internal const int HeaderHeight = 36;
+
+    /// <summary>
+    /// The state row (design system 10.7, review finding C-T3): the tray's own glyph for the state, 16 px
+    /// at x 12 and drawn as it is, in its colours, then the words at x 36 in the semibold face. The row
+    /// is disabled so it cannot be chosen, and WinForms drew its image through the disabled filter, so the
+    /// red dot and the amber bars were grey in the one place the menu restates the state (INV-4).
+    /// </summary>
+    private static void Header(Graphics graphics, Forms.ToolStripItem item, string text, Font font, Color colour, float scale)
+    {
+        var line = (int)Math.Round(HeaderHeight * scale);
+        if (item.Image is { } glyph)
+        {
+            var side = (int)Math.Round(16 * scale);
+            graphics.DrawImage(glyph, new Rectangle((int)Math.Round(12 * scale), (line - side) / 2, side, side));
+        }
+
+        var left = (int)Math.Round(36 * scale);
+        var words = new Rectangle(left, 0, Math.Max(0, item.Width - left - (int)Math.Round(12 * scale)), line);
+        Forms.TextRenderer.DrawText(graphics, text, font, words, colour, Forms.TextFormatFlags.VerticalCenter | Forms.TextFormatFlags.SingleLine | Forms.TextFormatFlags.Left | Forms.TextFormatFlags.EndEllipsis | Forms.TextFormatFlags.NoPrefix);
+    }
+
+    /// <summary>Nothing: the one image, the state row's glyph, is drawn undimmed by <see cref="Header"/>.</summary>
+    protected override void OnRenderItemImage(Forms.ToolStripItemImageRenderEventArgs e)
+    {
     }
 
     protected override void OnRenderSeparator(Forms.ToolStripSeparatorRenderEventArgs e)

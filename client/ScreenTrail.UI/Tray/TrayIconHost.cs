@@ -67,7 +67,9 @@ public sealed class TrayIconHost : IDisposable
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
 
         // Spec §5 S1 drawn in the app's tokens (TrayMenuRenderer), with the rows TrayMenu decides.
-        _menu = new Forms.ContextMenuStrip { Renderer = new TrayMenuRenderer(), ShowItemToolTips = false };
+        // No image or check margin (design system 10.7): the state row draws its own glyph, and no row
+        // has a check, so the margin was an empty column pushing every label right.
+        _menu = new Forms.ContextMenuStrip { Renderer = new TrayMenuRenderer(), ShowItemToolTips = false, ShowImageMargin = false, ShowCheckMargin = false };
         using (var probe = new Forms.ToolStripMenuItem())
         {
             _padding = probe.Padding;
@@ -459,21 +461,28 @@ public sealed class TrayIconHost : IDisposable
         // own menus. Spec §7's 28 px target is met with room.
         var floor = (int)Math.Ceiling(32 * deviceDpi / 96.0);
         var items = menu.Items.OfType<Forms.ToolStripMenuItem>().ToList();
+        // The state row's words start at 36, after its glyph (TrayMenuRenderer.Header): the extra is
+        // given as padding so the menu is measured wide enough for them.
+        var glyphRoom = (int)Math.Round(24 * deviceDpi / 96.0);
         foreach (var item in items)
         {
-            item.Padding = _padding;
+            item.Padding = (item.Tag as TrayRowTag)?.Kind == TrayRowKind.State ? Pad(_padding, left: glyphRoom) : _padding;
         }
 
         menu.PerformLayout();
+        var header = (int)Math.Ceiling(TrayMenuRenderer.HeaderHeight * deviceDpi / 96.0);
         foreach (var item in items)
         {
-            var lacking = Math.Max(0, floor - item.Height);
+            // The state row is 36 (design system 10.7), the others at least 32.
+            var lacking = Math.Max(0, ((item.Tag as TrayRowTag)?.Kind == TrayRowKind.State ? header : floor) - item.Height);
             var above = lacking / 2;
-            item.Padding = new Forms.Padding(_padding.Left, _padding.Top + above, _padding.Right, _padding.Bottom + lacking - above);
+            item.Padding = new Forms.Padding(item.Padding.Left, _padding.Top + above, _padding.Right, _padding.Bottom + lacking - above);
         }
 
         menu.PerformLayout();
     }
+
+    private static Forms.Padding Pad(Forms.Padding padding, int left) => new(padding.Left + left, padding.Top, padding.Right, padding.Bottom);
 
     /// <summary>
     /// Puts the rows on the menu. The same rows in the same places, which is every tick of the recording
@@ -570,7 +579,7 @@ public sealed class TrayIconHost : IDisposable
             _menuFont?.Dispose();
             _menuFont = font;
             _stateFont?.Dispose();
-            _stateFont = new Font(font, FontStyle.Bold);
+            _stateFont = StateFont(font);
 
             // The chord beside a row, 12 px in the same face (review finding C-T4).
             var shortcut = new Font(family, 12f * 72 / 96, FontStyle.Regular);
@@ -585,7 +594,6 @@ public sealed class TrayIconHost : IDisposable
 
         if (_menu.Items.Count > 0 && _menu.Items[0] is Forms.ToolStripMenuItem state && !ReferenceEquals(state.Font, _stateFont))
         {
-            // Semibold where the face has it; GDI+ offers bold, the nearest it can draw.
             state.Font = _stateFont;
         }
 
@@ -593,6 +601,24 @@ public sealed class TrayIconHost : IDisposable
         {
             SetStateGlyph(shown.Icon);
         }
+    }
+
+    /// <summary>
+    /// The state row's face (review finding C-T3): semibold, which GDI+ reaches only through a family
+    /// with Semibold in its name, drawn Regular. FontStyle.Bold made it 700, heavier than anything in the
+    /// app. Bold is the fallback where neither semibold family is installed.
+    /// </summary>
+    private static Font StateFont(Font menu)
+    {
+        foreach (var family in new[] { "Segoe UI Variable Text Semibold", "Segoe UI Semibold" })
+        {
+            if (Installed.Value.Contains(family))
+            {
+                return new Font(family, menu.SizeInPoints, FontStyle.Regular);
+            }
+        }
+
+        return new Font(menu, FontStyle.Bold);
     }
 
     /// <summary>The faces installed on this machine, read once.</summary>
