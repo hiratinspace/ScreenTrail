@@ -29,7 +29,8 @@ public sealed class StepFrameDeleteTests(TheApplication app)
 
         var onItsScreenshot = Assert.Single(step.Chords, chord => chord.Keys == "Space, Enter, Del");
         Assert.Contains("delete", onItsScreenshot.Action, StringComparison.Ordinal);
-        Assert.Contains(step, UI.Shell.ShortcutSheet.LeftColumn);
+        // By name: the groups are built each time the sheet opens, with the chords bound now.
+        Assert.Contains(UI.Shell.ShortcutSheet.LeftColumn, g => g.Name == step.Name);
 
         // The strip's own lines, with the undo's five seconds, are as they were.
         var screenshots = UI.Shell.ShortcutSheet.Groups.Single(g => g.Name == "In the screenshots").Chords;
@@ -63,7 +64,8 @@ public sealed class StepFrameDeleteTests(TheApplication app)
                 Assert.False(chip.Present, "Del left the screenshot on its step.");
                 Assert.DoesNotContain(chip.Id, review.Strip.IncludedFrameIds);
                 Assert.True(review.Note.HasUndoToast);
-                Assert.Contains($"Deleted {chip.Label}", heard);
+                // In a sentence the screenshot is lower case ("Deleted screenshot 1"), the glossary's form.
+                Assert.Contains($"Deleted {char.ToLowerInvariant(chip.Label[0])}{chip.Label[1..]}", heard);
 
                 // The undo is on the note, named, with its key; the strip was never opened.
                 Assert.False(review.Strip.Shown, "Del on a step's frame opened the screenshots.");
