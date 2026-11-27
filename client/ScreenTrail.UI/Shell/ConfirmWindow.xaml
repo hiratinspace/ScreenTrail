@@ -45,8 +45,7 @@
 
         <!-- What is actually lost, in the words a technician would use. A dialog that says "are you
              sure?" asks a question nobody can answer; this one says what disappears. -->
-        <!-- A notice's reason sits on the warning banner, as the app's other "this did not happen" lines
-             do (§3 Banner); a question's consequence is plain text. -->
+        <!-- A notice's reason is the same Secondary line (review finding B-52); its glyph says it is one. -->
         <ContentControl x:Name="ConsequenceBox" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Focusable="False" IsTabStop="False">
             <TextBlock Style="{StaticResource Text.Secondary}" Text="{Binding Consequence}" />
         </ContentControl>

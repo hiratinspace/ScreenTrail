@@ -59,12 +59,9 @@ public partial class ConfirmWindow : Window
                 Cancel.Style = primary;
             }
 
-            if (FindResource("Banner") is Style banner)
-            {
-                ConsequenceBox.Style = banner;
-                Theme.Banner.SetTone(ConsequenceBox, "Warning");
-                ConsequenceBox.Margin = new Thickness(0, 12, 0, 0);
-            }
+            // Review finding B-52: the reason is said under the heading in Secondary like a question's
+            // consequence; the state.paused glyph carries the kind. On a warning banner as well it said
+            // "warning" twice.
         }
         else if (typed is not null)
         {

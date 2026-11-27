@@ -73,4 +73,14 @@ public sealed class DialogPolishTests
         Assert.DoesNotContain("Brush.accent.primary", code, StringComparison.Ordinal);
         Assert.Contains("\"Brush.text.secondary\"", code, StringComparison.Ordinal);
     }
+
+    /// <summary>Review finding B-52: a notice's reason is plain Secondary under the heading, not a warning banner too.</summary>
+    [Fact]
+    public void ANoticeSaysItsReasonOnceWithoutABanner()
+    {
+        var code = Code("Shell", "ConfirmWindow.xaml.cs");
+        Assert.DoesNotContain("\"Banner\"", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("Banner.SetTone", code, StringComparison.Ordinal);
+        Assert.Contains("words.Action is null ? \"Brush.state.paused\"", code, StringComparison.Ordinal);
+    }
 }
