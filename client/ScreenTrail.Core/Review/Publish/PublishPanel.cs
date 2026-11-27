@@ -1,6 +1,7 @@
 using System.Globalization;
 using ScreenTrail.Core.Intel;
 using ScreenTrail.Core.Settings;
+using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Schema;
 
 namespace ScreenTrail.Core.Review.Publish;
@@ -662,7 +663,7 @@ public sealed class PublishPanel
             var facts = new List<ReceiptFact>(5);
             if (_session.DurationMs is { } duration)
             {
-                facts.Add(new(InMinutes(TimeSpan.FromMilliseconds(duration)), "captured"));
+                facts.Add(new(Durations.InWords(duration), "captured"));
             }
 
             var steps = _sentNote.Steps;
@@ -678,7 +679,7 @@ public sealed class PublishPanel
             // already published), so the fact is left out rather than shown as "0 s".
             if (SentAt is { } at && at - _openedAt is var took && took >= TimeSpan.FromSeconds(1))
             {
-                facts.Add(new(took < TimeSpan.FromMinutes(1) ? string.Create(CultureInfo.InvariantCulture, $"{(int)took.TotalSeconds} s") : InMinutes(took), "open to published"));
+                facts.Add(new(Durations.InWords(took), "open to published"));
             }
 
             return facts;
@@ -697,13 +698,11 @@ public sealed class PublishPanel
     public string? DetailOf(Destination destination) => destination switch
     {
         Destination.TicketNote => NoteType == NoteType.Internal ? InternalLabel : "Discussion",
-        Destination.TimeEntry => string.Create(CultureInfo.InvariantCulture, $"{Minutes / 60}:{Minutes % 60:00}"),
+        // "15 min", as the envelope said it, not "0:15", which read as fifteen seconds (E-08).
+        Destination.TimeEntry => Durations.OfMinutes(Minutes),
         Destination.KbArticle => _session.Draft?.SuggestedTitle is { Length: > 0 } title ? $"“{title}”" : null,
         _ => null,
     };
-
-    private static string InMinutes(TimeSpan span) =>
-        string.Create(CultureInfo.InvariantCulture, $"{Math.Max(1, (int)Math.Round(span.TotalMinutes, MidpointRounding.AwayFromZero))} min");
 
     /// <summary>Spec §6's toast line for what happened, or null before anything has.</summary>
     public string? Summary
@@ -721,7 +720,7 @@ public sealed class PublishPanel
             if (Published)
             {
                 var time = _results.TryGetValue(Destination.TimeEntry, out var entry) && entry.Ok
-                    ? $" · {Minutes / 60}:{Minutes % 60:00} logged"
+                    ? $" · {Durations.OfMinutes(Minutes)} logged"
                     : string.Empty;
                 return missing.Length > 0
                     ? $"Published to ticket #{Ticket?.Id}{time}. {missing}"

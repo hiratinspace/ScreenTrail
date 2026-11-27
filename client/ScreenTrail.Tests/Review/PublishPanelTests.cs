@@ -234,7 +234,7 @@ public sealed class PublishPanelTests
         Assert.True(panel.Published);
         Assert.Equal([Destination.TimeEntry], calls[1]);
         Assert.Equal(2, panel.Results.Count);
-        Assert.Equal("Published to ticket #48213 · 0:30 logged", panel.Summary);
+        Assert.Equal("Published to ticket #48213 · 30 min logged", panel.Summary);
     }
 
     [Fact]
@@ -268,7 +268,7 @@ public sealed class PublishPanelTests
         Assert.Equal([Destination.TimeEntry], calls[1]);
         Assert.True(panel.Published);
         Assert.Empty(panel.Failed);
-        Assert.Equal($"Published to ticket #48213 · 0:30 logged. {Missing}", panel.Summary);
+        Assert.Equal($"Published to ticket #48213 · 30 min logged. {Missing}", panel.Summary);
     }
 
     [Fact]

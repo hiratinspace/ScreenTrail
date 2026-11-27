@@ -185,19 +185,7 @@ public static class InboxRail
     }
 
     /// <summary>"Under 1 min", "12 min", "1 h 5 min".</summary>
-    public static string Duration(long milliseconds)
-    {
-        var span = TimeSpan.FromMilliseconds(Math.Max(0, milliseconds));
-        if (span < TimeSpan.FromMinutes(1))
-        {
-            return "Under 1 min";
-        }
-
-        var minutes = (int)Math.Round(span.TotalMinutes, MidpointRounding.AwayFromZero);
-        return minutes < 60
-            ? string.Create(CultureInfo.InvariantCulture, $"{minutes} min")
-            : string.Create(CultureInfo.InvariantCulture, $"{minutes / 60} h {minutes % 60} min");
-    }
+    public static string Duration(long milliseconds) => Shell.Durations.InWords(milliseconds);
 
     /// <summary>The row's second line: how long, and how many screenshots ("1 screenshot", "7 screenshots").</summary>
     public static string Meta(SessionRow row)

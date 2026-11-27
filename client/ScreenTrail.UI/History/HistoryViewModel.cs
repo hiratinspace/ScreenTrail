@@ -503,7 +503,7 @@ public sealed partial class HistoryViewModel : ObservableObject
     /// <summary>The row in the words it already shows, so the question names the session without anything new.</summary>
     /// <summary>
     /// The session in words for the Mark as published question: "ScreenConnect session, started Mon 14 Sep
-    /// 16:40, 9 min". Not the table's "9:00", which beside a time of day reads as another time.
+    /// 16:40, 9 min", in the table's own duration format.
     /// </summary>
     internal static string Described(SessionRow row) =>
         string.Create(
@@ -523,11 +523,11 @@ public sealed partial class HistoryViewModel : ObservableObject
 
     internal static HistoryRow Format(SessionRow row)
     {
-        var duration = TimeSpan.FromMilliseconds(row.DurationMs);
         return new HistoryRow(
             row.Id,
             row.StartedAt.ToLocalTime().ToString("ddd d MMM HH:mm", CultureInfo.CurrentCulture),
-            duration.TotalHours >= 1 ? duration.ToString(@"h\:mm\:ss", CultureInfo.InvariantCulture) : duration.ToString(@"m\:ss", CultureInfo.InvariantCulture),
+            // The rail's and the receipt's format, not "21:00", which beside a time of day read as another (E-08).
+            Durations.InWords(row.DurationMs),
             // The status in the rail's words, glyph and hue (spec v0.6.9 S4): "Partial capture", not "Partial".
             row.Status.Length == 0 ? row.Status : StatusBadges.Of(row.Status).Word,
             ToolNames.Display(row.Tool),
