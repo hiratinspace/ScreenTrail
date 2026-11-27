@@ -6,6 +6,7 @@ using System.Windows.Automation.Peers;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using ScreenTrail.Core.Review;
 using ScreenTrail.Shared.Schema;
 using ScreenTrail.UI.Review;
@@ -158,12 +159,14 @@ public sealed partial class KeyboardBlurTests(TheApplication app)
                 Assert.True(ReferenceEquals(Keyboard.FocusedElement, Toggle(shell)), $"After Esc focus is on {Keyboard.FocusedElement?.GetType().Name ?? "nothing"}, not on the blur toggle.");
                 Assert.False(Status(shell).IsVisible, "What the box said stayed on screen after it was put away.");
 
-                // Esc puts it away from the enlarged view's buttons too, where Tab takes a keyboard user.
+                // Esc puts it away from the enlarged view's buttons too. Since review finding A-27 they are one
+                // row above the picture, so Shift+Tab is what takes a keyboard user from the box to them.
                 box = await Screens.OpenBlurBoxAsync(shell);
-                _ = Keys.Press(shell, Key.Tab);
+                _ = Keys.Press(shell, Key.Tab, ModifierKeys.Shift);
                 await Audit.Settle();
-                Assert.False(box.IsKeyboardFocused, "Tab did not leave the blur box.");
-                Assert.True(box.IsVisible, "Leaving the blur box with Tab put it away.");
+                Assert.False(box.IsKeyboardFocused, "Shift+Tab did not leave the blur box.");
+                Assert.True(Keyboard.FocusedElement is Visual on && on.IsDescendantOf(Audit.Descendants(shell).OfType<Border>().Single(b => b.Name == "EnlargedView")), "Shift+Tab from the blur box left the enlarged view.");
+                Assert.True(box.IsVisible, "Leaving the blur box with Shift+Tab put it away.");
                 _ = Keys.Press(shell, Key.Escape);
                 await Audit.Settle();
                 Assert.False(box.IsVisible, "Esc on a button of the enlarged view left the blur box out.");
@@ -357,7 +360,9 @@ public sealed partial class KeyboardBlurTests(TheApplication app)
                 var box = await Screens.OpenBlurBoxAsync(window);
                 var thumbnails = frames.Thumbnails;
                 _ = Keys.Press(window, Key.Enter);
-                await Screens.UntilAsync(() => frame.Cell.Frame.MaskedRegions.Count == 1 && frames.Thumbnails > thumbnails);
+                // The strip decodes off the UI thread since review finding D-27, so the new thumbnail lands a
+                // moment after it is asked for.
+                await Screens.UntilAsync(() => frame.Cell.Frame.MaskedRegions.Count == 1 && frames.Thumbnails > thumbnails && frame.Thumbnail is not null);
 
                 Assert.Single(frame.Cell.Frame.MaskedRegions);
                 Assert.Null(frame.Cell.Frame.OcrText);
