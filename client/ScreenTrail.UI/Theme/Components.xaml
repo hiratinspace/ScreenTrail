@@ -1425,26 +1425,67 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- The thumb (design system 10.8, review findings A-33, B-29): a 4 px pill in border.strong at rest, so
+         a scrolling area does not add a full-strength line beside every list; 8 wide in text.muted while the
+         pointer is over its track or it is held (text.secondary), at least 32 long. In high contrast it is 8
+         wide at all times (ScrollThumb.rest). -->
     <Style x:Key="ScrollBar.Thumb" TargetType="Thumb">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
         <Setter Property="OverridesDefaultStyle" Value="True" />
-        <Setter Property="Background" Value="{DynamicResource Brush.border.strong}" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.scroll-thumb-min}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border Margin="3" Background="{TemplateBinding Background}" CornerRadius="3" />
+                    <Grid Background="Transparent">
+                        <Border x:Name="Bar"
+                                Width="{DynamicResource ScrollThumb.rest}"
+                                HorizontalAlignment="Center"
+                                Background="{DynamicResource Brush.border.strong}"
+                                CornerRadius="{DynamicResource Radius.pill}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="True">
+                            <Setter TargetName="Bar" Property="Width" Value="{DynamicResource Layout.scroll-thumb-hover}" />
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.text.muted}" />
+                        </DataTrigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Width" Value="{DynamicResource Layout.scroll-thumb-hover}" />
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.text.secondary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.text.muted}" />
-            </Trigger>
-            <Trigger Property="IsDragging" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.text.secondary}" />
-            </Trigger>
-        </Style.Triggers>
+    </Style>
+    <Style x:Key="ScrollBar.Thumb.Horizontal" TargetType="Thumb">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.scroll-thumb-min}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Bar"
+                                Height="{DynamicResource ScrollThumb.rest}"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource Brush.border.strong}"
+                                CornerRadius="{DynamicResource Radius.pill}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollBar}}" Value="True">
+                            <Setter TargetName="Bar" Property="Height" Value="{DynamicResource Layout.scroll-thumb-hover}" />
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.text.muted}" />
+                        </DataTrigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Height" Value="{DynamicResource Layout.scroll-thumb-hover}" />
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.text.secondary}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
     <ControlTemplate x:Key="ScrollBar.Vertical" TargetType="ScrollBar">
         <Grid Background="Transparent">
@@ -1468,7 +1509,7 @@
                     <controls:PageButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource ScrollBar.Page}" />
                 </Track.DecreaseRepeatButton>
                 <Track.Thumb>
-                    <Thumb Style="{StaticResource ScrollBar.Thumb}" />
+                    <Thumb Style="{StaticResource ScrollBar.Thumb.Horizontal}" />
                 </Track.Thumb>
                 <Track.IncreaseRepeatButton>
                     <controls:PageButton Command="ScrollBar.PageRightCommand" Style="{StaticResource ScrollBar.Page}" />
