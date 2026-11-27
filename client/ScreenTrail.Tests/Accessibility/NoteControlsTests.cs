@@ -198,4 +198,19 @@ public sealed class NoteControlsTests
 
         throw new FileNotFoundException(file);
     }
+
+    /// <summary>Review finding B-36: what was said is a Caption in text.secondary beside its rule, not monospace.</summary>
+    [Fact]
+    public void AQuoteIsACaptionBesideItsRuleNotMonospace()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var quote = note.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(Xaml + "Name") == "StepQuote");
+        Assert.Equal("2,0,0,0", (string?)quote.Attribute("BorderThickness"));
+        Assert.Equal("{DynamicResource Brush.border.strong}", (string?)quote.Attribute("BorderBrush"));
+        Assert.Equal("12,0,0,0", (string?)quote.Attribute("Padding"));
+        var words = quote.Elements(Wpf + "TextBlock").Single();
+        Assert.Equal("{StaticResource Text.Caption}", (string?)words.Attribute("Style"));
+        Assert.Equal("{DynamicResource Brush.text.secondary}", (string?)words.Attribute("Foreground"));
+        Assert.DoesNotContain(note.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Mono}");
+    }
 }

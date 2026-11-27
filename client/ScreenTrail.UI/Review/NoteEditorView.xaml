@@ -200,16 +200,18 @@
                                                  Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
                                                  AutomationProperties.Name="{Binding Place}" />
 
-                                        <!-- What was said, set as a quotation: a rule at the left and the
-                                             monospace face, so it never reads as part of the step. -->
-                                        <Border Margin="0,4,0,0"
+                                        <!-- What was said, set as a quotation: a 2 px border.strong rule at the left,
+                                             12 in, so it never reads as part of the step. Caption in text.secondary,
+                                             not monospace (review finding B-36): speech is not a machine string. -->
+                                        <Border x:Name="StepQuote"
+                                                Margin="0,4,0,0"
                                                 Padding="12,0,0,0"
                                                 BorderBrush="{DynamicResource Brush.border.strong}"
                                                 BorderThickness="2,0,0,0"
                                                 Visibility="{Binding HasQuote, Converter={StaticResource Visible}}">
-                                            <TextBlock Style="{StaticResource Text.Mono}"
+                                            <TextBlock Style="{StaticResource Text.Caption}"
                                                        TextWrapping="Wrap"
-                                                       Foreground="{DynamicResource Brush.text.muted}"
+                                                       Foreground="{DynamicResource Brush.text.secondary}"
                                                        Text="{Binding Quote}" />
                                         </Border>
 
