@@ -30,6 +30,27 @@ public sealed class TitleBarTintTests
         Assert.Equal(theme == "dark", tint.DarkCaptionButtons);
     }
 
+    /// <summary>
+    /// Review finding D-12: a window's edge is border.strong, not the caption's colour, so a light window has
+    /// an edge over a light wallpaper; a dialog's caption is its surface, and its buttons follow its lightness.
+    /// </summary>
+    [Theory]
+    [InlineData("dark")]
+    [InlineData("light")]
+    public void TheEdgeIsBorderStrongAndADialogsCaptionIsItsSurface(string theme)
+    {
+        var edge = Token("border.strong", theme);
+        var frame = TitleBarTint.For(highContrast: false, Token("shell.bg", theme), Token("shell.text", theme), edge);
+        Assert.Equal(TitleBarTint.ColorRef(edge), frame.Border);
+        Assert.NotEqual(frame.Caption, frame.Border);
+
+        var surface = Token("bg.surface", theme);
+        var dialog = TitleBarTint.For(highContrast: false, surface, Token("text.primary", theme), edge);
+        Assert.Equal(TitleBarTint.ColorRef(surface), dialog.Caption);
+        Assert.Equal(TitleBarTint.ColorRef(edge), dialog.Border);
+        Assert.Equal(theme == "dark", dialog.DarkCaptionButtons);
+    }
+
     [Fact]
     public void HighContrastKeepsTheSystemsTitleBar()
     {

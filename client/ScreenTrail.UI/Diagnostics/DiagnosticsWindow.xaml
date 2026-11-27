@@ -8,11 +8,14 @@
         Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
+        Background="{DynamicResource Brush.bg.surface}"
+        theme:TitleBar.Caption="Surface"
         Style="{StaticResource Window.Base}">
     <!-- Spec §5 S1's panel, opened from the tray and from the rail's foot (Diagnostics). As tall as its rows
          (v0.6.11): at the spec's fixed 420 the last rows sat under a scroll bar that nothing in the panel
          could scroll from the keyboard, since nothing in it takes focus. -->
-    <Grid Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
+    <!-- Review finding D-12: the panel is its surface, caption and body alike. -->
+    <Grid Margin="{DynamicResource Padding.pane}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />

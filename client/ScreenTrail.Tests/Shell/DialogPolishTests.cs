@@ -116,4 +116,24 @@ public sealed class DialogPolishTests
         Assert.Contains(panel.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Caption}" && (string?)t.Attribute("Text") == "{Binding InPlaceOfRows}");
         Assert.Contains(panel.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Command") == "{Binding CopyCommand}");
     }
+
+    /// <summary>
+    /// Review finding D-12: the dialog, the shortcut sheet and diagnostics are their surface, caption and
+    /// body alike, so a small window is one sheet rather than a grey band over a lighter body.
+    /// </summary>
+    [Theory]
+    [InlineData("Shell", "ConfirmWindow.xaml")]
+    [InlineData("Shell", "ShortcutSheet.xaml")]
+    [InlineData("Diagnostics", "DiagnosticsWindow.xaml")]
+    public void ASmallWindowIsItsSurfaceCaptionAndBody(string folder, string file)
+    {
+        XNamespace theme = "clr-namespace:ScreenTrail.UI.Theme";
+        var window = EmptyStateTests.View(folder, file);
+        Assert.Equal("Surface", (string?)window.Attribute(theme + "TitleBar.Caption"));
+        Assert.Equal("{DynamicResource Brush.bg.surface}", (string?)window.Attribute("Background"));
+        // bg.base is the dialog's footer alone (B-50), never a body.
+        Assert.All(
+            window.Descendants().Where(e => (string?)e.Attribute("Background") == "{DynamicResource Brush.bg.base}"),
+            e => Assert.Equal("Footer", (string?)e.Attribute(Xaml + "Name")));
+    }
 }

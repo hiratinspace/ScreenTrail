@@ -1,6 +1,7 @@
 <Window x:Class="ScreenTrail.UI.Shell.ConfirmWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         Title="{Binding Heading}"
         Width="{StaticResource Layout.dialog-width}"
@@ -8,6 +9,8 @@
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         ShowInTaskbar="False"
+        Background="{DynamicResource Brush.bg.surface}"
+        theme:TitleBar.Caption="Surface"
         Style="{StaticResource Window.Base}">
     <!-- The app's one dialog (Spec §3 Modal, v0.6.11): the question, what follows, the phrase box when
          something irreversible is asked, and two buttons that say what each does. Esc presses the one that
