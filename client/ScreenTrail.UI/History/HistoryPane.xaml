@@ -251,7 +251,7 @@
                         Content="Discard selected"
                         Command="{Binding BulkDiscardCommand}"
                         ToolTip="Discard the selected sessions. You will be asked to type how many."
-                        AutomationProperties.Name="Discard the selected sessions"
+                        AutomationProperties.Name="Discard selected sessions"
                         AutomationProperties.HelpText="Deletes the selected sessions' screenshots, transcripts and notes from this PC. You will be asked to type how many." />
             </StackPanel>
 
