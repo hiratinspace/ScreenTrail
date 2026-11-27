@@ -45,14 +45,14 @@
     <sys:Double x:Key="Layout.hud-control">32</sys:Double>
     <sys:Double x:Key="Layout.content-max-width">760</sys:Double>
     <sys:Double x:Key="Layout.envelope-label">52</sys:Double>
-    <sys:Double x:Key="Layout.field-narrow">72</sys:Double>
+    <sys:Double x:Key="Layout.field-minutes">72</sys:Double>
     <sys:Double x:Key="Layout.side-column">300</sys:Double>
     <sys:Double x:Key="Layout.pane-min-height">300</sys:Double>
     <sys:Double x:Key="Layout.strip-min-height">416</sys:Double>
     <sys:Double x:Key="Layout.rail-width">280</sys:Double>
     <sys:Double x:Key="Layout.rail-width-narrow">232</sys:Double>
     <sys:Double x:Key="Layout.rail-narrow-below">1180</sys:Double>
-    <sys:Double x:Key="Layout.field-wide">320</sys:Double>
+    <sys:Double x:Key="Layout.field-wide">360</sys:Double>
     <sys:Double x:Key="Layout.slider-width">264</sys:Double>
     <sys:Double x:Key="Layout.pane-padding-narrow">16</sys:Double>
     <sys:Double x:Key="Layout.pane-gap">16</sys:Double>
@@ -68,6 +68,14 @@
     <sys:Double x:Key="Layout.button-min-width-compact">56</sys:Double>
     <sys:Double x:Key="Layout.control-padding-x-compact">8</sys:Double>
     <sys:Double x:Key="Layout.keycap-height">20</sys:Double>
+    <sys:Double x:Key="Layout.field">240</sys:Double>
+    <sys:Double x:Key="Layout.field-narrow">160</sys:Double>
+    <sys:Double x:Key="Layout.dropdown-max-height">320</sys:Double>
+    <sys:Double x:Key="Layout.choice-mark">18</sys:Double>
+    <sys:Double x:Key="Layout.segment-height">26</sys:Double>
+    <sys:Double x:Key="Layout.slider-thumb">16</sys:Double>
+    <sys:Double x:Key="Layout.track-height">4</sys:Double>
+    <sys:Double x:Key="Layout.meter-width">160</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>
@@ -95,4 +103,5 @@
     <sys:Double x:Key="Focus.offset">1</sys:Double>
     <sys:Double x:Key="Border.width">1</sys:Double>
     <Thickness x:Key="Thickness.border">1</Thickness>
+    <Thickness x:Key="Thickness.focus">2</Thickness>
 </ResourceDictionary>

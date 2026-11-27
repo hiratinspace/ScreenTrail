@@ -176,7 +176,7 @@
                 <Border Grid.Column="1" Margin="0,2,0,2">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Envelope.Label}" Text="Time" />
-                        <TextBox Width="{DynamicResource Layout.field-narrow}"
+                        <TextBox Width="{DynamicResource Layout.field-minutes}"
                                  VerticalAlignment="Center"
                                  Style="{StaticResource Input.Default}"
                                  Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}"

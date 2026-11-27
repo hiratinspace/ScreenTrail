@@ -2299,7 +2299,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-09 to B-15, B-17 to B-19, A-18/B-20, A-19/B-21, B-23, B-30, B-13/E-26
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the focus edge (B-09), the hover edge (B-10), minimum heights (B-11), `theme:Field` error and placeholder (B-12, B-13), labels and examples on the Privacy and Integrations fields (B-13/E-26), the 4 px label gap (B-14), three field widths (B-15), the combo (B-17), check box and radio states (B-18) and width (B-19), the check chip (A-18/B-20), the segments (A-19/B-21), the slider (B-23) and the meter with a new clipping signal (B-30). Laptop: the combo popup's shadow and ClearType, rings hugging the choices on Capture, the Also line wrapping at 960, the As line in high contrast, the retention slider drag, the meter clipping. Left for their tickets: moving each Settings error line into its field with `theme:Field.Error` (B-12, ST-140).
 
 ### **ST-130 · Feedback and surfaces: Badge, Banner, EmptyState, Toast, Tooltip, KeyCap, scroll bar, ProgressRing, Skeleton, Save bar; dead styles removed**
 - **Findings:** A-02/B-24, B-25, A-11/A-12/B-26, A-08, A-28/B-27/D-18, B-28, B-31, A-33/B-29, B-46, B-16, B-22

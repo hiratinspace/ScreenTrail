@@ -161,4 +161,6 @@
     <sys:String x:Key="Token.theme">dark</sys:String>
     <DropShadowEffect x:Key="Elevation.popup" Color="#000000" BlurRadius="16" ShadowDepth="4" Direction="270" Opacity="0.4" />
     <DropShadowEffect x:Key="Elevation.float" Color="#000000" BlurRadius="24" ShadowDepth="8" Direction="270" Opacity="0.5" />
+    <Style x:Key="FocusVisual.input" />
+    <Thickness x:Key="Thickness.selected-edge">0</Thickness>
 </ResourceDictionary>

@@ -79,17 +79,17 @@
                  above the table they filter, once there is a session. They wrap rather than clip in a
                  narrow pane. Each list says what it filters by in its first entry ("Any status"). -->
             <WrapPanel Margin="0,16,0,0" Orientation="Horizontal" Visibility="{Binding FiltersVisibility}">
-                <ComboBox Width="160"
+                <ComboBox Width="{DynamicResource Layout.field-narrow}"
                           Margin="0,0,8,8"
                           ItemsSource="{x:Static core:HistoryFilters.StatusChoices}"
                           SelectedItem="{Binding StatusChoice}"
                           AutomationProperties.Name="Filter by status" />
-                <ComboBox Width="160"
+                <ComboBox Width="{DynamicResource Layout.field-narrow}"
                           Margin="0,0,8,8"
                           ItemsSource="{Binding ToolChoices}"
                           SelectedItem="{Binding ToolChoice}"
                           AutomationProperties.Name="Filter by tool" />
-                <ComboBox Width="160"
+                <ComboBox Width="{DynamicResource Layout.field-narrow}"
                           Margin="0,0,8,8"
                           ItemsSource="{x:Static core:HistoryFilters.PeriodChoices}"
                           SelectedItem="{Binding PeriodChoice}"

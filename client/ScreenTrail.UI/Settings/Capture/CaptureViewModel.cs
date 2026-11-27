@@ -107,6 +107,10 @@ public sealed partial class CaptureViewModel : ObservableObject
     [ObservableProperty]
     public partial string MicrophoneLevelStatus { get; set; } = MicrophoneLevelWatch.NotWatching;
 
+    /// <summary>The voice is clipping: the meter's fill turns amber, and the status says so.</summary>
+    [ObservableProperty]
+    public partial bool MicrophoneClipping { get; set; }
+
     /// <summary>
     /// The pane's word on whether the microphone card is being looked at: on screen, scrolled into view,
     /// the window in front and not minimised. The level is asked for exactly while this is true.
@@ -279,6 +283,7 @@ public sealed partial class CaptureViewModel : ObservableObject
 
         MicrophoneLevel = _level.Level * 100;
         MicrophoneLevelStatus = _level.Status;
+        MicrophoneClipping = _level.Clipping;
     }
 
     private void ShowMicrophoneNote()

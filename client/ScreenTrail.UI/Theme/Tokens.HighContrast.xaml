@@ -122,4 +122,22 @@
     <!-- No shadows in high contrast: a floating surface is told apart by its WindowFrame outline. -->
     <x:Null x:Key="Elevation.popup" />
     <x:Null x:Key="Elevation.float" />
+    <!-- A text field's keyboard ring: kept here alone. The field's 2 px edge is Highlight, close in luminance
+         to the frame colour, so on a scaled screen the edge alone was too faint to see (ST-084). -->
+    <!-- A chosen segment keeps a 2 px Highlight edge: its tint is the window colour here. -->
+    <Thickness x:Key="Thickness.selected-edge">2</Thickness>
+    <Style x:Key="FocusVisual.input">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               RadiusX="9"
+                               RadiusY="9"
+                               SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource Brush.accent.primary}"
+                               StrokeThickness="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 </ResourceDictionary>

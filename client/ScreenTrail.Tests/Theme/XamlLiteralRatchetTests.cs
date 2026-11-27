@@ -202,7 +202,7 @@ public sealed partial class XamlLiteralRatchetTests
         Assert.Contains("Layout.row-height", Hint("Height", "36"), StringComparison.Ordinal);
         Assert.Contains("Icon.control", Hint("Width", "16"), StringComparison.Ordinal);
         Assert.Contains("Layout.content-max-width", Hint("MaxWidth", "760"), StringComparison.Ordinal);
-        Assert.Null(Kind("Width", "160"));
+        Assert.Null(Kind("Width", "176"));
         Assert.Null(Kind("Width", "*"));
         Assert.Null(Kind("Width", "Auto"));
         Assert.Null(Kind("Width", "NaN"));
