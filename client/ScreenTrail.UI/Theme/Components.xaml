@@ -1855,12 +1855,54 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
     </Style>
-    <!-- A nav row: 36 px, the selected one tinted with the accent bar at its left edge (the keyless row's),
-         and its name read with the count of its changes. -->
+    <!-- A nav row (design system 10.4, review finding B-44): 32 high whether or not it holds a count (the
+         20 px badge fits, so no row grows when a change appears), radius 6, 12 at the sides, rows 2 apart.
+         Its words in text.secondary at rest; selected, bg.selected with the selection bar and the name in
+         Body strong text.primary (Settings.NavLabel). Its name is read with the count of its changes. -->
     <Style x:Key="Settings.NavItem" BasedOn="{StaticResource {x:Type ListBoxItem}}" TargetType="ListBoxItem">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
-        <Setter Property="Padding" Value="14,6,10,6" />
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.nav-row-height}" />
+        <Setter Property="Height" Value="{DynamicResource Layout.nav-row-height}" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Margin" Value="0,0,0,2" />
         <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Grid>
+                        <Border x:Name="Chrome"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{DynamicResource Radius.control}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                        </Border>
+                        <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- A nav row's name: text.secondary at rest, Body strong text.primary on the selected row. -->
+    <Style x:Key="Settings.NavLabel" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+                <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <!-- A change not yet saved, beside a card's heading (design system 10.5 and issue 8, review finding B-25):

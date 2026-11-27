@@ -32,7 +32,8 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="188" />
+            <!-- The nav's width (layout.settings-nav-width) is on the nav: a column cannot take a number resource. -->
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -47,6 +48,7 @@
         <ListBox x:Name="Nav"
                  Grid.Row="1"
                  Grid.Column="0"
+                 Width="{DynamicResource Layout.settings-nav-width}"
                  Margin="0,16,0,0"
                  VerticalAlignment="Top"
                  Style="{StaticResource Settings.Nav}"
@@ -62,7 +64,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" VerticalAlignment="Center" Style="{StaticResource Text.Body}" TextWrapping="NoWrap" Text="{Binding Label}" />
+                        <TextBlock Grid.Column="0" Style="{StaticResource Settings.NavLabel}" Text="{Binding Label}" />
                         <!-- How many changes the section holds: the number in a badge, read in the item's name. -->
                         <ContentControl Grid.Column="1"
                                         Margin="8,0,0,0"
