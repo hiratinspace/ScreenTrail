@@ -111,6 +111,24 @@ public sealed class EnvelopeLayoutTests
         Assert.True(222 + 16 + paneFloor + 16 + ScreenTrail.Core.Review.SessionTimeline.ExpandedHeight <= 752);
     }
 
+    /// <summary>
+    /// Review finding E-27: text cut short can still be read whole. The Review title and every All sessions
+    /// cell carry their full text as a tooltip (the chip's one-line form is StatusChipTests', the rounding
+    /// hint's EnvelopeTests').
+    /// </summary>
+    [Fact]
+    public void TrimmedTextCarriesItsWholeTextAsATooltip()
+    {
+        var title = Load("Review", "ReviewPane.xaml").Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute("Text") == "{Binding Title}");
+        Assert.Equal("CharacterEllipsis", (string?)title.Attribute("TextTrimming"));
+        Assert.Equal("{Binding Title}", (string?)title.Attribute("ToolTip"));
+
+        var cell = Load("History", "HistoryPane.xaml").Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "History.CellText");
+        var setters = cell.Elements(Wpf + "Setter").ToDictionary(s => (string)s.Attribute("Property")!, s => (string?)s.Attribute("Value"));
+        Assert.Equal("CharacterEllipsis", setters["TextTrimming"]);
+        Assert.Equal("{Binding Text, RelativeSource={RelativeSource Self}}", setters["ToolTip"]);
+    }
+
     private static XElement Named(XElement root, string name) =>
         root.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
 
