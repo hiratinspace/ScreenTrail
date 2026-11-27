@@ -8,9 +8,9 @@ namespace ScreenTrail.Core.History;
 /// to anyone who does not see the hue; the hue only agrees with them (Spec §3 Badge, §7).
 /// </summary>
 /// <param name="Tone">
-/// <c>Accent</c> (a draft), <c>Published</c>, <c>Paused</c> (partial capture, not confirmed),
-/// <c>Offline</c> (no draft yet) or <c>Muted</c> (discarded, or a state this build does not know). The view
-/// maps each to its <c>state.*</c> token on the content surfaces and its <c>shell.*</c> token on the frame.
+/// The badge's tone in the design system's words (10.5): <c>Accent</c> (a draft), <c>Success</c> (published),
+/// <c>Warning</c> (partial capture, not confirmed) or <c>Neutral</c> (no draft yet, discarded, or a state this
+/// build does not know). The view's one <c>Badge</c> style draws each tone's fill, edge and glyph colour.
 /// </param>
 public sealed record StatusBadge(string Word, string Glyph, string Tone);
 
@@ -24,19 +24,19 @@ public static class StatusBadges
     public static readonly StatusBadge Draft = new("Draft", "", "Accent");
 
     /// <summary>Check mark.</summary>
-    public static readonly StatusBadge Published = new("Published", "", "Published");
+    public static readonly StatusBadge Published = new("Published", "", "Success");
 
     /// <summary>Warning triangle: the note may be missing steps.</summary>
-    public static readonly StatusBadge Partial = new("Partial capture", "", "Paused");
+    public static readonly StatusBadge Partial = new("Partial capture", "", "Warning");
 
     /// <summary>Stopwatch: still being captured, being drafted, or a failed draft.</summary>
-    public static readonly StatusBadge Pending = new("No draft yet", "", "Offline");
+    public static readonly StatusBadge Pending = new("No draft yet", "", "Neutral");
 
     /// <summary>Delete (bin).</summary>
-    public static readonly StatusBadge Discarded = new("Discarded", "", "Muted");
+    public static readonly StatusBadge Discarded = new("Discarded", "", "Neutral");
 
     /// <summary>Unknown (a question mark): a publish that may have reached the ticket (contract v10).</summary>
-    public static readonly StatusBadge NotConfirmed = new(SessionHistory.NotConfirmedLabel, "", "Paused");
+    public static readonly StatusBadge NotConfirmed = new(SessionHistory.NotConfirmedLabel, "", "Warning");
 
     /// <summary>The badge for a wire status (<c>draft</c>, <c>published</c>, <c>partial</c>, <c>pending</c>, <c>discarded</c>).</summary>
     public static StatusBadge Of(string? status)
@@ -50,7 +50,7 @@ public static class StatusBadges
 
         // A state this build does not know: its own word, with the info glyph, and no hue that claims anything.
         var word = string.IsNullOrWhiteSpace(status) ? "Unknown" : char.ToUpperInvariant(status[0]) + status[1..];
-        return new StatusBadge(word, "", "Muted");
+        return new StatusBadge(word, "", "Neutral");
     }
 
     public static StatusBadge Of(SessionStatus status) => status switch

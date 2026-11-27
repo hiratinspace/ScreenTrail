@@ -76,6 +76,16 @@
     <sys:Double x:Key="Layout.slider-thumb">16</sys:Double>
     <sys:Double x:Key="Layout.track-height">4</sys:Double>
     <sys:Double x:Key="Layout.meter-width">160</sys:Double>
+    <sys:Double x:Key="Layout.badge-height">20</sys:Double>
+    <sys:Double x:Key="Layout.empty-disc">56</sys:Double>
+    <sys:Double x:Key="Layout.empty-disc-rail">40</sys:Double>
+    <sys:Double x:Key="Layout.empty-max-width">400</sys:Double>
+    <sys:Double x:Key="Layout.toast-min-width">280</sys:Double>
+    <sys:Double x:Key="Layout.toast-max-width">420</sys:Double>
+    <sys:Double x:Key="Layout.tooltip-max-width">320</sys:Double>
+    <sys:Double x:Key="Layout.scroll-thumb-hover">8</sys:Double>
+    <sys:Double x:Key="Layout.scroll-thumb-min">32</sys:Double>
+    <sys:Double x:Key="Layout.save-bar-height">48</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>

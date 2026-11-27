@@ -34,12 +34,12 @@
                 <RadioButton Margin="0,8,0,0" GroupName="Scope" Content="Remote-tool windows and admin tools (Recommended)" IsChecked="{Binding RemoteToolsOnly}" IsEnabled="{Binding ScopeEditable}" />
                 <RadioButton Margin="0,4,0,0" GroupName="Scope" Content="All windows during a session" IsChecked="{Binding AllWindows}" IsEnabled="{Binding ScopeEditable}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding ScopeLockedNote, Mode=OneTime}" Visibility="{Binding ScopeLockVisibility}" />
-                <Border Style="{StaticResource Banner.Warning}" Margin="0,8,0,0" Visibility="{Binding ScopeWarningVisibility}">
+                <ContentControl Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Margin="0,8,0,0" Visibility="{Binding ScopeWarningVisibility}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding ScopeWarning}" controls:LiveRegion.Setting="Assertive" />
                         <Button Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" theme:Density.Compact="True" Content="I understand, capture all windows" Command="{Binding ConfirmAllWindowsCommand}" />
                     </StackPanel>
-                </Border>
+                </ContentControl>
             </StackPanel>
         </Border>
 
@@ -120,9 +120,9 @@
                         </ComboBox.ItemContainerStyle>
                     </ComboBox>
                     <!-- A state, not a hint (v0.7.1): the in-card warning banner the scope warning uses. -->
-                    <Border Margin="0,8,0,0" Style="{StaticResource Banner.Warning}" Visibility="{Binding MicrophoneNoteVisibility}">
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Visibility="{Binding MicrophoneNoteVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding MicrophoneNote}" controls:LiveRegion.Setting="Polite" />
-                    </Border>
+                    </ContentControl>
                     <StackPanel Margin="0,12,0,0" Orientation="Horizontal">
                         <TextBlock VerticalAlignment="Center" Style="{StaticResource Text.Label}" Text="Level" />
                         <ProgressBar Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Meter.Level}" Value="{Binding MicrophoneLevel, Mode=OneWay}" theme:Meter.Clipping="{Binding MicrophoneClipping, Mode=OneWay}" AutomationProperties.Name="Microphone level" AutomationProperties.HelpText="{Binding MicrophoneLevelStatus}" />

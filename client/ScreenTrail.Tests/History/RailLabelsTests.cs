@@ -94,11 +94,11 @@ public sealed class RailLabelsTests
 
     [Theory]
     [InlineData("draft", "Draft", "Accent")]
-    [InlineData("published", "Published", "Published")]
-    [InlineData("partial", "Partial capture", "Paused")]
-    [InlineData("pending", "No draft yet", "Offline")]
-    [InlineData("discarded", "Discarded", "Muted")]
-    [InlineData("archived", "Archived", "Muted")]
+    [InlineData("published", "Published", "Success")]
+    [InlineData("partial", "Partial capture", "Warning")]
+    [InlineData("pending", "No draft yet", "Neutral")]
+    [InlineData("discarded", "Discarded", "Neutral")]
+    [InlineData("archived", "Archived", "Neutral")]
     public void EveryStatusHasAWordAGlyphAndAHue(string status, string word, string tone)
     {
         var badge = StatusBadges.Of(status);
@@ -123,7 +123,7 @@ public sealed class RailLabelsTests
     public void NotConfirmedHasItsOwnGlyphBesideTheWarningHue()
     {
         Assert.Equal(SessionHistory.NotConfirmedLabel, StatusBadges.NotConfirmed.Word);
-        Assert.Equal("Paused", StatusBadges.NotConfirmed.Tone);
+        Assert.Equal("Warning", StatusBadges.NotConfirmed.Tone);
         Assert.False(string.IsNullOrEmpty(StatusBadges.NotConfirmed.Glyph));
     }
 

@@ -1,6 +1,7 @@
 <Window x:Class="ScreenTrail.UI.Onboarding.OnboardingWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         xmlns:activation="clr-namespace:ScreenTrail.UI.Settings.Activation"
         xmlns:integrations="clr-namespace:ScreenTrail.UI.Settings.Integrations"
@@ -162,16 +163,9 @@
                     <!-- 1. Welcome -->
                     <StackPanel Visibility="{Binding WelcomeVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" FontSize="{DynamicResource Size.lg}" TextWrapping="Wrap" Text="ScreenTrail watches your remote-support sessions and drafts the ticket note for you: what you did, in order, with the screenshots that show it." />
-                        <Border Margin="0,24,0,0" Style="{StaticResource Banner.Info}">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <controls:Glyph Grid.Column="0" Margin="0,0,12,0" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.accent.primary}" Text="{StaticResource Icon.Lock}" />
-                                <TextBlock Grid.Column="1" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" TextWrapping="Wrap" Text="Nothing is published without your review." />
-                            </Grid>
-                        </Border>
+                        <ContentControl Margin="0,24,0,0" Style="{StaticResource Banner}" theme:Banner.Glyph="{StaticResource Icon.Lock}">
+                            <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="Wrap" Text="Nothing is published without your review." />
+                        </ContentControl>
                         <TextBlock Margin="0,24,0,0" Style="{StaticResource Text.Secondary}" TextWrapping="Wrap" Text="Setup takes about five minutes: activate this device, check what the machine allows, pick your remote tools, connect your PSA if you want to, and try a session." />
                     </StackPanel>
 

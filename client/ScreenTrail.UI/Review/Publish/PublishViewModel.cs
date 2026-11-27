@@ -30,6 +30,8 @@ public sealed record ResultRow(PublishResultRow Row, string? Detail = null)
     /// <summary>The state in a word beside the glyph: Sent, Failed, Not confirmed.</summary>
     public string Badge => Row.Badge;
 
+    public string BadgeTone => Row.BadgeTone;
+
     public Uri? Link => Row.Link;
 
     public string? Error => Row.Error;

@@ -72,6 +72,7 @@ public sealed class PublishResultRowsTests
         Assert.Equal(mark, row.Mark);
         Assert.Equal(badge, row.Badge);
         Assert.Equal(spoken, row.MarkName);
+        Assert.Equal(state switch { ResultState.Sent => "Success", ResultState.Failed => "Danger", _ => "Warning" }, row.BadgeTone);
     }
 
     [Fact]

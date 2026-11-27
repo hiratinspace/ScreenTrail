@@ -52,40 +52,15 @@
                 <DataTemplate>
                     <!-- Announced from its words below: a Border has no automation peer, so a live region on it
                          reached no screen reader (ST-084). -->
-                    <Border Margin="0,0,0,8">
-                        <Border.Style>
-                            <Style TargetType="Border" BasedOn="{StaticResource Banner.Info}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsWarning}" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <!-- A Grid, not a horizontal StackPanel: a StackPanel measures its children with
-                             infinite width, so TextWrapping never fires and the sentence is cut off at the
-                             pane edge mid-word. -->
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Style="{StaticResource Text.Body}"
-                                       Text="{Binding Glyph}"
-                                       Margin="0,0,8,0"
-                                       VerticalAlignment="Top" />
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Style="{StaticResource Text.Label}"
-                                           Text="{Binding Kind}" />
-                                <TextBlock Style="{StaticResource Text.Body}"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding Text}"
-                                           controls:LiveRegion.Setting="Polite" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                    <!-- The tone's glyph says which kind it is, so the 12 px "Warning" and "Note" words are gone
+                         (review finding B-26); a screen reader still hears the kind first (Spoken). -->
+                    <ContentControl Margin="0,0,0,8" Style="{StaticResource Banner}" theme:Banner.Tone="{Binding Tone}">
+                        <TextBlock Style="{StaticResource Text.Body}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding Text}"
+                                   AutomationProperties.Name="{Binding Spoken}"
+                                   controls:LiveRegion.Setting="Polite" />
+                    </ContentControl>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </controls:Repeater>
@@ -96,11 +71,8 @@
                     Margin="32,0"
                     VerticalAlignment="Center"
                     Visibility="{Binding DraftFailed, Converter={StaticResource Visible}}">
-            <Border Width="56"
-                    Height="56"
-                    HorizontalAlignment="Center"
-                    Background="{DynamicResource Brush.bg.danger}"
-                    CornerRadius="28">
+            <!-- A failure keeps its danger tint: it is a state to act on, not an empty pane. -->
+            <Border Style="{StaticResource EmptyState.Disc}" Background="{DynamicResource Brush.bg.danger}">
                 <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                            Foreground="{DynamicResource Brush.state.danger}"
                            Text="{StaticResource Icon.Warning}" />
@@ -128,14 +100,8 @@
                     Margin="32,0"
                     VerticalAlignment="Center"
                     Visibility="{Binding DraftPending, Converter={StaticResource Visible}}">
-            <Border Width="56"
-                    Height="56"
-                    HorizontalAlignment="Center"
-                    Background="{DynamicResource Brush.bg.selected}"
-                    CornerRadius="28">
-                <controls:Glyph Style="{StaticResource EmptyState.Icon}"
-                           Foreground="{DynamicResource Brush.accent.primary}"
-                           Text="{StaticResource Icon.Sync}" />
+            <Border Style="{StaticResource EmptyState.Disc}">
+                <controls:Glyph Style="{StaticResource EmptyState.Icon}" Text="{StaticResource Icon.Sync}" />
             </Border>
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"
@@ -435,9 +401,10 @@
         <!-- A screenshot deleted from a step's row (v0.6.8), or in the strip a moment ago: the strip's own
              five-second toast, here where the technician is looking, at the foot of the note and over it,
              so nothing moves when it comes and goes. Ctrl+Z is the same undo. -->
-        <Border Grid.Row="2"
-                Margin="24,0,24,12"
-                HorizontalAlignment="Left"
+        <!-- Bottom right of the pane, 24 from both edges (design system 10.6), over the note, not on step 1. -->
+        <ContentControl Grid.Row="2"
+                Margin="0,0,24,24"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Style="{StaticResource Toast}"
                 Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
@@ -459,7 +426,7 @@
                     </StackPanel>
                 </Button>
             </StackPanel>
-        </Border>
+        </ContentControl>
 
         <!-- Under the note (Spec v0.6.0 §5 S3): the masking count and the save state, "2 items masked, none
              left to review · Saved"; then the chords for this pane and the way to the whole strip. -->

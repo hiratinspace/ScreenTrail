@@ -163,4 +163,5 @@
     <DropShadowEffect x:Key="Elevation.float" Color="#0F1720" BlurRadius="24" ShadowDepth="8" Direction="270" Opacity="0.18" />
     <Style x:Key="FocusVisual.input" />
     <Thickness x:Key="Thickness.selected-edge">0</Thickness>
+    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>
 </ResourceDictionary>

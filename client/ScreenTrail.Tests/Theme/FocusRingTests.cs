@@ -26,7 +26,6 @@ public sealed class FocusRingTests
     [Theory]
     [InlineData("CheckBox", "FocusRing.Small")]
     [InlineData("RadioButton", "FocusRing.Small")]
-    [InlineData("controls:ToggleSwitch", "FocusRing.Pill")]
     public void EachShapeTakesItsOwnRing(string target, string ring)
     {
         var style = Components().Elements(Wpf + "Style").Single(s => s.Attribute(X + "Key") is null && (string?)s.Attribute("TargetType") == target);

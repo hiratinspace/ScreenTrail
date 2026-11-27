@@ -65,7 +65,10 @@ public sealed class DialogAndSheetControlsTests
     {
         var sheet = Load("Shell", "ShortcutSheet.xaml");
 
-        Assert.Contains(sheet.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource KeyCap.Sheet}");
+        // One key cap definition, the theme's, and no comma drawn between alternatives (review finding B-31).
+        Assert.Contains(sheet.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource KeyCap}");
+        Assert.DoesNotContain(sheet.Descendants(Wpf + "Style"), s => (string?)s.Attribute(X + "Key") == "KeyCap.Sheet");
+        Assert.DoesNotContain(sheet.Descendants(), e => (string?)e.Attribute("Text") == "{Binding After}");
         Assert.Contains(sheet.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Sheet.GroupHeading}");
 
         // A line's caps are read as one text, named by the keys with "or" between alternatives.

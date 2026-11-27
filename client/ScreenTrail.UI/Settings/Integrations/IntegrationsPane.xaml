@@ -16,14 +16,16 @@
                         <TextBlock Style="{StaticResource Text.TileHeading}" Text="{Binding Title}" />
                         <ContentControl Margin="8,0,0,0"
                                         VerticalAlignment="Center"
-                                        Style="{StaticResource Badge.Published}"
+                                        Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Success"
                                         Content="Connected"
                                         Visibility="{Binding ConnectedBadgeVisibility}" />
                         <!-- In Connected's place when the last check failed (v0.7.1): the warning tint, so
                              the badge never says Connected over a credential that did not work. -->
                         <ContentControl Margin="8,0,0,0"
                                         VerticalAlignment="Center"
-                                        Style="{StaticResource Badge.Unconfirmed}"
+                                        Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Warning"
                                         Content="Check failed"
                                         Visibility="{Binding CheckFailedBadgeVisibility}" />
                     </StackPanel>
@@ -69,9 +71,9 @@
 
     <!-- No scroller of its own: the Settings page scrolls, and a second scroller inside it held the wheel. -->
     <StackPanel MaxWidth="{DynamicResource Layout.content-max-width}" HorizontalAlignment="Stretch">
-        <Border Style="{StaticResource Banner.Warning}" Margin="0,0,0,12" Visibility="{Binding NoticeVisibility}">
+        <ContentControl Style="{StaticResource Banner}" theme:Banner.Tone="Warning" Margin="0,0,0,12" Visibility="{Binding NoticeVisibility}">
             <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding Notice}" controls:LiveRegion.Setting="Polite" />
-        </Border>
+        </ContentControl>
 
         <!-- What the backend lists beyond the two cards, by name: its Development demo (ST-090), named so
              nobody takes it for ConnectWise or Hudu, or a provider this version does not know. -->
@@ -84,7 +86,8 @@
                                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="{Binding Title}" />
                                 <ContentControl Margin="8,0,0,0"
                                                 VerticalAlignment="Center"
-                                                Style="{StaticResource Badge.Published}"
+                                                Style="{StaticResource Badge}"
+                                theme:Badge.Tone="Success"
                                                 Content="Connected"
                                                 Visibility="{Binding BadgeVisibility}" />
                             </StackPanel>

@@ -60,6 +60,9 @@ function wpfColors(t, theme) {
   // A chosen segment's edge (design system 10.3, review finding B-21): none in light and dark, where its tint
   // says it; 2 px Highlight in high contrast, where the tint is the window colour.
   lines.push('    <Thickness x:Key="Thickness.selected-edge">0</Thickness>');
+  // A scroll bar's thumb at rest (design system 10.8, review findings A-33, B-29): 4 wide, 8 while the pointer
+  // is over its track; high contrast keeps it 8 at all times.
+  lines.push('    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>');
   lines.push('</ResourceDictionary>');
   return lines.join('\n');
 }

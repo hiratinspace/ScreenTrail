@@ -2305,7 +2305,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-02/B-24, B-25, A-11/A-12/B-26, A-08, A-28/B-27/D-18, B-28, B-31, A-33/B-29, B-46, B-16, B-22
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: one Badge with a tone and glyph (A-02/B-24), the grey changed mark (B-25), one Banner with a tone, title and glyph (A-11/A-12/B-26), the card-free empty state (A-08), the undo toast with its shadow behind the words (A-28/B-27/D-18), the tooltip and its timing (B-28), the one key cap (B-31), the thin scroll thumb (A-33/B-29), the Save bar and its Saving state (B-46), and the unused styles deleted (B-16) with the toggle switch (B-22); the new Skeleton, shown by the rail while it first asks (the rest of A-08). Laptop: the rail and table badges side by side in light and dark, the service-down bar and receipt banners, the toast and tooltip text for ClearType and the tooltip's corners and shadow, the tooltip delay and keyboard focus, the scroll thumb growing over a list, a slow save showing the ring, the rail's skeleton rows while the service starts. Left for their tickets: the skeleton in All sessions, the draft being written and the ticket picker (ST-139, ST-138, ST-136); Divider and Card.Group with the first screens that use them (ST-140); the toast's countdown bar, the skeleton's fade into content and holding the ring still under reduced motion (the motion helper, ST-144).
 
 ### **ST-131 · One selection treatment and rows: rail, foot nav, Settings nav, onboarding steps, table, thumbnails, HC**
 - **Findings:** A-01, B-44, C-O3, A-03/D-25/E-27, A-04 to A-07, A-34, A-35/E-28, R-01

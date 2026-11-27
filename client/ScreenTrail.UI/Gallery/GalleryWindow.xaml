@@ -43,7 +43,6 @@
                     <Button Margin="8,0,0,0" Content="{StaticResource Icon.Settings}" Style="{StaticResource Button.Icon}" ToolTip="Settings" AutomationProperties.Name="Settings" />
                     <Button Margin="8,0,0,0" Content="Publish" IsEnabled="False" Style="{StaticResource Button.Primary}" ToolTip="Choose a ticket first" />
                     <Button Margin="8,0,0,0" Content="Retry" IsEnabled="False" Style="{StaticResource Button.Secondary}" />
-                    <Button Margin="16,0,0,0" Content="frame 2" Style="{StaticResource Chip}" />
                 </StackPanel>
 
                 <TextBlock Text="Choices" />
@@ -77,23 +76,13 @@
                              theme:Field.Placeholder="For example keepass" />
                 </StackPanel>
 
-                <TextBlock Text="Toggle" />
-                <StackPanel Style="{StaticResource Row}">
-                    <controls:ToggleSwitch IsChecked="True" />
-                    <TextBlock Margin="8,0,24,0" Style="{StaticResource Text.Body}" Text="Auto-start on remote session" VerticalAlignment="Center" />
-                    <controls:ToggleSwitch IsChecked="False" />
-                    <TextBlock Margin="8,0,24,0" Style="{StaticResource Text.Body}" Text="Email addresses" VerticalAlignment="Center" />
-                    <controls:ToggleSwitch IsChecked="True" IsLocked="True" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" Text="Local-only mode" VerticalAlignment="Center" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Muted}" Text="Set by your ScreenTrail owner" VerticalAlignment="Center" />
-                </StackPanel>
-
                 <TextBlock Text="Badges and state indicators" />
                 <StackPanel Style="{StaticResource Row}">
                     <ContentControl Content="Draft" Style="{StaticResource Badge}" />
-                    <ContentControl Margin="6,0,0,0" Content="Suggested" Style="{StaticResource Badge.Suggested}" />
-                    <ContentControl Margin="6,0,0,0" Content="Low confidence" Style="{StaticResource Badge.Confidence}" />
-                    <ContentControl Margin="6,0,0,0" Content="Published" Style="{StaticResource Badge.Published}" />
+                    <ContentControl Margin="8,0,0,0" Content="Suggested" Style="{StaticResource Badge}" theme:Badge.Tone="Accent" />
+                    <ContentControl Margin="8,0,0,0" Content="Low confidence" Style="{StaticResource Badge}" theme:Badge.Tone="Warning" theme:Badge.Glyph="{StaticResource Icon.Warning}" />
+                    <ContentControl Margin="8,0,0,0" Content="Published" Style="{StaticResource Badge}" theme:Badge.Tone="Success" theme:Badge.Glyph="{StaticResource Icon.Check}" />
+                    <ContentControl Margin="8,0,0,0" Content="Failed" Style="{StaticResource Badge}" theme:Badge.Tone="Danger" />
                     <Ellipse Margin="24,0,6,0" Style="{StaticResource StateDot}" />
                     <TextBlock Style="{StaticResource Text.Body}" Text="Recording" VerticalAlignment="Center" />
                     <Ellipse Margin="16,0,6,0" Fill="{DynamicResource Brush.state.paused}" Style="{StaticResource StateDot}" />
@@ -106,39 +95,28 @@
 
                 <TextBlock Text="Banners" />
                 <StackPanel Margin="0,6,0,14">
-                    <Border Style="{StaticResource Banner.Info}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="Drafted on this device only. Quality may be lower." />
-                    </Border>
-                    <Border Margin="0,8,0,0" Style="{StaticResource Banner.Warning}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="Capture started late or was interrupted. Some steps may be missing." />
-                    </Border>
-                    <Border Margin="0,8,0,0" Style="{StaticResource Banner.Error}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin." />
-                    </Border>
+                    <ContentControl Style="{StaticResource Banner}">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Drafted on this device only. Quality may be lower." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Success">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Published to ticket #48213." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Warning" theme:Banner.Title="Some steps may be missing">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="Capture started late or was interrupted." />
+                    </ContentControl>
+                    <ContentControl Margin="0,8,0,0" Style="{StaticResource Banner}" theme:Banner.Tone="Danger">
+                        <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="ConnectWise rejected the API key. Ask your ScreenTrail owner to update the ConnectWise connection in the web admin." />
+                    </ContentControl>
                 </StackPanel>
 
                 <TextBlock Text="Toast" />
                 <StackPanel Style="{StaticResource Row}">
-                    <Border Style="{StaticResource Toast}">
+                    <ContentControl Style="{StaticResource Toast}">
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{StaticResource Text.Body}" Text="Draft ready: Printer offline · Acme Dental" VerticalAlignment="Center" />
-                            <Button Margin="12,0,0,0" Content="Review" Style="{StaticResource Button.Secondary}" />
+                            <TextBlock Style="{StaticResource Text.Body}" Text="Deleted frame 2" VerticalAlignment="Center" />
+                            <Button Margin="12,0,0,0" Content="Undo" Style="{StaticResource Button.Secondary}" theme:Density.Compact="True" />
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-
-                <TextBlock Text="Status pill (HUD)" />
-                <StackPanel Style="{StaticResource Row}">
-                    <Border Style="{StaticResource StatusPill}">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Style="{StaticResource StateDot}" />
-                            <TextBlock Margin="8,0,12,0" FontWeight="{DynamicResource Weight.semibold}" Style="{StaticResource Text.Body}" Text="12:41" VerticalAlignment="Center" />
-                            <TextBlock Margin="0,0,12,0" Style="{StaticResource Text.Secondary}" Text="▂▄▆ mic" VerticalAlignment="Center" />
-                            <TextBlock Margin="0,0,12,0" Style="{StaticResource Text.Secondary}" Text="⛨ 3 redacted" VerticalAlignment="Center" />
-                            <Button Content="‖ Pause" Style="{StaticResource Pill.Control}" />
-                            <Button Margin="6,0,0,0" Content="■ Stop" Style="{StaticResource Pill.Control}" />
-                        </StackPanel>
-                    </Border>
+                    </ContentControl>
                 </StackPanel>
 
                 <TextBlock Text="Table" />
