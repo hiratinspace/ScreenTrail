@@ -125,23 +125,36 @@
 
         <!-- The company mapping table: the PSA's name for a company beside the Hudu company it is
              filed under, with how the backend decided (ST-097). Only with Hudu connected. -->
+        <!-- Review finding E-15: the two columns are named, and the sentence says who files the article.
+             The header and every row share their Auto columns' widths (Grid.IsSharedSizeScope), so the two
+             name columns and the badges line up down the list (B-42). -->
         <Border Style="{StaticResource Settings.Tile}" Visibility="{Binding MappingsVisibility}">
-            <StackPanel>
+            <StackPanel x:Name="MappingTable" Grid.IsSharedSizeScope="True">
                 <TextBlock Style="{StaticResource Text.TileHeading}" Text="Company mapping" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="A knowledge-base article is filed under the ticket's company in Hudu. An identical name is matched on its own; anything else is asked about the first time it is published, and remembered here." />
-                <TextBlock Margin="0,12,0,0" Style="{StaticResource Text.Muted}" Text="Nothing mapped yet. The first article for each company asks." Visibility="{Binding NoMappingsVisibility}" />
-                <controls:Repeater Margin="0,12,0,0" ItemsSource="{Binding Mappings}">
+                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="ScreenTrail files each KB article under the ticket's company in Hudu. Same names match by themselves. For any other, you are asked once, the first time, and the answer is kept here." />
+                <TextBlock Margin="0,12,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="No companies mapped yet. You are asked the first time you publish an article for a company." Visibility="{Binding NoMappingsVisibility}" />
+                <Grid x:Name="MappingHeader" Margin="0,12,0,4" Visibility="{Binding HasMappingsVisibility}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="Badge" />
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="Action" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource Text.Label}" Text="In ConnectWise" />
+                    <TextBlock Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource Text.Label}" Text="In Hudu" />
+                </Grid>
+                <controls:Repeater ItemsSource="{Binding Mappings}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,0,0,8">
+                            <Grid MinHeight="{DynamicResource Layout.row-height}">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="2*" />
                                     <ColumnDefinition Width="2*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Badge" />
+                                    <ColumnDefinition Width="Auto" SharedSizeGroup="Action" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Style="{StaticResource Text.Body}" Text="{Binding PsaCompany}" VerticalAlignment="Center" />
-                                <TextBlock Grid.Column="1" Style="{StaticResource Text.Body}" Text="{Binding DocCompanyName}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="0" Style="{StaticResource Text.Body}" TextTrimming="CharacterEllipsis" Text="{Binding PsaCompany}" ToolTip="{Binding PsaCompany}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Margin="8,0,0,0" Style="{StaticResource Text.Body}" TextTrimming="CharacterEllipsis" Text="{Binding DocCompanyName}" ToolTip="{Binding DocCompanyName}" VerticalAlignment="Center" />
                                 <ContentControl Grid.Column="2" Style="{StaticResource Badge}" Content="{Binding ConfidenceLabel}" VerticalAlignment="Center" />
                                 <Button Grid.Column="3"
                                         Margin="8,0,0,0"

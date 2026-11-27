@@ -86,4 +86,29 @@ public sealed class SettingsPolishTests
         Assert.DoesNotContain(line.Descendants(Wpf + "TextBlock"), t => t.Attribute("MaxWidth") is not null);
         Assert.DoesNotContain(pane.Descendants(), e => (string?)e.Attribute("Text") == "{Binding CheckMark}");
     }
+
+    /// <summary>
+    /// Review finding E-15 (with B-42's alignment): the mapping table names its columns, says who files the
+    /// article, and lines its rows up with the header through shared column sizes.
+    /// </summary>
+    [Fact]
+    public void TheMappingTableNamesItsColumnsAndLinesThemUp()
+    {
+        var pane = EmptyStateTests.View("Settings/Integrations", "IntegrationsPane.xaml");
+        var table = pane.Descendants(Wpf + "StackPanel").Single(p => (string?)p.Attribute(Xaml + "Name") == "MappingTable");
+        Assert.Equal("True", (string?)table.Attribute("Grid.IsSharedSizeScope"));
+        Assert.Contains(table.Elements(Wpf + "TextBlock"), t => ((string?)t.Attribute("Text"))?.StartsWith("ScreenTrail files each KB article", StringComparison.Ordinal) == true);
+        Assert.Contains(table.Elements(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "No companies mapped yet. You are asked the first time you publish an article for a company.");
+
+        var header = table.Elements(Wpf + "Grid").Single(g => (string?)g.Attribute(Xaml + "Name") == "MappingHeader");
+        Assert.Equal(["In ConnectWise", "In Hudu"], header.Elements(Wpf + "TextBlock").Select(t => (string?)t.Attribute("Text")));
+        var row = table.Descendants(Wpf + "DataTemplate").First().Elements(Wpf + "Grid").Single();
+        foreach (var grid in new[] { header, row })
+        {
+            var groups = grid.Descendants(Wpf + "ColumnDefinition").Select(c => (string?)c.Attribute("SharedSizeGroup")).ToList();
+            Assert.Equal([null, null, "Badge", "Action"], groups);
+        }
+
+        Assert.Equal("{DynamicResource Layout.row-height}", (string?)row.Attribute("MinHeight"));
+    }
 }

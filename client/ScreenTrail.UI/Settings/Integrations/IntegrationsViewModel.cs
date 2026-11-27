@@ -82,6 +82,10 @@ public sealed partial class IntegrationsViewModel : ObservableObject
     [ObservableProperty]
     public partial Visibility NoMappingsVisibility { get; set; } = Visibility.Collapsed;
 
+    /// <summary>The mapping table's column names, shown over the rows once there are any (review finding E-15).</summary>
+    [ObservableProperty]
+    public partial Visibility HasMappingsVisibility { get; set; } = Visibility.Collapsed;
+
     [ObservableProperty]
     public partial string NewPsaCompany { get; set; } = string.Empty;
 
@@ -173,6 +177,7 @@ public sealed partial class IntegrationsViewModel : ObservableObject
         }
 
         NoMappingsVisibility = _panel.CanMapCompanies && Mappings.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        HasMappingsVisibility = Mappings.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         CanAddMapping = NewPsaCompany.Trim().Length > 0 && NewDocCompany is not null;
     }
 }
