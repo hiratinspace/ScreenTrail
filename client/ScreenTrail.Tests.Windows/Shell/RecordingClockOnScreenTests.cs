@@ -179,7 +179,8 @@ public sealed class PillClockTests(TheApplication app)
                 Assert.Empty(heard);
 
                 var paused = await LiveRegionTests.HeardAsync(() => state.Observe(new CaptureStateSnapshot { State = CaptureStates.Paused, SessionId = "s1", Reason = "user", ElapsedMs = 8_000 }));
-                Assert.Contains("Paused. Press Ctrl+Alt+P to resume.", paused);
+                // The paused pill keeps the session's clock, and says it (review finding C-H4).
+                Assert.Contains("Paused. Press Ctrl+Alt+P to resume., 8 seconds", paused);
 
                 // Paused, nothing counts and nothing wakes.
                 time.Advance(TimeSpan.FromMinutes(1));

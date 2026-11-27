@@ -453,9 +453,10 @@ public partial class ShellWindow
         state.OpenSession("preview");
         await EachThemeAsync("shell-rail-empty");
 
-        // All sessions with none: the sentence as the screen's content, in place of the table.
+        // All sessions with none: the sentence as the screen's content, in place of the table. The sample is
+        // recording, so it is the sentence for a session under way (review finding E-16), as the app says it.
         state.Navigate(ShellView.History);
-        bool ComeUpEmpty() => _model.Content is History.HistoryViewModel { Rows.Count: 0 } history && history.Status == Core.History.SessionHistory.Empty;
+        bool ComeUpEmpty() => _model.Content is History.HistoryViewModel { Rows.Count: 0 } history && history.Status == Core.History.SessionHistory.EmptyWhile(state.Snapshot.KnownCapture);
         for (var waited = 0; waited < 2000 && !ComeUpEmpty(); waited += 50)
         {
             await SettleAsync();

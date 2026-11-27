@@ -118,6 +118,17 @@ public sealed partial class PillResourcesTests
     private static partial Regex StaticLookup();
 
     /// <summary>
+    /// The pill floats over the remote desktop, and the Windows audit holds its targets to 32 x 32: no
+    /// control on it, the card's Open in ScreenTrail included, takes the 28 px compact density.
+    /// </summary>
+    [Fact]
+    public void NothingOnThePillIsCompact()
+    {
+        var text = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        Assert.DoesNotContain("Density.Compact", text, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Review finding D-17: WPF drops to greyscale text in a transparent window, so each opaque surface on
     /// one asks for ClearType back: the pill and its card, the combo box's list and the tooltip.
     /// </summary>

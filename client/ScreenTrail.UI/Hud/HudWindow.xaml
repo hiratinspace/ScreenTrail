@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:hud="clr-namespace:ScreenTrail.UI.Hud"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
-        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         Title="ScreenTrail"
         SizeToContent="WidthAndHeight"
         WindowStyle="None"
@@ -340,8 +339,9 @@
                      focusable buttons with one name read as the same control twice to a screen reader
                      (Accessibility Insights, SiblingUniqueAndFocusable). -->
                 <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                    <!-- Default size, not compact as design system 10.10 says: the pill floats over the remote
+                         desktop and its targets are 32, as the audit holds. -->
                     <Button Style="{DynamicResource Button.Secondary}"
-                            theme:Density.Compact="True"
                             Command="{Binding ReviewCommand}"
                             Content="Open in ScreenTrail"
                             ToolTip="Open this session in ScreenTrail. It can be edited once the session is stopped."
