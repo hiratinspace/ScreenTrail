@@ -2329,7 +2329,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** C-H2 to C-H12, D-17
 - **Blocked By:** ST-127, ST-128, ST-130, ST-133
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings but the C-H6 shadow: no ribbon cap (C-H5), word and clock apart (C-H4), vector and icon state marks (C-H3), finishing up in no hue (C-H12), word trimmed with min 240 (C-H2), shield and "Masking 3" (C-H11), ringless buttons (C-H8) with muted glyphs (C-H7), Stop 8 from Pause (C-H9), the card (C-H10), 40 tall with a border.strong edge, 2 px in high contrast (C-H6), ClearType (D-17), unknown in the paused hue (amendment 21). Owner decisions taken: amendments 20, 21 and 24 as written (Stop stays one click). Left: the level 3 shadow (needs a click-through margin on the layered window), the send-delay countdown after Stop (outbox flow), the card opening upward in the bottom third (optional). Laptop: Lock and Hide on Windows 10 (MDL2), ClearType fringes on the pill and an open combo (check C2), the button states over a busy desktop in light, dark and high contrast, the pill at 40 with a long app name.
 
 ### **ST-135 · Tray menu and balloon wording**
 - **Findings:** C-T1 to C-T5, C-T7, D-31, E-13, E-14
