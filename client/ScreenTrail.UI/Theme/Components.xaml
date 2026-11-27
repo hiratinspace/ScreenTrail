@@ -411,95 +411,6 @@
         </Style.Triggers>
     </Style>
 
-    <!-- Chip: a small rounded button inside content, like a step's "frame 2". 28 px is the hit-target floor. -->
-    <Style x:Key="Chip" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Padding" Value="10,2" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="14"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          RecognizesAccessKey="True" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- Navigation tab in the shell's header. Tag="Selected" marks the current view: the words go to
-         text.primary and an accent bar sits under them, so the place is shown by shape as well as colour. -->
-    <Style x:Key="Nav.Item" TargetType="Button">
-        <Setter Property="MinHeight" Value="36" />
-        <Setter Property="Padding" Value="14,0" />
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderThickness" Value="0" />
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Grid>
-                        <Border x:Name="Chrome"
-                                Background="{TemplateBinding Background}"
-                                CornerRadius="{DynamicResource Radius.control}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"
-                                              RecognizesAccessKey="True" />
-                        </Border>
-                        <Rectangle x:Name="Indicator"
-                                   Width="20"
-                                   Height="3"
-                                   Margin="0,0,0,1"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Bottom"
-                                   RadiusX="1.5"
-                                   RadiusY="1.5"
-                                   Fill="{DynamicResource Brush.accent.primary}"
-                                   Visibility="Collapsed" />
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="Tag" Value="Selected">
-                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-                            <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
     <!-- Input / Search (design system 10.2). The validation message is a line below, never a dialog. Focus is
          a 2 px accent edge drawn over the 1 px one, so the text never moves (review finding B-09: the border
          thickened from 1 to 2 and the text shifted 1 px right and down), and no second ring sits outside it.
@@ -681,57 +592,6 @@
     <!-- The typed confirmations: a phrase to copy exactly, so it is set in the monospace face. -->
     <Style x:Key="Input.Mono" BasedOn="{StaticResource Input.Default}" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{DynamicResource Font.mono}" />
-    </Style>
-
-    <!-- Password box: the same chrome as a text box (Integrations' private key and API key). -->
-    <Style TargetType="PasswordBox">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Padding" Value="10,0" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="CaretBrush" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="SelectionBrush" Value="{DynamicResource Brush.accent.primary}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.control}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="PasswordBox">
-                    <Grid>
-                        <Border x:Name="Chrome"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="{DynamicResource Radius.control}"
-                                SnapsToDevicePixels="True">
-                            <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" />
-                        </Border>
-                        <Border x:Name="FocusEdge"
-                                BorderBrush="{DynamicResource Brush.accent.primary}"
-                                BorderThickness="{DynamicResource Thickness.focus}"
-                                CornerRadius="{DynamicResource Radius.control}"
-                                IsHitTestVisible="False"
-                                SnapsToDevicePixels="True"
-                                Visibility="Collapsed" />
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
-                        </Trigger>
-                        <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
     </Style>
 
     <!-- Check box: an 18 px rounded box with a drawn tick, filled with the accent when on. -->
@@ -2116,32 +1976,9 @@
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
     </Style>
 
-    <Style x:Key="Pill.Control" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
-        <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hud-control}" />
-        <Setter Property="Padding" Value="12,0" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            CornerRadius="16"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          RecognizesAccessKey="True" />
-                    </Border>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- The same pill for a ToggleButton. A style cannot be based on one for another target type, and
-         the filmstrip's blur toggle was based on Pill.Control: it parsed only when the pane was never
-         rendered, and threw the first time the shell hosted it (2026-09-25). Same setters, same
-         template; the checked look is the caller's, because what "on" means is theirs. -->
+    <!-- A pill ToggleButton (the filmstrip's blur toggle). Its own style: one based on a Button style threw
+         the first time the shell hosted the pane (2026-09-25). The checked look is the caller's, because
+         what "on" means is theirs. -->
     <Style x:Key="Pill.Toggle" TargetType="ToggleButton">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
         <Setter Property="MinWidth" Value="{DynamicResource Layout.hud-control}" />

@@ -15,7 +15,6 @@ public sealed class ControlEdgeTokensTests
     public static TheoryData<string, string> Fields => new()
     {
         { "Input.Default", "TextBox" },
-        { "", "PasswordBox" },
         { "", "ComboBox" },
     };
 
