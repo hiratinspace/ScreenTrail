@@ -14,13 +14,33 @@ namespace ScreenTrail.Tests.Hud;
 public sealed class HudStateTests
 {
     [Fact]
-    public void RecordingShowsTheTimer()
+    public void RecordingSaysRecordingAndShowsTheTimerInItsOwnPlace()
     {
         var hud = HudState.For(Capture(CaptureStates.Recording, elapsedMs: 761_000));
 
         Assert.Equal(HudTone.Recording, hud.State.Tone);
-        Assert.Equal("12:41", hud.State.Text);
+        Assert.Equal("Recording", hud.State.Text);
+        Assert.Equal("12:41", hud.Timer);
         Assert.Equal("●", hud.State.Glyph);
+    }
+
+    /// <summary>
+    /// Review finding C-H4: the clock stays, frozen, in every state of a running session, so the session's
+    /// length does not vanish exactly when the technician is deciding whether to resume; outside a session
+    /// there is no clock.
+    /// </summary>
+    [Fact]
+    public void ThePausedPillKeepsTheSessionsClockAndAnIdleOneHasNone()
+    {
+        var paused = HudState.For(Capture(CaptureStates.Paused, elapsedMs: 95_000, reason: CaptureReasons.User));
+        Assert.Equal("Paused", paused.State.Text);
+        Assert.Equal("01:35", paused.Timer);
+        Assert.Equal("Paused. Press Ctrl+Alt+P to resume., 1 minute 35 seconds", paused.Spoken);
+
+        Assert.Equal("04:00", HudState.For(Capture(CaptureStates.Suppressed, elapsedMs: 240_000, reason: CaptureReasons.PasswordField)).Timer);
+        Assert.Null(HudState.For(Capture(CaptureStates.Idle, elapsedMs: 95_000)).Timer);
+        Assert.Null(HudState.For(Capture(CaptureStates.Finalizing, elapsedMs: 95_000)).Timer);
+        Assert.Null(HudState.For(null).Timer);
     }
 
     /// <summary>

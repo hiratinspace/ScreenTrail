@@ -107,31 +107,26 @@
                                Text="{Binding StateGlyph}"
                                ToolTip="{Binding StateTooltip}" />
 
-                    <!-- The state in words while recording. The other states say theirs in StateText;
-                         recording's is the elapsed time, and a red dot beside a number is colour plus a
-                         clock, not a word. -->
-                    <TextBlock Margin="8,0,0,0" Text="Recording" FontWeight="{DynamicResource Weight.semibold}">
-                        <TextBlock.Style>
-                            <Style BasedOn="{StaticResource Hud.Text}" TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Tone}" Value="Recording">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-
-                    <TextBlock Margin="8,0,8,0"
+                    <!-- One instrument in one order in every state (review finding C-H4, design system 10.10):
+                         the state word in Body strong, then the session's clock in Body, frozen while paused.
+                         The word changes; the clock keeps its place, so the pill does not jump between a
+                         clock and a sentence. -->
+                    <TextBlock Margin="8,0,0,0"
                                Style="{StaticResource Hud.Text}"
                                FontWeight="{DynamicResource Weight.semibold}"
-                               Typography.NumeralAlignment="Tabular"
-                               Text="{Binding StateText}"
+                               Text="{Binding StateWord}"
                                ToolTip="{Binding StateTooltip}"
                                AutomationProperties.Name="{Binding SpokenState}"
                                controls:LiveRegion.Setting="Assertive"
                                controls:LiveRegion.Key="{Binding Announcement}" />
+
+                    <!-- Drawn without a peer of its own: the clock is already in the state's spoken name. -->
+                    <controls:Glyph x:Name="Clock"
+                                    Margin="8,0,0,0"
+                                    Style="{StaticResource Hud.Text}"
+                                    Typography.NumeralAlignment="Tabular"
+                                    Text="{Binding Timer}"
+                                    Visibility="{Binding ShowTimer, Converter={StaticResource Visible}}" />
 
                     <!-- The masking chip: screenshots still being masked. -->
                     <Border Style="{StaticResource Hud.Segment}"

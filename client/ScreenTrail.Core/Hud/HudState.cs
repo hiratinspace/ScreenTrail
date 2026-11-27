@@ -38,6 +38,17 @@ public sealed record HudSnapshot(
     public long? RecordingMs { get; init; }
 
     /// <summary>
+    /// How long the session has run, while one runs: recording, paused or suppressed, frozen while paused.
+    /// Null outside a session. The pill shows it in its own place after the state word in every one of
+    /// those states, so the session's length never vanishes while the technician decides whether to resume
+    /// (review finding C-H4).
+    /// </summary>
+    public long? SessionMs { get; init; }
+
+    /// <summary>The session's clock, mm:ss or h:mm:ss; null outside a session.</summary>
+    public string? Timer => SessionMs is { } ms ? HudState.Elapsed(ms) : null;
+
+    /// <summary>
     /// What a screen reader says for the pill (Spec §7: "Recording, 12 minutes 41 seconds, 3 items
     /// redacted"). The pill's words for every other state, then the microphone, the connection and the
     /// redaction backlog when they are worth saying. It was the fixed words "Capture state" until ST-084,
@@ -48,7 +59,7 @@ public sealed record HudSnapshot(
         get
         {
             var parts = new List<string> { Announcement };
-            if (RecordingMs is { } ms)
+            if (SessionMs is { } ms)
             {
                 parts.Add(HudState.SpokenDuration(ms));
             }
@@ -118,6 +129,12 @@ public static class HudState
             Visible: !hidden || !KnownIdle(capture))
         {
             RecordingMs = capture?.State == CaptureStates.Recording ? Math.Max(0, capture.ElapsedMs ?? 0) : null,
+            SessionMs = capture switch
+            {
+                { State: CaptureStates.Recording } => Math.Max(0, capture.ElapsedMs ?? 0),
+                { State: CaptureStates.Paused or CaptureStates.Suppressed, ElapsedMs: { } ms } => Math.Max(0, ms),
+                _ => null,
+            },
         };
     }
 
@@ -220,7 +237,8 @@ public static class HudState
 
         return capture.State switch
         {
-            CaptureStates.Recording => new HudSegment(HudTone.Recording, "●", Elapsed(capture.ElapsedMs)),
+            // The word, always: the clock has its own place after it (SessionMs, review finding C-H4).
+            CaptureStates.Recording => new HudSegment(HudTone.Recording, "●", "Recording"),
 
             CaptureStates.Paused => Paused(capture),
 

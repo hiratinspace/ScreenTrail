@@ -230,7 +230,7 @@ public sealed class RecordingClockTests
         time.Advance(TimeSpan.FromSeconds(5));
         var later = HudState.For(clock.Show(state.Snapshot.KnownCapture));
 
-        Assert.NotEqual(first.State.Text, later.State.Text);
+        Assert.NotEqual(first.Timer, later.Timer);
         Assert.Equal(first.Announcement, later.Announcement);
     }
 
@@ -323,8 +323,12 @@ public sealed class RecordingClockTests
         return (state, time, new RecordingClock(state, time));
     }
 
-    private static string Pill(ShellState state, RecordingClock clock) =>
-        HudState.For(clock.Show(state.Snapshot.KnownCapture)).State.Text;
+    // The clock while there is one (it has its own place after the state word, C-H4), else the words.
+    private static string Pill(ShellState state, RecordingClock clock)
+    {
+        var hud = HudState.For(clock.Show(state.Snapshot.KnownCapture));
+        return hud.Timer ?? hud.State.Text;
+    }
 
     private static CaptureStateSnapshot Recording(long elapsedMs, string session = "s1", string? tool = null) =>
         new() { State = CaptureStates.Recording, SessionId = session, ElapsedMs = elapsedMs, RemoteTool = tool };

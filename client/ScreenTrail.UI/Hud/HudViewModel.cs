@@ -130,7 +130,13 @@ public sealed partial class HudViewModel : ObservableObject
     /// <summary>Chevron up when open, down when closed.</summary>
     public string ExpandGlyph => Expanded ? "" : "";
 
-    public string StateText => Snapshot.State.Text;
+    /// <summary>The state in words: "Recording", "Paused", "Paused: password field" (review finding C-H4).</summary>
+    public string StateWord => Snapshot.State.Text;
+
+    /// <summary>The session's clock in its own place after the word, frozen while paused; null outside a session.</summary>
+    public string? Timer => Snapshot.Timer;
+
+    public bool ShowTimer => Snapshot.Timer is not null;
 
     public string StateGlyph => Snapshot.State.Glyph;
 
@@ -273,7 +279,9 @@ public sealed partial class HudViewModel : ObservableObject
 
     private void Notify()
     {
-        OnPropertyChanged(nameof(StateText));
+        OnPropertyChanged(nameof(StateWord));
+        OnPropertyChanged(nameof(Timer));
+        OnPropertyChanged(nameof(ShowTimer));
         OnPropertyChanged(nameof(StateGlyph));
         OnPropertyChanged(nameof(StateTooltip));
         OnPropertyChanged(nameof(SpokenState));
