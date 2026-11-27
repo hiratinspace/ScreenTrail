@@ -109,7 +109,8 @@ public static class TrayMenu
 
     public const string DiscardText = "&Discard session…";
 
-    public const string HistoryText = "Session &history";
+    /// <summary>The rail's name for the table (review finding E-07; it was "Session history").</summary>
+    public const string HistoryText = "&All sessions";
 
     public const string DiagnosticsText = "&What's being captured right now?";
 

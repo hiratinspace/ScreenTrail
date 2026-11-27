@@ -19,7 +19,7 @@ public sealed class TrayMenuTests
                 "Recording: ScreenConnect (12:41)",
                 "Pause", "Stop and draft", "Discard session…",
                 "-",
-                "Open ScreenTrail", "Session history", "What's being captured right now?", "Hide the recording pill (only between sessions)",
+                "Open ScreenTrail", "All sessions", "What's being captured right now?", "Hide the recording pill (only between sessions)",
                 "-",
                 "Settings", "Set up ScreenTrail…", "Quit ScreenTrail",
             ],
@@ -121,7 +121,7 @@ public sealed class TrayMenuTests
         Assert.Equal("&Start capture", start.Text);
         Assert.Equal(pause.Kind, start.Kind);
         Assert.Equal(
-            ["Start capture", "-", "Open ScreenTrail", "Session history", "What's being captured right now?", "Hide the recording pill until the next session", "-", "Settings", "Set up ScreenTrail…", "Quit ScreenTrail"],
+            ["Start capture", "-", "Open ScreenTrail", "All sessions", "What's being captured right now?", "Hide the recording pill until the next session", "-", "Settings", "Set up ScreenTrail…", "Quit ScreenTrail"],
             rows.Skip(1).Select(r => r.Kind == TrayRowKind.Separator ? "-" : r.Name));
     }
 

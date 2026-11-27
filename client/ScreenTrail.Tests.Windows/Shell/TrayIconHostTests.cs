@@ -191,7 +191,7 @@ public sealed class TrayIconHostTests
             // Paused: the first control resumes. The tray used to send pause whatever the state.
             tray.Show(Snapshot(CaptureStates.Paused));
             Item(tray, "Resume").PerformClick();
-            Item(tray, "Session history").PerformClick();
+            Item(tray, "All sessions").PerformClick();
             Item(tray, "Settings").PerformClick();
 
             // Idle: Start capture (spec v0.7.2), with its hotkey as the description, as Pause has.

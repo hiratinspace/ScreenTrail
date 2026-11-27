@@ -246,7 +246,7 @@ Focus ring: 2 px `accent.primary` outside the control (`shell.accent` on the fra
   Discard session…
 ──────────────────────────────
   Open last draft (2 ready)
-  Session history
+  All sessions
   What's being captured right now?
 ──────────────────────────────
   Settings
