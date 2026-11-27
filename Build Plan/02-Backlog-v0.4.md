@@ -2371,7 +2371,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-50 to B-52, B-54, B-55, D-12, E-20, E-21, E-25
 - **Blocked By:** ST-128, ST-130
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: the dialog as a surface over a footer (B-50); the hanging 20 px glyph and Secondary consequence (B-51); a notice without a banner (B-52); diagnostics values in Body, tabular and mono, the drawn dot (B-54); one line for an unanswered panel (B-55); surface captions on small windows and a border.strong edge on every window (D-12); access keys on buttons and Settings field labels (E-20); the Keyboard shortcuts rail row and F1 (E-21); the consequence as help text (E-25). Left: the dialog's service error and loading state (it closes before the service is asked); onboarding keeps the frame caption. Laptop checks: the Windows suite (title bar, dialog focus, save bar tests) and the renders.
 
 ### **ST-142 · Onboarding and first run**
 - **Findings:** C-O2, C-O4, C-O6 to C-O8, D-30, C-T8, C-I4, C-I7
