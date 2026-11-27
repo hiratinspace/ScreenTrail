@@ -70,15 +70,22 @@
                 <controls:Repeater Margin="0,8,0,0" ItemsSource="{Binding Hotkeys}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Margin="0,0,0,8">
+                            <!-- Review finding B-12: a clash is said on a second row under the field, across the
+                                 field's column and the rest, and the field shows its error edge; it was a red
+                                 sentence beside a field that looked fine. -->
+                            <Grid x:Name="HotkeyRow" Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0" Width="{DynamicResource Layout.field-narrow}" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding Label}" />
-                                <TextBox Grid.Column="1" Width="{DynamicResource Layout.field-narrow}" Style="{StaticResource Input.Default}" FontFamily="{DynamicResource Font.mono}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding Label}" />
-                                <TextBlock Grid.Column="2" Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Grid.Column="0" Width="{DynamicResource Layout.field-narrow}" VerticalAlignment="Center" Style="{StaticResource Text.Body}" Text="{Binding Label}" />
+                                <TextBox Grid.Row="0" Grid.Column="1" Width="{DynamicResource Layout.field-narrow}" Style="{StaticResource Input.Default}" FontFamily="{DynamicResource Font.mono}" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}" theme:Field.HasError="{Binding Problem, Converter={StaticResource HasText}}" AutomationProperties.Name="{Binding Label}" />
+                                <ContentControl Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -169,7 +176,9 @@
         </Border>
 
         <!-- Saved by the page's one Save bar (Spec, Settings layout). Why this section cannot be saved as it
-             is stays here, beside its fields, as well as on the bar when a save is tried. -->
-        <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+             is stays here, after its tiles, as well as on the bar when a save is tried: it may be the service
+             refusing the whole section, so it belongs to no one tile. A field's own problem is also said
+             under that field (B-12). The shared error line, glyph and words. -->
+        <ContentControl Margin="0,4,0,12" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
     </StackPanel>
 </UserControl>

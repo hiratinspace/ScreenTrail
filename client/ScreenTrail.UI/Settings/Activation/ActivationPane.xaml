@@ -33,6 +33,7 @@
                              CharacterCasing="Upper"
                              Style="{StaticResource Input.Mono}"
                              Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}"
+                             theme:Field.HasError="{Binding Problem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="Invite code"
                              AutomationProperties.HelpText="Twenty letters and digits in four groups, like KX7PM-4R2WQ-9HTCE-B3NVA" />
                     <Button Margin="8,0,0,0"
@@ -41,12 +42,8 @@
                             Command="{Binding ActivateCommand}"
                             IsEnabled="{Binding CanActivate}" />
                 </StackPanel>
-                <TextBlock Margin="0,8,0,0"
-                           Style="{StaticResource Text.Error}"
-                           TextWrapping="Wrap"
-                           Text="{Binding Problem}"
-                           Visibility="{Binding ProblemVisibility}"
-                           controls:LiveRegion.Setting="Polite" />
+                <!-- Review finding B-12: 4 under the field, which shows its error edge. -->
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
             </StackPanel>
         </StackPanel>
     </Border>

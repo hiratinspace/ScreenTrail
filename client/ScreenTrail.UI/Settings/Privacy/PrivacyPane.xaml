@@ -107,12 +107,14 @@
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewProcess, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="keepass"
+                             theme:Field.HasError="{Binding NewProcessProblem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="App to exclude"
                              AutomationProperties.HelpText="As Task Manager shows it, for example keepass" />
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddProcessCommand}" IsEnabled="{Binding CanAddProcess}" AutomationProperties.Name="Add app" />
                 </StackPanel>
+                <!-- Review finding B-12: what is wrong, 4 under the field, which shows its error edge. -->
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding NewProcessProblem}" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Caption}" Text="As Task Manager shows it, for example keepass" />
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding NewProcessProblem}" Visibility="{Binding NewProcessProblemVisibility}" controls:LiveRegion.Setting="Polite" />
             </StackPanel>
         </Border>
 
@@ -155,10 +157,11 @@
                              FontFamily="{DynamicResource Font.mono}"
                              Text="{Binding NewPattern, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="TKT-\d{6}"
+                             theme:Field.HasError="{Binding NewPatternProblem, Converter={StaticResource HasText}}"
                              AutomationProperties.Name="New pattern" />
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddPatternCommand}" IsEnabled="{Binding CanAddPattern}" AutomationProperties.Name="Add pattern" />
                 </StackPanel>
-                <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding NewPatternProblem}" Visibility="{Binding NewPatternProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding NewPatternProblem}" />
                 <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="Try it on some text" />
                 <TextBox Style="{StaticResource Input.Default}" Text="{Binding Sample, UpdateSourceTrigger=PropertyChanged}" theme:Field.Placeholder="Paste a line from a ticket" AutomationProperties.Name="Try it on some text" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SampleMasked}" AutomationProperties.Name="What the sample becomes" />
@@ -198,7 +201,7 @@
 
         <!-- Saved by the page's one Save bar (Spec, Settings layout). Why this section cannot be saved as it
              is, or why an export did not land, stays here beside the fields. -->
-        <TextBlock Margin="0,0,0,0" Style="{StaticResource Text.Error}" TextWrapping="Wrap" Text="{Binding Problem}" Visibility="{Binding ProblemVisibility}" controls:LiveRegion.Setting="Polite" />
+        <ContentControl Margin="0,4,0,4" Style="{StaticResource Field.ErrorLine}" Content="{Binding Problem}" />
 
         <!-- Your data, the danger zone at the end of Privacy: export the audit log; delete everything, typed
              (INV-12), with the capture guard (#280). Both act at once and are never on the Save bar. Review

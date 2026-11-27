@@ -201,4 +201,42 @@ public sealed class SettingsPolishTests
         Assert.DoesNotContain(screenshots.Descendants(Wpf + "TextBlock"), x => (string?)x.Attribute("Text") is "Microphone" or "Speech model");
         Assert.Contains(tiles, t => (string?)t.Attribute(Xaml + "Name") == "StartWithWindowsTile");
     }
+
+    /// <summary>
+    /// Review finding B-12: a field that is wrong looks wrong. Each Settings field with a problem marks its
+    /// edge (theme:Field.HasError from the problem's words) and says what is wrong 4 under it, with the
+    /// warning glyph, read out as it changes; it was a red sentence beside or below a field that looked fine.
+    /// </summary>
+    [Theory]
+    [InlineData("Settings/Privacy", "PrivacyPane.xaml", "NewProcessProblem")]
+    [InlineData("Settings/Privacy", "PrivacyPane.xaml", "NewPatternProblem")]
+    [InlineData("Settings/Capture", "CapturePane.xaml", "Problem")]
+    [InlineData("Settings/Activation", "ActivationPane.xaml", "Problem")]
+    public void AFieldWithAProblemLooksWrongAndSaysWhyUnderIt(string folder, string file, string problem)
+    {
+        XNamespace theme = "clr-namespace:ScreenTrail.UI.Theme";
+        var view = EmptyStateTests.View(folder, file);
+        var field = view.Descendants(Wpf + "TextBox").Single(t => (string?)t.Attribute(theme + "Field.HasError") == $"{{Binding {problem}, Converter={{StaticResource HasText}}}}");
+        Assert.Contains(view.Descendants(Wpf + "ContentControl"), c => (string?)c.Attribute("Style") == "{StaticResource Field.ErrorLine}" && (string?)c.Attribute("Content") == $"{{Binding {problem}}}");
+        Assert.DoesNotContain(view.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == $"{{Binding {problem}}}" && (string?)t.Attribute("Style") == "{StaticResource Text.Error}");
+        Assert.NotNull(field);
+    }
+
+    [Fact]
+    public void TheErrorLineIsTheWarningGlyphAndWordsReadOutAsTheyChange()
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var line = Style(Components(), "Field.ErrorLine");
+        Assert.Equal("0,4,0,0", Setter(line, "Margin"));
+        Assert.Equal("{DynamicResource Icon.Warning}", (string?)line.Descendants(controls + "Glyph").Single().Attribute("Text"));
+        var words = line.Descendants(Wpf + "TextBlock").Single();
+        Assert.Equal("{StaticResource Text.Error}", (string?)words.Attribute("Style"));
+        Assert.Equal("Polite", (string?)words.Attribute(controls + "LiveRegion.Setting"));
+
+        // A clash on a hotkey is a second row across the field's column and the rest.
+        var capture = EmptyStateTests.View("Settings/Capture", "CapturePane.xaml");
+        var row = capture.Descendants(Wpf + "Grid").Single(g => (string?)g.Attribute(Xaml + "Name") == "HotkeyRow");
+        var error = row.Elements(Wpf + "ContentControl").Single();
+        Assert.Equal(("1", "1", "2"), ((string?)error.Attribute("Grid.Row"), (string?)error.Attribute("Grid.Column"), (string?)error.Attribute("Grid.ColumnSpan")));
+    }
 }

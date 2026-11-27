@@ -16,6 +16,8 @@
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Icons.xaml" />
     </ResourceDictionary.MergedDictionaries>
+    <!-- A field's error edge from the problem its view model words (review finding B-12). -->
+    <theme:HasText x:Key="HasText" />
 
     <!-- Focus ring: 2 px accent 3 px outside the control; WPF shows FocusVisualStyle for keyboard focus only.
          Its radius is the control's plus the 3 px gap, so the ring runs parallel to the edge it circles
@@ -1826,6 +1828,46 @@
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.card}" />
+    </Style>
+    <!-- What is wrong with the field above it, 4 below it (review finding B-12): the 12 px warning glyph in
+         state.danger, 4, and the words in Text.Error, wrapping, read out as they change. The same line the
+         field's own theme:Field.Error draws, for a field whose words need the width of the row or a live
+         region: the field marks its edge with theme:Field.HasError. Empty, it takes no room. -->
+    <Style x:Key="Field.ErrorLine" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Margin" Value="0,4,0,0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0"
+                                        Margin="0,2,4,0"
+                                        VerticalAlignment="Top"
+                                        Style="{StaticResource Icon}"
+                                        FontSize="{DynamicResource Icon.sm}"
+                                        Foreground="{DynamicResource Brush.state.danger}"
+                                        Text="{DynamicResource Icon.Warning}" />
+                        <TextBlock Grid.Column="1"
+                                   Style="{StaticResource Text.Error}"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                                   controls:LiveRegion.Setting="Polite" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Content" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+            <Trigger Property="Content" Value="{x:Null}">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
     <!-- A setting the admin's policy decided (INV-11, review finding B-47): under the control, which keeps
          its value in the disabled colours, a 12 px lock in text.secondary, 4, and the Caption "Set by your

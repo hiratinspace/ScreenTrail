@@ -213,12 +213,7 @@
                             Command="{Binding AddMappingCommand}"
                             IsEnabled="{Binding CanAddMapping}" />
                 </Grid>
-                <TextBlock Margin="0,8,0,0"
-                           Style="{StaticResource Text.Error}"
-                           TextWrapping="Wrap"
-                           Text="{Binding MappingProblem}"
-                           Visibility="{Binding MappingProblemVisibility}"
-                           controls:LiveRegion.Setting="Polite" />
+                <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding MappingProblem}" />
             </StackPanel>
         </Border>
     </StackPanel>
