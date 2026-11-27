@@ -67,3 +67,34 @@ public sealed class SettingsNavRowTests
 
     private static XElement Keyed(string key) => ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key);
 }
+
+/// <summary>Rail rows sit 8 in from both edges and have a pressed state (design system 10.4, review finding A-05).</summary>
+public sealed class RailRowGeometryTests
+{
+    private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    [Fact]
+    public void ARowIsInsetEvenlyAndPaddedFromTheToken()
+    {
+        var row = Keyed("Rail.Row");
+        Assert.Equal("8,0,8,2", Setter(row, "Margin"));
+        Assert.Equal("{DynamicResource Padding.rail-row}", Setter(row, "Padding"));
+    }
+
+    [Theory]
+    [InlineData("Rail.Row", "{DynamicResource Brush.shell.pressed}")]
+    [InlineData("Settings.NavItem", "{DynamicResource Brush.bg.pressed}")]
+    public void ARowDarkensWhileItIsPressed(string key, string fill)
+    {
+        var row = Keyed(key);
+        Assert.Equal("True", Setter(row, "theme:Pressed.Track"));
+        var pressed = row.Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "theme:Pressed.IsPressed");
+        Assert.Equal(fill, (string?)pressed.Element(Wpf + "Setter")!.Attribute("Value"));
+    }
+
+    private static string? Setter(XElement style, string property) =>
+        (string?)style.Elements(Wpf + "Setter").Single(s => (string?)s.Attribute("Property") == property).Attribute("Value");
+
+    private static XElement Keyed(string key) => ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == key);
+}

@@ -1865,6 +1865,7 @@
         <Setter Property="Padding" Value="12,0" />
         <Setter Property="Margin" Value="0,0,0,2" />
         <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+        <Setter Property="theme:Pressed.Track" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
@@ -1881,6 +1882,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                        </Trigger>
+                        <Trigger Property="theme:Pressed.IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
@@ -2516,8 +2520,10 @@
          radius 6 on every corner, and the selection bar. It was a tab joined to the pane, with an Iris
          outline and a 4 px band across its top. -->
     <Style x:Key="Rail.Row" TargetType="ListBoxItem">
-        <Setter Property="Margin" Value="8,0,0,4" />
-        <Setter Property="Padding" Value="12,8,16,8" />
+        <!-- 8 in from both of the rail's edges and 2 apart, 12,8 inside (design system 10.4, review finding A-05). -->
+        <Setter Property="Margin" Value="8,0,8,2" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.rail-row}" />
+        <Setter Property="theme:Pressed.Track" Value="True" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -2546,6 +2552,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+                        </Trigger>
+                        <Trigger Property="theme:Pressed.IsPressed" Value="True">
+                            <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
                         </Trigger>
                         <DataTrigger Binding="{Binding IsOpen}" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
