@@ -11,6 +11,11 @@
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
                     xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
                     xmlns:theme="clr-namespace:ScreenTrail.UI.Theme">
+    <!-- The icons by concept (design system 8): here, so every window, harness and test that loads the
+         components has them too. -->
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Icons.xaml" />
+    </ResourceDictionary.MergedDictionaries>
 
     <!-- Focus ring: 2 px accent just outside the control; WPF shows FocusVisualStyle for keyboard focus only. -->
     <Style x:Key="FocusRing">
@@ -28,10 +33,15 @@
         </Setter>
     </Style>
 
-    <!-- Text -->
+    <!-- Text (design system 3.2, v0.7.0): one style per role, each with its own size, weight, font and line
+         height in pixels (Leading.*, set with BlockLineHeight so lines land on the 4 px grid). No view sets
+         its own size or weight on a TextBlock: if a role does not fit, the role is wrong. The v0.6 keys
+         (Text.Muted, Text.SectionHeading, Text.TileHeading, Text.ScreenTitle) stay as the roles they became. -->
     <Style x:Key="Text.Body" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.body}" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <!-- A line with nothing to say takes no room and is not there for a screen reader: an empty text
@@ -43,43 +53,67 @@
             </Trigger>
         </Style.Triggers>
     </Style>
+    <!-- Tile and row titles, the rail row title, a line that leads its card: body size, semibold. -->
+    <Style x:Key="Text.BodyStrong" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+    </Style>
     <Style x:Key="Text.Secondary" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
-    <Style x:Key="Text.Muted" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+    <!-- Hints, timestamps, meta lines. The Small optical size, made for 12 px. -->
+    <Style x:Key="Text.Caption" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.caption}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
     </Style>
-    <!-- A field's name above its control: smaller than the value, and quieter, but not a hint. -->
+    <Style x:Key="Text.Muted" BasedOn="{StaticResource Text.Caption}" TargetType="TextBlock" />
+    <!-- A field's name above its control, a table header, a card's header: smaller than the value, and
+         quieter, but not a hint (hint grey reads as placeholder text). -->
     <Style x:Key="Text.Label" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.caption}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
+    <!-- Strings a machine reads: hotkeys, paths, IDs. 13 px Cascadia Mono has 14 px Segoe UI's x-height. -->
     <Style x:Key="Text.Mono" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource Font.mono}" />
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.mono}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
-    <Style x:Key="Text.SectionHeading" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+    <!-- A Settings section, a note heading, a dialog's question, the pill card's heading. -->
+    <Style x:Key="Text.Section" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontSize" Value="{DynamicResource Size.lg}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.section}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
     </Style>
-    <!-- A tile's own heading (v0.7.0): body size, semibold, one step under the section heading above the
-         tiles, so a page has three clear levels: screen title, section, tile. -->
-    <Style x:Key="Text.TileHeading" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
-        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-    </Style>
-    <Style x:Key="Text.ScreenTitle" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+    <Style x:Key="Text.SectionHeading" BasedOn="{StaticResource Text.Section}" TargetType="TextBlock" />
+    <Style x:Key="Text.TileHeading" BasedOn="{StaticResource Text.BodyStrong}" TargetType="TextBlock" />
+    <!-- A screen's title (All sessions, Settings), the note's title in the envelope: wayfinding, so quieter
+         than the note at 20. Ideal formatting: hinting distorts shapes at 20 px and up. -->
+    <Style x:Key="Text.Title" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource Font.display}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.xl}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.title}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal" />
     </Style>
-    <Style x:Key="Text.Error" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+    <Style x:Key="Text.ScreenTitle" BasedOn="{StaticResource Text.Title}" TargetType="TextBlock" />
+    <!-- The onboarding step's heading, the receipt's figures, an empty state's count: at most one per window. -->
+    <Style x:Key="Text.Display" BasedOn="{StaticResource Text.Title}" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{DynamicResource Size.2xl}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.display}" />
+    </Style>
+    <Style x:Key="Text.Error" BasedOn="{StaticResource Text.Caption}" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+    </Style>
+    <!-- Times, durations and counts: tabular lining figures, so digits do not jitter as a timer ticks. -->
+    <Style x:Key="Text.Numeric" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="Typography.NumeralStyle" Value="Lining" />
     </Style>
     <!-- A Windows icon-font glyph (Segoe Fluent Icons, or MDL2 before Windows 11). Decoration beside
          words that already say the same thing, never the only signal. -->
@@ -92,7 +126,7 @@
     </Style>
     <!-- An empty or waiting pane: a large icon in a soft circle, one line of what is going on. -->
     <Style x:Key="EmptyState.Icon" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.hero}" />
         <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
@@ -1342,7 +1376,7 @@
         </Style.Triggers>
     </Style>
     <Style x:Key="Badge.StateGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding StatusTone}" Value="Accent">
@@ -1404,19 +1438,21 @@
     <!-- Banner: inline at the top of a pane; info, warning and error. A tinted fill and a border in the
          kind's colour, and the kind always in words and a glyph too (Spec §7). -->
     <Style x:Key="Banner.Info" TargetType="Border">
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
+        <!-- bg.info, not the selection tint (v0.7.0): the coverage banner looked like a selected row. -->
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.info}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Padding" Value="12" />
     </Style>
     <Style x:Key="Banner.Warning" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
+        <!-- A tinted edge, not the full state colour, which made a banner the loudest line on the screen. -->
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.warning}" />
     </Style>
     <Style x:Key="Banner.Error" BasedOn="{StaticResource Banner.Info}" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
     </Style>
 
     <!-- Toast: floats, so it is the one thing besides the pill with a shadow. -->
@@ -1425,7 +1461,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.card}" />
-        <Setter Property="Padding" Value="14,10" />
+        <Setter Property="Padding" Value="16,12,12,12" />
         <Setter Property="MaxWidth" Value="440" />
         <Setter Property="Effect">
             <Setter.Value>
@@ -1544,7 +1580,7 @@
          and not as a toast. No shadow: the frame and the pill are the only things that float. -->
     <Style x:Key="SaveBar" TargetType="Border">
         <Setter Property="Margin" Value="0,12,0,0" />
-        <Setter Property="Padding" Value="16,10" />
+        <Setter Property="Padding" Value="16,12" />
         <Setter Property="MinHeight" Value="52" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
@@ -2190,7 +2226,7 @@
         </Style.Triggers>
     </Style>
     <Style x:Key="Rail.BadgeGlyph" BasedOn="{StaticResource Icon}" TargetType="TextBlock">
-        <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.sm}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding BadgeTone}" Value="Published">

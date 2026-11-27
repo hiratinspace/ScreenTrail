@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         Title="What's being captured right now?"
-        Width="420"
+        Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
         Style="{StaticResource Window.Base}">
@@ -53,17 +53,17 @@
                                 <DataTrigger Binding="{Binding State}" Value="Paused">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="&#xE769;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Pause}" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="NotCapturing">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.scope}" />
-                                    <Setter Property="Text" Value="&#xED1A;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Hide}" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="Unknown">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="&#xE7BA;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Warning}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>

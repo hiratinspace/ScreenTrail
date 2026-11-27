@@ -25,9 +25,9 @@
                     <Grid>
                         <controls:Glyph HorizontalAlignment="Center"
                                    Style="{StaticResource Icon}"
-                                   FontSize="{DynamicResource Icon.nav}"
+                                   FontSize="{DynamicResource Icon.lg}"
                                    Foreground="{DynamicResource Brush.text.muted}"
-                                   Text="&#xEB9F;" />
+                                   Text="{StaticResource Icon.Photo}" />
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
                     </Grid>
                     <Border.Style>
@@ -88,7 +88,7 @@
                                           Gap="{StaticResource GapTemplate}" />
     </UserControl.Resources>
 
-    <Grid Margin="20,18,14,0">
+    <Grid Margin="24,16,16,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />

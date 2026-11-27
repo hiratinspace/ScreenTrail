@@ -110,6 +110,22 @@ internal sealed class ContrastPalette
         ["shell.published"] = "WindowText",
         ["shell.scope"] = "WindowText",
         ["shell.offline"] = "GrayText",
+
+        // v0.7.0, the premium review's design system: the new tints in the window colour, the new edges and
+        // marks in the text colours, the destructive fill and pressed accent as the accent's own two.
+        ["bg.info"] = "Window",
+        ["bg.disabled"] = "Window",
+        ["border.success"] = "WindowText",
+        ["border.warning"] = "WindowText",
+        ["border.danger"] = "WindowText",
+        ["text.disabled"] = "GrayText",
+        ["accent.primary.pressed"] = "HotTrack",
+        ["brand.frame"] = "Window",
+        ["brand.on-frame"] = "WindowText",
+        ["state.redacted"] = "WindowText",
+        ["danger.fill"] = "Highlight",
+        ["danger.fill.hover"] = "HotTrack",
+        ["shell.pressed"] = "Window",
     };
 
     public string Name { get; }

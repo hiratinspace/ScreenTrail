@@ -38,7 +38,7 @@
         <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Text.ScreenTitle}" Text="Settings" />
         <!-- What the last Save did, once it wrote everything: a word, a check and the published colour. -->
         <StackPanel Grid.Row="0" Grid.Column="1" Margin="24,0,0,0" VerticalAlignment="Center" Orientation="Horizontal" Visibility="{Binding SavedVisibility}">
-            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.published}" Text="&#xE73E;" />
+            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.published}" Text="{StaticResource Icon.Check}" />
             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Secondary}" Text="{Binding SavedNote}" controls:LiveRegion.Setting="Polite" />
         </StackPanel>
 
@@ -148,7 +148,7 @@
                                  Visibility="{Binding PendingMarkVisibility}" />
                         <controls:Glyph Style="{StaticResource Icon}"
                                         Foreground="{DynamicResource Brush.state.danger}"
-                                        Text="&#xE711;"
+                                        Text="{StaticResource Icon.Close}"
                                         Visibility="{Binding FailedMarkVisibility}" />
                         <TextBlock Margin="8,0,0,0"
                                    VerticalAlignment="Center"

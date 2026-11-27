@@ -16,11 +16,11 @@ public sealed class AllSessionsTableTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     /// <summary>
-    /// The table's width at the window's 1024 minimum: the window's frame (16), the rail (280) and the
-    /// pane's padding (24 each side) taken off, and a vertical scroll bar (18) for a list longer than the
-    /// pane.
+    /// The table's width at the window's 960 minimum (review finding D-06): the window's frame (16), the
+    /// narrow rail (232) and the pane's narrow padding (16 each side) taken off, and a vertical scroll bar
+    /// (18) for a list longer than the pane.
     /// </summary>
-    private const double TableAtTheMinimum = 1024 - 16 - 280 - 48 - 18;
+    private const double TableAtTheMinimum = 960 - 16 - 232 - 32 - 18;
 
     [Fact]
     public void TheSelectionIsTheRowsSoItRunsTheTablesWidth()
@@ -116,7 +116,7 @@ public sealed class AllSessionsTableTests
         var star = Assert.Single(columns, c => (string?)c.Attribute("Width") == "*");
         Assert.Equal("Status", (string?)star.Attribute("Header"));
 
-        // At the 1024 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
+        // At the 960 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
         var least = columns.Where(c => c != star).Sum(c => double.Parse((string)c.Attribute("Width")!, CultureInfo.InvariantCulture))
             + double.Parse((string)star.Attribute("MinWidth")!, CultureInfo.InvariantCulture);
         Assert.True(least <= TableAtTheMinimum, $"The columns need {least} px and the table has {TableAtTheMinimum} at the smallest window.");

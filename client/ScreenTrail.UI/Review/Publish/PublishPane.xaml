@@ -141,7 +141,7 @@
                                             </Grid.RowDefinitions>
                                             <!-- State colours are indicators (Spec §2.1): the glyph takes it, the words stay text.primary. -->
                                             <TextBlock Grid.Column="0"
-                                                       Width="{DynamicResource Icon.nav}"
+                                                       Width="{DynamicResource Icon.lg}"
                                                        Margin="0,0,12,0"
                                                        VerticalAlignment="Center"
                                                        FontWeight="{DynamicResource Weight.semibold}"
@@ -162,7 +162,7 @@
                                                 </TextBlock.Style>
                                             </TextBlock>
                                             <WrapPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
-                                                <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="{Binding Label}" />
+                                                <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.BodyStrong}" Text="{Binding Label}" />
                                                 <TextBlock Style="{StaticResource Text.Secondary}" Text="{Binding Detail}" Visibility="{Binding DetailVisibility}" />
                                             </WrapPanel>
                                             <!-- The state in a word: the tint and border agree with it, the words carry it. -->
@@ -212,8 +212,8 @@
                                 AutomationProperties.Name="Company mapping">
                             <StackPanel>
                                 <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE7BA;" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="KB article not sent yet" />
+                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Warning}" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.BodyStrong}" Text="KB article not sent yet" />
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
                                            Text="{Binding MappingPrompt}"
@@ -258,8 +258,8 @@
                                 AutomationProperties.Name="Check the ticket first">
                             <StackPanel>
                                 <StackPanel Margin="0,0,0,4" Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE9CE;" />
-                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="Not confirmed" />
+                                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="{StaticResource Icon.Unknown}" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.BodyStrong}" Text="Not confirmed" />
                                 </StackPanel>
                                 <TextBlock Style="{StaticResource Text.Body}"
                                            Text="{Binding CheckTicketPrompt}"
@@ -310,9 +310,9 @@
             <StackPanel Grid.Column="2" Width="{DynamicResource Layout.side-column}" VerticalAlignment="Top">
                 <Border Style="{StaticResource Card}" Padding="{DynamicResource Padding.card}" AutomationProperties.Name="Next to check">
                     <StackPanel>
-                        <TextBlock Margin="0,0,0,8" Style="{StaticResource Text.Muted}" Text="Next to check" />
+                        <TextBlock Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Next to check" />
                         <StackPanel Visibility="{Binding NextVisibility}">
-                            <TextBlock Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="{Binding NextTitle}" />
+                            <TextBlock Style="{StaticResource Text.BodyStrong}" Text="{Binding NextTitle}" />
                             <TextBlock Margin="0,4,0,12" Style="{StaticResource Text.Muted}" Text="{Binding NextMeta}" />
                             <Button x:Name="OpenNextButton"
                                     Style="{StaticResource Button.Primary}"
@@ -321,7 +321,7 @@
                                     AutomationProperties.Name="Open next"
                                     AutomationProperties.AcceleratorKey="Enter">
                                 <StackPanel Orientation="Horizontal">
-                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="&#xE72A;" />
+                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Forward}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Open next" />
                                     <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Enter" />
                                 </StackPanel>
@@ -347,11 +347,11 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Style="{StaticResource Text.Muted}" Text="Today" />
+                        <TextBlock Grid.ColumnSpan="2" Margin="0,0,0,8" Style="{StaticResource Text.Label}" Text="Today" />
                         <TextBlock Grid.Row="1" Style="{StaticResource Text.Body}" Text="Published" />
-                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="{Binding TodayPublished}" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource Text.BodyStrong}" Text="{Binding TodayPublished}" />
                         <TextBlock Grid.Row="2" Margin="0,4,0,0" Style="{StaticResource Text.Body}" Text="Left to check" />
-                        <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="{Binding TodayLeft}" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4,0,0" Style="{StaticResource Text.BodyStrong}" Text="{Binding TodayLeft}" />
                     </Grid>
                 </Border>
             </StackPanel>

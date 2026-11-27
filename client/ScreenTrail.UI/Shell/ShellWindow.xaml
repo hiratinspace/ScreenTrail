@@ -10,7 +10,7 @@
         Title="ScreenTrail"
         Width="1280"
         Height="800"
-        MinWidth="1024"
+        MinWidth="960"
         MinHeight="680"
         Style="{StaticResource Window.Base}">
     <Window.Resources>
@@ -32,7 +32,7 @@
         <DataTemplate x:Key="Shell.Message" DataType="{x:Type sys:String}">
             <Border MaxWidth="560"
                     Margin="0,0,0,48"
-                    Padding="32,28"
+                    Padding="32"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Style="{StaticResource Card}">
@@ -44,7 +44,7 @@
                             CornerRadius="28">
                         <controls:Glyph Style="{StaticResource EmptyState.Icon}"
                                    Foreground="{DynamicResource Brush.accent.primary}"
-                                   Text="&#xE8A5;" />
+                                   Text="{StaticResource Icon.Document}" />
                     </Border>
                     <TextBlock Margin="0,16,0,0"
                                HorizontalAlignment="Center"
@@ -91,7 +91,7 @@
 
         <!-- The inbox rail (Spec §5 S4): the status chip, search and the groups, then its foot. -->
         <!-- Narrower in a window under layout.rail-narrow-below (code-behind, spec v0.6.9 S4), so the pane
-             keeps its room at the 1024 minimum. -->
+             keeps its room at the 960 minimum, with the pane's narrow padding. -->
         <Grid x:Name="RailFrame" Grid.Column="0" Width="{DynamicResource Layout.rail-width}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -112,8 +112,10 @@
                 <ContentControl.Style>
                     <Style BasedOn="{StaticResource Badge.Frame}" TargetType="ContentControl">
                         <Style.Triggers>
+                            <!-- Recording keeps a neutral edge (v0.7.0): a red outline read as an error field, and
+                                 the red dot, the word and the timer already say it. -->
                             <DataTrigger Binding="{Binding StatusTone}" Value="Recording">
-                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.recording}" />
+                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding StatusTone}" Value="Paused">
                                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.paused}" />
@@ -169,7 +171,7 @@
                             AutomationProperties.Name="All sessions"
                             AutomationProperties.HelpText="Every session in a table: select several to discard them, or one marked Not confirmed to mark it as published.">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE8FD;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.List}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="All sessions" />
                         </StackPanel>
                     </Button>
@@ -178,7 +180,7 @@
                             CommandParameter="Settings"
                             AutomationProperties.Name="Settings">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE713;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Settings}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Settings" />
                         </StackPanel>
                     </Button>
@@ -187,7 +189,7 @@
                             AutomationProperties.Name="Diagnostics"
                             AutomationProperties.HelpText="What's being captured, in a window of its own.">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xE9D9;" />
+                            <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{StaticResource Icon.Diagnostic}" />
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Diagnostics" />
                         </StackPanel>
                     </Button>
@@ -215,7 +217,7 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
-                               Margin="0,0,10,0"
+                               Margin="0,0,8,0"
                                Style="{StaticResource Text.Body}"
                                VerticalAlignment="Center"
                                Text="⚠" />
