@@ -79,7 +79,8 @@
          off the bottom.
          On a shorter work area (1080p at 150%, review finding D-07) the window stops at the work area less 48
          (FitToWorkArea) and the groups scroll above Close, which stays on screen. The scroll area takes focus
-         from Shift+Tab, so the arrow keys and Page Down scroll it. -->
+         from Shift+Tab, so the arrow keys and Page Down scroll it, and shows the app's focus ring when it has it
+         (WPF's default dotted rectangle does not reach 3:1). -->
     <Grid Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -92,6 +93,7 @@
                       HorizontalScrollBarVisibility="Disabled"
                       Focusable="True"
                       IsTabStop="True"
+                      FocusVisualStyle="{StaticResource FocusRing}"
                       AutomationProperties.Name="Shortcuts">
             <Grid>
                 <Grid.ColumnDefinitions>
