@@ -2317,7 +2317,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-56, C-H13, inventory gaps
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. The gallery is a state matrix (B-56): a plain catalogue of rows and states, `ForcedState` running each control's own hover, pressed and focus triggers, focus rings drawn as the shell's focus renders draw them, every badge and banner tone, the feedback pieces and a tooltip drawn on its own. focus-input scrolls its field into view or fails (B-56). The pill renders every state it has words for, its buttons hovered, pressed and focused, and at 150% and 200% (C-H13); CI expects 100 HUD shots. From the inventory: publish Failed and Not confirmed, Service connecting, the Save bar saving, the diagnostics panel paused and not capturing, and the note drafting. Laptop: the gallery, HUD, shell and note render jobs. Check that the forced states look like real hover, press and focus, that the tooltip image draws, and that the long out-of-scope name trims before the pill's buttons. Left from the inventory: the open combo's list and the pill docked right (C-H1), which a window render cannot show; Settings' Activation form and problem, Privacy editable and problem, Integrations checking and mapping problem, Updates checking and downloading; outbox rows; History's DiscardFailed; the two other Not discarded reasons; onboarding Try it running and the blocker; the strip's undo toast and the blur and OCR drawing.
 
 ### **ST-133 · Words: one vocabulary, live hotkey text, durations helper**
 - **Findings:** E-01 to E-03, E-05 to E-08, E-11 to E-13, E-16 to E-18, glossary

@@ -129,6 +129,32 @@ public partial class ShellWindow
         await settings.UndoCommand.ExecuteAsync(null);
         await SettleAsync();
 
+        // The bar mid-save (inventory 1.1: SaveBarState.Saving was never drawn): Privacy's save held open
+        // until the bar has been drawn, with its ring, which appears after 300 ms (design system 10.8).
+        settings.Privacy.Telemetry = !settings.Privacy.Telemetry;
+        SamplePrivacy.Hold = new TaskCompletionSource<string?>();
+        var saving = settings.SaveCommand.ExecuteAsync(null);
+        await SettleAsync();
+        await Task.Delay(400).ConfigureAwait(true);
+        if (!settings.IsSaving)
+        {
+            throw new InvalidOperationException("settings-saving: the Save bar is not saving.");
+        }
+
+        foreach (var theme in RenderThemes.All)
+        {
+            RenderThemeApplier.Apply(theme, Application.Current.Resources);
+            await SettleAsync();
+            Save(Shot("settings-saving", theme));
+        }
+
+        SamplePrivacy.Hold.SetResult(null);
+        SamplePrivacy.Hold = null;
+        await saving;
+        settings.Privacy.Telemetry = !settings.Privacy.Telemetry;
+        await settings.SaveCommand.ExecuteAsync(null);
+        await SettleAsync();
+
         // Back to the window's own height, and to the top, for whatever renders next.
         var pane = Find(this, element => element is Settings.SettingsPane);
         if (pane is not null && Find(pane, e => e is ScrollViewer) is ScrollViewer back)
@@ -282,6 +308,7 @@ public partial class ShellWindow
         element.BringIntoView();
         _ = Keyboard.Focus(element);
         await SettleAsync();
+        await InViewAsync(element, screen);
 
         // The first hosted run focused all three controls and WPF drew no ring for any of them: it decides
         // "focus arrived by keyboard" from input this harness cannot really send. So the ring is drawn the
@@ -323,40 +350,53 @@ public partial class ShellWindow
         });
     }
 
+    /// <summary>
+    /// Scrolls <paramref name="element"/> into its scroll viewer's viewport if focusing it did not, and fails
+    /// the render if it is still outside. focus-input focused Settings' first text box, the Capture hotkey
+    /// field below the fold, and the shot showed no focused input at all (review finding B-56).
+    /// </summary>
+    private static async Task InViewAsync(FrameworkElement element, string screen)
+    {
+        if (Ancestor<ScrollViewer>(element) is not { Content: Visual content } scroller || Shows(scroller, element))
+        {
+            return;
+        }
+
+        if (scroller.CanContentScroll)
+        {
+            // A table scrolls by row, so its offsets are rows, not pixels: let the row panel bring it in.
+            element.BringIntoView();
+        }
+        else
+        {
+            var top = element.TransformToAncestor(content).Transform(new Point(0, 0)).Y;
+            scroller.ScrollToVerticalOffset(Math.Max(0, top - 24));
+        }
+
+        await SettleAsync();
+        if (!Shows(scroller, element))
+        {
+            throw new InvalidOperationException($"{screen}: the focused {element.GetType().Name} is outside its scroll viewer's view.");
+        }
+    }
+
+    /// <summary>
+    /// Whether <paramref name="element"/> lies inside the scroll viewer's view, in pixels. The view is the
+    /// content presenter's box, not ViewportHeight: a DataGrid scrolls by row (CanContentScroll), so its
+    /// ViewportHeight counts rows, and its column header sits inside the scroll viewer above the presenter.
+    /// Comparing a cell's pixels with a row count failed focus-list-row on a row in plain view.
+    /// </summary>
+    private static bool Shows(ScrollViewer scroller, FrameworkElement element)
+    {
+        var view = scroller.Template?.FindName("PART_ScrollContentPresenter", scroller) as FrameworkElement ?? scroller;
+        var box = element.TransformToAncestor(view).TransformBounds(new Rect(element.RenderSize));
+        return box.Top >= -0.5 && box.Bottom <= view.ActualHeight + 0.5;
+    }
+
     /// <summary>Undoes what a render's prepare step added.</summary>
     private sealed class Removal(Action undo) : IDisposable
     {
         public void Dispose() => undo();
-    }
-
-    /// <summary>What WPF's own focus visual is: a Control styled with the element's FocusVisualStyle, sized to the element.</summary>
-    private sealed class FocusRingAdorner : Adorner
-    {
-        private readonly Control _ring;
-
-        public FocusRingAdorner(UIElement adorned, Style style)
-            : base(adorned)
-        {
-            _ring = new Control { Style = style, Focusable = false };
-            IsHitTestVisible = false;
-            AddVisualChild(_ring);
-        }
-
-        protected override int VisualChildrenCount => 1;
-
-        protected override Visual GetVisualChild(int index) => _ring;
-
-        protected override Size MeasureOverride(Size constraint)
-        {
-            _ring.Measure(AdornedElement.RenderSize);
-            return AdornedElement.RenderSize;
-        }
-
-        protected override Size ArrangeOverride(Size finalSize)
-        {
-            _ring.Arrange(new Rect(finalSize));
-            return finalSize;
-        }
     }
 
     private static bool HasAdorner(UIElement element) =>

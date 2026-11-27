@@ -38,6 +38,7 @@
     <!-- The render harness's palettes, theme names and index have no WPF in them, so they are compiled
          in here and tested on any OS (ST-016). -->
     <Compile Include="..\ScreenTrail.UI\Render\ContrastPalette.cs" Link="Render\Source\ContrastPalette.cs" />
+    <Compile Include="..\ScreenTrail.UI\Gallery\GalleryCatalogue.cs" Link="Gallery\Source\GalleryCatalogue.cs" />
     <Compile Include="..\ScreenTrail.UI\Render\RenderTheme.cs" Link="Render\Source\RenderTheme.cs" />
     <Compile Include="..\ScreenTrail.UI\Render\RenderIndex.cs" Link="Render\Source\RenderIndex.cs" />
   </ItemGroup>

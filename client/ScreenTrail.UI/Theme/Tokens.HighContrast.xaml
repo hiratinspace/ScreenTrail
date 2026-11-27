@@ -129,6 +129,10 @@
     <!-- A selected row is the 2 px Highlight edge round it: the bar and the fill are the window colour. -->
     <x:Static x:Key="Token.selection.edge" Member="SystemColors.HighlightColor" />
     <SolidColorBrush x:Key="Brush.selection.edge" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <!-- A skeleton block is outlined in GrayText: its fill is the window colour here, so without an edge a
+         drafting note was an empty pane. -->
+    <x:Static x:Key="Token.skeleton.edge" Member="SystemColors.GrayTextColor" />
+    <SolidColorBrush x:Key="Brush.skeleton.edge" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
     <!-- A scroll thumb is 8 wide at all times, in the window text colour. -->
     <sys:Double x:Key="ScrollThumb.rest">8</sys:Double>
     <Style x:Key="FocusVisual.input">

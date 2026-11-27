@@ -24,6 +24,31 @@ internal static class Waiting
 
     private static readonly TimeSpan Turn = TimeSpan.FromSeconds(1);
 
+    /// <summary>
+    /// Shows a waiting mark at once rather than after <see cref="Delay"/>. The render harness turns it on:
+    /// a picture taken within 300 ms of a pane appearing showed its skeletons missing (the draft-pending
+    /// note rendered nearly blank and failed CI's drawn-something check), and a render is meant to show
+    /// the state as a person sees it once it has settled.
+    /// </summary>
+    internal static bool AtOnce { get; set; }
+
+    /// <summary>Finishes every pending <c>Appear</c> under <paramref name="root"/> now, for the render harness.</summary>
+    internal static void ShowNow(DependencyObject root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        if (root is UIElement element && element.GetValue(TimerProperty) is DispatcherTimer running)
+        {
+            running.Stop();
+            element.ClearValue(TimerProperty);
+            element.Opacity = 1;
+        }
+
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            ShowNow(VisualTreeHelper.GetChild(root, i));
+        }
+    }
+
     public static readonly DependencyProperty AppearProperty = DependencyProperty.RegisterAttached(
         "Appear", typeof(bool), typeof(Waiting), new FrameworkPropertyMetadata(false, OnAppearChanged));
 
@@ -64,6 +89,12 @@ internal static class Waiting
         {
             running.Stop();
             element.ClearValue(TimerProperty);
+        }
+
+        if (AtOnce)
+        {
+            element.Opacity = 1;
+            return;
         }
 
         element.Opacity = 0;

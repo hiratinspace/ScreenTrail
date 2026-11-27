@@ -310,10 +310,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $notes = Get-ChildItem $out -Filter 'note-*.png'
           if ($notes.Count -lt 18) { throw "Expected 18 note-pane screenshots, found $($notes.Count)." }
+          # A pane that drew nothing is its background and a few edge pixels, under 8 colours. The sparsest
+          # real state is the drafting note in high contrast: a disc, a glyph and one sentence in two system
+          # colours, 19 to 21 (ST-132 added it; the floor of 20 was set when the sparsest was 32).
           $counts = Select-String -Path $log -Pattern 'distinct colours' -AllMatches
           foreach ($line in $counts) {
             if ($line -match '(\d+) distinct colours') {
-              if ([int]$Matches[1] -lt 20) { throw "$line - the note pane rendered nothing." }
+              if ([int]$Matches[1] -lt 12) { throw "$line - the note pane rendered nothing." }
             }
           }
           # A binding to a property that does not exist does not throw and does not stop the layout - it
@@ -324,8 +327,9 @@ jobs:
           if ([int]$bindings.Matches[0].Groups[1].Value -ne 0) { throw "$($bindings.Line) - see the step log." }
           $notes | ForEach-Object { "$($_.Name) $($_.Length) bytes" }
 
-      # ST-072: the recording pill in all ten variants and three themes. Spec §5 S2 names each state and
-      # INV-4 makes this the indicator a technician trusts, so "renders per spec" is checked by rendering.
+      # ST-072: the recording pill in every variant and theme. Spec §5 S2 names each state and INV-4 makes
+      # this the indicator a technician trusts, so "renders per spec" is checked by rendering. Review
+      # finding C-H13 added every state with words, the buttons' states and the 150% and 200% renders.
       - name: HUD screenshots
         timeout-minutes: 4
         run: |
@@ -334,7 +338,7 @@ jobs:
           dotnet run --project ScreenTrail.UI -c Release --no-build -- --hud --screenshot $out | Tee-Object -FilePath $log
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $hud = Get-ChildItem $out -Filter 'hud-*.png'
-          if ($hud.Count -lt 30) { throw "Expected 30 HUD screenshots, found $($hud.Count)." }
+          if ($hud.Count -lt 100) { throw "Expected 100 HUD screenshots, found $($hud.Count)." }
           $counts = Select-String -Path $log -Pattern 'distinct colours' -AllMatches
           foreach ($line in $counts) {
             if ($line -match '(\d+) distinct colours') {

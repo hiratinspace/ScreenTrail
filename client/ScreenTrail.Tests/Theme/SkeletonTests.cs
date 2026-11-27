@@ -24,6 +24,29 @@ public sealed class SkeletonTests
         Assert.DoesNotContain(skeleton.Descendants(), e => e.Name.LocalName.Contains("Storyboard", StringComparison.Ordinal) || e.Name.LocalName.Contains("Gradient", StringComparison.Ordinal));
     }
 
+    /// <summary>
+    /// In high contrast bg.hover is the window colour, so a block with no edge was invisible and a drafting
+    /// note rendered as an empty pane (CI's note render, ST-132). The block's edge is skeleton.edge:
+    /// transparent in light and dark, GrayText in high contrast.
+    /// </summary>
+    [Fact]
+    public void InHighContrastABlockIsOutlinedSoItCanBeSeen()
+    {
+        var skeleton = ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "Skeleton");
+        var setters = skeleton.Elements(Wpf + "Setter").ToDictionary(s => (string)s.Attribute("Property")!, s => (string?)s.Attribute("Value"));
+        Assert.Equal("{DynamicResource Brush.skeleton.edge}", setters["BorderBrush"]);
+        Assert.Equal("{DynamicResource Thickness.border}", setters["BorderThickness"]);
+
+        var theme = Path.Combine(Ui(), "Theme");
+        string Edge(string file) => (string)XDocument.Load(Path.Combine(theme, file)).Root!.Elements()
+            .Single(e => (string?)e.Attribute(X + "Key") == "Token.skeleton.edge").Attribute("Member")!;
+        Assert.Equal("SystemColors.GrayTextColor", Edge("Tokens.HighContrast.xaml"));
+        foreach (var file in new[] { "Tokens.Light.g.xaml", "Tokens.Dark.g.xaml" })
+        {
+            Assert.Equal("#00000000", XDocument.Load(Path.Combine(theme, file)).Root!.Elements().Single(e => (string?)e.Attribute(X + "Key") == "Token.skeleton.edge").Value);
+        }
+    }
+
     [Fact]
     public void TheProgressRingWaitsTheSame300MsAndTurnsFromCode()
     {

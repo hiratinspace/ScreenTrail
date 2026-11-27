@@ -325,6 +325,28 @@ public partial class ShellWindow : Window
                     return panel;
                 }
 
+            // Nothing landed: the receipt says Not published and every row Failed (inventory 1.1: unrendered).
+            case "preview-failed":
+                {
+                    IReadOnlyList<DestinationResult> Refused(PublishRequest request) =>
+                        [.. request.Destinations.Select(d => new DestinationResult(d, false, null, "ConnectWise rejected the API key", DestinationResult.Refused))];
+                    var panel = new PublishPanel(fixture, connected, (q, _) => Task.FromResult(Search(q)), (r, _) => Task.FromResult(Refused(r)), time: new SampleClock());
+                    panel.Suggest(ticket);
+                    panel.PublishAsync(fixture.Draft!, included).GetAwaiter().GetResult();
+                    return panel;
+                }
+
+            // Sent and never answered: it may be on the ticket, so it is Not confirmed and never called failed.
+            case "preview-not-confirmed":
+                {
+                    IReadOnlyList<DestinationResult> Unanswered(PublishRequest request) =>
+                        [.. request.Destinations.Select(d => new DestinationResult(d, false, null, "ConnectWise did not answer in time", DestinationResult.TimedOut))];
+                    var panel = new PublishPanel(fixture, connected, (q, _) => Task.FromResult(Search(q)), (r, _) => Task.FromResult(Unanswered(r)), time: new SampleClock());
+                    panel.Suggest(ticket);
+                    panel.PublishAsync(fixture.Draft!, included).GetAwaiter().GetResult();
+                    return panel;
+                }
+
             case "preview-needs-mapping":
                 {
                     IReadOnlyList<DestinationResult> Unmapped(PublishRequest request) =>
@@ -410,7 +432,10 @@ public partial class ShellWindow : Window
                 EffectiveLocalOnly: true,
                 EffectiveRetentionDays: 3));
 
-        public Task<string?> SaveAsync(Shared.Settings.ClientSettings settings, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        /// <summary>Set by the Saving render to hold a save open until it has drawn the bar mid-save.</summary>
+        public static TaskCompletionSource<string?>? Hold { get; set; }
+
+        public Task<string?> SaveAsync(Shared.Settings.ClientSettings settings, CancellationToken ct = default) => Hold?.Task ?? Task.FromResult<string?>(null);
 
         public Task<AuditSaved> ExportAuditAsync(string destination, CancellationToken ct = default) =>
             Task.FromResult(new AuditSaved(true, true, "All 0 audit rows verify."));
@@ -545,10 +570,15 @@ public partial class ShellWindow : Window
             ("review-published", () => state.OpenSession("preview-published")),
             ("review-partial", () => state.OpenSession("preview-partial")),
             ("review-needs-mapping", () => state.OpenSession("preview-needs-mapping")),
+            ("review-failed", () => state.OpenSession("preview-failed")),
+            ("review-not-confirmed", () => state.OpenSession("preview-not-confirmed")),
             ("review-timeline", () => state.OpenSession("preview-timeline")),
             ("history", () => state.Navigate(ShellView.History)),
             ("settings", () => state.Navigate(ShellView.Settings)),
             ("service-down", () => { state.Navigate(ShellView.Review); state.Lost(); }),
+
+            // Before the service first answers: the chip and the pane say it is still connecting.
+            ("service-connecting", () => state.Connecting()),
         })
         {
             arrange();
@@ -588,7 +618,11 @@ public partial class ShellWindow : Window
         // from #86 to #228, which WPF refuses as the window is built, and nothing built it to find out (#281).
         await DialogsAsync(
             ("panel", () => new Diagnostics.DiagnosticsWindow()),
-            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)));
+            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)),
+
+            // The headline's other two states (inventory 1.2): capture suppressed, and out of scope.
+            ("panel-paused", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Suppression = "a password field has focus" })),
+            ("panel-not-capturing", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Scope = "Not capturing: Outlook is not a remote-support tool" })));
         await SitePanelAsync(() => new Diagnostics.DiagnosticsWindow());
 
         // Read by CI, which fails the step on anything but zero.
