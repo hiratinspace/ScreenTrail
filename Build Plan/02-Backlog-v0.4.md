@@ -2365,7 +2365,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** B-12, B-39 to B-43, B-45, B-47 to B-49, E-15
 - **Blocked By:** ST-129, ST-130
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-27), PR open. All findings: field errors as an edge and a glyph line under the field (B-12); the Microphone tile and a heading on every tile (B-39); tiles radius 8 (B-40); Your data not in red (B-41); list rows with Remove at the right and the mapping columns aligned (B-42); the check result's glyph (B-43); heading rhythm 32/12 (B-45; the title was already 20/28); the lock line (B-47); the data flow as five rows (B-48); Choice.Hint (B-49); the mapping table's headers and words (E-15). Left: section problems stay after their section (a refused save is the section's). Laptop checks: the Windows suite and the Settings renders.
 
 ### **ST-141 · Dialogs, shortcut sheet, diagnostics, access keys**
 - **Findings:** B-50 to B-52, B-54, B-55, D-12, E-20, E-21, E-25
