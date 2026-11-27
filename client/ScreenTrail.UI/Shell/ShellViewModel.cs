@@ -430,6 +430,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>The Review pane the shell holds, shown or not, whose host the window keeps (review finding D-26).</summary>
+    public object? HeldReview => _review.Current;
+
     /// <summary>The Review load under way, or 0 (review finding D-20).</summary>
     private int _loadingLoad;
 

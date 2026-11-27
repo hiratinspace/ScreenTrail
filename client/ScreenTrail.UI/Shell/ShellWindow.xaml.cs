@@ -51,6 +51,7 @@ public partial class ShellWindow : Window
         InitializeComponent();
         _model = new ShellViewModel(state, loadReview, history, settings, clock, sessions, diagnostics, startService: startService);
         DataContext = _model;
+        HostPanes();
         BindFind();
         FollowTheTaskbarMark();
     }
@@ -135,6 +136,78 @@ public partial class ShellWindow : Window
         var wide = Core.History.RailLayout.IsWide(frameWidth, breakpoint);
         RailFrame.SetResourceReference(WidthProperty, wide ? "Layout.rail-width" : "Layout.rail-width-narrow");
         Pane.SetResourceReference(MarginProperty, wide ? "Padding.pane" : "Padding.pane-narrow");
+    }
+
+    /// <summary>The key of the one host every sentence (loading, nothing to review) is shown in.</summary>
+    private static readonly object Sentences = new();
+
+    private readonly Dictionary<object, System.Windows.Controls.ContentPresenter> _hosts = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Review finding D-26: the shell's content, each pane in a host built once and kept, the views switched
+    /// by visibility, and the incoming one faded in over motion.state (none with reduce motion on, or in a
+    /// render). All sessions and Settings keep their hosts; a Review pane keeps its host while the shell
+    /// still holds it, so Review to All sessions and back no longer rebuilds the note, the strip and the
+    /// envelope. A Review pane the shell let go of loses its host at the next switch.
+    /// </summary>
+    private void HostPanes()
+    {
+        _model.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ShellViewModel.Content))
+            {
+                Show(_model.Content);
+            }
+        };
+        Show(_model.Content);
+    }
+
+    private void Show(object? content)
+    {
+        var key = content is null or string ? Sentences : content;
+        if (!_hosts.TryGetValue(key, out var host))
+        {
+            host = new System.Windows.Controls.ContentPresenter { ContentTemplateSelector = (System.Windows.Controls.DataTemplateSelector)FindResource("Shell.Content") };
+            _hosts[key] = host;
+            Pane.Children.Add(host);
+        }
+
+        host.Content = content;
+        var arriving = host.Visibility != Visibility.Visible || host.Opacity < 1;
+        foreach (var (other, shown) in _hosts.ToList())
+        {
+            if (ReferenceEquals(shown, host))
+            {
+                continue;
+            }
+
+            // T-169: navigating away writes what was typed now, as unloading the pane did when a switch
+            // threw it away; a pane kept hidden is no longer unloaded.
+            if (shown.Visibility == Visibility.Visible && other is Review.ReviewViewModel leaving)
+            {
+                _ = leaving.Note.FlushAsync();
+            }
+
+            shown.Visibility = Visibility.Collapsed;
+            var kept = ReferenceEquals(other, Sentences) || other is History.HistoryViewModel or Settings.SettingsViewModel || ReferenceEquals(other, _model.HeldReview);
+            if (!kept)
+            {
+                _ = _hosts.Remove(other);
+                Pane.Children.Remove(shown);
+                shown.Content = null;
+            }
+        }
+
+        host.Visibility = Visibility.Visible;
+        if (arriving && !Theme.Waiting.AtOnce && !Theme.ThemeManager.ReduceMotion)
+        {
+            host.BeginAnimation(OpacityProperty, new System.Windows.Media.Animation.DoubleAnimation(0, 1, Theme.ThemeManager.Motion(new Duration(Theme.Waiting.Fade))));
+        }
+        else
+        {
+            host.BeginAnimation(OpacityProperty, null);
+            host.Opacity = 1;
+        }
     }
 
     /// <summary>Once the pane has drawn, focus its first control; a pane still loading waits for the next.</summary>
@@ -288,6 +361,7 @@ public partial class ShellWindow : Window
             diagnostics: () => { },
             time: new FixedClock(SampleNow));
         DataContext = _model;
+        HostPanes();
         Sample = state;
         BindFind();
         if (_screenshotDirectory is not null)

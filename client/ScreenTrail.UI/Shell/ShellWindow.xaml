@@ -247,12 +247,12 @@
                 </Grid>
             </ContentControl>
 
-            <ContentControl x:Name="Pane"
-                            Grid.Row="1"
-                            Margin="{DynamicResource Padding.pane}"
-                            Content="{Binding Content}"
-                            ContentTemplateSelector="{StaticResource Shell.Content}"
-                            Focusable="False" />
+            <!-- Review finding D-26: each view's pane is built once, in a host of its own here, and the views
+                 switch by visibility with a 120 ms fade on the incoming one (ShellWindow.HostPanes). One
+                 ContentControl threw the whole Review pane away on every switch to All sessions and back. -->
+            <Grid x:Name="Pane"
+                  Grid.Row="1"
+                  Margin="{DynamicResource Padding.pane}" />
         </Grid>
     </Grid>
 </Window>
