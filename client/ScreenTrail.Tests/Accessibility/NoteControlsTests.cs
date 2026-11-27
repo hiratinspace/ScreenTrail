@@ -265,4 +265,29 @@ public sealed class NoteControlsTests
         Assert.Contains(pane.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding DraftPendingMessage}" && (string?)t.Attribute("Style") == "{StaticResource Text.Body}");
         Assert.Equal(3, pane.Descendants(Wpf + "Border").Count(b => (string?)b.Attribute("Style") == "{StaticResource Skeleton}"));
     }
+
+    /// <summary>
+    /// Review finding B-38: the footer is one size, Caption, with no size overrides; All screenshots is a
+    /// compact Secondary with a 16 px glyph and its count in Caption, Alt+2 in its tooltip and name, not a
+    /// fourth piece of text; and the footer is at least 44 high so it does not grow when the button appears.
+    /// </summary>
+    [Fact]
+    public void TheNotesFooterIsOneSizeAndDoesNotGrow()
+    {
+        var note = Load("Review", "NoteEditorView.xaml");
+        var footer = note.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(Xaml + "Name") == "NoteFooter");
+        Assert.Equal("{DynamicResource Layout.note-footer-height}", (string?)footer.Attribute("MinHeight"));
+        Assert.DoesNotContain(footer.Descendants(Wpf + "TextBlock"), t => t.Attribute("FontSize") is not null);
+        Assert.DoesNotContain(footer.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.KeyHint}");
+
+        var button = footer.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(Xaml + "Name") == "AllScreenshots");
+        Assert.Equal("True", (string?)button.Attribute(Theme + "Density.Compact"));
+        Assert.Equal("Alt+2", (string?)button.Attribute("AutomationProperties.AcceleratorKey"));
+        Assert.Contains("Alt+2", (string?)button.Attribute("ToolTip"), StringComparison.Ordinal);
+        Assert.Null(button.Descendants(Controls + "Glyph").Single().Attribute("FontSize"));
+        Assert.Contains(button.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding StripHeader}" && (string?)t.Attribute("Style") == "{StaticResource Text.Caption}");
+
+        var hints = footer.Descendants(Wpf + "TextBlock").Single(t => (string?)t.Attribute(Xaml + "Name") == "NoteKeyHints");
+        Assert.DoesNotContain("↑", (string?)hints.Attribute("Text"), StringComparison.Ordinal);
+    }
 }

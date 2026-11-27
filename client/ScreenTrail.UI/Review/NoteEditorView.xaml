@@ -502,9 +502,13 @@
         </ContentControl>
 
         <!-- Under the note (Spec v0.6.0 §5 S3): the masking count and the save state, "2 items masked, none
-             left to review · Saved"; then the chords for this pane and the way to the whole strip. -->
-        <Border Grid.Row="3"
-                Padding="24,8"
+             left to review · Saved"; then the chords for this pane and the way to the whole strip. Review
+             finding B-38: one size, Caption, throughout; the button compact with its Alt+2 in the tooltip;
+             at least 44 high, so the footer does not grow when the button appears. -->
+        <Border x:Name="NoteFooter"
+                Grid.Row="3"
+                MinHeight="{DynamicResource Layout.note-footer-height}"
+                Padding="24,0"
                 BorderBrush="{DynamicResource Brush.border.subtle}"
                 BorderThickness="0,1,0,0">
             <Grid>
@@ -515,8 +519,8 @@
 
                 <WrapPanel Grid.Column="0" VerticalAlignment="Center" Orientation="Horizontal">
                     <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource Text.Secondary}"
-                               FontSize="{DynamicResource Size.sm}"
+                               Style="{StaticResource Text.Caption}"
+                               Foreground="{DynamicResource Brush.text.secondary}"
                                Text="{Binding MaskingLabel}" />
 
                     <!-- The save state after a dot, and only when there is one: the harness persists nothing,
@@ -556,22 +560,24 @@
                     <TextBlock x:Name="NoteKeyHints"
                                Margin="0,0,12,0"
                                VerticalAlignment="Center"
-                               Style="{StaticResource Text.Muted}"
-                               FontSize="{DynamicResource Size.xs}"
+                               Style="{StaticResource Text.Caption}"
                                Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save"
                                Visibility="{Binding ShowsNoteHints, Converter={StaticResource Visible}}" />
 
                     <!-- The whole strip, in the note's place: the frames no step shows, Del and its undo. -->
-                    <Button Style="{StaticResource Button.Secondary}"
+                    <Button x:Name="AllScreenshots"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource Button.Secondary}"
+                            theme:Density.Compact="True"
                             Command="{Binding ShowAllScreenshotsCommand}"
                             Visibility="{Binding HasStrip, Converter={StaticResource Visible}}"
+                            ToolTip="All screenshots, Alt+2"
                             AutomationProperties.Name="{Binding AllScreenshotsName}"
                             AutomationProperties.AcceleratorKey="Alt+2">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Photo}" />
+                            <controls:Glyph Style="{StaticResource Icon}" Text="{StaticResource Icon.Photo}" />
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="All screenshots" />
-                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Muted}" Text="{Binding StripHeader}" />
-                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+2" />
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Text.Caption}" Text="{Binding StripHeader}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
