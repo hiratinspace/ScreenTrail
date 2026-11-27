@@ -158,3 +158,22 @@ public sealed class FootNavTests
         Assert.Equal("8", (string?)items[0].Parent!.Parent!.Attribute("Padding"));
     }
 }
+
+/// <summary>The rail's search is a field lighter than the rail (design system 10.2, review finding A-04).</summary>
+public sealed class RailSearchTests
+{
+    private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    [Fact]
+    public void TheSearchIsBgSurfaceWithItsTextAtThirtySix()
+    {
+        var search = ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "Rail.Search");
+        var setters = search.Elements(Wpf + "Setter").Where(s => s.Attribute("Value") is not null).ToDictionary(s => (string)s.Attribute("Property")!, s => (string?)s.Attribute("Value"));
+        Assert.Equal("{DynamicResource Brush.bg.surface}", setters["Background"]);
+        Assert.Equal("{DynamicResource Padding.search}", setters["Padding"]);
+
+        var hover = search.Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsMouseOver");
+        Assert.Equal("{DynamicResource Brush.text.muted}", (string?)hover.Element(Wpf + "Setter")!.Attribute("Value"));
+    }
+}

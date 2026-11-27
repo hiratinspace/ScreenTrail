@@ -2463,18 +2463,21 @@
         </Setter>
     </Style>
 
-    <!-- The rail's search: a field on the frame, its edge in shell.muted (3:1 and more on shell.bg). -->
+    <!-- The rail's search (design system 10.2, review finding A-04): a field on the frame, lighter than its
+         ground as Windows 11 draws a field, never a grey well: bg.surface, its edge in shell.muted (3:1 and
+         more on shell.bg), text.muted under the pointer. The 16 px glyph sits 12 in, the text and the hint
+         at 36. -->
     <Style x:Key="Rail.Search" TargetType="TextBox">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Padding" Value="32,0,12,0" />
+        <Setter Property="Padding" Value="{DynamicResource Padding.search}" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="CaretBrush" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="SelectionBrush" Value="{DynamicResource Brush.shell.accent}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
         <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
@@ -2501,6 +2504,9 @@
                                 Visibility="Collapsed" />
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
+                        </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="FocusEdge" Property="Visibility" Value="Visible" />
                         </Trigger>

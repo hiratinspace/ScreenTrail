@@ -63,7 +63,9 @@
                             Style="{StaticResource Icon}"
                             Foreground="{DynamicResource Brush.shell.muted}"
                             Text="{StaticResource Icon.Search}" />
+            <!-- At 36, where the typed text starts (32 and 4 inside). -->
             <TextBlock Margin="32,0,12,0"
+                       Padding="4,0,0,0"
                        VerticalAlignment="Center"
                        Panel.ZIndex="1"
                        IsHitTestVisible="False"
