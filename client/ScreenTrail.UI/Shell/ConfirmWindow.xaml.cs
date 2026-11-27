@@ -37,6 +37,15 @@ public partial class ConfirmWindow : Window
         InitializeComponent();
         DataContext = words;
 
+        // Review finding E-20: each button has an access key, unique in the dialog ("_Keep it", "_Discard
+        // session"); the accessible names stay the plain words, bound in the XAML.
+        var keyed = AccessKeys.Assign(words.Action is null ? [words.Cancel] : [words.Cancel, words.Action]);
+        Cancel.Content = keyed[0];
+        if (words.Action is not null)
+        {
+            Confirm.Content = keyed[1];
+        }
+
         // A destructive confirm is the solid danger button, never weaker than the safe one (review finding B-05).
         if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.DangerSolid" : "Button.Primary") is Style style)
         {

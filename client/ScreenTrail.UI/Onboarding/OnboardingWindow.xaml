@@ -217,7 +217,7 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </controls:Repeater>
-                        <Button Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="Check again" Command="{Binding RecheckCommand}" />
+                        <Button Margin="0,8,0,0" HorizontalAlignment="Left" Style="{StaticResource Button.Secondary}" Content="Check _again" AutomationProperties.Name="Check again" Command="{Binding RecheckCommand}" />
                     </StackPanel>
 
                     <!-- 4. Your remote tools -->
@@ -249,8 +249,8 @@
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="A sixty-second test: start, open any window, click around, say one sentence, then stop. The draft opens in Review when it is ready." />
                         <Border Margin="0,24,0,0" Style="{StaticResource Card}">
                             <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource Button.Primary}" Content="Start test session" Command="{Binding StartTestCommand}" IsEnabled="{Binding CanStartTest}" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Stop and draft" Command="{Binding StopTestCommand}" IsEnabled="{Binding TestRunning}" />
+                                <Button Style="{StaticResource Button.Primary}" Content="Start _test session" AutomationProperties.Name="Start test session" Command="{Binding StartTestCommand}" IsEnabled="{Binding CanStartTest}" />
+                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Stop and _draft" AutomationProperties.Name="Stop and draft" Command="{Binding StopTestCommand}" IsEnabled="{Binding TestRunning}" />
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -283,11 +283,11 @@
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Note}" Visibility="{Binding NoteVisibility}" controls:LiveRegion.Setting="Polite" />
                         <TextBlock Margin="0,0,0,12" Style="{StaticResource Text.Secondary}" FontSize="{DynamicResource Size.sm}" TextWrapping="Wrap" Text="{Binding Blocker}" Visibility="{Binding BlockerVisibility}" controls:LiveRegion.Setting="Polite" />
                         <Grid>
-                            <Button HorizontalAlignment="Left" Style="{StaticResource Button.Ghost}" Content="Back" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
+                            <Button HorizontalAlignment="Left" Style="{StaticResource Button.Ghost}" Content="_Back" AutomationProperties.Name="Back" Command="{Binding BackCommand}" IsEnabled="{Binding CanGoBack}" />
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button Style="{StaticResource Button.Ghost}" Content="Skip for now" Command="{Binding SkipCommand}" Visibility="{Binding SkipVisibility}" />
-                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="Continue" Command="{Binding NextCommand}" IsEnabled="{Binding CanContinue}" Visibility="{Binding ContinueVisibility}" />
-                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="Finish" Command="{Binding FinishCommand}" Visibility="{Binding FinishVisibility}" />
+                                <Button Style="{StaticResource Button.Ghost}" Content="S_kip for now" AutomationProperties.Name="Skip for now" Command="{Binding SkipCommand}" Visibility="{Binding SkipVisibility}" />
+                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="C_ontinue" AutomationProperties.Name="Continue" Command="{Binding NextCommand}" IsEnabled="{Binding CanContinue}" Visibility="{Binding ContinueVisibility}" />
+                                <Button Margin="8,0,0,0" MinWidth="112" Style="{StaticResource Button.Primary}" Content="_Finish" AutomationProperties.Name="Finish" Command="{Binding FinishCommand}" Visibility="{Binding FinishVisibility}" />
                             </StackPanel>
                         </Grid>
                     </StackPanel>

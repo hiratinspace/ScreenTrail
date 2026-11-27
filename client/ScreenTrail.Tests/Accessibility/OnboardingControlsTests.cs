@@ -187,14 +187,14 @@ public sealed class OnboardingControlsTests
         var window = Load("Onboarding", "OnboardingWindow.xaml");
         var buttons = window.Descendants(Wpf + "Button").ToList();
 
-        var back = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "Back");
+        var back = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "_Back");
         Assert.Equal("{Binding BackCommand}", (string?)back.Attribute("Command"));
-        var skip = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "Skip for now");
+        var skip = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "S_kip for now");
         Assert.Equal("{Binding SkipVisibility}", (string?)skip.Attribute("Visibility"));
 
         // Continue and Finish are the same place and never both shown: the foot's one filled button.
-        var next = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "Continue");
-        var finish = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "Finish");
+        var next = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "C_ontinue");
+        var finish = Assert.Single(buttons, b => (string?)b.Attribute("Content") == "_Finish");
         Assert.Equal("{StaticResource Button.Primary}", (string?)next.Attribute("Style"));
         Assert.Equal("{StaticResource Button.Primary}", (string?)finish.Attribute("Style"));
         Assert.Equal("{Binding ContinueVisibility}", (string?)next.Attribute("Visibility"));

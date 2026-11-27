@@ -19,8 +19,12 @@ public sealed class FieldLabelTests
     public void EachFieldIsNamedByAVisibleLabel(string folder, string file)
     {
         var pane = Load(folder, file);
+        // A field label is a Label with an access key since review finding E-20; its words are its Content
+        // without the underscore.
         var labels = pane.Descendants(Wpf + "TextBlock").Where(t => (string?)t.Attribute("Style") == "{StaticResource Text.Label}")
-            .Select(t => (string?)t.Attribute("Text")).ToHashSet();
+            .Select(t => (string?)t.Attribute("Text"))
+            .Concat(pane.Descendants(Wpf + "Label").Select(l => ((string?)l.Attribute("Content"))?.Replace("_", string.Empty, StringComparison.Ordinal)))
+            .ToHashSet();
 
         var fields = pane.Descendants().Where(e => e.Name.LocalName is "TextBox" or "ComboBox")
             .Where(f => !((string?)f.Attribute("AutomationProperties.Name") ?? "{").StartsWith('{'))

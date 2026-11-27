@@ -43,7 +43,8 @@ public sealed class ConfirmWindowTests(TheApplication app)
 
                 // The button says what happens, in the solid danger style (review finding B-05).
                 var confirm = Screens.Named<Button>(dialog, "Discard session");
-                Assert.Equal("Discard session", confirm.Content);
+                Assert.Equal("_Discard session", confirm.Content);
+                Assert.Equal("_Keep it", Screens.Named<Button>(dialog, "Keep it").Content);
                 Assert.Same(dialog.FindResource("Button.DangerSolid"), confirm.Style);
                 Assert.False(confirm.IsEnabled, "Discard is enabled before anything was typed.");
 
@@ -106,7 +107,7 @@ public sealed class ConfirmWindowTests(TheApplication app)
             {
                 var visible = Audit.Descendants(dialog).OfType<Button>().Where(b => b.IsVisible).ToList();
                 var close = Assert.Single(visible);
-                Assert.Equal("Close", close.Content);
+                Assert.Equal("_Close", close.Content);
                 Assert.True(close.IsDefault && close.IsCancel, "Enter and Esc should both close a notice.");
             }
             finally

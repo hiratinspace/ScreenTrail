@@ -171,4 +171,85 @@ public sealed class DialogPolishTests
     {
         Assert.Equal("{Binding Consequence}", (string?)Named(Dialog(), name).Attribute("AutomationProperties.HelpText"));
     }
+
+    /// <summary>The access key a label offers: the letter after its one single underscore, upper case.</summary>
+    private static char? Key(string? label) => label is null ? null : ScreenTrail.Core.Shell.AccessKeys.KeyOf(label);
+
+    /// <summary>
+    /// Review finding E-20: every button with words of its own in a window other than the shell has an access
+    /// key, unique in that window, and keeps its plain words as its accessible name. The dialog's buttons are
+    /// worded at run time and keyed by AccessKeys (ConfirmCopyTests).
+    /// </summary>
+    [Theory]
+    [InlineData("Onboarding", "OnboardingWindow.xaml")]
+    [InlineData("Diagnostics", "DiagnosticsWindow.xaml")]
+    [InlineData("Shell", "ShortcutSheet.xaml")]
+    public void EveryButtonInAWindowHasItsOwnAccessKey(string folder, string file)
+    {
+        var buttons = EmptyStateTests.View(folder, file).Descendants(Wpf + "Button")
+            .Select(b => (Content: (string?)b.Attribute("Content"), Name: (string?)b.Attribute("AutomationProperties.Name")))
+            .Where(b => b.Content is not null && !b.Content.StartsWith('{'))
+            .ToList();
+
+        Assert.NotEmpty(buttons);
+        Assert.All(buttons, b =>
+        {
+            Assert.True(Key(b.Content) is not null, $"{file}: \"{b.Content}\" has no access key");
+            Assert.False(string.IsNullOrEmpty(b.Name) || b.Name.Contains('_', StringComparison.Ordinal), $"{file}: \"{b.Content}\" is not named by its plain words");
+        });
+        var keys = buttons.Select(b => Key(b.Content)).ToList();
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+    }
+
+    /// <summary>
+    /// Review finding E-20: a Settings field's label is a Label whose Target is the field, with an access key,
+    /// so Alt and the letter puts focus in the field. Across the Settings page (its save bar included) every
+    /// key is different, and none is one of Review's Alt keys (1, 2, 3, T, C), which share the window.
+    /// </summary>
+    [Fact]
+    public void SettingsFieldsAreReachedByTheirLabelsKeys()
+    {
+        string[][] panes =
+        [
+            ["Settings/Activation", "ActivationPane.xaml"],
+            ["Settings/Capture", "CapturePane.xaml"],
+            ["Settings/Privacy", "PrivacyPane.xaml"],
+            ["Settings/Integrations", "IntegrationsPane.xaml"],
+            ["Settings", "SettingsPane.xaml"],
+        ];
+        var keys = new List<char?>();
+        foreach (var pane in panes)
+        {
+            var view = EmptyStateTests.View(pane[0], pane[1]);
+            Assert.DoesNotContain(view.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Label}" && view.Descendants().Any(e => e.Name.LocalName is "TextBox" or "ComboBox" && (string?)e.Attribute("AutomationProperties.Name") == (string?)t.Attribute("Text")));
+            foreach (var label in view.Descendants(Wpf + "Label"))
+            {
+                Assert.Equal("{StaticResource Field.Label}", (string?)label.Attribute("Style"));
+                var target = (string?)label.Attribute("Target");
+                Assert.StartsWith("{Binding ElementName=", target, StringComparison.Ordinal);
+                Assert.Contains(view.Descendants(), e => (string?)e.Attribute(Xaml + "Name") == target![21..^1]);
+                keys.Add(Key((string?)label.Attribute("Content")));
+            }
+
+            keys.AddRange(view.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Content")).Where(c => c is not null && !c.StartsWith('{')).Select(Key).Where(k => k is not null));
+            keys.AddRange(view.Descendants(Wpf + "AccessText").Select(a => Key((string?)a.Attribute("Text"))));
+        }
+
+        Assert.True(keys.Count >= 11, $"Only {keys.Count} keys on the Settings page.");
+        Assert.All(keys, k => Assert.NotNull(k));
+        Assert.Equal(keys.Count, keys.Distinct().Count());
+        Assert.DoesNotContain(keys, k => k is '1' or '2' or '3' or 'T' or 'C');
+    }
+
+    /// <summary>Review finding E-20: All sessions' buttons have keys too, clear of Review's.</summary>
+    [Fact]
+    public void AllSessionsButtonsHaveAccessKeys()
+    {
+        var history = EmptyStateTests.View("History", "HistoryPane.xaml");
+        var contents = history.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Content")).Where(c => c is not null && !c.StartsWith('{')).ToList();
+        Assert.Contains("_Open", contents);
+        Assert.Contains("_Mark as published", contents);
+        Assert.Contains("D_iscard selected", contents);
+        Assert.All(contents, c => Assert.DoesNotContain(Key(c), new char?[] { null, '1', '2', '3', 'T', 'C' }));
+    }
 }

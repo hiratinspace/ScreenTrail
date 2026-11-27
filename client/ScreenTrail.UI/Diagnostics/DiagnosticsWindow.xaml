@@ -178,13 +178,13 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0"
                     Style="{StaticResource Button.Secondary}"
-                    Content="Copy diagnostics"
+                    Content="Copy _diagnostics"
                     Command="{Binding CopyCommand}"
                     AutomationProperties.Name="Copy diagnostics to the clipboard" />
             <Button x:Name="CloseButton"
                     Grid.Column="2"
                     Style="{StaticResource Button.Secondary}"
-                    Content="Close"
+                    Content="_Close"
                     IsCancel="True"
                     Click="OnClose"
                     AutomationProperties.Name="Close diagnostics" />

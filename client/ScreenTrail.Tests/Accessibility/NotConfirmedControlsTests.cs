@@ -84,8 +84,8 @@ public sealed class NotConfirmedControlsTests
         var history = Load("History", "HistoryPane.xaml");
 
         var mark = Assert.Single(history.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Command") == "{Binding MarkPublishedCommand}");
-        Assert.Equal("Mark as published", (string?)mark.Attribute("Content"));
-        Assert.Equal(Core.Shell.MarkAsPublished.Action, (string?)mark.Attribute("Content"));
+        Assert.Equal("_Mark as published", (string?)mark.Attribute("Content"));
+        Assert.Equal(Core.Shell.MarkAsPublished.Action, ((string?)mark.Attribute("Content"))?.Replace("_", string.Empty, StringComparison.Ordinal));
         Assert.Equal("{StaticResource Button.Secondary}", (string?)mark.Attribute("Style"));
         Assert.False(string.IsNullOrWhiteSpace((string?)mark.Attribute("AutomationProperties.Name")));
 

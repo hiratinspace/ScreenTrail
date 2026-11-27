@@ -123,7 +123,7 @@
                           AutomationProperties.Name="Filter by when the session started" />
                 <Button Margin="0,0,0,8"
                         Style="{StaticResource Button.Link}"
-                        Content="Clear filters"
+                        Content="Clear _filters" AutomationProperties.Name="Clear filters"
                         Command="{Binding ClearFiltersCommand}"
                         Visibility="{Binding ClearFiltersVisibility}" />
             </WrapPanel>
@@ -249,7 +249,7 @@
 
                 <StackPanel Grid.Row="0" Grid.Column="0" Style="{StaticResource History.Actions}">
                     <Button Style="{StaticResource Button.Primary}"
-                            Content="Open"
+                            Content="_Open" AutomationProperties.Name="Open"
                             Command="{Binding OpenCommand}"
                             CommandParameter="{Binding SelectedItem, ElementName=Sessions}" />
                     <TextBlock Margin="12,0,0,0"
@@ -273,13 +273,13 @@
                          ticket and the note is there. Asks first, sends nothing to the ticket. -->
                     <Button Margin="0,0,8,0"
                             Style="{StaticResource Button.Secondary}"
-                            Content="Mark as published"
+                            Content="_Mark as published"
                             Command="{Binding MarkPublishedCommand}"
                             ToolTip="For one session marked Not confirmed: after checking the ticket, record that the earlier publish is there. Nothing is sent again."
                             AutomationProperties.Name="Mark as published: the selected session"
                             AutomationProperties.HelpText="For one selected session marked Not confirmed. After you have checked the ticket, records that the earlier publish is there. Nothing is sent again. You will be asked to confirm." />
                     <Button Style="{StaticResource Button.Danger}"
-                            Content="Discard selected"
+                            Content="D_iscard selected"
                             Command="{Binding BulkDiscardCommand}"
                             ToolTip="Discard the selected sessions. You will be asked to type how many."
                             AutomationProperties.Name="Discard selected sessions"
@@ -317,7 +317,7 @@
             <Button Margin="0,8,0,0"
                     HorizontalAlignment="Center"
                     Style="{StaticResource Button.Link}"
-                    Content="Clear filters"
+                    Content="Clear _filters" AutomationProperties.Name="Clear filters"
                     Command="{Binding ClearFiltersCommand}"
                     Visibility="{Binding ClearFiltersVisibility}" />
         </StackPanel>

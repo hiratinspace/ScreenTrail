@@ -101,9 +101,9 @@
                 </controls:Repeater>
                 <!-- Every field says what it is above it and how to fill it below (review findings B-13, E-26): the
                      box was blank, with its hint only in the help text a screen reader hears. -->
-                <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="App to exclude" />
+                <Label Margin="0,16,0,4" Style="{StaticResource Field.Label}" Content="_App to exclude" Target="{Binding ElementName=NewProcessBox}" />
                 <StackPanel Orientation="Horizontal">
-                    <TextBox Width="{DynamicResource Layout.field}"
+                    <TextBox x:Name="NewProcessBox" Width="{DynamicResource Layout.field}"
                              Style="{StaticResource Input.Default}"
                              Text="{Binding NewProcess, UpdateSourceTrigger=PropertyChanged}"
                              theme:Field.Placeholder="keepass"
@@ -150,9 +150,9 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </controls:Repeater>
-                <TextBlock Margin="0,8,0,4" Style="{StaticResource Text.Label}" Text="New pattern" />
+                <Label Margin="0,8,0,4" Style="{StaticResource Field.Label}" Content="_New pattern" Target="{Binding ElementName=NewPatternBox}" />
                 <StackPanel Orientation="Horizontal">
-                    <TextBox Width="{DynamicResource Layout.field-wide}"
+                    <TextBox x:Name="NewPatternBox" Width="{DynamicResource Layout.field-wide}"
                              Style="{StaticResource Input.Default}"
                              FontFamily="{DynamicResource Font.mono}"
                              Text="{Binding NewPattern, UpdateSourceTrigger=PropertyChanged}"
@@ -162,8 +162,8 @@
                     <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Add" Command="{Binding AddPatternCommand}" IsEnabled="{Binding CanAddPattern}" AutomationProperties.Name="Add pattern" />
                 </StackPanel>
                 <ContentControl Style="{StaticResource Field.ErrorLine}" Content="{Binding NewPatternProblem}" />
-                <TextBlock Margin="0,16,0,4" Style="{StaticResource Text.Label}" Text="Try it on some text" />
-                <TextBox Style="{StaticResource Input.Default}" Text="{Binding Sample, UpdateSourceTrigger=PropertyChanged}" theme:Field.Placeholder="Paste a line from a ticket" AutomationProperties.Name="Try it on some text" />
+                <Label Margin="0,16,0,4" Style="{StaticResource Field.Label}" Content="T_ry it on some text" Target="{Binding ElementName=SampleBox}" />
+                <TextBox x:Name="SampleBox" Style="{StaticResource Input.Default}" Text="{Binding Sample, UpdateSourceTrigger=PropertyChanged}" theme:Field.Placeholder="Paste a line from a ticket" AutomationProperties.Name="Try it on some text" />
                 <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Mono}" TextWrapping="Wrap" Text="{Binding SampleMasked}" AutomationProperties.Name="What the sample becomes" />
             </StackPanel>
         </Border>

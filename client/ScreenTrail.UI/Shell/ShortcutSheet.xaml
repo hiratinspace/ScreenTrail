@@ -98,7 +98,7 @@
                 Margin="0,24,0,0"
                 HorizontalAlignment="Right"
                 Style="{StaticResource Button.Secondary}"
-                Content="Close"
+                Content="_Close"
                 IsDefault="True"
                 IsCancel="True"
                 Click="OnClose"

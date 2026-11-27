@@ -112,6 +112,28 @@
         <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
+    <!-- A field's label with an access key (review finding E-20): Text.Label's look, 12/16 semibold in
+         text.secondary, on a Label whose Target is the field, so Alt and the underlined letter puts focus
+         in the field and a screen reader reads the label as the field's. Not a Tab stop. -->
+    <Style x:Key="Field.Label" TargetType="Label">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
+        <Setter Property="FontSize" Value="{DynamicResource Size.sm}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Label">
+                    <AccessText Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
+                                TextWrapping="Wrap"
+                                LineHeight="{DynamicResource Leading.caption}"
+                                LineStackingStrategy="BlockLineHeight" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
     <!-- Strings a machine reads: hotkeys, paths, IDs. 13 px Cascadia Mono has 14 px Segoe UI's x-height. -->
     <Style x:Key="Text.Mono" BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{DynamicResource Font.mono}" />
