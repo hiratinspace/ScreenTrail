@@ -2436,7 +2436,10 @@
         <Setter Property="Background" Value="{DynamicResource Brush.bg.surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
         <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
-        <Setter Property="FocusVisualStyle" Value="{DynamicResource FocusVisual.input}" />
+        <!-- Keyboard focus also takes the frame's ring, 4 outside on shell.bg, as on every rail control. The
+             edge alone did not read on the laptop: drawn at a fractional offset at its display scale, its top
+             and bottom rows blurred across two pixels and changed under 3:1, so only the sides showed. -->
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Rail}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
