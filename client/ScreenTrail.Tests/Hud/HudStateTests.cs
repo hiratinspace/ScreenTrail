@@ -176,6 +176,10 @@ public sealed class HudStateTests
         var hud = HudState.For(capture: null);
 
         Assert.NotEqual(HudTone.Recording, hud.State.Tone);
+
+        // Amendment 21: the paused hue, never the calm idle one, for a state that may be recording.
+        Assert.Equal(HudTone.Paused, hud.State.Tone);
+        Assert.Equal(HudTone.Paused, HudState.For(Capture("a_state_from_a_newer_service")).State.Tone);
         Assert.Equal("Capture state unknown", hud.State.Text);
         Assert.Contains("may still be recording", hud.State.Tooltip, StringComparison.Ordinal);
     }

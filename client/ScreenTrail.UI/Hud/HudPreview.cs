@@ -33,7 +33,7 @@ internal static class HudPreview
 
         // Not a spec variant, but the one that matters most: the UI has lost the service and must not
         // claim capture has stopped.
-        yield return ("unknown", For(state: null), HudTone.Idle);
+        yield return ("unknown", For(state: null), HudTone.Paused);
 
         // Redaction backlog, which shares the pill with everything else and is the piece most likely to
         // run into its neighbours.

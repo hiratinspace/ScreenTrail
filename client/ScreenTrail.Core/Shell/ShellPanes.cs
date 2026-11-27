@@ -219,7 +219,10 @@ public static class ShellStatus
             CaptureStates.Recording => HudTone.Recording,
             // Finishing up has no hue, as on the pill (review finding C-H12).
             CaptureStates.Paused or CaptureStates.Suppressed => HudTone.Paused,
-            _ => HudTone.Idle,
+            CaptureStates.Finalizing or CaptureStates.Idle or CaptureStates.DraftReady or CaptureStates.DraftFailed or CaptureStates.DraftPending => HudTone.Idle,
+
+            // A state this build does not know may be recording: the paused hue, as on the pill (amendment 21).
+            _ => HudTone.Paused,
         };
     }
 

@@ -255,9 +255,10 @@ public static class HudState
         if (capture is null)
         {
             // The UI has not heard from the service. It cannot say capture is off, because it does not
-            // know, and "unknown" is the honest word for the state INV-4 cares most about.
+            // know, and "unknown" is the honest word for the state INV-4 cares most about. In the paused
+            // hue (design system amendment 21): it may be recording, so it must not look calm and idle.
             return new HudSegment(
-                HudTone.Idle,
+                HudTone.Paused,
                 HudGlyphs.Unknown,
                 "Capture state unknown",
                 "Not connected to the capture service. It may still be recording.");
@@ -292,9 +293,10 @@ public static class HudState
 
             // A state this build has never heard of: a service newer than this UI. KnownIdle already
             // says why guessing "idle" is least defensible here, and this is the same reasoning applied
-            // to the words on the pill rather than to whether it is shown (2026-09-19 review).
+            // to the words on the pill rather than to whether it is shown (2026-09-19 review). Paused hue,
+            // as above (amendment 21).
             _ => new HudSegment(
-                HudTone.Idle,
+                HudTone.Paused,
                 HudGlyphs.Unknown,
                 "Capture state unknown",
                 "This ScreenTrail is older than the capture service. It may be recording."),
