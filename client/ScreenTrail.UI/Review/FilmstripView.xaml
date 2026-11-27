@@ -22,15 +22,20 @@
                         BorderBrush="{DynamicResource Brush.border.subtle}"
                         Background="{DynamicResource Brush.bg.raised}"
                         ClipToBounds="True">
-                    <!-- The glyph sits under the image: it shows while the thumbnail loads, and is covered
-                         once it arrives. -->
+                    <!-- A skeleton cell sits under the image (review finding D-27): a flat bg.hover block,
+                         radius 6, shown only if the thumbnail takes more than 300 ms; the picture fades in
+                         over it in 120 ms rather than snapping in, at once with reduce motion. -->
                     <Grid>
-                        <controls:Glyph HorizontalAlignment="Center"
-                                   Style="{StaticResource Icon}"
-                                   FontSize="{DynamicResource Icon.lg}"
-                                   Foreground="{DynamicResource Brush.text.muted}"
-                                   Text="{StaticResource Icon.Photo}" />
-                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="{Binding Label}" />
+                        <Border x:Name="ThumbnailSkeleton"
+                                Style="{StaticResource Skeleton}"
+                                Height="Auto"
+                                Margin="0"
+                                CornerRadius="{DynamicResource Radius.control}" />
+                        <Image Source="{Binding Thumbnail, NotifyOnTargetUpdated=True}"
+                               Stretch="UniformToFill"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               theme:Waiting.FadeIn="True"
+                               AutomationProperties.Name="{Binding Label}" />
                         <ContentControl x:Name="ExcludedBadge"
                                         Margin="8"
                                         HorizontalAlignment="Left"

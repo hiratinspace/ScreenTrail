@@ -271,20 +271,60 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
             return;
         }
 
+        // Up to four on the pipe at once, started in the strip's order (review finding D-27): one round trip
+        // per frame in turn filled a 150-frame strip top to bottom like popcorn. _thumbnailsAt is how far the
+        // load has started, which is what a frame put back by an undo asks.
         _thumbnailToken = ct;
-        for (var at = 0; at < _frameItems.Length; at++)
+        var frames = _frames;
+        var gate = new SemaphoreSlim(ThumbnailsInFlight);
+        var loads = new List<Task>();
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            _thumbnailsAt = at;
-            var item = _frameItems[at];
-            if (item.Thumbnail is null && _strip.Contains(item.Id))
+            for (var at = 0; at < _frameItems.Length; at++)
             {
-                await LoadThumbnailAsync(_frames, item, ct).ConfigureAwait(true);
+                ct.ThrowIfCancellationRequested();
+                _thumbnailsAt = at;
+                var item = _frameItems[at];
+                if (item.Thumbnail is null && _strip.Contains(item.Id))
+                {
+                    await gate.WaitAsync(ct).ConfigureAwait(true);
+                    loads.Add(LoadReleasingAsync(item));
+                }
             }
+
+            await Task.WhenAll(loads).ConfigureAwait(true);
+            _thumbnailsAt = _frameItems.Length;
+        }
+        finally
+        {
+            // Cancelled part way: the loads already started finish (or see the token) before the gate goes.
+            try
+            {
+                await Task.WhenAll(loads).ConfigureAwait(true);
+            }
+            catch (OperationCanceledException)
+            {
+                // Said once, by the loop above.
+            }
+
+            gate.Dispose();
         }
 
-        _thumbnailsAt = _frameItems.Length;
+        async Task LoadReleasingAsync(FrameItem item)
+        {
+            try
+            {
+                await LoadThumbnailAsync(frames, item, ct).ConfigureAwait(true);
+            }
+            finally
+            {
+                _ = gate.Release();
+            }
+        }
     }
+
+    /// <summary>How many thumbnails are asked for at once (review finding D-27).</summary>
+    internal const int ThumbnailsInFlight = 4;
 
     private static async Task LoadThumbnailAsync(IReviewFrames frames, FrameItem item, CancellationToken ct)
     {
@@ -302,7 +342,13 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
 
         try
         {
-            item.Thumbnail = Thumbnails.Decode(bytes);
+            // Decoded on a worker thread and frozen there (D-27), then set here on the UI thread; a blur that
+            // landed meanwhile has drawn its own, so this one is dropped.
+            var decoded = await Task.Run(() => Thumbnails.Decode(bytes), ct).ConfigureAwait(true);
+            if (ReferenceEquals(item.Cell.Frame, asked) && !item.BlurPending)
+            {
+                item.Thumbnail = decoded;
+            }
         }
         catch (Exception error) when (error is NotSupportedException or FormatException or IOException or ArgumentException or InvalidOperationException or System.Runtime.InteropServices.ExternalException)
         {

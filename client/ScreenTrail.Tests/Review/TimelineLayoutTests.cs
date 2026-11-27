@@ -199,4 +199,32 @@ public sealed class TimelineLayoutTests
         Assert.Contains("decoded.Freeze();", decoder, StringComparison.Ordinal);
         Assert.Contains("DecodePixelWidth = width", decoder, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding D-27: thumbnails are fetched four at a time and decoded on a worker thread, and a cell
+    /// waiting for one shows a skeleton the picture fades in over, through Waiting.FadeIn (code, so reduce
+    /// motion is honoured), not a storyboard.
+    /// </summary>
+    [Fact]
+    public void ThumbnailsLoadFourAtATimeOverASkeleton()
+    {
+        var model = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Review", "FilmstripViewModel.cs"));
+        Assert.Contains("internal const int ThumbnailsInFlight = 4;", model, StringComparison.Ordinal);
+        Assert.Contains("new SemaphoreSlim(ThumbnailsInFlight)", model, StringComparison.Ordinal);
+        Assert.Contains("await Task.Run(() => Thumbnails.Decode(bytes), ct)", model, StringComparison.Ordinal);
+
+        var strip = EnvelopeLayoutTests.Load("Review", "FilmstripView.xaml");
+        var frame = strip.Descendants(Wpf + "DataTemplate").Single(t => (string?)t.Attribute(X + "Key") == "FrameTemplate");
+        var skeleton = frame.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(X + "Name") == "ThumbnailSkeleton");
+        Assert.Equal("{StaticResource Skeleton}", (string?)skeleton.Attribute("Style"));
+        Assert.Equal("{DynamicResource Radius.control}", (string?)skeleton.Attribute("CornerRadius"));
+        var image = frame.Descendants(Wpf + "Image").Single();
+        Assert.Equal("{Binding Thumbnail, NotifyOnTargetUpdated=True}", (string?)image.Attribute("Source"));
+        Assert.Equal("True", (string?)image.Attribute(XName.Get("Waiting.FadeIn", "clr-namespace:ScreenTrail.UI.Theme")));
+        Assert.DoesNotContain(strip.Descendants(), e => e.Name.LocalName == "Storyboard");
+
+        var waiting = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Theme", "Waiting.cs"));
+        Assert.Contains("TimeSpan.FromMilliseconds(120)", waiting, StringComparison.Ordinal);
+        Assert.Contains("ThemeManager.ReduceMotion", waiting, StringComparison.Ordinal);
+    }
 }
