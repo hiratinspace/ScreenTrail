@@ -23,6 +23,24 @@ public sealed class SegmentAndChipTests
         Assert.Equal("{DynamicResource Radius.sm}", (string?)chrome.Attribute("CornerRadius"));
     }
 
+    /// <summary>
+    /// Spec §7: every target is at least 28 x 28. A segment is drawn 26 high in its group's 2 px inset
+    /// (design system 10.3), so the target reaches across the inset either side, 30 high, while the chrome
+    /// stays 26 (CI on ST-129: "Internal note is 125 x 26, under 28 x 28").
+    /// </summary>
+    [Fact]
+    public void ASegmentIsDrawn26HighButIsA28PxTarget()
+    {
+        var segment = Keyed("Segment");
+        Assert.Equal("{DynamicResource Layout.hit-target-min}", Setter(segment, "MinHeight"));
+        Assert.Equal("0,-2", Setter(segment, "Margin"));
+
+        var chrome = Named(segment, "Chrome");
+        Assert.Equal("{DynamicResource Layout.segment-height}", (string?)chrome.Attribute("MinHeight"));
+        Assert.Equal("0,2", (string?)chrome.Attribute("Margin"));
+        Assert.Equal("Transparent", (string?)chrome.Parent!.Attribute("Background"));
+    }
+
     [Fact]
     public void TheChosenSegmentIsTintedAndBoldWithNoUnderline()
     {

@@ -214,4 +214,16 @@ public sealed class HighContrastSelectionTests
             Assert.Contains(setter.Parent!.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Edge" && (string?)s.Attribute("Value") == "Visible");
         }
     }
+
+    /// <summary>
+    /// Spec §7: focus is seen. In high contrast the table row's focus outline and its selection edge are
+    /// both 2 px Highlight, so the outline sits inside the edge by the edge's width; drawn on it, focusing a
+    /// cell of the selected row changed no pixel (Windows audit, History, CI on ST-131).
+    /// </summary>
+    [Fact]
+    public void TheTableRowsFocusOutlineSitsInsideTheSelectionEdge()
+    {
+        var outline = ChoiceStatesTests.Components().Descendants(Wpf + "Rectangle").Single(r => (string?)r.Attribute(X + "Name") == "FocusOutline");
+        Assert.Equal("{DynamicResource Thickness.selected-edge}", (string?)outline.Attribute("Margin"));
+    }
 }
