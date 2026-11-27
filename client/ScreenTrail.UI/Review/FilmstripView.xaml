@@ -30,7 +30,7 @@
                                    FontSize="{DynamicResource Icon.lg}"
                                    Foreground="{DynamicResource Brush.text.muted}"
                                    Text="{StaticResource Icon.Photo}" />
-                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="{Binding Label}" />
                         <ContentControl x:Name="ExcludedBadge"
                                         Margin="8"
                                         HorizontalAlignment="Left"
@@ -276,18 +276,22 @@
                 </Grid>
 
                 <!-- The picture in a 1 px border.subtle frame, 8 under the toolbar. -->
-                <Border Grid.Row="1"
+                <Border x:Name="EnlargedFrame"
+                        Grid.Row="1"
                         Margin="0,8,0,0"
+                        SizeChanged="OnEnlargedFrameSizeChanged"
                         BorderBrush="{DynamicResource Brush.border.subtle}"
                         BorderThickness="1"
                         CornerRadius="{DynamicResource Radius.control}">
                     <Grid>
-                        <!-- TargetNullValue: the picture is bytes, dropped to null when the view lets go of it,
-                             and without it WPF tries to convert that null and logs a binding error each time. -->
+                        <!-- The frame as decoded off the UI thread for the width it is drawn at, the thumbnail until
+                             then (review finding D-21), scaled with the high-quality filter so the small text a
+                             technician checks before publishing is not jagged. -->
                         <Image x:Name="EnlargedImage"
-                               Source="{Binding Enlarged.Image, TargetNullValue={x:Null}}"
+                               Source="{Binding Enlarged.Showing}"
                                Stretch="Uniform"
-                               SizeChanged="OnBlurLayoutChanged"
+                               RenderOptions.BitmapScalingMode="HighQuality"
+                               SizeChanged="OnEnlargedImageSizeChanged"
                                AutomationProperties.Name="{Binding Enlarged.Label}" />
 
                         <!-- A blur of this frame with no answer yet (review of #257): no picture is shown, because

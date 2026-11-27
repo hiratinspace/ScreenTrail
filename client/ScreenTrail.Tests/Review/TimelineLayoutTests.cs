@@ -175,4 +175,28 @@ public sealed class TimelineLayoutTests
         var renders = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Shell", "ShellWindow.Renders.cs"));
         Assert.Contains("\"shell-review-strip\"", renders, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding D-21: the enlarged view draws a decoded, frozen ImageSource (the thumbnail until the
+    /// full picture is in), never bytes WPF would decode at native size on the UI thread; the picture and its
+    /// text are fetched together; and every screenshot is scaled with the high-quality filter.
+    /// </summary>
+    [Fact]
+    public void AnEnlargedFrameOpensAtOnceAndIsDecodedOffTheUiThread()
+    {
+        var strip = EnvelopeLayoutTests.Load("Review", "FilmstripView.xaml");
+        var enlarged = strip.Descendants(Wpf + "Image").Single(i => (string?)i.Attribute(X + "Name") == "EnlargedImage");
+        Assert.Equal("{Binding Enlarged.Showing}", (string?)enlarged.Attribute("Source"));
+        Assert.All(strip.Descendants(Wpf + "Image"), i => Assert.Equal("HighQuality", (string?)i.Attribute("RenderOptions.BitmapScalingMode")));
+        var note = EnvelopeLayoutTests.Load("Review", "NoteEditorView.xaml");
+        Assert.All(note.Descendants(Wpf + "Image"), i => Assert.Equal("HighQuality", (string?)i.Attribute("RenderOptions.BitmapScalingMode")));
+
+        var model = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Review", "FilmstripViewModel.cs"));
+        Assert.Contains("Task.WhenAll(image, text)", model, StringComparison.Ordinal);
+        Assert.Contains("Task.Run(() => Thumbnails.DecodeAt(image, width))", model, StringComparison.Ordinal);
+        Assert.Contains("public ImageSource? Showing => BlurPending ? null : Picture ?? Thumbnail;", model, StringComparison.Ordinal);
+        var decoder = File.ReadAllText(Path.Combine(EnvelopeLayoutTests.Ui(), "Review", "Thumbnails.cs"));
+        Assert.Contains("decoded.Freeze();", decoder, StringComparison.Ordinal);
+        Assert.Contains("DecodePixelWidth = width", decoder, StringComparison.Ordinal);
+    }
 }

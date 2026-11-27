@@ -29,12 +29,31 @@ public sealed partial class FrameItem : StripItem
 
     /// <summary>What the strip draws: the frame decoded at thumbnail size, never the full picture (P2-3).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Showing))]
     private ImageSource? _thumbnail;
 
     /// <summary>The full image, held only while the frame is enlarged. Null the rest of the time.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WaitingForBlur))]
     private byte[]? _image;
+
+    /// <summary>
+    /// The full image decoded for the enlarged view (review finding D-21): off the UI thread, at the width it
+    /// is drawn at (<see cref="DecodeWidth"/>), frozen. Bound as bytes, WPF decoded it at native size on the
+    /// UI thread each time, and the view stalled before it showed anything.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Showing))]
+    private ImageSource? _picture;
+
+    /// <summary>The device pixels the enlarged picture is drawn across; 0 decodes at the image's own width.</summary>
+    internal int DecodeWidth { get; set; }
+
+    /// <summary>
+    /// What the enlarged view draws: the full picture once decoded, the thumbnail scaled up until then, so
+    /// Enter shows the frame at once. Nothing while a blur is pending: what is held may be from before it.
+    /// </summary>
+    public ImageSource? Showing => BlurPending ? null : Picture ?? Thumbnail;
 
     public override long TsMs => Cell.Frame.TsMs;
 
@@ -74,10 +93,42 @@ public sealed partial class FrameItem : StripItem
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(WaitingForBlur))]
+    [NotifyPropertyChangedFor(nameof(Showing))]
     private bool _blurPending;
 
     /// <summary>Pending, with no picture to show: what the enlarged view says instead of a picture.</summary>
     public bool WaitingForBlur => BlurPending && Image is null;
+
+    partial void OnImageChanged(byte[]? value)
+    {
+        Picture = null;
+        if (value is not null)
+        {
+            _ = DecodeAsync(value);
+        }
+    }
+
+    /// <summary>Decodes again for a picture now drawn more than a quarter wider than it was decoded for.</summary>
+    internal void Redecode(int width)
+    {
+        DecodeWidth = width;
+        if (Image is { } image)
+        {
+            _ = DecodeAsync(image);
+        }
+    }
+
+    private async Task DecodeAsync(byte[] image)
+    {
+        var width = DecodeWidth;
+        var decoded = await Task.Run(() => Thumbnails.DecodeAt(image, width)).ConfigureAwait(true);
+
+        // Only if the bytes are still the ones asked for: a blur or a close may have replaced them meanwhile.
+        if (ReferenceEquals(Image, image))
+        {
+            Picture = decoded;
+        }
+    }
 
     internal void Refresh(FrameCell cell)
     {
@@ -492,29 +543,65 @@ public sealed partial class FilmstripViewModel : ObservableObject, IDisposable, 
             return;
         }
 
-        if (item is not null && item.Image is null && _frames is not null)
-        {
-            item.Image = await _frames.ImageAsync(item.Cell.Frame).ConfigureAwait(true);
-        }
-
-        if (item is not null && item.OcrText is null)
-        {
-            item.OcrText = _frames is not null
-                ? await _frames.OcrTextAsync(item.Cell.Frame).ConfigureAwait(true)
-                : item.Cell.Frame.OcrText;
-        }
-
-        // Enter on another frame while one is open moves the view without passing through Esc, so the
-        // frame being left lets go of what it held here, after the new one has loaded.
+        // Open first (review finding D-21): the view shows the thumbnail scaled up at once and the full
+        // picture replaces it once it has arrived and been decoded. It waited for two calls in turn before.
+        // Enter on another frame while one is open moves the view without passing through Esc, so the frame
+        // being left lets go of what it held here.
         if (Enlarged is { } previous && previous != item)
         {
             Release(previous);
         }
 
+        if (item is not null)
+        {
+            item.DecodeWidth = EnlargedDecodeWidth;
+        }
+
         Enlarged = item;
         ShowOcrText = false;
         OnPropertyChanged(nameof(IsEnlarged));
+        if (item is null)
+        {
+            return;
+        }
+
+        // The picture and what redaction read on it, both at once rather than one after the other.
+        var image = item.Image is null && _frames is not null ? _frames.ImageAsync(item.Cell.Frame) : Task.FromResult(item.Image);
+        var text = item.OcrText is not null ? Task.FromResult<string?>(item.OcrText)
+            : _frames is not null ? _frames.OcrTextAsync(item.Cell.Frame)
+            : Task.FromResult(item.Cell.Frame.OcrText);
+        await Task.WhenAll(image, text).ConfigureAwait(true);
+
+        // Closed, or another frame opened, while they came: this one holds nothing it is not showing.
+        if (Enlarged != item)
+        {
+            return;
+        }
+
+        item.Image = await image.ConfigureAwait(true);
+        item.OcrText = await text.ConfigureAwait(true);
     }
+
+    /// <summary>
+    /// The device pixels the enlarged picture is drawn across, set by the view as its size changes, so the
+    /// picture is decoded for that width and not at the capture's 1920 or 3840 (review finding D-21). Grown by
+    /// more than a quarter while a frame is open, the picture is decoded again for the new width.
+    /// </summary>
+    public int EnlargedDecodeWidth
+    {
+        get => _enlargedDecodeWidth;
+        set
+        {
+            var old = _enlargedDecodeWidth;
+            _enlargedDecodeWidth = value;
+            if (Enlarged is { } item && old > 0 && value > old * 1.25)
+            {
+                item.Redecode(value);
+            }
+        }
+    }
+
+    private int _enlargedDecodeWidth;
 
     /// <summary>
     /// "Back to the note" on the enlarged frame's toolbar (review finding A-26): the frame closes and the strip

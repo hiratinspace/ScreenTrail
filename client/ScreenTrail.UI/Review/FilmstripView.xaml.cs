@@ -198,6 +198,21 @@ public partial class FilmstripView : UserControl
     /// <summary>The picture or the surface over it changed size: the box stays over the same part of the picture.</summary>
     private void OnBlurLayoutChanged(object sender, System.Windows.SizeChangedEventArgs e) => ShowBox();
 
+    private void OnEnlargedImageSizeChanged(object sender, System.Windows.SizeChangedEventArgs e) => ShowBox();
+
+    /// <summary>
+    /// The width the enlarged picture can take, in device pixels, so it is decoded for that and not at the
+    /// capture's own size (review finding D-21).
+    /// </summary>
+    private void OnEnlargedFrameSizeChanged(object sender, System.Windows.SizeChangedEventArgs e)
+    {
+        if (Model is { } model && e.WidthChanged)
+        {
+            var scale = System.Windows.Media.VisualTreeHelper.GetDpi(this).DpiScaleX;
+            model.EnlargedDecodeWidth = (int)Math.Ceiling(e.NewSize.Width * scale);
+        }
+    }
+
     /// <summary>The size the picture is drawn at, or null before it has been.</summary>
     private Size? Displayed() =>
         EnlargedImage.ActualWidth > 0 && EnlargedImage.ActualHeight > 0

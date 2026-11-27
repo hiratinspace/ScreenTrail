@@ -17,6 +17,31 @@ internal static class Thumbnails
     /// <summary>Twice the strip's 160 px, so a 200% display gets real pixels rather than a blur.</summary>
     public const int PixelWidth = 320;
 
+    /// <summary>
+    /// The full image for the enlarged view (review finding D-21), decoded at <paramref name="width"/> device
+    /// pixels when that is less than its own width, frozen so it can be made on a worker thread and shown on
+    /// the UI thread. 0 decodes at the image's own width.
+    /// </summary>
+    public static ImageSource DecodeAt(byte[] image, int width)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        using var stream = new MemoryStream(image, writable: false);
+        var native = BitmapFrame.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).PixelWidth;
+        stream.Position = 0;
+        var decoded = new BitmapImage();
+        decoded.BeginInit();
+        decoded.CacheOption = BitmapCacheOption.OnLoad;
+        if (width > 0 && width < native)
+        {
+            decoded.DecodePixelWidth = width;
+        }
+
+        decoded.StreamSource = stream;
+        decoded.EndInit();
+        decoded.Freeze();
+        return decoded;
+    }
+
     public static ImageSource Decode(byte[] image)
     {
         ArgumentNullException.ThrowIfNull(image);
