@@ -62,7 +62,7 @@ turns the glyph grey and adds a cross. Each badge is cut into the glyph with a t
 | `tray-idle-light-16.svg`, `tray-idle-light-32.svg` | Idle, light taskbar: Iris glyph (5.89:1) |
 | `tray-idle-dark-16.svg`, `tray-idle-dark-32.svg` | Idle, dark taskbar: Ribbon 400 glyph (7.42:1) |
 | `tray-recording-light-16.svg`, `tray-recording-light-32.svg` | Recording, light taskbar: dot #D3302F |
-| `tray-recording-dark-16.svg`, `tray-recording-dark-32.svg` | Recording, dark taskbar: dot #FF6B6B |
+| `tray-recording-dark-16.svg`, `tray-recording-dark-32.svg` | Recording, dark taskbar: dot #FF6363 |
 | `tray-paused-light-16.svg`, `tray-paused-light-32.svg` | Paused, light taskbar: bars #B35900 |
 | `tray-paused-dark-16.svg`, `tray-paused-dark-32.svg` | Paused, dark taskbar: bars #F5A524 |
 | `tray-offline-light-16.svg`, `tray-offline-light-32.svg` | Offline, light taskbar: blue slate #6A7380 and a cross |
@@ -71,7 +71,9 @@ turns the glyph grey and adds a cross. Each badge is cut into the glyph with a t
 Draft ready has no file here. The spec gives it the idle glyph with a badge (§2.0, tray glyph tiers), so
 `build-icons.py` builds it from the idle file: the same transparent ring the other states cut in, and a
 filled rounded square in the screen's colour (frame #141030 on the light taskbar, paper #F7F5FE on the
-dark one). The count of drafts is in the tooltip and the menu's first row.
+dark one) with one line across it in the other colour, a note to read (review finding C-T7): a plain
+square was the Stop glyph's shape and read "stopped" at 16 px. The count of drafts is in the tooltip and
+the menu's first row.
 
 ## Building the icons
 
