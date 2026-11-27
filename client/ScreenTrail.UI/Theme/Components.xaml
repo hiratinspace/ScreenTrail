@@ -1296,11 +1296,14 @@
     <!-- Skeleton (design system 10.8): a flat bg.hover block, radius 4, no shimmer and no pulse (a moving
          gradient breaks the flat-fill rule and distracts beside a remote session). A text line is a block 12
          high in a 20 px line. It appears only after 300 ms of waiting, so a fast answer never flashes it
-         (theme:Waiting.Appear, from code). Skeleton.Frame is the same on the rail, in shell.hover. -->
+         (theme:Waiting.Appear, from code). Skeleton.Frame is the same on the rail, in shell.hover. In high
+         contrast the fill is the window colour, so the block is outlined in GrayText (skeleton.edge). -->
     <Style x:Key="Skeleton" TargetType="Border">
         <Setter Property="Height" Value="12" />
         <Setter Property="Margin" Value="0,4" />
         <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.skeleton.edge}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <Setter Property="CornerRadius" Value="{DynamicResource Radius.sm}" />
         <Setter Property="IsHitTestVisible" Value="False" />
         <Setter Property="Opacity" Value="0" />

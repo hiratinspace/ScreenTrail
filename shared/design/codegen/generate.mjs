@@ -68,6 +68,10 @@ function wpfColors(t, theme) {
   // the system flag, so a render with the high-contrast dictionary draws what high contrast does.
   lines.push('    <Color x:Key="Token.selection.edge">#00000000</Color>');
   lines.push('    <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />');
+  // A skeleton block's edge (design system 10.8): none in light and dark, where its bg.hover fill shows it;
+  // GrayText in high contrast, where that fill is the window colour and the block was invisible.
+  lines.push('    <Color x:Key="Token.skeleton.edge">#00000000</Color>');
+  lines.push('    <SolidColorBrush x:Key="Brush.skeleton.edge" Color="Transparent" />');
   // A scroll bar's thumb at rest (design system 10.8, review findings A-33, B-29): 4 wide, 8 while the pointer
   // is over its track; high contrast keeps it 8 at all times.
   lines.push('    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>');
