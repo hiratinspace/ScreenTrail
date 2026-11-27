@@ -65,7 +65,10 @@ public sealed class DialogAndSheetControlsTests
     {
         var sheet = Load("Shell", "ShortcutSheet.xaml");
 
-        Assert.Contains(sheet.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource KeyCap.Sheet}");
+        // One key cap definition, the theme's, and no comma drawn between alternatives (review finding B-31).
+        Assert.Contains(sheet.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource KeyCap}");
+        Assert.DoesNotContain(sheet.Descendants(Wpf + "Style"), s => (string?)s.Attribute(X + "Key") == "KeyCap.Sheet");
+        Assert.DoesNotContain(sheet.Descendants(), e => (string?)e.Attribute("Text") == "{Binding After}");
         Assert.Contains(sheet.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Sheet.GroupHeading}");
 
         // A line's caps are read as one text, named by the keys with "or" between alternatives.
@@ -79,6 +82,68 @@ public sealed class DialogAndSheetControlsTests
         var close = Assert.Single(sheet.Descendants(Wpf + "Button"));
         Assert.Equal("Close", (string?)close.Attribute("Content"));
         Assert.Equal("True", (string?)close.Attribute("IsCancel"));
+    }
+
+    [Theory]
+    [InlineData("Shell", "ShortcutSheet.xaml")]
+    [InlineData("Diagnostics", "DiagnosticsWindow.xaml")]
+    public void TheSheetAndThePanelScrollAboveAFooterThatStaysOnScreen(string folder, string file)
+    {
+        // Review finding D-07: both grew past a 1080p screen at 150% and Close went under the taskbar. Each
+        // is capped at its work area (FitToWorkArea, in its code) and its rows scroll; Close is outside the scroll.
+        var root = Load(folder, file);
+        var code = File.ReadAllText(Source(folder, file) + ".cs");
+        Assert.Contains("Theme.FitToWorkArea.Apply(this);", code, StringComparison.Ordinal);
+
+        var scroll = Assert.Single(root.Descendants(Wpf + "ScrollViewer"));
+        Assert.Equal("Auto", (string?)scroll.Attribute("VerticalScrollBarVisibility"));
+        var close = Assert.Single(root.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Content") == "Close");
+        Assert.DoesNotContain(close.Ancestors(), a => a.Name == Wpf + "ScrollViewer");
+    }
+
+    [Theory]
+    [InlineData(1032, 1.5, 640)]
+    [InlineData(1040, 1.0, 992)]
+    [InlineData(2112, 2.0, 1008)]
+    public void TheCapIsTheWorkAreaLess48(int workArea, double scale, double expected) =>
+        Assert.Equal(expected, ScreenTrail.Core.Shell.WindowFit.MaxHeight(workArea, scale), 3);
+
+    [Fact]
+    public void ADialogWithNoOwnerIsCentredOnTheMonitorUnderThePointerAndKeptInside()
+    {
+        // Review finding D-08: the second monitor, to the right of a 1920 wide primary.
+        Assert.Equal((1920 + 750, 300), ScreenTrail.Core.Shell.WindowFit.Centre(1920, 0, 1920, 1040, 420, 440));
+
+        // Larger than the area: its top-left corner stays on it.
+        Assert.Equal((1920, 0), ScreenTrail.Core.Shell.WindowFit.Centre(1920, 0, 400, 300, 420, 440));
+    }
+
+    [Fact]
+    public void ADialogWithNoOwnerHasATaskbarButtonAndStaysOnTop()
+    {
+        var code = File.ReadAllText(Source("Shell", "ConfirmWindow.xaml") + ".cs");
+        var alone = code[code.IndexOf("private static bool Show(", StringComparison.Ordinal)..];
+        alone = alone[alone.IndexOf("else", StringComparison.Ordinal)..alone.IndexOf("return dialog.ShowDialog()", StringComparison.Ordinal)];
+
+        Assert.Contains("dialog.ShowInTaskbar = true;", alone, StringComparison.Ordinal);
+        Assert.Contains("dialog.Topmost = true;", alone, StringComparison.Ordinal);
+        Assert.Contains("Theme.Placement.CentreUnderThePointer(dialog);", alone, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DiagnosticsOpensAtOnceAndIsOnlyEverOneWindow()
+    {
+        // Review finding D-09: the panel waited for the service before anything appeared, with no time
+        // limit, and each click made another. It opens asking, gives up after twice the refresh, and the
+        // shell keeps the one that is open.
+        var code = File.ReadAllText(Source("Diagnostics", "DiagnosticsWindow.xaml") + ".cs");
+        var show = code[code.IndexOf("public static DiagnosticsWindow ShowLive(", StringComparison.Ordinal)..code.IndexOf("private async Task FirstAnswerAsync(", StringComparison.Ordinal)];
+        Assert.Contains("new DiagnosticsWindow(CoreShell.DiagnosticsPanel.Asking)", show, StringComparison.Ordinal);
+        Assert.True(show.IndexOf("window.Show();", StringComparison.Ordinal) < show.IndexOf("FirstAnswerAsync(connection)", StringComparison.Ordinal), "the window waits for the answer");
+        Assert.Contains("new CancellationTokenSource(CoreShell.DiagnosticsPanel.RefreshEvery * 2)", code[code.IndexOf("private async Task FirstAnswerAsync(", StringComparison.Ordinal)..], StringComparison.Ordinal);
+
+        var shell = File.ReadAllText(Source("Shell", "LiveShell.cs"));
+        Assert.Contains("if (_diagnostics is { IsLoaded: true } open)", shell, StringComparison.Ordinal);
     }
 
     [Fact]

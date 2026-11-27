@@ -375,8 +375,9 @@ $ui = $null
 if (-not (Step 'setup' 'ui' 'the UI to start and stay up' {
     $uiEnvironment = @{ 'SCREENTRAIL_DEVICE_TOKEN' = $null; 'SCREENTRAIL_BACKEND' = $null; 'SCREENTRAIL_CRASH_REPORTS' = '1'; 'SCREENTRAIL_E2E_SECRET' = $null }
     # Logged like the others, so the secret check reads what the UI wrote too. Shown normally: a hidden
-    # start would apply to the first window the UI shows, which can be the pill.
-    $script:ui = Start-Logged -Role 'ui' -FilePath (Join-Path $AppDir 'ScreenTrail.UI.exe') -WorkingDirectory $AppDir -Environment $uiEnvironment -WindowStyle 'Normal'
+    # start would apply to the first window the UI shows, which can be the pill. --background: started as at
+    # sign-in, in the tray, so the shell window takes no focus from the run's remote tool.
+    $script:ui = Start-Logged -Role 'ui' -FilePath (Join-Path $AppDir 'ScreenTrail.UI.exe') -Arguments @('--background') -WorkingDirectory $AppDir -Environment $uiEnvironment -WindowStyle 'Normal'
     Start-Sleep -Seconds 5
     if ($script:ui.HasExited) { throw "The UI exited with code $($script:ui.ExitCode)." }
     "pid $($script:ui.Id)."

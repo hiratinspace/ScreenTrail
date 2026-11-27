@@ -14,9 +14,18 @@ namespace ScreenTrail.Platform.Lifecycle;
 [SupportedOSPlatform("windows")]
 public static class RestartRegistration
 {
-    /// <summary>Registers this process. Returns the HRESULT: 0 when Windows took it.</summary>
-    public static int Register() =>
-        RegisterApplicationRestart(ApplicationRestart.CommandLine.Length == 0 ? null : ApplicationRestart.CommandLine, ApplicationRestart.Flags);
+    /// <summary>Registers this process with the service's command line. Returns the HRESULT: 0 when Windows took it.</summary>
+    public static int Register() => Register(ApplicationRestart.CommandLine);
+
+    /// <summary>
+    /// Registers this process to be restarted with these arguments (not the executable's path): the UI's
+    /// is <see cref="UiStart.BackgroundFlag"/>, so a restart nobody asked for starts in the tray.
+    /// </summary>
+    public static int Register(string commandLine)
+    {
+        ArgumentNullException.ThrowIfNull(commandLine);
+        return RegisterApplicationRestart(commandLine.Length == 0 ? null : commandLine, ApplicationRestart.Flags);
+    }
 
     /// <summary>Takes this process's registration back. For the Windows tests, which register the test host.</summary>
     public static int Unregister() => UnregisterApplicationRestart();

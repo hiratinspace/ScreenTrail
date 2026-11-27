@@ -107,6 +107,12 @@ public sealed class LiveShell : IAsyncDisposable
     private volatile bool _disposed;
     private ShellWindow? _window;
 
+    /// <summary>How the shell window comes back from minimised (review finding D-05); made with the window.</summary>
+    private WindowRestore? _windowRestore;
+
+    /// <summary>The one diagnostics panel, while it is open.</summary>
+    private Diagnostics.DiagnosticsWindow? _diagnostics;
+
     public LiveShell()
         : this(OpenAsync, new ShellPreferencesStore(ShellPreferencesStore.DefaultPath))
     {
@@ -174,14 +180,24 @@ public sealed class LiveShell : IAsyncDisposable
     /// state. That is on purpose: an indicator that only appears once everything is working is absent
     /// precisely when a technician most needs to know something is wrong.
     /// </summary>
-    public async Task StartAsync(CancellationToken ct = default)
+    /// <param name="openWindow">
+    /// A start the technician asked for, from Start or a shortcut: the window opens at once, before the
+    /// service answers, and shows it is connecting (review finding D-03). Setup takes its place until it is done.
+    /// </param>
+    public async Task StartAsync(bool openWindow = false, CancellationToken ct = default)
     {
         _tray.Show(_state.Snapshot);
         ShowOrHideHud(_state.Snapshot);
+        var onboarded = _preferences.Load().OnboardedAt is not null;
+        if (openWindow && onboarded)
+        {
+            ShowWindow();
+        }
+
         await _connection.StartAsync(ct).ConfigureAwait(false);
 
         // ST-083: the first start runs setup. Finishing it is remembered; the tray runs it again on request.
-        if (_preferences.Load().OnboardedAt is null)
+        if (!onboarded)
         {
             ShowOnboarding();
         }
@@ -197,7 +213,7 @@ public sealed class LiveShell : IAsyncDisposable
 
         if (_onboarding is { IsLoaded: true })
         {
-            _ = _onboarding.Activate();
+            new WindowRestore(_onboarding).Bring(_onboarding);
             return;
         }
 
@@ -386,10 +402,11 @@ public sealed class LiveShell : IAsyncDisposable
                 _window = null;
             };
             _window = window;
+            _windowRestore = new WindowRestore(window);
+            ShellPlacement.Attach(window, _preferences);
         }
 
-        _window.Show();
-        _ = _window.Activate();
+        _windowRestore!.Bring(_window);
     }
 
     /// <summary>
@@ -727,7 +744,15 @@ public sealed class LiveShell : IAsyncDisposable
             return;
         }
 
-        _ = Diagnostics.DiagnosticsWindow.ShowLiveAsync(_connection);
+        // One panel (review finding D-09): asked again, the open one comes forward rather than another stacking on it.
+        if (_diagnostics is { IsLoaded: true } open)
+        {
+            new WindowRestore(open).Bring(open);
+            return;
+        }
+
+        _diagnostics = Diagnostics.DiagnosticsWindow.ShowLive(_connection, _window);
+        _diagnostics.Closed += (_, _) => _diagnostics = null;
     }
 
     /// <summary>

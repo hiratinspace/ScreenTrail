@@ -36,6 +36,14 @@ public sealed class MicrophoneLevelWatch : IAsyncDisposable
 
     public const string NotWatching = "The level shows while this card is on screen and the window is in front.";
 
+    /// <summary>
+    /// At or above this the voice is clipping: the meter turns amber and says so in words, so the colour is
+    /// never the only sign (design system 10.8, review finding B-30).
+    /// </summary>
+    public const double ClipLevel = 0.95;
+
+    public const string TooLoud = "Too loud: the voice is clipping. Move the microphone back or turn its gain down in Windows.";
+
     private readonly IMicrophoneLevelGateway _gateway;
     private readonly Func<CancellationToken, Task> _wait;
     private readonly Func<CancellationToken, Task>? _responsive;
@@ -71,6 +79,9 @@ public sealed class MicrophoneLevelWatch : IAsyncDisposable
 
     /// <summary>One sentence for under the meter.</summary>
     public string Status { get; private set; } = NotWatching;
+
+    /// <summary>The level is at <see cref="ClipLevel"/> or above.</summary>
+    public bool Clipping => Level >= ClipLevel;
 
     /// <summary>The level or the sentence changed. Raised on whichever thread the reading arrived on.</summary>
     public event Action? Changed;
@@ -204,7 +215,7 @@ public sealed class MicrophoneLevelWatch : IAsyncDisposable
     private void Show(double level, string status)
     {
         Level = level;
-        Status = status;
+        Status = level >= ClipLevel && status == WhileWatching ? TooLoud : status;
         Changed?.Invoke();
     }
 }

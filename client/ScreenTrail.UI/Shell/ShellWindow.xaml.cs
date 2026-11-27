@@ -96,12 +96,17 @@ public partial class ShellWindow : Window
         };
     }
 
-    /// <summary>The rail's width for a frame this wide, from the tokens.</summary>
+    /// <summary>
+    /// The rail's width and the pane's padding for a frame this wide, from the tokens: under
+    /// layout.rail-narrow-below both narrow, so the window fits a half snap on a 1920 monitor at its 960
+    /// minimum (review finding D-06) with All sessions' columns unscrolled.
+    /// </summary>
     private void FitRail(double frameWidth)
     {
         var breakpoint = TryFindResource("Layout.rail-narrow-below") is double below ? below : 0;
         var wide = Core.History.RailLayout.IsWide(frameWidth, breakpoint);
         RailFrame.SetResourceReference(WidthProperty, wide ? "Layout.rail-width" : "Layout.rail-width-narrow");
+        Pane.SetResourceReference(MarginProperty, wide ? "Padding.pane" : "Padding.pane-narrow");
     }
 
     /// <summary>Once the pane has drawn, focus its first control; a pane still loading waits for the next.</summary>
@@ -320,6 +325,28 @@ public partial class ShellWindow : Window
                     return panel;
                 }
 
+            // Nothing landed: the receipt says Not published and every row Failed (inventory 1.1: unrendered).
+            case "preview-failed":
+                {
+                    IReadOnlyList<DestinationResult> Refused(PublishRequest request) =>
+                        [.. request.Destinations.Select(d => new DestinationResult(d, false, null, "ConnectWise rejected the API key", DestinationResult.Refused))];
+                    var panel = new PublishPanel(fixture, connected, (q, _) => Task.FromResult(Search(q)), (r, _) => Task.FromResult(Refused(r)), time: new SampleClock());
+                    panel.Suggest(ticket);
+                    panel.PublishAsync(fixture.Draft!, included).GetAwaiter().GetResult();
+                    return panel;
+                }
+
+            // Sent and never answered: it may be on the ticket, so it is Not confirmed and never called failed.
+            case "preview-not-confirmed":
+                {
+                    IReadOnlyList<DestinationResult> Unanswered(PublishRequest request) =>
+                        [.. request.Destinations.Select(d => new DestinationResult(d, false, null, "ConnectWise did not answer in time", DestinationResult.TimedOut))];
+                    var panel = new PublishPanel(fixture, connected, (q, _) => Task.FromResult(Search(q)), (r, _) => Task.FromResult(Unanswered(r)), time: new SampleClock());
+                    panel.Suggest(ticket);
+                    panel.PublishAsync(fixture.Draft!, included).GetAwaiter().GetResult();
+                    return panel;
+                }
+
             case "preview-needs-mapping":
                 {
                     IReadOnlyList<DestinationResult> Unmapped(PublishRequest request) =>
@@ -405,7 +432,10 @@ public partial class ShellWindow : Window
                 EffectiveLocalOnly: true,
                 EffectiveRetentionDays: 3));
 
-        public Task<string?> SaveAsync(Shared.Settings.ClientSettings settings, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        /// <summary>Set by the Saving render to hold a save open until it has drawn the bar mid-save.</summary>
+        public static TaskCompletionSource<string?>? Hold { get; set; }
+
+        public Task<string?> SaveAsync(Shared.Settings.ClientSettings settings, CancellationToken ct = default) => Hold?.Task ?? Task.FromResult<string?>(null);
 
         public Task<AuditSaved> ExportAuditAsync(string destination, CancellationToken ct = default) =>
             Task.FromResult(new AuditSaved(true, true, "All 0 audit rows verify."));
@@ -509,7 +539,9 @@ public partial class ShellWindow : Window
 
     private static IReadOnlyList<SessionRow> SampleRows() =>
     [
-        new() { Id = "s-1", StartedAt = new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.Zero), DurationMs = 61_000, Status = "draft", Tool = "screenconnect", Frames = 7, FramesPurged = 1, Title = "Printer offline after the driver update", Ticket = "48213" },
+        // The session the Review renders open ("preview", the one the sample state records), so the rail
+        // shows its row selected beside its Review (review finding R-01: the row was "s-1", and no row was).
+        new() { Id = "preview", StartedAt = new DateTimeOffset(2026, 9, 16, 9, 0, 0, TimeSpan.Zero), DurationMs = 61_000, Status = "draft", Tool = "screenconnect", Frames = 7, FramesPurged = 1, Title = "Printer offline after the driver update", Ticket = "48213" },
         new() { Id = "s-2", StartedAt = new DateTimeOffset(2026, 9, 15, 14, 20, 0, TimeSpan.Zero), DurationMs = 3_720_000, Status = "published", Tool = "rdp", Frames = 25, FramesPurged = 0, Title = "Outlook keeps asking for the password", Ticket = "50117", Company = "Acme Dental" },
         new() { Id = "s-3", StartedAt = new DateTimeOffset(2026, 9, 15, 11, 5, 0, TimeSpan.Zero), DurationMs = 8_000, Status = "discarded", Tool = "screenconnect", Frames = 0, FramesPurged = 0 },
 
@@ -538,14 +570,27 @@ public partial class ShellWindow : Window
             ("review-published", () => state.OpenSession("preview-published")),
             ("review-partial", () => state.OpenSession("preview-partial")),
             ("review-needs-mapping", () => state.OpenSession("preview-needs-mapping")),
+            ("review-failed", () => state.OpenSession("preview-failed")),
+            ("review-not-confirmed", () => state.OpenSession("preview-not-confirmed")),
             ("review-timeline", () => state.OpenSession("preview-timeline")),
             ("history", () => state.Navigate(ShellView.History)),
             ("settings", () => state.Navigate(ShellView.Settings)),
             ("service-down", () => { state.Navigate(ShellView.Review); state.Lost(); }),
+
+            // Before the service first answers: the chip and the pane say it is still connecting.
+            ("service-connecting", () => state.Connecting()),
         })
         {
             arrange();
             await ThumbnailsAsync();
+
+            // The open session's row is drawn selected beside its Review (review finding R-01): the sample
+            // rows once lacked the session the renders open, so no row was, and nothing said so.
+            if (name == "review" && !_model.Rail.Groups.SelectMany(g => g.Rows).Any(r => r.IsOpen))
+            {
+                throw new InvalidOperationException("shell-review: no rail row is the open session's.");
+            }
+
             foreach (var theme in Render.RenderThemes.All)
             {
                 Render.RenderThemeApplier.Apply(theme, Application.Current.Resources);
@@ -573,7 +618,11 @@ public partial class ShellWindow : Window
         // from #86 to #228, which WPF refuses as the window is built, and nothing built it to find out (#281).
         await DialogsAsync(
             ("panel", () => new Diagnostics.DiagnosticsWindow()),
-            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)));
+            ("panel-unanswered", () => new Diagnostics.DiagnosticsWindow(DiagnosticsPanel.Unanswered)),
+
+            // The headline's other two states (inventory 1.2): capture suppressed, and out of scope.
+            ("panel-paused", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Suppression = "a password field has focus" })),
+            ("panel-not-capturing", () => new Diagnostics.DiagnosticsWindow(Diagnostics.DiagnosticsWindow.Sample with { Scope = "Not capturing: Outlook is not a remote-support tool" })));
         await SitePanelAsync(() => new Diagnostics.DiagnosticsWindow());
 
         // Read by CI, which fails the step on anything but zero.

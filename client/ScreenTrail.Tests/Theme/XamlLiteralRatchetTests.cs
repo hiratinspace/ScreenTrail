@@ -182,9 +182,10 @@ public sealed partial class XamlLiteralRatchetTests
         Assert.Null(Kind("Margin", "0 4 0 0"));
         Assert.Equal("Margin", Kind("Margin", "0,6,0,0"));
         Assert.Contains("Space.*", Hint("Margin", "0,10,0,0"), StringComparison.Ordinal);
-        Assert.Null(Kind("Padding", "12,0"));
+        Assert.Null(Kind("Padding", "8,4"));
         Assert.Contains("Padding.card", Hint("Padding", "16"), StringComparison.Ordinal);
-        Assert.Contains("Padding.control", Hint("Padding", "14,5"), StringComparison.Ordinal);
+        Assert.Contains("Padding.control", Hint("Padding", "12,0"), StringComparison.Ordinal);
+        Assert.Equal("Padding", Kind("Padding", "14,5"));
         Assert.Contains("Padding.pane", Hint("Padding", "24,24,24,24"), StringComparison.Ordinal);
 
         Assert.Null(Kind("CornerRadius", "0"));
@@ -198,10 +199,10 @@ public sealed partial class XamlLiteralRatchetTests
         Assert.Null(Kind("BorderThickness", "0,1,0,0"));
         Assert.Equal("BorderThickness", Kind("BorderThickness", "2"));
 
-        Assert.Contains("Layout.row-height", Hint("Height", "32"), StringComparison.Ordinal);
+        Assert.Contains("Layout.row-height", Hint("Height", "36"), StringComparison.Ordinal);
         Assert.Contains("Icon.control", Hint("Width", "16"), StringComparison.Ordinal);
         Assert.Contains("Layout.content-max-width", Hint("MaxWidth", "760"), StringComparison.Ordinal);
-        Assert.Null(Kind("Width", "160"));
+        Assert.Null(Kind("Width", "176"));
         Assert.Null(Kind("Width", "*"));
         Assert.Null(Kind("Width", "Auto"));
         Assert.Null(Kind("Width", "NaN"));
@@ -459,7 +460,9 @@ public sealed partial class XamlLiteralRatchetTests
                         fontSize[key] = numbers[0];
                         break;
                     case "Double" when key.StartsWith("Icon.", StringComparison.Ordinal)
-                        || (key.StartsWith("Layout.", StringComparison.Ordinal) && !key.Contains("padding", StringComparison.Ordinal)):
+                        || (key.StartsWith("Layout.", StringComparison.Ordinal) && !key.Contains("padding", StringComparison.Ordinal)
+                            // Read only by Button.Base; a 56 circle or a 72 field is not a button's width.
+                            && !key.StartsWith("Layout.button-min-width", StringComparison.Ordinal)):
                         box[key] = numbers[0];
                         break;
                     case "CornerRadius":

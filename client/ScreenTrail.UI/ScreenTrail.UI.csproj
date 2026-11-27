@@ -16,6 +16,12 @@
     <StartupHookSupport>false</StartupHookSupport>
     <!-- The Iris app icon (Spec v0.6.0 §2.0), built from shared/design/brand by build-icons.py. -->
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <!-- Per-monitor DPI awareness and the Windows 10/11 compatibility entry (review finding D-01). -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WFO0003 asks Windows Forms apps to set DPI through Application.SetHighDpiMode instead. That call only
+         configures an app started with Windows Forms' Application.Run; this is a WPF process that uses Windows
+         Forms for the tray icon alone, so the manifest is the only place the setting takes effect. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

@@ -45,7 +45,7 @@ public sealed partial class InboxRowViewModel : ObservableObject
 
     /// <summary>Which state colour the badge's glyph and border take: Published, Paused, Offline or Muted.</summary>
     [ObservableProperty]
-    public partial string BadgeTone { get; set; } = "Muted";
+    public partial string BadgeTone { get; set; } = "Neutral";
 
     /// <summary>The badge's glyph, beside its word.</summary>
     [ObservableProperty]
@@ -67,7 +67,7 @@ public sealed partial class InboxRowViewModel : ObservableObject
     {
         Title = item.Title;
         Subtitle = item.Subtitle ?? string.Empty;
-        Age = item.Age;
+        Age = item.ShortAge;
         Meta = item.Meta;
         Badge = item.Badge ?? string.Empty;
 

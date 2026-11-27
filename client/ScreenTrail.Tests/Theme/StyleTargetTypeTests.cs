@@ -49,7 +49,6 @@ public sealed partial class StyleTargetTypeTests
         ["CheckBox"] = "ToggleButton",
         ["RadioButton"] = "ToggleButton",
         ["TextBox"] = "TextBoxBase",
-        ["PasswordBox"] = "Control",
         ["Thumb"] = "Control",
         ["GridSplitter"] = "Thumb",
         ["ProgressBar"] = "RangeBase",

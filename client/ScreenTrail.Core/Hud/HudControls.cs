@@ -25,10 +25,11 @@ public enum HudAction
 public sealed record HudControl(HudAction Action, string Name, string Hotkey)
 {
     /// <summary>Spec §5 S2: on hover or focus, the name and the hotkey ("Pause · Ctrl+Alt+P").</summary>
+    /// <remarks>
+    /// A screen reader is given <see cref="Name"/> alone, with <see cref="Hotkey"/> as the button's accelerator
+    /// key, so Narrator says "Pause" and offers the chord as the shortcut (review finding E-22).
+    /// </remarks>
     public string Tooltip => $"{Name} · {Hotkey}";
-
-    /// <summary>What a screen reader says for the button: the same words, with a comma for the dot.</summary>
-    public string Spoken => $"{Name}, {Hotkey}";
 }
 
 /// <summary>

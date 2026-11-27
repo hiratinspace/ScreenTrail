@@ -37,7 +37,8 @@ public partial class ConfirmWindow : Window
         InitializeComponent();
         DataContext = words;
 
-        if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.Danger" : "Button.Primary") is Style style)
+        // A destructive confirm is the solid danger button, never weaker than the safe one (review finding B-05).
+        if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.DangerSolid" : "Button.Primary") is Style style)
         {
             Confirm.Style = style;
         }
@@ -58,9 +59,10 @@ public partial class ConfirmWindow : Window
                 Cancel.Style = primary;
             }
 
-            if (FindResource("Banner.Warning") is Style banner)
+            if (FindResource("Banner") is Style banner)
             {
                 ConsequenceBox.Style = banner;
+                Theme.Banner.SetTone(ConsequenceBox, "Warning");
                 ConsequenceBox.Margin = new Thickness(0, 12, 0, 0);
             }
         }
@@ -111,9 +113,20 @@ public partial class ConfirmWindow : Window
             dialog.Owner = owner;
             dialog.WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
+        else
+        {
+            // Review finding D-08: asked from the tray with the shell closed, the dialog had no owner and no
+            // taskbar button, and one click elsewhere lost it behind other windows with the question still
+            // open. Alone, it has a taskbar button, stays on top for its short life, and opens in the middle
+            // of the monitor under the pointer, where the tray menu was, rather than the primary one.
+            dialog.ShowInTaskbar = true;
+            dialog.Topmost = true;
+            Theme.Placement.CentreUnderThePointer(dialog);
+        }
 
         return dialog.ShowDialog() == true;
     }
+
 
     private void FocusStart()
     {

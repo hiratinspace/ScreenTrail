@@ -22,12 +22,13 @@ public enum InboxGroup
 
 /// <summary>One row of the rail, already worded.</summary>
 /// <param name="Title">The row's heading: the company, else the note's title, else "ScreenConnect session" (the tool by its registry name, Spec S1).</param>
-/// <param name="Age">"14 min ago", "2 h ago", "Yesterday", or the day.</param>
+/// <param name="Age">"14 min ago", "2 h ago", "Yesterday", or the day: what the row is heard as.</param>
 /// <param name="Meta">"#48213 · ScreenConnect · 12 min" for a row that names its session, else "12 min · 7 screenshots".</param>
 /// <param name="Badge">The state, where the group does not already say it; null when it does.</param>
 /// <param name="Spoken">The row as a screen reader says it, the start included so no two rows read the same.</param>
 /// <param name="Subtitle">The note's title under the company, when both are known; null otherwise.</param>
-public sealed record InboxItem(SessionRow Row, InboxGroup Group, string Title, string Age, string Meta, string? Badge, string Spoken, string? Subtitle = null);
+/// <param name="ShortAge">The same age as the row draws it, compact: "14m", "2h", "Wed", "9 Nov" (<see cref="InboxRail.ShortAge"/>).</param>
+public sealed record InboxItem(SessionRow Row, InboxGroup Group, string Title, string Age, string Meta, string? Badge, string Spoken, string? Subtitle = null, string ShortAge = "");
 
 /// <summary>
 /// The inbox rail (Spec v0.6.0 §5 S4): History as the workspace's left rail, grouped by what each session
@@ -145,6 +146,44 @@ public static class InboxRail
             : local.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
     }
 
+    /// <summary>
+    /// <see cref="Age"/> as the row draws it (review finding A-34): "Now", "14m", "2h", the weekday within the
+    /// week ("Wed", yesterday included), "9 Nov" this year, "Oct 2025" before. At the narrow rail "40 min
+    /// ago" left the title about seven characters; the compact form gives it about 30 px back. The row's
+    /// spoken name keeps the words.
+    /// </summary>
+    public static string ShortAge(DateTimeOffset started, DateTimeOffset now, TimeZoneInfo zone)
+    {
+        ArgumentNullException.ThrowIfNull(zone);
+        var ago = now - started;
+        var today = Day(now, zone);
+        var day = Day(started, zone);
+        if (ago < TimeSpan.FromMinutes(1))
+        {
+            return "Now";
+        }
+
+        if (ago < TimeSpan.FromHours(1))
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{(int)ago.TotalMinutes}m");
+        }
+
+        if (day == today)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{(int)ago.TotalHours}h");
+        }
+
+        var local = TimeZoneInfo.ConvertTime(started, zone);
+        if (day > today.AddDays(-7))
+        {
+            return local.ToString("ddd", CultureInfo.InvariantCulture);
+        }
+
+        return local.Year == TimeZoneInfo.ConvertTime(now, zone).Year
+            ? local.ToString("d MMM", CultureInfo.InvariantCulture)
+            : local.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+    }
+
     /// <summary>"Under 1 min", "12 min", "1 h 5 min".</summary>
     public static string Duration(long milliseconds)
     {
@@ -249,7 +288,7 @@ public static class InboxRail
             ? Join(", ", ticket is null ? null : $"ticket {ticket}", named ? tool : null, $"{duration} · {shots}")
             : meta;
         var spoken = Join(", ", title, subtitle, badge, age, $"started {started}", heard);
-        return new InboxItem(row, group, title, age, meta, badge, spoken, subtitle);
+        return new InboxItem(row, group, title, age, meta, badge, spoken, subtitle, ShortAge(row.StartedAt, now, zone));
     }
 
     private static string Screenshots(int frames) =>

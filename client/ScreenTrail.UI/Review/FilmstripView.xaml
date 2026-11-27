@@ -25,9 +25,9 @@
                     <Grid>
                         <controls:Glyph HorizontalAlignment="Center"
                                    Style="{StaticResource Icon}"
-                                   FontSize="{DynamicResource Icon.nav}"
+                                   FontSize="{DynamicResource Icon.lg}"
                                    Foreground="{DynamicResource Brush.text.muted}"
-                                   Text="&#xEB9F;" />
+                                   Text="{StaticResource Icon.Photo}" />
                         <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" AutomationProperties.Name="{Binding Label}" />
                     </Grid>
                     <Border.Style>
@@ -88,7 +88,7 @@
                                           Gap="{StaticResource GapTemplate}" />
     </UserControl.Resources>
 
-    <Grid Margin="20,18,14,0">
+    <Grid Margin="24,16,16,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -139,9 +139,11 @@
              footer, which grew about 38 px while it showed and shrank back, so the thumbnails jumped twice
              (review finding D-24); the note pane's toast is overlaid the same way. -->
         <Grid x:Name="StripToastLayer" Grid.Row="1">
-            <Border HorizontalAlignment="Left"
+            <!-- The strip is narrower than a toast's 280, so this one takes the strip's width. -->
+            <ContentControl HorizontalAlignment="Left"
                     VerticalAlignment="Bottom"
                     Margin="0,0,8,8"
+                    MinWidth="0"
                     Style="{StaticResource Toast}"
                     Visibility="{Binding HasUndoToast, Converter={StaticResource Visible}}">
                 <StackPanel Orientation="Horizontal">
@@ -154,7 +156,7 @@
                             Content="Undo"
                             Command="{Binding UndoCommand}" />
                 </StackPanel>
-            </Border>
+            </ContentControl>
         </Grid>
 
         <!-- The chords that apply to this pane, on screen where they are used (Spec §5 S3). -->
@@ -209,8 +211,14 @@
                             Grid.Column="1"
                             Margin="12,0,0,0"
                             Style="{StaticResource Button.Secondary}"
-                            Content="Close  Esc"
-                            Command="{Binding CloseEnlargedCommand}" />
+                            Command="{Binding CloseEnlargedCommand}"
+                            AutomationProperties.Name="Close"
+                            AutomationProperties.AcceleratorKey="Esc">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Close" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Esc" />
+                        </StackPanel>
+                    </Button>
                 </Grid>
 
                 <Grid Grid.Row="1" Margin="0,12,0,0">
@@ -314,19 +322,27 @@
                      8 px bottom margin was on the first button alone, so the row stretched the toggle 8 px
                      taller than its neighbour. The gap over the hint, when it wraps under them, is the hint's. -->
                 <WrapPanel Grid.Row="2" Orientation="Horizontal" Margin="0,12,0,12">
-                    <Button Margin="0,0,8,0"
+                    <Button x:Name="OcrText"
+                            Margin="0,0,8,0"
                             Height="{DynamicResource Layout.control-height}"
                             Style="{StaticResource Button.Secondary}"
-                            Content="OCR text  T"
                             Command="{Binding ToggleOcrTextCommand}"
-                            IsEnabled="{Binding Enlarged.HasOcrText}" />
+                            IsEnabled="{Binding Enlarged.HasOcrText}"
+                            AutomationProperties.Name="OCR text"
+                            AutomationProperties.AcceleratorKey="T">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="OCR text" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="T" />
+                        </StackPanel>
+                    </Button>
 
                     <!-- Danger styling, because the next drag destroys pixels for good. Spec §5 S3 asks
                          for a region-draw overlay and calls it destructive; the button says so before the
                          surface is even armed. -->
                     <ToggleButton x:Name="BlurMode"
                                   Height="{DynamicResource Layout.control-height}"
-                                  Content="Blur a region  B"
+                                  AutomationProperties.Name="Blur a region"
+                                  AutomationProperties.AcceleratorKey="B"
                                   Checked="OnBlurModeChanged"
                                   Unchecked="OnBlurModeChanged">
                         <ToggleButton.Style>
@@ -339,6 +355,10 @@
                                 </Style.Triggers>
                             </Style>
                         </ToggleButton.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="Blur a region" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="B" />
+                        </StackPanel>
                     </ToggleButton>
 
                     <TextBlock Margin="12,8,0,0"

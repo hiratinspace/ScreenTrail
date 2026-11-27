@@ -15,7 +15,6 @@ public sealed class ControlEdgeTokensTests
     public static TheoryData<string, string> Fields => new()
     {
         { "Input.Default", "TextBox" },
-        { "", "PasswordBox" },
         { "", "ComboBox" },
     };
 
@@ -34,17 +33,6 @@ public sealed class ControlEdgeTokensTests
         Assert.Equal("{DynamicResource Brush.text.muted}", Setter(Style("", targetType), "BorderBrush"));
     }
 
-    [Fact]
-    public void TheOffToggleDrawsItsTrackAndThumbInTextSecondary()
-    {
-        var template = Style("", "controls:ToggleSwitch");
-        var track = Named(template, "Track");
-        var thumb = Named(template, "Thumb");
-
-        Assert.Equal("{DynamicResource Brush.text.secondary}", track.Attribute("BorderBrush")?.Value);
-        Assert.Equal("{DynamicResource Brush.text.secondary}", thumb.Attribute("Fill")?.Value);
-    }
-
     /// <summary>
     /// The note's in-place fields (Spec v0.6.8 §5 S3): a faint edge at rest, so a field can be told from a
     /// heading before the pointer is over it. border.strong, the quiet edge the secondary buttons carry:
@@ -58,15 +46,16 @@ public sealed class ControlEdgeTokensTests
 
         Assert.Equal("{DynamicResource Brush.border.strong}", Setter(style, "BorderBrush"));
 
-        // One pixel, from Input.Default: nothing here takes the edge away again.
+        // One pixel, from Input.Default: nothing here takes the edge away again, or thickens it.
         Assert.Null(Setter(style, "BorderThickness"));
-        Assert.Equal("1", Setter(Style("Input.Default", "TextBox"), "BorderThickness"));
+        Assert.Equal("{DynamicResource Thickness.border}", Setter(Style("Input.Default", "TextBox"), "BorderThickness"));
 
         var hover = Trigger(style, "IsMouseOver");
         Assert.Contains(hover, s => s.Attribute("Property")?.Value == "BorderBrush" && s.Attribute("Value")?.Value == "{DynamicResource Brush.border.control}");
-        var focus = Trigger(style, "IsKeyboardFocused");
-        Assert.Contains(focus, s => s.Attribute("Property")?.Value == "BorderBrush" && s.Attribute("Value")?.Value == "{DynamicResource Brush.accent.primary}");
-        Assert.Contains(focus, s => s.Attribute("Property")?.Value == "BorderThickness" && s.Attribute("Value")?.Value == "2");
+
+        // Focus is the shared template's 2 px accent edge over the 1 px one (review finding B-09), so the
+        // text does not move when the caret arrives.
+        Assert.DoesNotContain(Trigger(style, "IsKeyboardFocused"), s => s.Attribute("Property")?.Value == "BorderThickness");
     }
 
     [Theory]
@@ -113,9 +102,6 @@ public sealed class ControlEdgeTokensTests
         style.Elements().Where(e => e.Name.LocalName == "Setter")
             .SingleOrDefault(s => s.Attribute("Property")?.Value == property)
             ?.Attribute("Value")?.Value;
-
-    private static XElement Named(XElement root, string name) =>
-        root.Descendants().Single(e => e.Attribute(X + "Name")?.Value == name);
 
     private static XDocument Components() => Load("Components.xaml");
 

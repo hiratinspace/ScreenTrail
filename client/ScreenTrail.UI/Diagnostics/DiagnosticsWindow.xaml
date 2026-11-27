@@ -1,9 +1,10 @@
 <Window x:Class="ScreenTrail.UI.Diagnostics.DiagnosticsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
         xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
         Title="What's being captured right now?"
-        Width="420"
+        Width="{StaticResource Layout.dialog-width}"
         SizeToContent="Height"
         ResizeMode="NoResize"
         Style="{StaticResource Window.Base}">
@@ -26,17 +27,17 @@
         <!-- The one line a customer standing behind the technician needs to be able to read: the state in
              words, with its glyph and colour (Spec §1.1), and the Local-only badge (Spec §5 S1). With the
              service not answering it is a warning, since nothing below is known. -->
-        <Border Grid.Row="1" Margin="0,12,0,0">
-            <Border.Style>
-                <Style BasedOn="{StaticResource Banner.Info}" TargetType="Border">
+        <!-- The banner's own glyph is off: this line draws the capture state's glyph, which is not a tone's. -->
+        <ContentControl Grid.Row="1" Margin="0,12,0,0" theme:Banner.Glyph="">
+            <ContentControl.Style>
+                <Style BasedOn="{StaticResource Banner}" TargetType="ContentControl">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding State}" Value="Unknown">
-                            <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
-                            <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.paused}" />
+                            <Setter Property="theme:Banner.Tone" Value="Warning" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </Border.Style>
+            </ContentControl.Style>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -53,17 +54,17 @@
                                 <DataTrigger Binding="{Binding State}" Value="Paused">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="&#xE769;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Pause}" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="NotCapturing">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.scope}" />
-                                    <Setter Property="Text" Value="&#xED1A;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Hide}" />
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="Unknown">
                                     <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
                                     <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
-                                    <Setter Property="Text" Value="&#xE7BA;" />
+                                    <Setter Property="Text" Value="{StaticResource Icon.Warning}" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -83,7 +84,7 @@
                                     AutomationProperties.Name="Local-only: nothing leaves this device but what you publish" />
                 </StackPanel>
             </Grid>
-        </Border>
+        </ContentControl>
 
         <!-- States only, never content (INV-10). The scroll viewer stays for a window made shorter than its
              rows by a large text setting; at 100% and 150% the panel is as tall as they are. -->
@@ -136,7 +137,7 @@
                     AutomationProperties.Name="Copy diagnostics to the clipboard" />
             <Button x:Name="CloseButton"
                     Grid.Column="2"
-                    Style="{StaticResource Button.Primary}"
+                    Style="{StaticResource Button.Secondary}"
                     Content="Close"
                     IsCancel="True"
                     Click="OnClose"

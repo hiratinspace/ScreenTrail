@@ -130,6 +130,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial Visibility FailedMarkVisibility { get; set; } = Visibility.Collapsed;
 
+    /// <summary>A save is on its way: Save shows its ring and "Saving" in the Primary fill.</summary>
+    [ObservableProperty]
+    public partial bool IsSaving { get; set; }
+
+    [ObservableProperty]
+    public partial Visibility SavingVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility RestVisibility { get; set; } = Visibility.Visible;
+
     [ObservableProperty]
     public partial string FailureMessage { get; set; } = string.Empty;
 
@@ -253,6 +263,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         LinkVisibility = link is not null && state != SaveBarState.Saving ? Visibility.Visible : Visibility.Collapsed;
         PendingMarkVisibility = state is SaveBarState.Pending or SaveBarState.Saving ? Visibility.Visible : Visibility.Collapsed;
         FailedMarkVisibility = state == SaveBarState.Failed ? Visibility.Visible : Visibility.Collapsed;
+        IsSaving = state == SaveBarState.Saving;
+        SavingVisibility = IsSaving ? Visibility.Visible : Visibility.Collapsed;
+        RestVisibility = IsSaving ? Visibility.Collapsed : Visibility.Visible;
         FailureMessage = state == SaveBarState.Failed ? Page.FailureMessage ?? string.Empty : string.Empty;
         BarName = count == 0 ? string.Empty : "Unsaved changes: " + string.Join(", ", Page.AllChanges.Select(c => $"{c.Change} ({c.Section})"));
         foreach (var item in Sections)

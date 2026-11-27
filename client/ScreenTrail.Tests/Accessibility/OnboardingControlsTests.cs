@@ -131,13 +131,16 @@ public sealed class OnboardingControlsTests
         Assert.Contains(done, s => Is(s, "Ring", "Visibility", "Collapsed"));
         Assert.Contains(done, s => Is(s, "Number", "Visibility", "Collapsed"));
 
+        // The step in hand is the one selection (design system 10.4, review finding C-O3): bg.surface, the
+        // selection bar and Body strong, with no outline box.
         var current = triggers.Single(t => (string?)t.Attribute("Binding") == "{Binding IsCurrent}").Elements(Wpf + "Setter").ToList();
         Assert.Contains(current, s => Is(s, "StepName", "FontWeight", "{DynamicResource Weight.semibold}"));
-        Assert.Contains(current, s => Is(s, "Ring", "StrokeThickness", "{DynamicResource Focus.width}"));
+        Assert.Contains(current, s => Is(s, "Row", "Background", "{DynamicResource Brush.bg.surface}"));
+        Assert.Contains(current, s => Is(s, "Indicator", "Visibility", "Visible"));
+        Assert.DoesNotContain(current, s => (string?)s.Attribute("Property") == "BorderBrush");
 
-        // shell.accent is Highlight in high contrast, where shell.hover is the window colour and says nothing.
-        Assert.Contains(current, s => Is(s, "Row", "BorderBrush", "{DynamicResource Brush.shell.accent}"));
-        Assert.Contains(current, s => Is(s, "Row", "Background", "{DynamicResource Brush.shell.hover}"));
+        var bar = Assert.Single(row.Descendants(Wpf + "Rectangle"), r => (string?)r.Attribute(Xaml + "Name") == "Indicator");
+        Assert.Equal("{StaticResource SelectionBar}", (string?)bar.Attribute("Style"));
     }
 
     [Fact]
@@ -211,9 +214,9 @@ public sealed class OnboardingControlsTests
         var capped = window.Descendants(Wpf + "ColumnDefinition").Where(c => (string?)c.Attribute("MaxWidth") == "{DynamicResource Layout.content-max-width}").ToList();
         Assert.Equal(2, capped.Count);
 
-        // The wizard opens no larger than the shell's own minimum (1024 by 680), so it fits any screen the
+        // The wizard opens no larger than the shell's own minimum (960 by 680), so it fits any screen the
         // shell does, and its own minimum leaves the page 600 beside the 280 frame.
-        Assert.True(double.Parse((string)window.Attribute("Width")!, System.Globalization.CultureInfo.InvariantCulture) <= 1024);
+        Assert.True(double.Parse((string)window.Attribute("Width")!, System.Globalization.CultureInfo.InvariantCulture) <= 960);
         Assert.True(double.Parse((string)window.Attribute("Height")!, System.Globalization.CultureInfo.InvariantCulture) <= 680);
         Assert.Equal("880", (string?)window.Attribute("MinWidth"));
         Assert.Equal("560", (string?)window.Attribute("MinHeight"));

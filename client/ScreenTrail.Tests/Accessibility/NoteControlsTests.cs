@@ -46,7 +46,7 @@ public sealed class NoteControlsTests
         // Ctrl+Z is heard on the way down, before a text box takes it for its own undo.
         Assert.Equal("OnNoteKeyDown", (string?)note.Attribute("PreviewKeyDown"));
 
-        var toast = Assert.Single(note.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Style") == "{StaticResource Toast}");
+        var toast = Assert.Single(note.Descendants(Wpf + "ContentControl"), b => (string?)b.Attribute("Style") == "{StaticResource Toast}");
         Assert.Equal("{Binding HasUndoToast, Converter={StaticResource Visible}}", (string?)toast.Attribute("Visibility"));
         var words = Assert.Single(toast.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding UndoToast}");
         Assert.Equal("Assertive", (string?)words.Attribute(Controls + "LiveRegion.Setting"));
@@ -59,13 +59,13 @@ public sealed class NoteControlsTests
     [Fact]
     public void TheTwoButtonsUnderAnEnlargedScreenshotAreTheSameHeight()
     {
-        // "OCR text  T" is a Button.Secondary and "Blur a region  B" a Pill.Toggle. Both had the control
+        // "OCR text" is a Button.Secondary and "Blur a region" a Pill.Toggle. Both had the control
         // height as a minimum only, and the row's bottom margin was on one of them, so the row stretched
         // the other 8 px taller. Both now take the control height itself, and the same margin above and below.
         var strip = Load("Review", "FilmstripView.xaml");
 
-        var ocr = Assert.Single(Buttons(strip), b => (string?)b.Attribute("Content") == "OCR text  T");
-        var blur = Assert.Single(strip.Descendants(Wpf + "ToggleButton"), b => (string?)b.Attribute("Content") == "Blur a region  B");
+        var ocr = Assert.Single(Buttons(strip), b => (string?)b.Attribute("Command") == "{Binding ToggleOcrTextCommand}");
+        var blur = Assert.Single(strip.Descendants(Wpf + "ToggleButton"), b => (string?)b.Attribute(Xaml + "Name") == "BlurMode");
 
         Assert.Equal("{DynamicResource Layout.control-height}", (string?)ocr.Attribute("Height"));
         Assert.Equal("{DynamicResource Layout.control-height}", (string?)blur.Attribute("Height"));
@@ -119,7 +119,7 @@ public sealed class NoteControlsTests
         // Review finding D-24: in the footer, the toast made the footer about 38 px taller for five seconds
         // and the thumbnails jumped twice. Over the strip's bottom edge nothing moves.
         var strip = Load("Review", "FilmstripView.xaml");
-        var toast = Assert.Single(strip.Descendants(Wpf + "Border"), b => (string?)b.Attribute("Visibility") == "{Binding HasUndoToast, Converter={StaticResource Visible}}");
+        var toast = Assert.Single(strip.Descendants(Wpf + "ContentControl"), b => (string?)b.Attribute("Visibility") == "{Binding HasUndoToast, Converter={StaticResource Visible}}");
         var layer = toast.Parent!;
 
         Assert.Equal("StripToastLayer", (string?)layer.Attribute(Xaml + "Name"));

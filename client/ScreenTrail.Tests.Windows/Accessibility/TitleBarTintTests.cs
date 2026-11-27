@@ -73,4 +73,34 @@ public sealed class TitleBarTintTests(TheApplication app)
             }
         });
     }
+
+    [Fact]
+    public async Task TheWindowIsPaintedThePageColourBeforeWpfDrawsIt()
+    {
+        // Review finding D-13: the window's own background was Windows' white, which showed for a frame on
+        // every dark-mode open. It is the theme's page colour, and follows the theme.
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        await app.RunAsync(async () =>
+        {
+            var shell = await Screens.OpenAsync("review");
+            try
+            {
+                var target = System.Windows.Interop.HwndSource.FromVisual(shell) is System.Windows.Interop.HwndSource source ? source.CompositionTarget : null;
+                Assert.NotNull(target);
+
+                ThemeManager.Apply(AppTheme.Dark, app.Resources);
+                await Audit.Settle();
+                Assert.Equal(System.Windows.Media.Color.FromRgb(0x12, 0x18, 0x26), target.BackgroundColor);
+
+                ThemeManager.Apply(AppTheme.Light, app.Resources);
+                await Audit.Settle();
+                Assert.Equal(System.Windows.Media.Color.FromRgb(0xF8, 0xF8, 0xFA), target.BackgroundColor);
+            }
+            finally
+            {
+                await Screens.CloseAsync(shell);
+                ThemeManager.Apply(AppTheme.Dark, app.Resources);
+            }
+        });
+    }
 }

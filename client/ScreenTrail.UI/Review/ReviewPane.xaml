@@ -64,7 +64,8 @@
                                        Style="{StaticResource Text.ScreenTitle}"
                                        TextTrimming="CharacterEllipsis"
                                        TextWrapping="NoWrap"
-                                       Text="{Binding Title}" />
+                                       Text="{Binding Title}"
+                                       ToolTip="{Binding Title}" />
 
                             <TextBlock Grid.Column="1"
                                        Margin="16,0,12,0"
@@ -87,7 +88,7 @@
 
                             <Button Grid.Column="2"
                                     Margin="0,0,8,0"
-                                    Style="{StaticResource Button.GhostDanger}"
+                                    Style="{StaticResource Button.Danger}"
                                     Content="Discard"
                                     Command="{Binding Note.DiscardCommand}"
                                     ToolTip="Discard this session. You will be asked to type DISCARD."
@@ -104,9 +105,9 @@
                                     AutomationProperties.AcceleratorKey="Ctrl+Enter"
                                     AutomationProperties.HelpText="{Binding Publish.BlockedBecause}">
                                 <StackPanel Orientation="Horizontal">
-                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="&#xE724;" />
+                                    <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.control}" VerticalAlignment="Center" Text="{StaticResource Icon.Send}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Publish" />
-                                    <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Ctrl+Enter" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Ctrl+Enter" />
                                 </StackPanel>
                             </Button>
 
@@ -123,7 +124,7 @@
                         <!-- Beside Publish: why it waits, read out as it changes (v0.4.3), and what is still open. -->
                         <StackPanel HorizontalAlignment="Right" MaxWidth="{DynamicResource Layout.content-max-width}">
                             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding Publish.BlockedVisibility}">
-                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" FontSize="{DynamicResource Size.sm}" Text="&#xE7BA;" />
+                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Warning}" />
                                 <TextBlock Margin="8,0,0,0"
                                            Style="{StaticResource Text.Secondary}"
                                            FontSize="{DynamicResource Size.sm}"
@@ -132,7 +133,7 @@
                                            controls:LiveRegion.Setting="Polite" />
                             </StackPanel>
                             <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Visibility="{Binding Publish.ConnectVisibility}">
-                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.offline}" FontSize="{DynamicResource Size.sm}" Text="&#xE71B;" />
+                                <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.offline}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Link}" />
                                 <TextBlock Margin="8,0,0,0"
                                            Style="{StaticResource Text.Secondary}"
                                            FontSize="{DynamicResource Size.sm}"
@@ -142,8 +143,8 @@
                             <StackPanel Margin="0,4,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
                                 <controls:Glyph Style="{StaticResource Icon}"
                                                 Foreground="{DynamicResource Brush.confidence.low}"
-                                                FontSize="{DynamicResource Size.sm}"
-                                                Text="&#xE7BA;"
+                                                FontSize="{DynamicResource Icon.sm}"
+                                                Text="{StaticResource Icon.Warning}"
                                                 Visibility="{Binding Publish.OpenItemsVisibility}" />
                                 <TextBlock Margin="8,0,0,0"
                                            Style="{StaticResource Text.Muted}"
@@ -196,9 +197,9 @@
                                     AutomationProperties.Name="Back to the note"
                                     AutomationProperties.AcceleratorKey="Alt+1">
                                 <StackPanel Orientation="Horizontal">
-                                    <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Size.sm}" Text="&#xE72B;" />
+                                    <controls:Glyph Style="{StaticResource Icon}" FontSize="{DynamicResource Icon.sm}" Text="{StaticResource Icon.Back}" />
                                     <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="Back to the note" />
-                                    <TextBlock Margin="12,0,0,0" Style="{StaticResource Text.KeyHint}" Foreground="{DynamicResource Brush.text.muted}" Text="Alt+1" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.KeyHint}" Text="Alt+1" />
                                 </StackPanel>
                             </Button>
 

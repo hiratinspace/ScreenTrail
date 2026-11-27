@@ -319,6 +319,22 @@ public sealed class TrayAndDiagnosticsTests
     }
 
     [Fact]
+    public void ThePanelSaysItIsAskingBeforeTheFirstAnswerRatherThanThatNothingAnswered()
+    {
+        // Review finding D-09: the window opens at once, before the service answers. Until it does, the
+        // headline says it is asking; it says not connected only once the question has gone unanswered.
+        var panel = DiagnosticsPanel.Asking;
+
+        Assert.False(panel.Answered);
+        Assert.Equal(DiagnosticsPanel.AskingHeadline, panel.Headline);
+        Assert.Equal(DiagnosticsState.Unknown, panel.State);
+        Assert.Equal(DiagnosticsPanel.Unanswered.Rows.Select(r => r.Label), panel.Rows.Select(r => r.Label));
+        Assert.All(panel.Rows, row => Assert.Equal(DiagnosticsPanel.Unknown, row.Value));
+        Assert.DoesNotContain(DiagnosticsPanel.NotConnected, panel.ToClipboardText(DateTimeOffset.UnixEpoch), StringComparison.Ordinal);
+        Assert.Equal(DiagnosticsPanel.NotConnected, DiagnosticsPanel.Unanswered.Headline);
+    }
+
+    [Fact]
     public void AnAnsweredPanelShowsTheServicesOwnCounts()
     {
         // The control: a panel that said unknown on every row would pass the test above and tell a

@@ -18,16 +18,6 @@
             <Setter Property="Margin" Value="0,16,0,4" />
         </Style>
 
-        <!-- A key cap on the sheet (v0.6.11): the raised fill and the strong edge of a secondary button at
-             rest, with the key in body colour, since here the keys are what is being read. No taller than a
-             line of body text, so a line with caps is no taller than one without. -->
-        <Style x:Key="KeyCap.Sheet" BasedOn="{StaticResource KeyCap}" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-            <Setter Property="Padding" Value="4,0" />
-            <Setter Property="MinWidth" Value="24" />
-            <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.primary}" />
-        </Style>
-
         <!-- One group: its heading, then a line per chord, each key in its cap. -->
         <DataTemplate x:Key="Sheet.Group">
             <StackPanel>
@@ -48,19 +38,12 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
-                                                <Border Style="{StaticResource KeyCap.Sheet}">
-                                                    <TextBlock HorizontalAlignment="Center"
-                                                               Style="{StaticResource Text.KeyHint}"
-                                                               FontSize="{DynamicResource Size.sm}"
-                                                               Text="{Binding Key}" />
-                                                </Border>
-                                                <!-- Drawn, not read: the line is read as one text, its keys joined with "or" (KeyCapList). -->
-                                                <controls:Glyph Margin="0,0,4,0"
-                                                                VerticalAlignment="Bottom"
-                                                                Style="{StaticResource Text.Muted}"
-                                                                Text="{Binding After}" />
-                                            </StackPanel>
+                                            <!-- The one key cap (design system 10.5, review finding B-31): alternatives are
+                                                 caps 4 apart with no comma, which sat below the caps; the line is read as
+                                                 one text with "or" between them (KeyCapList). -->
+                                            <Border Margin="0,0,4,4" Style="{StaticResource KeyCap}">
+                                                <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.KeyHint}" Text="{Binding Key}" />
+                                            </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </controls:KeyCapList>
@@ -74,30 +57,47 @@
     </Window.Resources>
     <!-- Spec §4: ? opens a shortcut sheet. Every chord Spec §5 lists, grouped by where it works. Text, not
          controls: a screen reader reads it as a document, and Esc or Close puts the technician back. Two
-         columns of groups, so the whole sheet fits a 768 px screen with Close on it: in one column Close fell
-         off the bottom of the hosted runner's screen, and a sheet that scrolls cannot be scrolled from the
-         keyboard when nothing in it takes focus (ST-084). 960 wide, within a 1024 px screen, so most lines take
-         one line each: at 780 the step's Del line (v0.6.8) pushed Close off the bottom again. -->
-    <StackPanel Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
-        <TextBlock Style="{StaticResource Text.SectionHeading}" Text="Keyboard shortcuts" />
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="24" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <controls:Repeater Grid.Column="0" ItemsSource="{x:Static shell:ShortcutSheet.LeftColumn}" ItemTemplate="{StaticResource Sheet.Group}" />
-            <controls:Repeater Grid.Column="2" ItemsSource="{x:Static shell:ShortcutSheet.RightColumn}" ItemTemplate="{StaticResource Sheet.Group}" />
-        </Grid>
+         columns of groups, so the whole sheet fits a 768 px screen with Close on it (ST-084). 960 wide, within
+         a 1024 px screen, so most lines take one line each: at 780 the step's Del line (v0.6.8) pushed Close
+         off the bottom.
+         On a shorter work area (1080p at 150%, review finding D-07) the window stops at the work area less 48
+         (FitToWorkArea) and the groups scroll above Close, which stays on screen. The scroll area takes focus
+         from Shift+Tab, so the arrow keys and Page Down scroll it, and shows the app's focus ring when it has it
+         (WPF's default dotted rectangle does not reach 3:1). -->
+    <Grid Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Style="{StaticResource Text.SectionHeading}" Text="Keyboard shortcuts" />
+        <ScrollViewer Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Focusable="True"
+                      IsTabStop="True"
+                      FocusVisualStyle="{StaticResource FocusRing}"
+                      AutomationProperties.Name="Shortcuts">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="24" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <controls:Repeater Grid.Column="0" ItemsSource="{x:Static shell:ShortcutSheet.LeftColumn}" ItemTemplate="{StaticResource Sheet.Group}" />
+                <controls:Repeater Grid.Column="2" ItemsSource="{x:Static shell:ShortcutSheet.RightColumn}" ItemTemplate="{StaticResource Sheet.Group}" />
+            </Grid>
+        </ScrollViewer>
 
         <Button x:Name="CloseButton"
+                Grid.Row="2"
                 Margin="0,24,0,0"
                 HorizontalAlignment="Right"
-                Style="{StaticResource Button.Primary}"
+                Style="{StaticResource Button.Secondary}"
                 Content="Close"
                 IsDefault="True"
                 IsCancel="True"
                 Click="OnClose"
                 AutomationProperties.Name="Close the shortcut sheet" />
-    </StackPanel>
+    </Grid>
 </Window>

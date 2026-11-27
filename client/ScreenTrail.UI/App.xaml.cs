@@ -17,9 +17,12 @@ public partial class App : Application, IDisposable
 {
     private Shell.LiveShell? _live;
 
+    private Shell.SingleInstance? _instance;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ToolTipTiming.Apply();
 
         // The product was ScreenTail until 2026-11-17: %LOCALAPPDATA%\ScreenTail comes across before
         // anything here reads shell.json or the pipe token. The service does the same at its start.
@@ -122,9 +125,9 @@ public partial class App : Application, IDisposable
             // only path that connects to the capture service, and until it existed the UI process was a
             // set of windows rendering literals with INV-4 enforced by nothing (weaknesses P0-2).
             //
-            // It starts in the tray rather than opening a window. A technician's first session of the day
-            // begins by focusing a remote-support tool, not by opening us, and the pill and the tray icon
-            // are the whole interface until there is a draft to review.
+            // The start at sign-in stays in the tray rather than opening a window. A technician's first session
+            // of the day begins by focusing a remote-support tool, not by opening us, and the pill and the tray
+            // icon are the whole interface until there is a draft to review. A start from Start opens it.
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             // ST-070: the theme the technician chose in Settings, Appearance; Windows' app mode until they
@@ -143,14 +146,28 @@ public partial class App : Application, IDisposable
                 return;
             }
 
+            // Review findings D-02 and D-03: one copy per user and session. A second start asks the running one
+            // for its window when it was asked for one (from Start, say), and exits; two copies made two tray
+            // icons and two pills. A start at sign-in or by Restart Manager says --background and stays in
+            // the tray; any other start opens the window.
+            var opensWindow = Core.Lifecycle.UiStart.OpensWindow(e.Args);
+            if (Shell.SingleInstance.Take(opensWindow) is not { } instance)
+            {
+                Shutdown(0);
+                return;
+            }
+
+            _instance = instance;
+
             // ST-112: registered for Restart Manager's restart, as the service is. Windows Installer, which
             // ScreenTrail's package tells to ask only programs registered for restart, otherwise asks nobody
             // while the UI runs, and the service is ended rather than asked. Another program's installer
             // that closes the UI starts it again, in the tray, as this start does. Only here: the screenshot
             // harnesses above are not the application.
-            _ = Platform.Lifecycle.RestartRegistration.Register();
+            _ = Platform.Lifecycle.RestartRegistration.Register(Core.Lifecycle.UiStart.BackgroundFlag);
             _live = new Shell.LiveShell();
-            _ = _live.StartAsync();
+            _instance.OnShowAsked(_live.ShowWindow);
+            _ = _live.StartAsync(opensWindow);
             return;
         }
 
@@ -179,6 +196,8 @@ public partial class App : Application, IDisposable
         // when the mouse passes over it.
         _live?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         _live = null;
+        _instance?.Dispose();
+        _instance = null;
         GC.SuppressFinalize(this);
     }
 }

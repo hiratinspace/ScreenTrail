@@ -8,16 +8,16 @@
     <!-- panes, cards, the HUD pill: the layer content sits on -->
     <Color x:Key="Token.bg.surface">#1D2536</Color>
     <SolidColorBrush x:Key="Brush.bg.surface" Color="#1D2536" />
-    <!-- inputs and secondary buttons at rest -->
+    <!-- inputs and secondary buttons at rest; white in light so a field reads as editable (v0.7.0) -->
     <Color x:Key="Token.bg.raised">#262F43</Color>
     <SolidColorBrush x:Key="Brush.bg.raised" Color="#262F43" />
     <!-- a hovered control, row or list item -->
     <Color x:Key="Token.bg.hover">#2E384F</Color>
     <SolidColorBrush x:Key="Brush.bg.hover" Color="#2E384F" />
-    <!-- a pressed control -->
+    <!-- a pressed control or row; one step darker than hover in light (v0.7.0) -->
     <Color x:Key="Token.bg.pressed">#222A3D</Color>
     <SolidColorBrush x:Key="Brush.bg.pressed" Color="#222A3D" />
-    <!-- a selected row, list item or nav tab; the info banner (iris tint) -->
+    <!-- a selected row, list item, segment or nav row only; never a banner (v0.7.0) -->
     <Color x:Key="Token.bg.selected">#383356</Color>
     <SolidColorBrush x:Key="Brush.bg.selected" Color="#383356" />
     <!-- warning banner and low-confidence badge fill -->
@@ -29,15 +29,30 @@
     <!-- published badge fill -->
     <Color x:Key="Token.bg.success">#163423</Color>
     <SolidColorBrush x:Key="Brush.bg.success" Color="#163423" />
+    <!-- neutral banner and badge fill: info, offline, out of scope, redaction (v0.7.0) -->
+    <Color x:Key="Token.bg.info">#232B3E</Color>
+    <SolidColorBrush x:Key="Brush.bg.info" Color="#232B3E" />
+    <!-- a disabled control fill: disabled by colour, not opacity (v0.7.0) -->
+    <Color x:Key="Token.bg.disabled">#1A2131</Color>
+    <SolidColorBrush x:Key="Brush.bg.disabled" Color="#1A2131" />
     <!-- dividers, card outlines, a disabled input's outline -->
     <Color x:Key="Token.border.subtle">#364057</Color>
     <SolidColorBrush x:Key="Brush.border.subtle" Color="#364057" />
     <!-- button and container outlines, focused containers, the HUD outline -->
     <Color x:Key="Token.border.strong">#4A546B</Color>
     <SolidColorBrush x:Key="Brush.border.strong" Color="#4A546B" />
-    <!-- the edge of a field a person types into or picks from: text box, password box, combo box (WCAG 1.4.11, 3:1) -->
+    <!-- edge of a text box, password box or combo: 3:1 on every content background (v0.7.0) -->
     <Color x:Key="Token.border.control">#747A89</Color>
     <SolidColorBrush x:Key="Brush.border.control" Color="#747A89" />
+    <!-- a success banner or badge outline (v0.7.0) -->
+    <Color x:Key="Token.border.success">#25593B</Color>
+    <SolidColorBrush x:Key="Brush.border.success" Color="#25593B" />
+    <!-- a warning banner or badge outline (v0.7.0) -->
+    <Color x:Key="Token.border.warning">#5E4A22</Color>
+    <SolidColorBrush x:Key="Brush.border.warning" Color="#5E4A22" />
+    <!-- an error banner or badge outline (v0.7.0) -->
+    <Color x:Key="Token.border.danger">#6E343A</Color>
+    <SolidColorBrush x:Key="Brush.border.danger" Color="#6E343A" />
     <!-- body -->
     <Color x:Key="Token.text.primary">#F1F2F6</Color>
     <SolidColorBrush x:Key="Brush.text.primary" Color="#F1F2F6" />
@@ -47,24 +62,36 @@
     <!-- placeholders, timestamps, hints -->
     <Color x:Key="Token.text.muted">#A9AEBA</Color>
     <SolidColorBrush x:Key="Brush.text.muted" Color="#A9AEBA" />
+    <!-- disabled labels and glyphs; exempt from contrast (WCAG 1.4.3 inactive components) (v0.7.0) -->
+    <Color x:Key="Token.text.disabled">#6B7385</Color>
+    <SolidColorBrush x:Key="Brush.text.disabled" Color="#6B7385" />
     <!-- primary buttons, links (incl. "Open in Hudu"), focus ring, selection, info: Iris -->
     <Color x:Key="Token.accent.primary">#B2A6EC</Color>
     <SolidColorBrush x:Key="Brush.accent.primary" Color="#B2A6EC" />
     <!-- hovered primary -->
     <Color x:Key="Token.accent.primary.hover">#CBC3F5</Color>
     <SolidColorBrush x:Key="Brush.accent.primary.hover" Color="#CBC3F5" />
+    <!-- a pressed primary button (v0.7.0) -->
+    <Color x:Key="Token.accent.primary.pressed">#9D8FE0</Color>
+    <SolidColorBrush x:Key="Brush.accent.primary.pressed" Color="#9D8FE0" />
     <!-- text on accent.primary; dark theme uses ink on the light iris tint -->
     <Color x:Key="Token.text.on-accent">#0A071E</Color>
     <SolidColorBrush x:Key="Brush.text.on-accent" Color="#0A071E" />
     <!-- non-text brand iris: rules and marks at 3:1 -->
     <Color x:Key="Token.brand.signature">#B2A6EC</Color>
     <SolidColorBrush x:Key="Brush.brand.signature" Color="#B2A6EC" />
-    <!-- the 4 px band over the selected row, the pill cap, the receipt rule; high contrast draws it in the window colour, so it is not seen -->
+    <!-- the selection bar only (v0.7.0) -->
     <Color x:Key="Token.brand.ribbon.band">#B2A6EC</Color>
     <SolidColorBrush x:Key="Brush.brand.ribbon.band" Color="#B2A6EC" />
-    <!-- one flat tone step where the band folds into the envelope (decorative, never the only cue); not seen in high contrast -->
+    <!-- the ribbon mark's fold on the public site; the client draws none (v0.7.0) -->
     <Color x:Key="Token.brand.ribbon.fold">#6A43C4</Color>
     <SolidColorBrush x:Key="Brush.brand.ribbon.fold" Color="#6A43C4" />
+    <!-- the plate behind the logo: receipt mark, onboarding lockup, installer (v0.7.0) -->
+    <Color x:Key="Token.brand.frame">#141030</Color>
+    <SolidColorBrush x:Key="Brush.brand.frame" Color="#141030" />
+    <!-- wordmark and text on brand.frame (v0.7.0) -->
+    <Color x:Key="Token.brand.on-frame">#F7F5FE</Color>
+    <SolidColorBrush x:Key="Brush.brand.on-frame" Color="#F7F5FE" />
     <!-- recording indicator, stop -->
     <Color x:Key="Token.state.recording">#FF6363</Color>
     <SolidColorBrush x:Key="Brush.state.recording" Color="#FF6363" />
@@ -80,18 +107,30 @@
     <!-- offline / pending: v0.5 blue slate, unchanged -->
     <Color x:Key="Token.state.offline">#A2AAB5</Color>
     <SolidColorBrush x:Key="Brush.state.offline" Color="#A2AAB5" />
+    <!-- redacting and masked: neutral ink, never an alarm (v0.7.0) -->
+    <Color x:Key="Token.state.redacted">#CDD1DA</Color>
+    <SolidColorBrush x:Key="Brush.state.redacted" Color="#CDD1DA" />
     <!-- destructive actions -->
     <Color x:Key="Token.state.danger">#FF8F8F</Color>
     <SolidColorBrush x:Key="Brush.state.danger" Color="#FF8F8F" />
+    <!-- the confirm button of a destructive dialog only, with text.on-accent (v0.7.0) -->
+    <Color x:Key="Token.danger.fill">#FF8F8F</Color>
+    <SolidColorBrush x:Key="Brush.danger.fill" Color="#FF8F8F" />
+    <!-- danger.fill hovered (v0.7.0) -->
+    <Color x:Key="Token.danger.fill.hover">#FFB0B0</Color>
+    <SolidColorBrush x:Key="Brush.danger.fill.hover" Color="#FFB0B0" />
     <!-- low-confidence step marker -->
-    <Color x:Key="Token.confidence.low">#FBBF24</Color>
-    <SolidColorBrush x:Key="Brush.confidence.low" Color="#FBBF24" />
+    <Color x:Key="Token.confidence.low">#F5A524</Color>
+    <SolidColorBrush x:Key="Brush.confidence.low" Color="#F5A524" />
     <!-- rail, title bar, pill: the frame; light is a soft grey panel a step darker than the page (v0.7.0, owner) -->
     <Color x:Key="Token.shell.bg">#0D111B</Color>
     <SolidColorBrush x:Key="Brush.shell.bg" Color="#0D111B" />
     <!-- hovered rail row, live box -->
     <Color x:Key="Token.shell.hover">#1A2030</Color>
     <SolidColorBrush x:Key="Brush.shell.hover" Color="#1A2030" />
+    <!-- a pressed rail row or pill button (v0.7.0) -->
+    <Color x:Key="Token.shell.pressed">#222A3D</Color>
+    <SolidColorBrush x:Key="Brush.shell.pressed" Color="#222A3D" />
     <!-- text on the shell -->
     <Color x:Key="Token.shell.text">#F7F5FE</Color>
     <SolidColorBrush x:Key="Brush.shell.text" Color="#F7F5FE" />
@@ -105,14 +144,14 @@
     <Color x:Key="Token.shell.line">#262E40</Color>
     <SolidColorBrush x:Key="Brush.shell.line" Color="#262E40" />
     <!-- recording on the shell -->
-    <Color x:Key="Token.shell.recording">#FF6B6B</Color>
-    <SolidColorBrush x:Key="Brush.shell.recording" Color="#FF6B6B" />
+    <Color x:Key="Token.shell.recording">#FF6363</Color>
+    <SolidColorBrush x:Key="Brush.shell.recording" Color="#FF6363" />
     <!-- paused on the shell -->
     <Color x:Key="Token.shell.paused">#F5A524</Color>
     <SolidColorBrush x:Key="Brush.shell.paused" Color="#F5A524" />
     <!-- published on the shell -->
-    <Color x:Key="Token.shell.published">#55DB8E</Color>
-    <SolidColorBrush x:Key="Brush.shell.published" Color="#55DB8E" />
+    <Color x:Key="Token.shell.published">#4CD787</Color>
+    <SolidColorBrush x:Key="Brush.shell.published" Color="#4CD787" />
     <!-- out of scope on the shell -->
     <Color x:Key="Token.shell.scope">#7CCDD6</Color>
     <SolidColorBrush x:Key="Brush.shell.scope" Color="#7CCDD6" />
@@ -120,5 +159,13 @@
     <Color x:Key="Token.shell.offline">#A2AAB5</Color>
     <SolidColorBrush x:Key="Brush.shell.offline" Color="#A2AAB5" />
     <sys:String x:Key="Token.theme">dark</sys:String>
-    <sys:Boolean x:Key="Token.elevation.enabled">False</sys:Boolean>
+    <DropShadowEffect x:Key="Elevation.popup" Color="#000000" BlurRadius="16" ShadowDepth="4" Direction="270" Opacity="0.4" />
+    <DropShadowEffect x:Key="Elevation.float" Color="#000000" BlurRadius="24" ShadowDepth="8" Direction="270" Opacity="0.5" />
+    <Style x:Key="FocusVisual.input" />
+    <Thickness x:Key="Thickness.selected-edge">0</Thickness>
+    <Color x:Key="Token.selection.edge">#00000000</Color>
+    <SolidColorBrush x:Key="Brush.selection.edge" Color="Transparent" />
+    <Color x:Key="Token.skeleton.edge">#00000000</Color>
+    <SolidColorBrush x:Key="Brush.skeleton.edge" Color="Transparent" />
+    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>
 </ResourceDictionary>

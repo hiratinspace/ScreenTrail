@@ -109,7 +109,8 @@ public sealed class SettingsSaveBarTests(TheApplication app)
             {
                 var pane = Audit.Descendants(shell).OfType<SettingsPane>().Single();
                 var scroller = Audit.Descendants(pane).OfType<ScrollViewer>().First(s => s.Name == "Scroller");
-                var bar = Audit.Descendants(pane).OfType<Border>().Single(b => b.Name == "Bar");
+                // By the pane's own names: the scroll thumb's template names its part "Bar" too (ST-130).
+                var bar = Assert.IsType<Border>(pane.FindName("Bar"));
                 var scrollerBottom = scroller.TranslatePoint(new Point(0, scroller.ActualHeight), shell).Y;
                 var barTop = bar.TranslatePoint(new Point(0, 0), shell).Y;
                 Assert.True(scrollerBottom <= barTop + 0.5, $"The page's view ends at {scrollerBottom}, under the bar at {barTop}.");

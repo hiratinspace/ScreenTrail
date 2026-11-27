@@ -112,6 +112,15 @@ internal static class TitleBar
         var border = tint.Border;
         _ = DwmSetWindowAttribute(handle, DwmwaBorderColor, ref border, sizeof(uint));
         window.SetValue(AppliedProperty, tint);
+
+        // Review finding D-13: what Windows paints before WPF's first frame, and behind it while the window
+        // grows. Left at its default it is white, which flashed on every dark-mode open, since every open of
+        // the shell builds a new window. The theme's own page colour, high contrast's included.
+        // Not for a transparent window, such as the pill, whose corners would fill in.
+        if (!window.AllowsTransparency && HwndSource.FromHwnd(handle)?.CompositionTarget is { } target && window.TryFindResource("Token.bg.base") is Color page)
+        {
+            target.BackgroundColor = page;
+        }
     }
 
     private static string Hex(Color colour) => $"#{colour.R:X2}{colour.G:X2}{colour.B:X2}";

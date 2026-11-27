@@ -1,6 +1,7 @@
 <UserControl x:Class="ScreenTrail.UI.Review.Publish.EnvelopeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:theme="clr-namespace:ScreenTrail.UI.Theme"
              xmlns:controls="clr-namespace:ScreenTrail.UI.Controls"
              xmlns:core="clr-namespace:ScreenTrail.Core.Review.Publish;assembly=ScreenTrail.Core"
              Background="Transparent"
@@ -10,8 +11,9 @@
          rounding, Also the other destinations as chips. The subject line, Discard and Publish sit above
          these, in the Review pane's header, so Publish lines up with the title the way Send does. -->
     <UserControl.Resources>
-        <!-- The line's name in the left column: quiet, and the same width on every line so the values align. -->
-        <Style x:Key="Envelope.Label" BasedOn="{StaticResource Text.Muted}" TargetType="TextBlock">
+        <!-- The line's name in the left column: a label, not a hint (review finding A-31), and the same width
+             on every line so the values align. -->
+        <Style x:Key="Envelope.Label" BasedOn="{StaticResource Text.Label}" TargetType="TextBlock">
             <Setter Property="Width" Value="{DynamicResource Layout.envelope-label}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextWrapping" Value="NoWrap" />
@@ -27,12 +29,12 @@
 
     <StackPanel>
         <!-- ST-090: the backend's Development demo PSA, named where the technician is looking. -->
-        <Border Style="{StaticResource Banner.Info}"
+        <ContentControl Style="{StaticResource Banner}"
                 Margin="0,0,0,8"
                 Visibility="{Binding DemoVisibility}"
                 AutomationProperties.Name="Demo PSA">
-            <TextBlock Style="{StaticResource Text.Body}" Text="{Binding DemoNotice}" />
-        </Border>
+            <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding DemoNotice}" />
+        </ContentControl>
 
         <!-- To: the ticket as a value, why it is that one, and Change. With none, "No ticket yet" and
              Choose a ticket, and Publish waits with its reason beside it. -->
@@ -55,7 +57,7 @@
                                 Visibility="{Binding TicketChipVisibility}"
                                 AutomationProperties.Name="{Binding ToValue}">
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
+                                <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
                                 <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" TextWrapping="NoWrap" Text="{Binding TicketRest}" />
                             </StackPanel>
                         </Border>
@@ -70,8 +72,7 @@
                                    Text="{Binding MatchedFrom}" />
                         <StackPanel Orientation="Horizontal" Visibility="{Binding ChangeVisibility}">
                             <Button x:Name="ChangeButton"
-                                    Style="{StaticResource Button.Ghost}"
-                                    Foreground="{DynamicResource Brush.accent.primary}"
+                                    Style="{StaticResource Button.Link}"
                                     Content="{Binding ChangeLabel}"
                                     Command="{Binding ChangeTicketCommand}"
                                     AutomationProperties.Name="{Binding ChangeLabel}"
@@ -155,7 +156,7 @@
                                              GroupName="NoteType"
                                              AutomationProperties.Name="{x:Static core:PublishPanel.InternalLabel}">
                                     <StackPanel Orientation="Horizontal">
-                                        <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Size.sm}" VerticalAlignment="Center" Text="&#xE72E;" />
+                                        <controls:Glyph FontFamily="{DynamicResource Font.icon}" FontSize="{DynamicResource Icon.sm}" VerticalAlignment="Center" Text="{StaticResource Icon.Lock}" />
                                         <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="{x:Static core:PublishPanel.InternalLabel}" />
                                     </StackPanel>
                                 </RadioButton>
@@ -176,7 +177,7 @@
                 <Border Grid.Column="1" Margin="0,2,0,2">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Style="{StaticResource Envelope.Label}" Text="Time" />
-                        <TextBox Width="{DynamicResource Layout.field-narrow}"
+                        <TextBox Width="{DynamicResource Layout.field-minutes}"
                                  VerticalAlignment="Center"
                                  Style="{StaticResource Input.Default}"
                                  Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}"
@@ -221,17 +222,15 @@
 
         <!-- O3: an earlier publish reached the ticket, or may have. The same box as the receipt's, in the
              tab order before the note, and spent on one send. -->
-        <Border Style="{StaticResource Banner.Warning}"
+        <ContentControl Style="{StaticResource Banner}"
+                theme:Banner.Tone="Warning"
+                theme:Banner.Glyph="{StaticResource Icon.Unknown}"
+                theme:Banner.Title="Not confirmed"
                 Margin="0,8,0,0"
                 Visibility="{Binding EarlierVisibility}"
                 AutomationProperties.Name="Check the ticket first">
             <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <controls:Glyph Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.paused}" Text="&#xE9CE;" />
-                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" FontWeight="{DynamicResource Weight.semibold}" Text="Not confirmed" />
-                </StackPanel>
-                <TextBlock Margin="0,4,0,0"
-                           Style="{StaticResource Text.Body}"
+                <TextBlock Style="{StaticResource Text.Body}"
                            Text="{Binding EarlierPrompt}"
                            controls:LiveRegion.Setting="Polite" />
                 <CheckBox Margin="0,8,0,0"
@@ -241,6 +240,6 @@
                     <TextBlock Style="{StaticResource Text.Body}" Text="{Binding CheckTicketLabel}" />
                 </CheckBox>
             </StackPanel>
-        </Border>
+        </ContentControl>
     </StackPanel>
 </UserControl>

@@ -67,7 +67,7 @@
         <Style x:Key="Hud.Segment" TargetType="Border">
             <Setter Property="Margin" Value="8,0,0,0" />
             <Setter Property="Padding" Value="8,0,0,0" />
-            <Setter Property="Height" Value="{DynamicResource Icon.nav}" />
+            <Setter Property="Height" Value="{DynamicResource Icon.lg}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.line}" />
             <Setter Property="BorderThickness" Value="1,0,0,0" />
@@ -155,7 +155,7 @@
                             ToolTip="{Binding RedactionSpoken}"
                             Visibility="{Binding ShowRedactions, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="&#xEA18;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.muted}" Text="{DynamicResource Icon.Shield}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Typography.NumeralAlignment="Tabular"
@@ -170,7 +170,7 @@
                             ToolTip="{Binding MicTooltip}"
                             Visibility="{Binding ShowMic, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="&#xE720;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{DynamicResource Icon.Mic}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding MicText}"
@@ -182,7 +182,7 @@
                             ToolTip="{Binding CloudTooltip}"
                             Visibility="{Binding ShowCloud, Converter={StaticResource Visible}}">
                         <StackPanel Orientation="Horizontal">
-                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="&#xE753;" />
+                            <controls:Glyph Style="{StaticResource Hud.Icon}" Foreground="{DynamicResource Brush.shell.offline}" Text="{DynamicResource Icon.Cloud}" />
                             <TextBlock Margin="4,0,0,0"
                                        Style="{StaticResource Hud.Meta}"
                                        Text="{Binding CloudText}"
@@ -196,15 +196,17 @@
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding MarkCommand}"
                             ToolTip="{Binding MarkButton.Tooltip}"
-                            AutomationProperties.Name="{Binding MarkButton.Spoken}"
+                            AutomationProperties.Name="{Binding MarkButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding MarkButton.Hotkey}"
                             Visibility="{Binding ShowMarkControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="&#xE7C1;" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Flag}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding PauseOrResumeCommand}"
                             ToolTip="{Binding PauseButton.Tooltip}"
-                            AutomationProperties.Name="{Binding PauseButton.Spoken}"
+                            AutomationProperties.Name="{Binding PauseButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding PauseButton.Hotkey}"
                             Visibility="{Binding ShowPauseControl, Converter={StaticResource Visible}}">
                         <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{Binding PauseGlyph}" />
                     </Button>
@@ -212,9 +214,10 @@
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding StopCommand}"
                             ToolTip="{Binding StopButton.Tooltip}"
-                            AutomationProperties.Name="{Binding StopButton.Spoken}"
+                            AutomationProperties.Name="{Binding StopButton.Name}"
+                            AutomationProperties.AcceleratorKey="{Binding StopButton.Hotkey}"
                             Visibility="{Binding ShowStopControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="&#xE71A;" />
+                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Stop}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"

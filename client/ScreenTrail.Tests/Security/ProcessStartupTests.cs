@@ -88,6 +88,21 @@ public sealed class ProcessStartupTests
     }
 
     /// <summary>A file in the client's source tree, found from the test binary the way ClientSources finds projects.</summary>
+    [Fact]
+    public void TheUiIsPerMonitorDpiAwareFromItsManifest()
+    {
+        // Review finding D-01: with no manifest a WPF process is System DPI aware, and the shell and the
+        // pill were stretched as bitmaps, blurry, on a second monitor at another scale.
+        var project = File.ReadAllText(Source("ScreenTrail.UI", "ScreenTrail.UI.csproj"));
+        Assert.Contains("<ApplicationManifest>app.manifest</ApplicationManifest>", project, StringComparison.Ordinal);
+
+        var manifest = System.Xml.Linq.XDocument.Load(Source("ScreenTrail.UI", "app.manifest"));
+        var awareness = manifest.Descendants().Single(e => e.Name.LocalName == "dpiAwareness");
+        Assert.StartsWith("PerMonitorV2", awareness.Value, StringComparison.Ordinal);
+        Assert.Equal("true/pm", manifest.Descendants().Single(e => e.Name.LocalName == "dpiAware").Value);
+        Assert.Contains(manifest.Descendants(), e => e.Name.LocalName == "supportedOS" && (string?)e.Attribute("Id") == "{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}");
+    }
+
     private static string Source(string project, string file)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

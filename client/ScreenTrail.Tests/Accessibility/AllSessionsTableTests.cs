@@ -16,11 +16,11 @@ public sealed class AllSessionsTableTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     /// <summary>
-    /// The table's width at the window's 1024 minimum: the window's frame (16), the rail (280) and the
-    /// pane's padding (24 each side) taken off, and a vertical scroll bar (18) for a list longer than the
-    /// pane.
+    /// The table's width at the window's 960 minimum (review finding D-06): the window's frame (16), the
+    /// narrow rail (232) and the pane's narrow padding (16 each side) taken off, and a vertical scroll bar
+    /// (18) for a list longer than the pane.
     /// </summary>
-    private const double TableAtTheMinimum = 1024 - 16 - 280 - 48 - 18;
+    private const double TableAtTheMinimum = 960 - 16 - 232 - 32 - 18;
 
     [Fact]
     public void TheSelectionIsTheRowsSoItRunsTheTablesWidth()
@@ -42,20 +42,18 @@ public sealed class AllSessionsTableTests
         var cell = CellStyle();
         Assert.Equal("Transparent", Setter(cell, "Background"));
         Assert.DoesNotContain(
-            cell.Element(Wpf + "Style.Triggers")!.Descendants(Wpf + "Setter"),
-            s => (string?)s.Attribute("Property") == "Background");
+            cell.Descendants(Wpf + "Setter"),
+            s => (string?)s.Attribute("Property") == "Background" && (string?)s.Attribute("Value") != "Transparent");
     }
 
     [Fact]
     public void ASelectedRowIsMarkedByShapeAsWellAsTint()
     {
-        // The tint is the window colour in high contrast and faint on white, so the row carries the list
-        // row's accent mark at its leading edge too.
+        // The tint is faint on white, so the row carries the one selection bar at its leading edge too
+        // (design system 10.4: collapsed and never hit-tested, from the SelectionBar style).
         var row = Style("Table.Row");
         var mark = Assert.Single(row.Descendants(Wpf + "Rectangle"), r => (string?)r.Attribute(Xaml + "Name") == "Indicator");
-        Assert.Equal("{DynamicResource Brush.accent.primary}", (string?)mark.Attribute("Fill"));
-        Assert.Equal("Collapsed", (string?)mark.Attribute("Visibility"));
-        Assert.Equal("False", (string?)mark.Attribute("IsHitTestVisible"));
+        Assert.Equal("{StaticResource SelectionBar}", (string?)mark.Attribute("Style"));
 
         var selected = Assert.Single(TemplateTriggers(row), t => (string?)t.Attribute("Property") == "IsSelected");
         Assert.Contains(selected.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Indicator" && (string?)s.Attribute("Value") == "Visible");
@@ -90,19 +88,18 @@ public sealed class AllSessionsTableTests
     }
 
     [Fact]
-    public void InHighContrastTheSelectedRowIsTheSystemsSelectionAndTheOutlineShowsOnIt()
+    public void InHighContrastTheSelectedRowIsAHighlightEdgeFromTheTokens()
     {
+        // Design system 12, review finding A-35: not the system flag, which a render with the high-contrast
+        // dictionary never sets, but the SelectionEdge, which is Highlight in that dictionary alone.
         var row = Style("Table.Row");
-        var contrast = Assert.Single(row.Element(Wpf + "Style.Triggers")!.Elements(Wpf + "MultiDataTrigger"));
-        var conditions = contrast.Descendants(Wpf + "Condition").Select(c => (string?)c.Attribute("Binding")).ToList();
-        Assert.Contains("{Binding Source={x:Static SystemParameters.HighContrast}}", conditions);
-        Assert.Equal("{DynamicResource Brush.accent.primary}", Setter(contrast, "Background"));
+        Assert.DoesNotContain(row.Descendants(Wpf + "MultiDataTrigger"), _ => true);
+        var edge = Assert.Single(row.Descendants(Wpf + "Border"), b => (string?)b.Attribute(Xaml + "Name") == "Edge");
+        Assert.Equal("{StaticResource SelectionEdge}", (string?)edge.Attribute("Style"));
 
-        // The outline is the accent, which is the selection's fill there: it takes the fill's text colour.
-        Assert.Equal("{DynamicResource Brush.text.on-accent}", Setter(contrast, "BorderBrush"));
-
-        var words = Assert.Single(CellStyle().Element(Wpf + "Style.Triggers")!.Elements(Wpf + "MultiDataTrigger"));
-        Assert.Equal("{DynamicResource Brush.text.on-accent}", Setter(words, "Foreground"));
+        var selected = Assert.Single(TemplateTriggers(row), t => (string?)t.Attribute("Property") == "IsSelected");
+        Assert.Contains(selected.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Edge" && (string?)s.Attribute("Value") == "Visible");
+        Assert.Null(CellStyle().Element(Wpf + "Style.Triggers"));
     }
 
     [Fact]
@@ -116,7 +113,7 @@ public sealed class AllSessionsTableTests
         var star = Assert.Single(columns, c => (string?)c.Attribute("Width") == "*");
         Assert.Equal("Status", (string?)star.Attribute("Header"));
 
-        // At the 1024 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
+        // At the 960 minimum nothing scrolls sideways: the fixed columns and Status at its least fit.
         var least = columns.Where(c => c != star).Sum(c => double.Parse((string)c.Attribute("Width")!, CultureInfo.InvariantCulture))
             + double.Parse((string)star.Attribute("MinWidth")!, CultureInfo.InvariantCulture);
         Assert.True(least <= TableAtTheMinimum, $"The columns need {least} px and the table has {TableAtTheMinimum} at the smallest window.");

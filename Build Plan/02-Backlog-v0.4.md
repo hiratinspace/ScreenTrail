@@ -2278,46 +2278,46 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - Verify: `dotnet test` (Mac), the Windows CI screenshots
 
 ### **ST-126 · Window lifecycle bugs**
-- **Findings:** D-01, D-02, D-03, D-05, D-07, D-08, D-09, D-13, C-H1/D-16, D-04, D-06
+- **Findings:** D-01, D-02, D-03, D-05, D-07, D-08, D-09, D-13, C-H1/D-16, D-04 (D-06 moved to ST-127)
 - **Blocked By:** none
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open, laptop checks owed (`windows-checklist.md`: second monitor at another scale, Start while running, tray Open on a minimised window, sheet at 1080p 150%, a tray confirm with the shell closed, a dark open, the pill's paused words at the top right, the window's place across a dock and undock). Left: the diagnostics ring after 300 ms waits for ProgressRing (ST-130); the pill's card opening upward is ST-134; the onboarding window's saved place.
 
 ### **ST-127 · Tokens: design-system change log, generator emits `Radius.pill` 999, elevation, `Icons.xaml`, line heights, HC keys**
-- **Findings:** A-29, A-30, A-31/B-57, design-system §13
+- **Findings:** A-29, A-30, A-31/B-57, design-system §13, D-06 (from ST-126: `layout.pane-padding-narrow` 16 under `rail-narrow-below`, then the shell's `MinWidth` 960; at 960 with the 24 padding All sessions' columns need 656 px of 646)
 - **Blocked By:** none
 - **Laptop:** Yes (fonts, round ends, icon coverage)
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. Tokens v0.7.0 with the "client" overrides (web and site layouts unchanged; their colours follow), Icons.xaml (A-29), the spacing scale in the frame, rail, banners and strip (A-30), the type roles with line heights (A-31), banner and chip colours, D-06 (MinWidth 960). Laptop: Segoe UI Variable faces, Radius.pill 999 corners, Fluent and MDL2 coverage (design system 15). Left for their tickets: `layout.hud-height` 40 (ST-134, with the pill), the rest of the text-role sweep, the motion helper (ST-128 onward).
 
 ### **ST-128 · Buttons and focus rings: seven styles, compact size, states, shortcut hint pattern**
 - **Findings:** A-13, A-32/B-02, B-01, B-03 to B-07, B-53, A-14/B-08/E-22, B-32
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the shared base with the pressed and disabled states (A-13 for buttons, A-32/B-02, B-01), the compact size at Looks right, Edit, Undo, Remove, Forget and the capture banner (B-03), Install update Secondary (B-04), DangerSolid in destructive dialogs (B-05), the leading delete icon (B-06), Link (B-07), Close Secondary on the sheet and the panel (B-53), the shortcut pattern and names (A-14/B-08/E-22, the pill's names included), focus ring radii (B-32), and `Button.Icon`. Laptop: hover and pressed of every style, the link underline, the rings at 100% and 150%, Narrator reading "Save" with its shortcut. Left for their tickets: Open disabled until a row is selected (A-13, ST-139), the loading ring (ST-130), `Chip`, `Nav.Item`, `Pill.Control`, `Rail.Link` and `Rail.FootItem` retired with their rows (ST-130, ST-131, ST-134).
 
 ### **ST-129 · Inputs and choices: fields, error and placeholder, combo, check box, radio, chip, segmented, slider, meter**
 - **Findings:** B-09 to B-15, B-17 to B-19, A-18/B-20, A-19/B-21, B-23, B-30, B-13/E-26
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the focus edge (B-09), the hover edge (B-10), minimum heights (B-11), `theme:Field` error and placeholder (B-12, B-13), labels and examples on the Privacy and Integrations fields (B-13/E-26), the 4 px label gap (B-14), three field widths (B-15), the combo (B-17), check box and radio states (B-18) and width (B-19), the check chip (A-18/B-20), the segments (A-19/B-21), the slider (B-23) and the meter with a new clipping signal (B-30). Laptop: the combo popup's shadow and ClearType, rings hugging the choices on Capture, the Also line wrapping at 960, the As line in high contrast, the retention slider drag, the meter clipping. Left for their tickets: moving each Settings error line into its field with `theme:Field.Error` (B-12, ST-140).
 
 ### **ST-130 · Feedback and surfaces: Badge, Banner, EmptyState, Toast, Tooltip, KeyCap, scroll bar, ProgressRing, Skeleton, Save bar; dead styles removed**
 - **Findings:** A-02/B-24, B-25, A-11/A-12/B-26, A-08, A-28/B-27/D-18, B-28, B-31, A-33/B-29, B-46, B-16, B-22
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: one Badge with a tone and glyph (A-02/B-24), the grey changed mark (B-25), one Banner with a tone, title and glyph (A-11/A-12/B-26), the card-free empty state (A-08), the undo toast with its shadow behind the words (A-28/B-27/D-18), the tooltip and its timing (B-28), the one key cap (B-31), the thin scroll thumb (A-33/B-29), the Save bar and its Saving state (B-46), and the unused styles deleted (B-16) with the toggle switch (B-22); the new Skeleton, shown by the rail while it first asks (the rest of A-08). Laptop: the rail and table badges side by side in light and dark, the service-down bar and receipt banners, the toast and tooltip text for ClearType and the tooltip's corners and shadow, the tooltip delay and keyboard focus, the scroll thumb growing over a list, a slow save showing the ring, the rail's skeleton rows while the service starts. Left for their tickets: the skeleton in All sessions, the draft being written and the ticket picker (ST-139, ST-138, ST-136); Divider and Card.Group with the first screens that use them (ST-140); the toast's countdown bar, the skeleton's fade into content and holding the ring still under reduced motion (the motion helper, ST-144).
 
 ### **ST-131 · One selection treatment and rows: rail, foot nav, Settings nav, onboarding steps, table, thumbnails, HC**
 - **Findings:** A-01, B-44, C-O3, A-03/D-25/E-27, A-04 to A-07, A-34, A-35/E-28, R-01
 - **Blocked By:** ST-127, ST-130
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: one selection treatment, the fill and the 3 x 16 bar (A-01), Settings' nav rows (B-44), the onboarding steps (C-O3), the status chip on one line with its time apart, and full text for trimmed titles and cells (A-03/D-25/E-27), the rail search (A-04), rail row geometry and a pressed state (A-05), the group headings' x (A-06), the foot nav (A-07), the compact age (A-34), the token-driven high-contrast edge (A-35/E-28), and the Review render's selected row (R-01). Laptop: the rail, foot and Settings nav in light and dark with an open row; hover and press on rail and Settings rows; the chip at 1024 wide and at 150% while recording; the narrow rail's titles; real high contrast on the rail, table, Settings and onboarding (does a focused selected table row still show its focus outline over the edge?); the render job and shell-review's selected row. Left: adding selection to `Audit.TabAsync`'s high-contrast pass.
 
 ### **ST-132 · Gallery state matrix and the missing renders**
 - **Findings:** B-56, C-H13, inventory gaps
 - **Blocked By:** ST-128 to ST-131
 - **Laptop:** No
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. The gallery is a state matrix (B-56): a plain catalogue of rows and states, `ForcedState` running each control's own hover, pressed and focus triggers, focus rings drawn as the shell's focus renders draw them, every badge and banner tone, the feedback pieces and a tooltip drawn on its own. focus-input scrolls its field into view or fails (B-56). The pill renders every state it has words for, its buttons hovered, pressed and focused, and at 150% and 200% (C-H13); CI expects 100 HUD shots. From the inventory: publish Failed and Not confirmed, Service connecting, the Save bar saving, the diagnostics panel paused and not capturing, and the note drafting. Laptop: the gallery, HUD, shell and note render jobs. Check that the forced states look like real hover, press and focus, that the tooltip image draws, and that the long out-of-scope name trims before the pill's buttons. Left from the inventory: the open combo's list and the pill docked right (C-H1), which a window render cannot show; Settings' Activation form and problem, Privacy editable and problem, Integrations checking and mapping problem, Updates checking and downloading; outbox rows; History's DiscardFailed; the two other Not discarded reasons; onboarding Try it running and the blocker; the strip's undo toast and the blur and OCR drawing.
 
 ### **ST-133 · Words: one vocabulary, live hotkey text, durations helper**
 - **Findings:** E-01 to E-03, E-05 to E-08, E-11 to E-13, E-16 to E-18, glossary

@@ -30,6 +30,8 @@ public sealed record ResultRow(PublishResultRow Row, string? Detail = null)
     /// <summary>The state in a word beside the glyph: Sent, Failed, Not confirmed.</summary>
     public string Badge => Row.Badge;
 
+    public string BadgeTone => Row.BadgeTone;
+
     public Uri? Link => Row.Link;
 
     public string? Error => Row.Error;
@@ -153,7 +155,7 @@ public sealed partial class PublishViewModel : ObservableObject
     [ObservableProperty]
     public partial Visibility PickerVisibility { get; set; } = Visibility.Collapsed;
 
-    /// <summary>Time: "12 min, rounded up to 15".</summary>
+    /// <summary>Time: "Rounded up from 12 min".</summary>
     [ObservableProperty]
     public partial string TimeNote { get; set; } = string.Empty;
 

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The UI's application manifest (review finding D-01). Without one, a WPF process is System DPI aware:
+     text is drawn at the primary monitor's scale and stretched as a bitmap on a monitor with another scale,
+     so the shell and the pill went blurry on a technician's second screen. The service sets its own
+     awareness in code (ScreenTrail.Service/Capture/Dpi.cs); the UI declares it here so it holds from the
+     first window. The tray menu already sizes itself from the monitor's DPI (TrayIconHost.FitItems). -->
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <assemblyIdentity version="1.0.0.0" name="ScreenTrail.UI" />
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <!-- Windows 10 and Windows 11. -->
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}" />
+    </application>
+  </compatibility>
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+      <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
+      <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2, PerMonitor</dpiAwareness>
+    </windowsSettings>
+  </application>
+  <!-- Common Controls 6: the themed look for the few Win32 surfaces the UI shows (the start-up refusal's
+       message box, the tray menu's system parts). -->
+  <dependency>
+    <dependentAssembly>
+      <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*" />
+    </dependentAssembly>
+  </dependency>
+</assembly>
