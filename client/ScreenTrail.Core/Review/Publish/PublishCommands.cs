@@ -181,7 +181,7 @@ public sealed class PublishCommands(
             return null;
         }
 
-        var reason = _refusals.TryRemove((caller, command.RequestId), out var kept) ? kept : "The backend refused.";
+        var reason = _refusals.TryRemove((caller, command.RequestId), out var kept) ? kept : "ScreenTrail's server refused the publish. Try again in a minute.";
         return new CommandResult { RequestId = command.RequestId, Ok = false, Error = reason };
     }
 

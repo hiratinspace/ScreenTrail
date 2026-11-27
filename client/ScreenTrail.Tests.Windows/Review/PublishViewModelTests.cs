@@ -226,7 +226,7 @@ public sealed class PublishViewModelTests
         Assert.Equal(System.Windows.Visibility.Collapsed, real.DemoVisibility);
         Assert.Equal("Discussion notes would be visible to the customer in a real PSA.", demo.DiscussionHint);
         Assert.Equal(System.Windows.Visibility.Visible, demo.DemoVisibility);
-        Assert.StartsWith("Publishing to Demo PSA (not ConnectWise)", demo.DemoNotice, StringComparison.Ordinal);
+        Assert.StartsWith("Demo PSA (not ConnectWise): ", demo.DemoNotice, StringComparison.Ordinal);
     }
 
     [Fact]

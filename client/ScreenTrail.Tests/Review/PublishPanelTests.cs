@@ -115,7 +115,7 @@ public sealed class PublishPanelTests
         panel.Choose(new TicketMatch("48213", "Printer offline in reception", "Acme Dental"));
 
         Assert.True(panel.CanPublish);
-        Assert.StartsWith("Publishing to Demo PSA (not ConnectWise)", panel.DemoNotice, StringComparison.Ordinal);
+        Assert.StartsWith("Demo PSA (not ConnectWise): ", panel.DemoNotice, StringComparison.Ordinal);
         Assert.Contains("no real ticket", panel.DemoNotice, StringComparison.Ordinal);
     }
 

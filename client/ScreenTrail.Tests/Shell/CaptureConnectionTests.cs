@@ -399,8 +399,8 @@ public sealed class CaptureConnectionTests
     [Theory]
     [InlineData("typed", null)]
     [InlineData("refused-without-words", "The capture service refused the request.")]
-    [InlineData("ok-result", "The capture service answered with CommandResult, not SessionsListed.")]
-    [InlineData("other-event", "The capture service answered with IntegrationsListed, not SessionsListed.")]
+    [InlineData("ok-result", CaptureConnection.UnreadableAnswer)]
+    [InlineData("other-event", CaptureConnection.UnreadableAnswer)]
     [InlineData("broken", "The capture service disconnected.")]
     public async Task AQuestionAlwaysComesBackAsAReplyOrAReason(string reply, string? refusal)
     {

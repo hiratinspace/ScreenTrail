@@ -317,11 +317,23 @@ public sealed class PublishPanel
     public bool HasIntegrations => Integrations.Count > 0;
 
     /// <summary>
+    /// Why a publish threw, in plain words: "the capture service did not answer in time". The exception's
+    /// own message is a developer's and is never shown (review finding E-12).
+    /// </summary>
+    public static string PlainReason(Exception error) => error switch
+    {
+        TimeoutException => "the capture service did not answer in time",
+        IOException => "the connection to the capture service dropped",
+        UnauthorizedAccessException => "ScreenTrail was not allowed to read a screenshot",
+        _ => "something went wrong in ScreenTrail",
+    };
+
+    /// <summary>
     /// Said above Publish when the backend's PSA is its Development demo (ST-090), so nobody watching
     /// takes the note for one on a real ticket. Null for a real PSA, or none.
     /// </summary>
     public string? DemoNotice => Integrations.Any(IntegrationNames.IsDemo)
-        ? $"Publishing to {IntegrationNames.Title(IntegrationNames.DemoPsa)}: the backend keeps the note in memory, and it reaches no real ticket."
+        ? $"{IntegrationNames.Title(IntegrationNames.DemoPsa)}: the note reaches no real ticket."
         : null;
 
     /// <summary>

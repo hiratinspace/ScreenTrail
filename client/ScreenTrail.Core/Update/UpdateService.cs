@@ -426,7 +426,8 @@ public sealed partial class UpdateService : IDisposable
             using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                return ([], Failed($"The update feed did not answer (HTTP {(int)response.StatusCode})."));
+                LogStatus(response.StatusCode, "manifest");
+                return ([], Failed(ServerDidNotAnswer));
             }
 
             await using var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
@@ -502,7 +503,8 @@ public sealed partial class UpdateService : IDisposable
 
             if (!resuming && response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                return Settle(Failed($"The update could not be downloaded (HTTP {(int)response.StatusCode})."));
+                LogStatus(response.StatusCode, "download");
+                return Settle(Failed("The update could not be downloaded. ScreenTrail tries again later."));
             }
 
             if (!resuming)
@@ -667,6 +669,20 @@ public sealed partial class UpdateService : IDisposable
         Status = status;
         Changed?.Invoke(status);
     }
+
+    /// <summary>The update server's answer, without its status code, which goes to the log (review finding E-12).</summary>
+    public const string ServerDidNotAnswer = "The update server did not answer. ScreenTrail tries again later.";
+
+    private void LogStatus(System.Net.HttpStatusCode status, string what)
+    {
+        if (Logger is { } logger)
+        {
+            LogHttpStatus(logger, what, (int)status);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Update {What} answered HTTP {Status}")]
+    private static partial void LogHttpStatus(ILogger logger, string what, int status);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Update refused: {Reason}")]
     private static partial void LogRefused(ILogger logger, string reason);

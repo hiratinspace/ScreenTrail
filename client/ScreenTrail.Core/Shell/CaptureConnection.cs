@@ -23,6 +23,9 @@ namespace ScreenTrail.Core.Shell;
 /// </summary>
 public sealed class CaptureConnection : IAsyncDisposable
 {
+    /// <summary>The service answered with an event this version does not expect for the question.</summary>
+    public const string UnreadableAnswer = "The capture service gave an answer this version cannot read. Restart ScreenTrail.";
+
     private readonly ShellState _shell;
     private readonly Func<CancellationToken, Task<ICaptureChannel>> _open;
     private readonly Func<int, TimeSpan> _retryAfter;
@@ -212,7 +215,8 @@ public sealed class CaptureConnection : IAsyncDisposable
             TReply typed => ServiceAnswer<TReply>.Of(typed),
             CommandResult { Ok: false, Error: { Length: > 0 } error } => ServiceAnswer<TReply>.Refused(error),
             CommandResult { Ok: false } => ServiceAnswer<TReply>.Refused("The capture service refused the request."),
-            _ => ServiceAnswer<TReply>.Refused($"The capture service answered with {reply.GetType().Name}, not {typeof(TReply).Name}."),
+            // Not the two type names, which tell a technician nothing (review finding E-12).
+            _ => ServiceAnswer<TReply>.Refused(UnreadableAnswer),
         };
     }
 

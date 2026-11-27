@@ -70,9 +70,9 @@ public static class UpdateManifestReader
     public const string PayloadFormat = "screentrail-update-v1";
 
     // The sentences a refusal gives. Ours, fixed, and never built from what the manifest said (INV-10).
-    public const string NotAManifest = "The update feed answered with something that is not an update manifest.";
+    public const string NotAManifest = "The update server sent something that is not an update. ScreenTrail tries again later.";
     public const string UnknownKey = "The update manifest names a signing key this version of ScreenTrail does not trust.";
-    public const string BadSignature = "The update manifest's signature does not verify, so it was not believed.";
+    public const string BadSignature = "The update's signature did not check out, so it was not installed.";
     public const string Malformed = "The update manifest is signed but not in the shape this version reads.";
     public const string WrongChannel = "The update manifest is for another channel.";
     public const string KeyNotForChannel = "The update manifest is signed with a key this version of ScreenTrail does not trust for that manifest's channel.";

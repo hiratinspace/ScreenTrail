@@ -451,7 +451,8 @@ public sealed partial class PublishViewModel : ObservableObject
             // The provider's words reach the technician through the result list; a throw that the
             // delegate did not turn into a result is one the list cannot show, so it is said here, and
             // in the envelope, which is what is on screen while there is no receipt.
-            Summary = $"Publishing failed: {error.Message}";
+            // Never the exception's own text, which is written for a developer (review finding E-12).
+            Summary = $"Not published: {PublishPanel.PlainReason(error)}. Your note is kept.";
             PublishError = Summary;
         }
 
@@ -530,7 +531,7 @@ public sealed partial class PublishViewModel : ObservableObject
         {
             // The backend's words when it gave some (too many changes from this PC: wait, then again). The
             // chosen company stays chosen, so a second try is one click.
-            MappingError = _panel.MappingRefusal ?? "The backend did not take the mapping. Try again, or map it in Settings → Integrations.";
+            MappingError = _panel.MappingRefusal ?? "The company choice was not saved. Try again, or set it in Settings > Integrations.";
             MappingErrorVisibility = Visibility.Visible;
         }
 
