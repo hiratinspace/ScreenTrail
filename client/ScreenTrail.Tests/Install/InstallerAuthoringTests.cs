@@ -124,6 +124,26 @@ public sealed class InstallerAuthoringTests
         Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
     }
 
+    /// <summary>
+    /// Review finding C-I5: the setup program has a window of its own, with the brand's mark, no licence
+    /// link to a licence that does not exist, and a finish page whose Launch starts the installed UI.
+    /// </summary>
+    [Fact]
+    public void TheSetupProgramHasItsOwnWindowWithLaunch()
+    {
+        XNamespace bal = "http://wixtoolset.org/schemas/v4/wxs/bal";
+        var standard = Assert.Single(Bundle().Descendants(bal + "WixStandardBootstrapperApplication"));
+        Assert.Empty(Bundle().Descendants(bal + "WixInternalUIBootstrapperApplication"));
+        Assert.Equal("hyperlinkSidebarLicense", (string?)standard.Attribute("Theme"));
+        Assert.Null(standard.Attribute("LicenseUrl"));
+        Assert.Null(standard.Attribute("LicenseFile"));
+        Assert.Equal("yes", (string?)standard.Attribute("SuppressOptionsUI"));
+        Assert.Equal($@"[ProgramFiles64Folder]ScreenTrail\{InstalledFootprint.UiExecutable}", (string?)standard.Attribute("LaunchTarget"));
+
+        var logo = (string)standard.Attribute("LogoSideFile")!;
+        Assert.True(File.Exists(Repo.File([.. logo.Split('\\')])), "the side logo is in the repository");
+    }
+
     /// <summary>Review findings C-T6 and D-10: the Start menu shortcut carries the identity the UI's toasts use.</summary>
     [Fact]
     public void TheShortcutCarriesTheAppsToastIdentity()

@@ -37,12 +37,21 @@
          logs the address. -->
     <Variable Name="BACKENDURL" Hidden="yes" bal:Overridable="yes" />
 
-    <!-- No setup window of its own: the runtime installs as a prerequisite with a small progress window,
-         and then the package shows its own progress (with /quiet, nothing at all). The standard setup
-         window would need licence terms to show, and ScreenTrail has none to put there yet; ST-111's
-         privacy policy link belongs in the product once it exists. -->
+    <!-- Review finding C-I5: a setup window of its own, where there were two foreign dialogs (a runtime
+         progress box, then Windows Installer's) and no ending. The standard window with the side theme:
+         the full mark beside "Install ScreenTrail", one Install button, and a finish page with Launch,
+         which starts the UI as the technician (the setup program's own process is not the elevated
+         one), so setup opens at once and starts the capture service (C-I4). No LicenseUrl: ScreenTrail
+         has no licence terms yet, and without one the window shows no licence link or check box. No
+         options page: the install folder is fixed (perMachine, Program Files). /quiet and /passive
+         behave as before, and MSP tools install the MSI, which stays without a window. The logo is
+         built by shared/design/brand/build-icons.py; the path is from the repository root, as the
+         icon's is. A theme in the brand's own colours (ThemeFile) waits for a Windows check. -->
     <BootstrapperApplication>
-      <bal:WixInternalUIBootstrapperApplication />
+      <bal:WixStandardBootstrapperApplication Theme="hyperlinkSidebarLicense"
+                                              LogoSideFile="installer\theme\logo-side.png"
+                                              SuppressOptionsUI="yes"
+                                              LaunchTarget="[ProgramFiles64Folder]ScreenTrail\ScreenTrail.UI.exe" />
     </BootstrapperApplication>
 
     <util:RegistrySearch Id="VcRuntimeX64Installed"
