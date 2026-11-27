@@ -116,6 +116,56 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [ObservableProperty]
     public partial bool CanStartTest { get; set; }
 
+    /// <summary>
+    /// Review finding C-O6: one filled button per state of the test. Before it, Start test session; while
+    /// it runs, Stop and draft, with the recording dot, "Recording" and the timer as the pill shows them;
+    /// after it, the outcome with its check and "Run the test again" as a Secondary, so Continue is the one
+    /// filled button left. Start used to stay filled beside a filled Continue.
+    /// </summary>
+    [ObservableProperty]
+    public partial Visibility StartTestVisibility { get; set; } = Visibility.Visible;
+
+    [ObservableProperty]
+    public partial Visibility StopTestVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility AgainTestVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility TestRunningVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility TestDoneVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>The running test's time, "0:07", as the pill says it; ticks each second while it runs.</summary>
+    [ObservableProperty]
+    public partial string TestElapsed { get; set; } = string.Empty;
+
+    /// <summary>What the card says once the test has stopped.</summary>
+    public static string TestDrafting => OnboardingWizard.TestDrafting;
+
+    private System.Windows.Threading.DispatcherTimer? _testClock;
+
+    private void FollowTheTest()
+    {
+        var test = _wizard.Test;
+        StartTestVisibility = test == TestState.NotStarted ? Visibility.Visible : Visibility.Collapsed;
+        StopTestVisibility = test == TestState.Running ? Visibility.Visible : Visibility.Collapsed;
+        AgainTestVisibility = test == TestState.Done ? Visibility.Visible : Visibility.Collapsed;
+        TestRunningVisibility = StopTestVisibility;
+        TestDoneVisibility = AgainTestVisibility;
+        TestElapsed = _wizard.TestElapsed;
+        if (test == TestState.Running)
+        {
+            _testClock ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => TestElapsed = _wizard.TestElapsed, System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            _testClock.Start();
+        }
+        else
+        {
+            _testClock?.Stop();
+        }
+    }
+
     public Visibility WelcomeVisibility => Step == OnboardingStep.Welcome ? Visibility.Visible : Visibility.Collapsed;
 
     public Visibility ActivateVisibility => Step == OnboardingStep.Activate ? Visibility.Visible : Visibility.Collapsed;
@@ -260,6 +310,7 @@ public sealed partial class OnboardingViewModel : ObservableObject
         FinishVisibility = Step == OnboardingStep.Done ? Visibility.Visible : Visibility.Collapsed;
         TestRunning = _wizard.TestRunning;
         CanStartTest = !_wizard.TestRunning;
+        FollowTheTest();
         OnPropertyChanged(nameof(WelcomeVisibility));
         OnPropertyChanged(nameof(ActivateVisibility));
         OnPropertyChanged(nameof(PermissionsVisibility));

@@ -69,4 +69,24 @@ public sealed class OnboardingPolishTests
         var group = components.Descendants(Wpf + "Style").Single(s => (string?)s.Attribute(Xaml + "Key") == "Card.GroupRow");
         Assert.Contains(group.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Value") == "{DynamicResource Layout.group-row-height}");
     }
+
+    /// <summary>
+    /// Review finding C-O6: the test card has one filled button per state (Start, then Stop and draft), and
+    /// after the test "Run the test again" is Secondary so Continue is the one filled button; running shows
+    /// the dot, "Recording" and the timer, done shows the outcome with its check.
+    /// </summary>
+    [Fact]
+    public void TheTestCardHasOneFilledButtonPerState()
+    {
+        var card = Named(Window(), "TestCard");
+        Assert.Equal("{StaticResource Button.Primary}", (string?)Named(card, "StartTest").Attribute("Style"));
+        Assert.Equal("{StaticResource Button.Primary}", (string?)Named(card, "StopTest").Attribute("Style"));
+        Assert.Equal("{StaticResource Button.Secondary}", (string?)Named(card, "AgainTest").Attribute("Style"));
+        Assert.Equal(["{Binding StartTestVisibility}", "{Binding StopTestVisibility}", "{Binding AgainTestVisibility}"], card.Descendants(Wpf + "Button").Select(b => (string?)b.Attribute("Visibility")));
+
+        var running = Named(card, "TestRunningLine");
+        Assert.Contains(running.Elements(Wpf + "Ellipse"), e => (string?)e.Attribute("Style") == "{StaticResource StateDot}");
+        Assert.Contains(running.Elements(Wpf + "TextBlock"), t => (string?)t.Attribute("Style") == "{StaticResource Text.Numeric}" && (string?)t.Attribute("Text") == "{Binding TestElapsed}");
+        Assert.Contains(Named(card, "TestDoneLine").Descendants(), e => (string?)e.Attribute("Text") == "{StaticResource Icon.Check}");
+    }
 }

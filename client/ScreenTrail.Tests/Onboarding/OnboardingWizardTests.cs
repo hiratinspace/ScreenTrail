@@ -279,7 +279,47 @@ public sealed class OnboardingWizardTests
         Assert.True(session.Stopped);
         Assert.False(wizard.TestRunning);
         Assert.True(wizard.CanContinue);
-        Assert.Contains("draft", wizard.Note, StringComparison.OrdinalIgnoreCase);
+
+        // Review finding C-O6: the outcome is said in the test's card, not the footer.
+        Assert.Equal(TestState.Done, wizard.Test);
+        Assert.Null(wizard.Note);
+    }
+
+    /// <summary>
+    /// Review finding C-O6: the test has three states, each with its own filled button in the window, and
+    /// the running one has a timer as the pill does. Running it again is a test of its own.
+    /// </summary>
+    [Fact]
+    public async Task TheTestIsBeforeRunningOrDoneAndRunningHasATimer()
+    {
+        var time = new ManualTime(DateTimeOffset.UnixEpoch);
+        var wizard = new OnboardingWizard(
+            new ActivationPanel(new FakeDevice(), "TECH-LAPTOP"),
+            new FakeCapabilities(),
+            new CapturePanel(new FakeCapture()),
+            new IntegrationsPanel(new FakeIntegrations()),
+            new FakeTestSession(),
+            _ => { },
+            time);
+        wizard.Go(OnboardingStep.TryIt);
+        Assert.Equal(TestState.NotStarted, wizard.Test);
+        Assert.Equal(string.Empty, wizard.TestElapsed);
+
+        Assert.True(await wizard.StartTestAsync());
+        Assert.Equal(TestState.Running, wizard.Test);
+        time.Advance(TimeSpan.FromSeconds(67));
+        Assert.Equal("1:07", wizard.TestElapsed);
+        Assert.False(wizard.CanContinue);
+
+        Assert.True(await wizard.StopTestAsync());
+        Assert.Equal(TestState.Done, wizard.Test);
+        Assert.Equal(string.Empty, wizard.TestElapsed);
+        Assert.True(wizard.CanContinue);
+
+        Assert.True(await wizard.StartTestAsync());
+        Assert.Equal(TestState.Running, wizard.Test);
+        Assert.False(wizard.CanContinue);
+        Assert.DoesNotContain('\u2014', OnboardingWizard.TestDrafting);
     }
 
     [Fact]

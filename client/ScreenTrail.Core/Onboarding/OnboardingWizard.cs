@@ -16,6 +16,14 @@ public enum OnboardingStep
     Done,
 }
 
+/// <summary>The Try it step's test session: before it, running, or stopped and drafting.</summary>
+public enum TestState
+{
+    NotStarted,
+    Running,
+    Done,
+}
+
 /// <summary>The service's capability checks, for the Permissions step. Over the pipe in the running application.</summary>
 public interface ICapabilitiesGateway
 {
@@ -90,8 +98,11 @@ public sealed class OnboardingWizard(
     CapturePanel capture,
     IntegrationsPanel integrations,
     ITestSession testSession,
-    Action<DateTimeOffset> finished)
+    Action<DateTimeOffset> finished,
+    TimeProvider? time = null)
 {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
+
     private static readonly (string Capability, string Label)[] Labels =
     [
         ("microphone", "Microphone"),
@@ -135,6 +146,24 @@ public sealed class OnboardingWizard(
 
     public bool TestRunning { get; private set; }
 
+    /// <summary>Where the Try it step's test is (review finding C-O6), which picks the card's state and its one filled button.</summary>
+    public TestState Test => TestRunning ? TestState.Running : _testDone ? TestState.Done : TestState.NotStarted;
+
+    /// <summary>When the running test started, for the card's timer; null when none is running.</summary>
+    public DateTimeOffset? TestStartedAt { get; private set; }
+
+    /// <summary>How long the running test has run, as the pill says it ("0:07", "1:02"); empty when none is running.</summary>
+    public string TestElapsed => TestStartedAt is { } at ? Elapsed(_time.GetUtcNow() - at) : string.Empty;
+
+    /// <summary>What the card says once the test has stopped.</summary>
+    public const string TestDrafting = "The draft is on its way. It opens in Review when it is ready, usually within a minute.";
+
+    private static string Elapsed(TimeSpan span)
+    {
+        var seconds = Math.Max(0, (long)span.TotalSeconds);
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{seconds / 60}:{seconds % 60:00}");
+    }
+
     public bool Finished { get; private set; }
 
     public bool CanGoBack => Step > OnboardingStep.Welcome && Step < OnboardingStep.Done;
@@ -166,7 +195,6 @@ public sealed class OnboardingWizard(
     {
         OnboardingStep.Tools when _toolsRefused is { } notSaved => notSaved,
         OnboardingStep.TryIt when !_testDone && _testRefused is { } refused => refused,
-        OnboardingStep.TryIt when _testDone => "The draft is on its way. It opens in Review when it is ready, usually within a minute.",
         OnboardingStep.Done => "ScreenTrail starts when you open a remote session. Look for the pill.",
         _ => null,
     };
@@ -281,6 +309,10 @@ public sealed class OnboardingWizard(
 
         _testRefused = null;
         TestRunning = true;
+
+        // A second test, after "Run the test again", is a test of its own: Continue waits for it to stop.
+        _testDone = false;
+        TestStartedAt = _time.GetUtcNow();
         return true;
     }
 
@@ -292,6 +324,7 @@ public sealed class OnboardingWizard(
         }
 
         TestRunning = false;
+        TestStartedAt = null;
         _testDone = true;
         return true;
     }

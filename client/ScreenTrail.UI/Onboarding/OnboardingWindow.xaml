@@ -244,10 +244,30 @@
                     <!-- 6. Try it: a real session, drafted the real way. -->
                     <StackPanel Visibility="{Binding TryItVisibility}">
                         <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="A sixty-second test: start, open any window, click around, say one sentence, then stop. The draft opens in Review when it is ready." />
-                        <Border Margin="0,24,0,0" Style="{StaticResource Card}">
-                            <StackPanel Orientation="Horizontal">
-                                <Button Style="{StaticResource Button.Primary}" Content="Start _test session" AutomationProperties.Name="Start test session" Command="{Binding StartTestCommand}" IsEnabled="{Binding CanStartTest}" />
-                                <Button Margin="8,0,0,0" Style="{StaticResource Button.Secondary}" Content="Stop and _draft" AutomationProperties.Name="Stop and draft" Command="{Binding StopTestCommand}" IsEnabled="{Binding TestRunning}" />
+                        <!-- Review finding C-O6: the card shows where the test is, with one filled button per state;
+                             after it, Continue in the foot is the only filled button. -->
+                        <Border x:Name="TestCard" Margin="0,24,0,0" Style="{StaticResource Card}">
+                            <StackPanel>
+                                <!-- Running: the recording dot, "Recording" and the timer, as the pill shows them. -->
+                                <StackPanel x:Name="TestRunningLine" Margin="0,0,0,12" Orientation="Horizontal" Visibility="{Binding TestRunningVisibility}">
+                                    <Ellipse Margin="0,0,8,0" Style="{StaticResource StateDot}" />
+                                    <TextBlock Style="{StaticResource Text.BodyStrong}" Text="Recording" />
+                                    <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Numeric}" Text="{Binding TestElapsed}" AutomationProperties.Name="Time recorded" />
+                                </StackPanel>
+                                <!-- Done: what happens now, with its check. -->
+                                <Grid x:Name="TestDoneLine" Margin="0,0,0,12" Visibility="{Binding TestDoneVisibility}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <controls:Glyph Grid.Column="0" Margin="0,2,8,0" VerticalAlignment="Top" Style="{StaticResource Icon}" Foreground="{DynamicResource Brush.state.published}" Text="{StaticResource Icon.Check}" />
+                                    <TextBlock Grid.Column="1" Style="{StaticResource Text.Body}" Text="{x:Static local:OnboardingViewModel.TestDrafting}" controls:LiveRegion.Setting="Polite" />
+                                </Grid>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="StartTest" Style="{StaticResource Button.Primary}" Content="Start _test session" AutomationProperties.Name="Start test session" Command="{Binding StartTestCommand}" Visibility="{Binding StartTestVisibility}" />
+                                    <Button x:Name="StopTest" Style="{StaticResource Button.Primary}" Content="Stop and _draft" AutomationProperties.Name="Stop and draft" Command="{Binding StopTestCommand}" Visibility="{Binding StopTestVisibility}" />
+                                    <Button x:Name="AgainTest" Style="{StaticResource Button.Secondary}" Content="_Run the test again" AutomationProperties.Name="Run the test again" Command="{Binding StartTestCommand}" Visibility="{Binding AgainTestVisibility}" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
