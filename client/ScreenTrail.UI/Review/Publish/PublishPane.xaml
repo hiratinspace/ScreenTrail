@@ -122,45 +122,56 @@
                                    Text="{Binding Summary}"
                                    Visibility="{Binding SummaryVisibility}" />
 
-                        <controls:Repeater ItemsSource="{Binding Results}">
+                        <!-- One shared size scope (review finding A-24), so every row's badge and link start at one x
+                             whatever the destination's words or the provider's name. -->
+                        <controls:Repeater x:Name="ReceiptRows" ItemsSource="{Binding Results}" Grid.IsSharedSizeScope="True">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <!-- One row per destination: the mark in its state's colour, the destination and
-                                         what went there, the state in a word, and the link named for the provider. -->
-                                    <Border Padding="0,12" BorderBrush="{DynamicResource Brush.border.subtle}" BorderThickness="0,1,0,0">
+                                    <!-- One row per destination, at least 48 high, a rule between rows and none above the
+                                         first: the mark, a Segoe Fluent glyph in its state's hue (Icon.Check, Icon.Close,
+                                         Icon.Unknown), the destination and what went there, the state in a word, and the
+                                         link named for the provider. -->
+                                    <Border x:Name="Row"
+                                            MinHeight="{DynamicResource Layout.receipt-row-height}"
+                                            Padding="0,8"
+                                            BorderBrush="{DynamicResource Brush.border.subtle}"
+                                            BorderThickness="0,1,0,0">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="Auto" />
-                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="Badge" />
+                                                <ColumnDefinition Width="Auto" SharedSizeGroup="Link" />
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" />
                                             </Grid.RowDefinitions>
                                             <!-- State colours are indicators (Spec §2.1): the glyph takes it, the words stay text.primary. -->
-                                            <TextBlock Grid.Column="0"
-                                                       Width="{DynamicResource Icon.lg}"
-                                                       Margin="0,0,12,0"
-                                                       VerticalAlignment="Center"
-                                                       FontWeight="{DynamicResource Weight.semibold}"
-                                                       Text="{Binding Mark}"
-                                                       AutomationProperties.Name="{Binding MarkName}">
-                                                <TextBlock.Style>
-                                                    <Style BasedOn="{StaticResource Text.Body}" TargetType="TextBlock">
+                                            <controls:Glyph Grid.Column="0"
+                                                            Width="{DynamicResource Icon.control}"
+                                                            Margin="0,0,12,0"
+                                                            VerticalAlignment="Center"
+                                                            FontSize="{DynamicResource Icon.control}"
+                                                            AutomationProperties.Name="{Binding MarkName}">
+                                                <controls:Glyph.Style>
+                                                    <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                                        <Setter Property="Text" Value="{StaticResource Icon.Unknown}" />
                                                         <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding State}" Value="Sent">
+                                                            <!-- By the row's Mark, which names the icon (PublishResultRow.Mark). -->
+                                                            <DataTrigger Binding="{Binding Mark}" Value="Icon.Check">
+                                                                <Setter Property="Text" Value="{StaticResource Icon.Check}" />
                                                                 <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding State}" Value="Failed">
+                                                            <DataTrigger Binding="{Binding Mark}" Value="Icon.Close">
+                                                                <Setter Property="Text" Value="{StaticResource Icon.Close}" />
                                                                 <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                                </controls:Glyph.Style>
+                                            </controls:Glyph>
                                             <WrapPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
                                                 <TextBlock Margin="0,0,8,0" Style="{StaticResource Text.BodyStrong}" Text="{Binding Label}" />
                                                 <TextBlock Style="{StaticResource Text.Secondary}" Text="{Binding Detail}" Visibility="{Binding DetailVisibility}" />
@@ -189,6 +200,11 @@
                                                        Visibility="{Binding ErrorVisibility}" />
                                         </Grid>
                                     </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource PreviousData}}" Value="{x:Null}">
+                                            <Setter TargetName="Row" Property="BorderThickness" Value="0" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </controls:Repeater>

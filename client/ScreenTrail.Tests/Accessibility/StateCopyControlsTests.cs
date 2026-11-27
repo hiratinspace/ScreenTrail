@@ -42,12 +42,31 @@ public sealed class StateCopyControlsTests
     {
         var pane = Load("Review/Publish", "PublishPane.xaml");
 
-        var glyph = Assert.Single(pane.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding Mark}");
-        Assert.Equal("{Binding MarkName}", (string?)glyph.Attribute("AutomationProperties.Name"));
-        var colours = glyph.Descendants(Wpf + "Setter").Select(s => (string?)s.Attribute("Value")).ToHashSet();
-        Assert.Contains("{DynamicResource Brush.state.published}", colours);
-        Assert.Contains("{DynamicResource Brush.state.danger}", colours);
-        Assert.Contains("{DynamicResource Brush.state.paused}", colours);
+        // A Segoe Fluent glyph by the row's Mark (review finding A-24), not a typed tick, 16 px in a 16 px column.
+        var glyph = Assert.Single(pane.Descendants(Controls + "Glyph"), g => (string?)g.Attribute("AutomationProperties.Name") == "{Binding MarkName}");
+        Assert.Equal("{DynamicResource Icon.control}", (string?)glyph.Attribute("FontSize"));
+        Assert.Equal("{DynamicResource Icon.control}", (string?)glyph.Attribute("Width"));
+        Assert.Equal("0,0,12,0", (string?)glyph.Attribute("Margin"));
+        var setters = glyph.Descendants(Wpf + "Setter").Select(s => (string?)s.Attribute("Value")).ToHashSet();
+        Assert.Contains("{DynamicResource Brush.state.published}", setters);
+        Assert.Contains("{DynamicResource Brush.state.danger}", setters);
+        Assert.Contains("{DynamicResource Brush.state.paused}", setters);
+        Assert.Contains("{StaticResource Icon.Check}", setters);
+        Assert.Contains("{StaticResource Icon.Close}", setters);
+        Assert.Contains("{StaticResource Icon.Unknown}", setters);
+        var marks = glyph.Descendants(Wpf + "DataTrigger").Select(t => (string?)t.Attribute("Value")).ToList();
+        Assert.Equal(["Icon.Check", "Icon.Close"], marks);
+
+        // Every badge and link starts at one x: shared column sizes across the rows.
+        var rows = Assert.Single(pane.Descendants(Controls + "Repeater"), r => (string?)r.Attribute("ItemsSource") == "{Binding Results}");
+        Assert.Equal("True", (string?)rows.Attribute("Grid.IsSharedSizeScope"));
+        var groups = rows.Descendants(Wpf + "ColumnDefinition").Select(c => (string?)c.Attribute("SharedSizeGroup")).ToList();
+        Assert.Equal([null, null, "Badge", "Link"], groups);
+
+        // At least 48 high, a rule between rows and none above the first.
+        var row = rows.Descendants(Wpf + "Border").First();
+        Assert.Equal("{DynamicResource Layout.receipt-row-height}", (string?)row.Attribute("MinHeight"));
+        Assert.Contains(rows.Descendants(Wpf + "DataTrigger"), t => (string?)t.Attribute("Binding") == "{Binding RelativeSource={RelativeSource PreviousData}}");
 
         Assert.Single(pane.Descendants(Wpf + "ContentControl"), c => (string?)c.Attribute("Content") == "{Binding Badge}");
     }
