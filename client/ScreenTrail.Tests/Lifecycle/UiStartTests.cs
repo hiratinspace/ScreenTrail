@@ -44,4 +44,34 @@ public sealed class UiStartTests
         Assert.NotEqual(UiStart.InstanceName(sid), UiStart.InstanceName("S-1-5-21-1-2-3-1002"));
         _ = Assert.Throws<ArgumentException>(() => UiStart.InstanceName(@"Global\x"));
     }
+
+    /// <summary>
+    /// Review finding C-I7: the machine's sign-in start is in the background, and ends at once only for a
+    /// technician who turned "Start UI at login" off; never chosen is on (owner decision 4). Restart
+    /// Manager's start, and a start from Start, always go ahead.
+    /// </summary>
+    [Fact]
+    public void TheMachineSignInStartStaysOutOnlyWhenTheTechnicianSaidSo()
+    {
+        var command = UiStart.MachineSignInCommand(Exe);
+        Assert.Equal("\"" + Exe + "\" --background --at-sign-in", command);
+        Assert.Equal(Exe, ScreenTrail.Core.Install.InstalledFootprint.ExecutableOf(command));
+        Assert.False(UiStart.OpensWindow(["--background", "--at-sign-in"]));
+
+        Assert.True(UiStart.StaysOutAtSignIn(["--background", "--at-sign-in"], false));
+        Assert.False(UiStart.StaysOutAtSignIn(["--background", "--at-sign-in"], true));
+        Assert.False(UiStart.StaysOutAtSignIn(["--background", "--at-sign-in"], null));
+        Assert.False(UiStart.StaysOutAtSignIn(["--background"], false));
+        Assert.False(UiStart.StaysOutAtSignIn([], false));
+    }
+
+    /// <summary>Review finding C-I7: the setting is on until someone turns it off.</summary>
+    [Fact]
+    public void StartUiAtLoginIsOnByDefault()
+    {
+        Assert.True(new ScreenTrail.Shared.Settings.CaptureSettings().StartUiAtLogin);
+        Assert.True(System.Text.Json.JsonSerializer.Deserialize<ScreenTrail.Shared.Settings.CaptureSettings>("{}")!.StartUiAtLogin);
+        Assert.False(System.Text.Json.JsonSerializer.Deserialize<ScreenTrail.Shared.Settings.CaptureSettings>("{\"start_ui_at_login\":false}")!.StartUiAtLogin);
+        Assert.Null(new ScreenTrail.Core.Shell.ShellPreferences().StartAtSignIn);
+    }
 }

@@ -50,6 +50,11 @@ public sealed record CaptureSettings
     [JsonPropertyName("microphone_id")]
     public string? MicrophoneId { get; init; }
 
+    /// <summary>
+    /// On unless the technician turns it off (review finding C-I7, owner decision 4): after a silent
+    /// deployment the first sign-in shows the tray icon and setup. The installer's machine Run value
+    /// starts the UI; the shell keeps this choice beside its preferences, where that start reads it.
+    /// </summary>
     [JsonPropertyName("start_ui_at_login")]
-    public bool StartUiAtLogin { get; init; }
+    public bool StartUiAtLogin { get; init; } = true;
 }

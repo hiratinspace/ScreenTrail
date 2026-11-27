@@ -104,6 +104,9 @@ public sealed class OnboardingWizardTests
         Assert.True(await wizard.Activation.ActivateAsync());
         Assert.True(wizard.CanContinue);
         Assert.Equal("Acme IT", wizard.Activation.TenantName);
+
+        // Review finding C-O7: activated, there is nothing left to skip; Continue alone goes on.
+        Assert.False(wizard.CanSkip);
     }
 
     [Fact]
@@ -149,7 +152,12 @@ public sealed class OnboardingWizardTests
         Assert.Equal(blocked.Message, mic.Message);
         Assert.True(ExternalLinks.TryFixLink(mic.FixLink, out _), "the Fix button opens only a link it accepts");
         Assert.True(wizard.CanContinue, "a blocked microphone is a worse session, not a blocked setup");
-        Assert.Contains("without narration", wizard.Blocker ?? wizard.Note, StringComparison.OrdinalIgnoreCase);
+        // Review finding C-O4: a warning, not a failure, and what it means is said under its own row; the
+        // footer no longer says it 360 px lower.
+        Assert.Equal(PermissionSeverity.OptionalMissing, mic.Severity);
+        Assert.Contains("without narration", mic.Consequence, StringComparison.OrdinalIgnoreCase);
+        Assert.Null(wizard.Note);
+        Assert.Null(wizard.Blocker);
 
         capabilities.Checks = [.. capabilities.Checks.Select(c => c.Capability == "microphone" ? c with { State = "ok", Message = "Microphone works.", FixHint = null, FixLink = null } : c)];
         await wizard.RecheckAsync();
@@ -198,17 +206,19 @@ public sealed class OnboardingWizardTests
     }
 
     [Fact]
-    public async Task SkippingConnectFinishesWithNothingConnected()
+    public async Task ConnectContinuesWithNothingConnectedAndOffersNoSkip()
     {
-        // AC2: skipped integrations → drafts still produced; Publish shows "Connect a PSA" (the
-        // publish pane's own rule). The wizard only has to let the technician past.
+        // AC2: nothing connected → drafts still produced; Publish shows "Connect a PSA" (the publish
+        // pane's own rule). The wizard only has to let the technician past. The step is read only, so
+        // Skip and Continue meant the same; Continue alone is offered (review finding C-O7).
         var integrations = new FakeIntegrations();
         var wizard = Wizard(integrations: integrations);
         wizard.Go(OnboardingStep.Connect);
         await wizard.LoadStepAsync();
 
-        Assert.True(wizard.CanSkip);
-        wizard.Skip();
+        Assert.False(wizard.CanSkip);
+        Assert.True(wizard.CanContinue);
+        wizard.Next();
 
         Assert.Equal(OnboardingStep.TryIt, wizard.Step);
         Assert.Equal(1, integrations.Listed);
@@ -232,7 +242,7 @@ public sealed class OnboardingWizardTests
         Assert.False(wizard.Integrations.Hudu.Connected);
         Assert.Null(wizard.Blocker);
         Assert.True(wizard.CanContinue);
-        Assert.True(wizard.CanSkip);
+        Assert.False(wizard.CanSkip);
 
         wizard.Next();
         Assert.Equal(OnboardingStep.TryIt, wizard.Step);
@@ -269,7 +279,47 @@ public sealed class OnboardingWizardTests
         Assert.True(session.Stopped);
         Assert.False(wizard.TestRunning);
         Assert.True(wizard.CanContinue);
-        Assert.Contains("draft", wizard.Note, StringComparison.OrdinalIgnoreCase);
+
+        // Review finding C-O6: the outcome is said in the test's card, not the footer.
+        Assert.Equal(TestState.Done, wizard.Test);
+        Assert.Null(wizard.Note);
+    }
+
+    /// <summary>
+    /// Review finding C-O6: the test has three states, each with its own filled button in the window, and
+    /// the running one has a timer as the pill does. Running it again is a test of its own.
+    /// </summary>
+    [Fact]
+    public async Task TheTestIsBeforeRunningOrDoneAndRunningHasATimer()
+    {
+        var time = new ManualTime(DateTimeOffset.UnixEpoch);
+        var wizard = new OnboardingWizard(
+            new ActivationPanel(new FakeDevice(), "TECH-LAPTOP"),
+            new FakeCapabilities(),
+            new CapturePanel(new FakeCapture()),
+            new IntegrationsPanel(new FakeIntegrations()),
+            new FakeTestSession(),
+            _ => { },
+            time);
+        wizard.Go(OnboardingStep.TryIt);
+        Assert.Equal(TestState.NotStarted, wizard.Test);
+        Assert.Equal(string.Empty, wizard.TestElapsed);
+
+        Assert.True(await wizard.StartTestAsync());
+        Assert.Equal(TestState.Running, wizard.Test);
+        time.Advance(TimeSpan.FromSeconds(67));
+        Assert.Equal("1:07", wizard.TestElapsed);
+        Assert.False(wizard.CanContinue);
+
+        Assert.True(await wizard.StopTestAsync());
+        Assert.Equal(TestState.Done, wizard.Test);
+        Assert.Equal(string.Empty, wizard.TestElapsed);
+        Assert.True(wizard.CanContinue);
+
+        Assert.True(await wizard.StartTestAsync());
+        Assert.Equal(TestState.Running, wizard.Test);
+        Assert.False(wizard.CanContinue);
+        Assert.DoesNotContain('\u2014', OnboardingWizard.TestDrafting);
     }
 
     [Fact]
@@ -360,7 +410,7 @@ public sealed class OnboardingWizardTests
 
     private sealed class FakeCapabilities : ICapabilitiesGateway
     {
-        public IReadOnlyList<CapabilityStatus> Checks { get; set; } =
+        public IReadOnlyList<CapabilityStatus>? Checks { get; set; } =
         [
             new CapabilityStatus { Capability = "microphone", State = "ok", Message = "Microphone works." },
             new CapabilityStatus { Capability = "screen_capture", State = "ok", Message = "Screen capture works." },
@@ -440,5 +490,43 @@ public sealed class OnboardingWizardTests
             Stopped = true;
             return Task.FromResult(true);
         }
+    }
+
+    /// <summary>Review finding C-O4: each permission's severity, and the consequence only where one follows.</summary>
+    [Theory]
+    [InlineData("microphone", true, PermissionSeverity.Ok)]
+    [InlineData("microphone", false, PermissionSeverity.OptionalMissing)]
+    [InlineData("screen_capture", false, PermissionSeverity.Blocking)]
+    [InlineData("input_hooks", false, PermissionSeverity.Blocking)]
+    [InlineData("screen_capture", true, PermissionSeverity.Ok)]
+    public void APermissionSaysHowMuchItMatters(string capability, bool ok, PermissionSeverity severity)
+    {
+        var row = new PermissionRow(capability, capability, ok, "message", null);
+        Assert.Equal(severity, row.Severity);
+        Assert.Equal(severity == PermissionSeverity.OptionalMissing, row.Consequence.Length > 0);
+        Assert.DoesNotContain('\u2014', PermissionRow.MicrophoneConsequence);
+    }
+
+    /// <summary>
+    /// Review finding C-I4: before the service answers, Permissions says it is starting it and waits on it
+    /// (the window checks again every two seconds); once it answers, the step goes on.
+    /// </summary>
+    [Fact]
+    public async Task PermissionsWaitsOnAServiceThatIsStarting()
+    {
+        var capabilities = new FakeCapabilities { Checks = null };
+        var wizard = Wizard(capabilities: capabilities);
+        wizard.Go(OnboardingStep.Permissions);
+        await wizard.LoadStepAsync();
+
+        Assert.True(wizard.WaitingOnService);
+        Assert.Equal(OnboardingWizard.WaitingForService, wizard.Blocker);
+        Assert.False(wizard.CanContinue);
+        Assert.DoesNotContain('\u2014', OnboardingWizard.WaitingForService);
+
+        capabilities.Checks = new FakeCapabilities().Checks;
+        await wizard.RecheckAsync();
+        Assert.False(wizard.WaitingOnService);
+        Assert.True(wizard.CanContinue);
     }
 }

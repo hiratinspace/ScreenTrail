@@ -2377,7 +2377,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** C-O2, C-O4, C-O6 to C-O8, D-30, C-T8, C-I4, C-I7
 - **Blocked By:** ST-130, ST-131, ST-134
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built 2026-11-27 on `st-142-onboarding` (spec v0.7.22), one commit per finding; owner decision 4 decided "on". Waiting on the laptop: renders of every step, the Try it states, a hand install from Start, a silent install then sign-in. Not done: diagnostics' tray-pinned line (C-T8), the setup EXE's Launch (C-I4 b, ST-143).
 
 ### **ST-143 · Identity, installer, toasts**
 - **Findings:** C-I1, C-I2/D-11, C-I3, C-I5, C-I6, C-T6/D-10

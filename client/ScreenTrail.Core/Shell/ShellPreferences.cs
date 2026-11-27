@@ -72,6 +72,13 @@ public sealed record ShellPreferences
 
     /// <summary>When the onboarding wizard was finished (ST-083). Null means it runs at the next start; the tray runs it again on request.</summary>
     public DateTimeOffset? OnboardedAt { get; init; }
+
+    /// <summary>
+    /// "Start UI at login" as the technician last saved it (review finding C-I7). The installer starts the
+    /// UI for every user from the machine's Run key, which a technician cannot change, so the start at
+    /// sign-in reads this and ends quietly when it is false. Null, never saved, is on (owner decision 4).
+    /// </summary>
+    public bool? StartAtSignIn { get; init; }
 }
 
 /// <summary>

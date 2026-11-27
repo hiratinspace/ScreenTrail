@@ -205,6 +205,17 @@ public sealed class LiveShell : IAsyncDisposable
             ShowWindow();
         }
 
+        // Review finding C-I4: opened by hand with no service running (just installed, say), start it rather
+        // than leave setup waiting until the next sign-in. A start at sign-in leaves it to the Run key.
+        if (openWindow)
+        {
+            _ = CaptureServiceStart.StartIfSilentAsync(
+                () => _disposed || _state.Snapshot.Connection == ServiceConnection.Connected,
+                Task.Delay,
+                StartCaptureService,
+                ct);
+        }
+
         await _connection.StartAsync(ct).ConfigureAwait(false);
 
         // ST-083: the first start runs setup. Finishing it is remembered; the tray runs it again on request.
@@ -377,7 +388,7 @@ public sealed class LiveShell : IAsyncDisposable
                     new ActivationViewModel(new ActivationPanel(new PipeDevice(_connection), Environment.MachineName)),
                     new CaptureViewModel(
                         new CapturePanel(new PipeCapture(_connection)),
-                        enabled => Task.FromResult(StartAtLogin.Apply(enabled)),
+                        enabled => Task.FromResult(StartAtLogin.Apply(enabled, _preferences)),
                         // Each request waits for a round trip through this dispatcher, so a window that
                         // has hung asks for nothing and the service closes the microphone by itself.
                         new MicrophoneLevelWatch(

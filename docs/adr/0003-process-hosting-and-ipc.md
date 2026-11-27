@@ -16,7 +16,7 @@ Guide §2 and ST-004 describe a per-user background **capture service** and a se
 ### Hosting
 
 - **`ScreenTrail.Service.exe` is a per-user background process, not a Windows Service.** It starts at sign-in from the user's Run key (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, written by the installer in ST-112 and by `LoginStartup` until then) and runs for the whole session with no visible window. Its one window, hidden and untitled, exists so that Windows can ask it to close at sign-out, at shutdown and for an installer's Restart Manager (ST-112, ADR-0007). It owns hooks, capture, redaction, the store and the outbox.
-- **`ScreenTrail.UI.exe` runs on demand** (tray, HUD, Review, Settings) or at sign-in when the user chooses "Start UI at login". It holds no capture state; it is a view over the service.
+- **`ScreenTrail.UI.exe` runs on demand** (tray, HUD, Review, Settings) or at sign-in, where "Start UI at login" is on by default (amended 2026-11-27, review finding C-I7; the installer's machine Run value starts it, and the user's choice to turn it off is honoured). It holds no capture state; it is a view over the service.
 - Exactly one service per user: it takes a named mutex `ScreenTrail.Service.<user-sid>` and exits if it already exists.
 
 ### Channel

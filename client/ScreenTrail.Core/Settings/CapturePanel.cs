@@ -238,7 +238,8 @@ public sealed class CapturePanel(ICaptureGateway gateway)
         }
     }
 
-    public bool StartUiAtLogin { get; set; }
+    /// <summary>On until it is turned off, as the settings it loads are (review finding C-I7, owner decision 4).</summary>
+    public bool StartUiAtLogin { get; set; } = true;
 
     /// <summary>
     /// When a new model takes effect: the capture service reads it when it starts, and it starts at every

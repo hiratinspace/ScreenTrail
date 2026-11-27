@@ -33,6 +33,13 @@ public static class InstalledFootprint
     public const string ServiceRunValue = "ScreenTrail.Service";
 
     /// <summary>
+    /// The machine Run value that starts the UI at sign-in (review finding C-I7, owner decision 4: on). A
+    /// silent deployment otherwise showed nothing at the first sign-in: no tray icon, no setup, and no
+    /// session recorded until someone found the app in Start.
+    /// </summary>
+    public const string UiRunValue = "ScreenTrail.UI";
+
+    /// <summary>
     /// The service's uninstall mode. Run by the installer as the system account, before the installed
     /// files are removed, and only for an uninstall: never during an upgrade.
     /// </summary>

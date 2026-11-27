@@ -97,6 +97,10 @@ public sealed partial class OnboardingViewModel : ObservableObject
     [ObservableProperty]
     public partial bool CanGoBack { get; set; }
 
+    /// <summary>Review finding C-O7: Back is not there where it cannot act (Welcome, Done), rather than a dead control.</summary>
+    [ObservableProperty]
+    public partial Visibility BackVisibility { get; set; } = Visibility.Collapsed;
+
     [ObservableProperty]
     public partial Visibility SkipVisibility { get; set; } = Visibility.Collapsed;
 
@@ -111,6 +115,108 @@ public sealed partial class OnboardingViewModel : ObservableObject
 
     [ObservableProperty]
     public partial bool CanStartTest { get; set; }
+
+    /// <summary>
+    /// Review finding C-O6: one filled button per state of the test. Before it, Start test session; while
+    /// it runs, Stop and draft, with the recording dot, "Recording" and the timer as the pill shows them;
+    /// after it, the outcome with its check and "Run the test again" as a Secondary, so Continue is the one
+    /// filled button left. Start used to stay filled beside a filled Continue.
+    /// </summary>
+    [ObservableProperty]
+    public partial Visibility StartTestVisibility { get; set; } = Visibility.Visible;
+
+    [ObservableProperty]
+    public partial Visibility StopTestVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility AgainTestVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility TestRunningVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial Visibility TestDoneVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>The running test's time, "0:07", as the pill says it; ticks each second while it runs.</summary>
+    [ObservableProperty]
+    public partial string TestElapsed { get; set; } = string.Empty;
+
+    /// <summary>What the card says once the test has stopped.</summary>
+    public static string TestDrafting => OnboardingWizard.TestDrafting;
+
+    /// <summary>Done's line on the tray icon and the overflow (review finding C-T8).</summary>
+    public static string TrayHint => OnboardingWizard.TrayHint;
+
+    /// <summary>The Settings page the tray line's button opens, through <see cref="OpenFixCommand"/>'s allowlist.</summary>
+    public static string TaskbarSettings => OnboardingWizard.TaskbarSettings;
+
+    private System.Windows.Threading.DispatcherTimer? _testClock;
+
+    private System.Windows.Threading.DispatcherTimer? _serviceCheck;
+
+    /// <summary>The ring beside the blocker while the Permissions step waits on the service (review finding C-I4).</summary>
+    [ObservableProperty]
+    public partial Visibility WaitingVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>
+    /// Review finding C-I4: while Permissions waits on a service that is starting, it checks again every two
+    /// seconds, so the step turns green when the service answers without a click on Check again.
+    /// </summary>
+    private void FollowTheService()
+    {
+        WaitingVisibility = _wizard.WaitingOnService ? Visibility.Visible : Visibility.Collapsed;
+        if (_wizard.WaitingOnService)
+        {
+            _serviceCheck ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(2), System.Windows.Threading.DispatcherPriority.Background, async (_, _) => await CheckServiceAgainAsync().ConfigureAwait(true), System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            _serviceCheck.Start();
+        }
+        else
+        {
+            _serviceCheck?.Stop();
+        }
+    }
+
+    private bool _checkingService;
+
+    private async Task CheckServiceAgainAsync()
+    {
+        if (_checkingService || !_wizard.WaitingOnService)
+        {
+            return;
+        }
+
+        _checkingService = true;
+        try
+        {
+            await _wizard.RecheckAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            _checkingService = false;
+        }
+
+        Refresh();
+    }
+
+    private void FollowTheTest()
+    {
+        var test = _wizard.Test;
+        StartTestVisibility = test == TestState.NotStarted ? Visibility.Visible : Visibility.Collapsed;
+        StopTestVisibility = test == TestState.Running ? Visibility.Visible : Visibility.Collapsed;
+        AgainTestVisibility = test == TestState.Done ? Visibility.Visible : Visibility.Collapsed;
+        TestRunningVisibility = StopTestVisibility;
+        TestDoneVisibility = AgainTestVisibility;
+        TestElapsed = _wizard.TestElapsed;
+        if (test == TestState.Running)
+        {
+            _testClock ??= new System.Windows.Threading.DispatcherTimer(TimeSpan.FromSeconds(1), System.Windows.Threading.DispatcherPriority.Background, (_, _) => TestElapsed = _wizard.TestElapsed, System.Windows.Threading.Dispatcher.CurrentDispatcher);
+            _testClock.Start();
+        }
+        else
+        {
+            _testClock?.Stop();
+        }
+    }
 
     public Visibility WelcomeVisibility => Step == OnboardingStep.Welcome ? Visibility.Visible : Visibility.Collapsed;
 
@@ -250,11 +356,14 @@ public sealed partial class OnboardingViewModel : ObservableObject
         NoteVisibility = Note.Length == 0 || Step == OnboardingStep.Done ? Visibility.Collapsed : Visibility.Visible;
         CanContinue = _wizard.CanContinue;
         CanGoBack = _wizard.CanGoBack;
+        BackVisibility = CanGoBack ? Visibility.Visible : Visibility.Collapsed;
         SkipVisibility = _wizard.CanSkip ? Visibility.Visible : Visibility.Collapsed;
         ContinueVisibility = Step == OnboardingStep.Done ? Visibility.Collapsed : Visibility.Visible;
         FinishVisibility = Step == OnboardingStep.Done ? Visibility.Visible : Visibility.Collapsed;
         TestRunning = _wizard.TestRunning;
         CanStartTest = !_wizard.TestRunning;
+        FollowTheTest();
+        FollowTheService();
         OnPropertyChanged(nameof(WelcomeVisibility));
         OnPropertyChanged(nameof(ActivateVisibility));
         OnPropertyChanged(nameof(PermissionsVisibility));

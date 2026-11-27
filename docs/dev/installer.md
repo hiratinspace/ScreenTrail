@@ -383,9 +383,13 @@ Left out, nothing is written (see below).
   executable does not turn the upgrade into `3010`; the log says so in lines starting
   `ScreenTrail upgrade:`. That wait is part of the version being removed, so it covers upgrades from the
   first version that has it: an upgrade from an older build can still ask for a restart once.
-- The service starts at each user's **next sign-in**. Nothing starts for a user who is already signed in
-  until then. The UI opens from the Start menu (or at sign-in, if the technician turns "Start UI at login"
-  on in Settings).
+- The service and the UI start at each user's **next sign-in**, both from the machine's Run key
+  (`ScreenTrail.Service`, and `ScreenTrail.UI` with `--background --at-sign-in`), so after a silent
+  deployment the first sign-in shows the tray icon and setup (review finding C-I7, owner decision 4:
+  "Start UI at login" is on by default). A technician who turns it off in Settings is not started: the
+  UI reads their choice from its own preferences and ends. Nothing starts for a user who is already
+  signed in until then; opened from the Start menu, the UI starts the capture service itself when none
+  answers within 3 seconds (review finding C-I4).
 
 ## Uninstall it
 

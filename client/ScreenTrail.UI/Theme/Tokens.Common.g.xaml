@@ -59,6 +59,7 @@
     <sys:Double x:Key="Layout.pane-padding-narrow">16</sys:Double>
     <sys:Double x:Key="Layout.dialog-footer-padding-y">16</sys:Double>
     <sys:Double x:Key="Layout.diagnostics-label-width">128</sys:Double>
+    <sys:Double x:Key="Layout.group-row-height">48</sys:Double>
     <sys:Double x:Key="Layout.pane-gap">16</sys:Double>
     <sys:Double x:Key="Layout.card-gap">8</sys:Double>
     <sys:Double x:Key="Layout.section-gap">32</sys:Double>
