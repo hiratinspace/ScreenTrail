@@ -13,7 +13,12 @@
          something irreversible is asked, and two buttons that say what each does. Esc presses the one that
          changes nothing. Where focus starts is set as it loads: in the phrase box when there is one (it
          was opened to type, ST-084), otherwise on Cancel when Enter must not act by reflex. -->
-    <StackPanel Background="{DynamicResource Brush.bg.base}" Margin="{DynamicResource Padding.pane}">
+    <!-- Review finding B-50 (design system 10.6): the question on the surface with 24 around it, and the
+         buttons on a footer of their own, bg.base under a 1 px border.subtle rule, 24,16, right aligned
+         8 apart. It was one grey sheet with the buttons 24 under the words. -->
+    <StackPanel x:Name="Sheet">
+        <StackPanel x:Name="Body" Background="{DynamicResource Brush.bg.surface}">
+        <StackPanel Margin="{DynamicResource Padding.pane}">
         <!-- The question with its kind's glyph beside it, never colour alone (Spec §1.1): a warning in
              state.danger for what destroys something, in state.paused for a notice that something did not
              happen, the info glyph in accent.primary for any other question. Set as it loads. -->
@@ -48,7 +53,15 @@
                      AutomationProperties.Name="{Binding Text, ElementName=Instruction}" />
         </StackPanel>
 
-        <StackPanel Margin="0,24,0,0" HorizontalAlignment="Right" Orientation="Horizontal">
+        </StackPanel>
+        </StackPanel>
+
+        <Border x:Name="Footer"
+                Background="{DynamicResource Brush.bg.base}"
+                BorderBrush="{DynamicResource Brush.border.subtle}"
+                BorderThickness="0,1,0,0"
+                Padding="{DynamicResource Padding.dialog-footer}">
+        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
             <Button x:Name="Cancel"
                     Style="{StaticResource Button.Secondary}"
                     Content="{Binding Cancel}"
@@ -62,5 +75,6 @@
                     Click="OnConfirm"
                     AutomationProperties.Name="{Binding Action, TargetNullValue=''}" />
         </StackPanel>
+        </Border>
     </StackPanel>
 </Window>
