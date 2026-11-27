@@ -34,87 +34,86 @@
 
             <Border Grid.Column="0" Style="{StaticResource Card}" Padding="0" VerticalAlignment="Top">
                 <StackPanel>
-                    <!-- The heading on a frame plate, the brand's ground, ruled underneath with the ribbon band
-                         (Spec §2.1: the receipt rule). The glyph takes the state's colour on the frame; the
-                         words carry the state. In high contrast the plate and the band are the window colour
-                         and the words and glyph remain. -->
-                    <Border Margin="12,12,12,0"
-                            Padding="{DynamicResource Padding.card}"
-                            Background="{DynamicResource Brush.shell.bg}"
-                            BorderBrush="{DynamicResource Brush.brand.ribbon.band}"
-                            BorderThickness="0,0,0,4"
-                            CornerRadius="{DynamicResource Radius.control}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <!-- The brand's mid glyph at the plate's trailing edge (Spec §2.0: 28 to 48 px), as a
-                                 letterhead carries its mark. v0.6.1 left it for the brand asset PR. -->
-                            <Control x:Name="ReceiptMark"
-                                     Grid.Column="2"
-                                     Width="40"
-                                     Height="40"
-                                     Margin="16,0,0,0"
-                                     VerticalAlignment="Center"
-                                     Focusable="False"
-                                     IsTabStop="False"
-                                     Template="{StaticResource Brand.Glyph.Frame}" />
-                            <Border Grid.Column="0"
-                                    Width="{DynamicResource Layout.control-height}"
-                                    Height="{DynamicResource Layout.control-height}"
-                                    Margin="0,0,16,0"
-                                    VerticalAlignment="Center"
-                                    BorderThickness="1"
-                                    CornerRadius="{DynamicResource Radius.pill}">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.published}" />
+                    <!-- The heading, straight in the card's 16 padding (review finding A-23; design system issue 3): no
+                         plate inside the card and no ribbon rule under it, which were a card in a card and a thick
+                         one-sided edge. The state's glyph at 20 in a 32 px disc of its tint, the heading in
+                         Text.Title, the subline a Caption 4 under it, and the brand's mid glyph at the trailing
+                         edge on its own frame plate, the one ground §2.0 gives it. The words carry the state. -->
+                    <Grid x:Name="ReceiptHeader" Margin="16,16,16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border x:Name="ReceiptStateDisc"
+                                Grid.Column="0"
+                                Width="{DynamicResource Layout.control-height}"
+                                Height="{DynamicResource Layout.control-height}"
+                                Margin="0,0,12,0"
+                                VerticalAlignment="Center"
+                                CornerRadius="{DynamicResource Radius.pill}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Background" Value="{DynamicResource Brush.bg.success}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ReceiptTone}" Value="Partial">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ReceiptTone}" Value="NotConfirmed">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.bg.warning}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ReceiptTone}" Value="Failed">
+                                            <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <controls:Glyph HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="{DynamicResource Icon.lg}" Text="{Binding ReceiptGlyph}">
+                                <controls:Glyph.Style>
+                                    <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                        <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding ReceiptTone}" Value="Partial">
-                                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.paused}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ReceiptTone}" Value="NotConfirmed">
-                                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.paused}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.state.paused}" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding ReceiptTone}" Value="Failed">
-                                                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.recording}" />
+                                                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Border.Style>
-                                <controls:Glyph HorizontalAlignment="Center" Text="{Binding ReceiptGlyph}">
-                                    <controls:Glyph.Style>
-                                        <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
-                                            <Setter Property="Foreground" Value="{DynamicResource Brush.shell.published}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding ReceiptTone}" Value="Partial">
-                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.shell.paused}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ReceiptTone}" Value="NotConfirmed">
-                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.shell.paused}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding ReceiptTone}" Value="Failed">
-                                                    <Setter Property="Foreground" Value="{DynamicResource Brush.shell.recording}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </controls:Glyph.Style>
-                                </controls:Glyph>
-                            </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource Text.ScreenTitle}"
-                                           Foreground="{DynamicResource Brush.shell.text}"
-                                           Text="{Binding ReceiptHeading}"
-                                           controls:LiveRegion.Setting="Assertive" />
-                                <TextBlock Margin="0,4,0,0"
-                                           Style="{StaticResource Text.Muted}"
-                                           Foreground="{DynamicResource Brush.shell.muted}"
-                                           Text="{Binding ReceiptSubline}" />
-                            </StackPanel>
-                        </Grid>
-                    </Border>
+                                </controls:Glyph.Style>
+                            </controls:Glyph>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource Text.Title}"
+                                       Text="{Binding ReceiptHeading}"
+                                       controls:LiveRegion.Setting="Assertive" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Style="{StaticResource Text.Caption}"
+                                       Text="{Binding ReceiptSubline}" />
+                        </StackPanel>
+                        <!-- The brand's mid glyph (Spec §2.0: 28 to 48 px) on the frame, radius 8 (design system §8),
+                             at the trailing edge as a letterhead carries its mark. -->
+                        <Border x:Name="ReceiptMarkPlate"
+                                Grid.Column="2"
+                                Margin="16,0,0,0"
+                                VerticalAlignment="Center"
+                                Background="{DynamicResource Brush.brand.frame}"
+                                CornerRadius="{DynamicResource Radius.card}">
+                            <Control x:Name="ReceiptMark"
+                                     Width="40"
+                                     Height="40"
+                                     Focusable="False"
+                                     IsTabStop="False"
+                                     Template="{StaticResource Brand.Glyph.Frame}" />
+                        </Border>
+                    </Grid>
+
+                    <!-- A full-width rule 16 under the heading, then the rows in the card's padding. -->
+                    <Border x:Name="ReceiptDivider" Margin="0,16,0,0" BorderBrush="{DynamicResource Brush.border.subtle}" BorderThickness="0,1,0,0" />
 
                     <StackPanel Margin="{DynamicResource Padding.card}">
                         <!-- What happened, in Spec §6's words, when the heading does not already say it all. -->

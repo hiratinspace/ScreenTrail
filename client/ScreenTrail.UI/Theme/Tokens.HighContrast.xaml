@@ -134,6 +134,9 @@
     <!-- A skeleton block is outlined in GrayText: its fill is the window colour here, so without an edge a
          drafting note was an empty pane. -->
     <x:Static x:Key="Token.skeleton.edge" Member="SystemColors.GrayTextColor" />
+    <!-- The receipt mark's second note line: the plate is the window colour here, so the line is the text. -->
+    <x:Static x:Key="Token.brand.frame.line" Member="SystemColors.WindowTextColor" />
+    <SolidColorBrush x:Key="Brush.brand.frame.line" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.skeleton.edge" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
     <!-- A scroll thumb is 8 wide at all times, in the window text colour. -->
     <sys:Double x:Key="ScrollThumb.rest">8</sys:Double>

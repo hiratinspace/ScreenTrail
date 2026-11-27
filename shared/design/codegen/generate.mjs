@@ -72,6 +72,10 @@ function wpfColors(t, theme) {
   // GrayText in high contrast, where that fill is the window colour and the block was invisible.
   lines.push('    <Color x:Key="Token.skeleton.edge">#00000000</Color>');
   lines.push('    <SolidColorBrush x:Key="Brush.skeleton.edge" Color="Transparent" />');
+  // The mid glyph's second note line on the frame plate (glyph-mid-on-navy.svg): Ribbon 400 in both themes,
+  // since the plate is the frame in both (review finding A-23).
+  lines.push('    <Color x:Key="Token.brand.frame.line">#B2A6EC</Color>');
+  lines.push('    <SolidColorBrush x:Key="Brush.brand.frame.line" Color="#B2A6EC" />');
   // A scroll bar's thumb at rest (design system 10.8, review findings A-33, B-29): 4 wide, 8 while the pointer
   // is over its track; high contrast keeps it 8 at all times.
   lines.push('    <sys:Double x:Key="ScrollThumb.rest">4</sys:Double>');
