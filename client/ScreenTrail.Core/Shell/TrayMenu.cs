@@ -104,8 +104,8 @@ public static class TrayMenu
     /// </summary>
     public const string StartText = "&Start capture";
 
-    /// <summary>The chord shown beside Start capture, as the other rows show theirs: the default binding.</summary>
-    public static readonly string StartHotkey = Chord(HotkeyAction.StartCapture);
+    /// <summary>The chord shown beside Start capture, as the other rows show theirs: as it is bound now.</summary>
+    public static string StartHotkey => Chord(HotkeyAction.StartCapture);
 
     public const string DiscardText = "&Discard session…";
 
@@ -227,7 +227,7 @@ public static class TrayMenu
     }
 
     /// <summary>What the balloon says when the service gives no reason of its own for starting nothing.</summary>
-    public const string StartRefused = "Nothing was started. Open the remote session, then choose Start capture or press Ctrl+Alt+R.";
+    public static string StartRefused => $"Nothing was started. Open the remote session, then choose Start capture{Sessions.HandStart.OrPress()}.";
 
     /// <summary>
     /// The tray's Start capture: sends the tray's <c>start</c> and says, in a balloon, why nothing started
@@ -271,5 +271,5 @@ public static class TrayMenu
         : Unreachable(connection) is { } why ? $"Hide the recording pi&ll ({why})"
         : HidePillNotNowText;
 
-    private static string Chord(HotkeyAction action) => HotkeyBindings.Defaults[action].ToString();
+    private static string Chord(HotkeyAction action) => HotkeyText.For(action);
 }

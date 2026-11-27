@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using ScreenTrail.Core.Input;
 using ScreenTrail.Core.Shell;
 
 namespace ScreenTrail.UI.Shell;
@@ -31,14 +32,22 @@ public partial class ShortcutSheet : Window
         public string Spoken => KeyCaps.Spoken(Keys);
     }
 
+    /// <summary>The actions that have a chord now, each with it; one with none is left off the sheet.</summary>
+    private static IEnumerable<Chord> Bound(params (HotkeyAction Action, string Does)[] actions) =>
+        actions.Select(a => (Keys: HotkeyText.For(a.Action), a.Does)).Where(a => a.Keys.Length > 0).Select(a => new Chord(a.Keys, a.Does));
+
     /// <summary>One key cap.</summary>
     public sealed record Cap(string Key);
 
     /// <summary>A heading and its chords.</summary>
     public sealed record Group(string Name, IReadOnlyList<Chord> Chords);
 
-    /// <summary>What the sheet lists, in Spec §5's words.</summary>
-    public static IReadOnlyList<Group> Groups { get; } =
+    /// <summary>
+    /// What the sheet lists, in Spec §5's words. Read each time the sheet opens, so the session chords are
+    /// the ones bound now (review finding E-03; owner decision 11 of the 2026-11-26 review, which reverses
+    /// the 2026-11-01 choice to list the defaults).
+    /// </summary>
+    public static IReadOnlyList<Group> Groups =>
     [
         new("Everywhere", [
             new("?", "This sheet, when the cursor is not in a text box"),
@@ -47,12 +56,12 @@ public partial class ShortcutSheet : Window
             new("Enter", "On a session in the rail or All sessions: open it"),
             new("Esc", "Close a dialog, this sheet or an enlarged screenshot"),
         ]),
-        new("During a session (change these in Settings, under Capture)", [
-            new("Ctrl+Alt+R", "Start capture"),
-            new("Ctrl+Alt+P", "Pause or resume"),
-            new("Ctrl+Alt+S", "Stop and draft"),
-            new("Ctrl+Alt+M", "Mark a moment"),
-        ]),
+        new("During a session (change these in Settings > Capture)", [.. Bound(
+            (HotkeyAction.StartCapture, "Start capture"),
+            (HotkeyAction.PauseOrResume, "Pause or resume"),
+            (HotkeyAction.StopAndDraft, "Stop and draft"),
+            (HotkeyAction.MarkMoment, "Mark a moment"),
+            (HotkeyAction.DiscardSession, "Discard the session"))]),
         new("Review", [
             new("Ctrl+Enter", "Publish"),
             new("Ctrl+T", "Change the ticket"),

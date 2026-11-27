@@ -59,7 +59,7 @@ public sealed class LiveRegionTests(TheApplication app)
                 Assert.Empty(ticking);
 
                 var paused = await HeardAsync(() => state.Observe(new CaptureStateSnapshot { State = CaptureStates.Paused, SessionId = "s1", Reason = "user" }));
-                Assert.Contains("Paused: press Ctrl+Alt+P to resume", paused);
+                Assert.Contains("Paused. Press Ctrl+Alt+P to resume.", paused);
             }
             finally
             {

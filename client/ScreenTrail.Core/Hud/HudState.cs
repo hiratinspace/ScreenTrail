@@ -254,7 +254,9 @@ public static class HudState
 
     private static HudSegment Paused(CaptureStateSnapshot capture) =>
         capture.Reason is CaptureReasons.User or null
-            ? new HudSegment(HudTone.Paused, "‖", "Paused: press Ctrl+Alt+P to resume")
+            // The word alone, so it never trims; the chord, as it is bound, in the tooltip and the spoken
+            // name (review finding E-03, design system 10.10).
+            ? new HudSegment(HudTone.Paused, "‖", "Paused", Input.HotkeyText.For(Input.HotkeyAction.PauseOrResume) is { Length: > 0 } chord ? $"Press {chord} to resume." : null)
             : Suppressed(capture);
 
     private static HudSegment Suppressed(CaptureStateSnapshot capture) => capture.Reason switch

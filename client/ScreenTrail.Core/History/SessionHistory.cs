@@ -109,7 +109,9 @@ public static class SessionHistory
     /// started by the remote tool coming to the front, or by the service's own hotkey. Word joiners
     /// (U+2060) hold the shortcut on one line: wrapped, it broke after "Ctrl".
     /// </summary>
-    public const string Empty = "No sessions yet. Start a remote session and ScreenTrail will capture it, or press Ctrl\u2060+\u2060Alt\u2060+\u2060R to start one now.";
+    public static string Empty => Input.HotkeyText.For(Input.HotkeyAction.StartCapture) is { Length: > 0 }
+        ? $"No sessions yet. Start a remote session and ScreenTrail will capture it, or press {Input.HotkeyText.Unbroken(Input.HotkeyAction.StartCapture)} to start one now."
+        : "No sessions yet. Start a remote session and ScreenTrail will capture it.";
 
     /// <summary>The words History and the tray use for a publish that may have reached the ticket and was never confirmed.</summary>
     public const string NotConfirmedLabel = "Not confirmed";

@@ -424,6 +424,13 @@ public sealed class PipeCapture(CaptureConnection connection) : ICaptureGateway,
     public async Task<CaptureSnapshot?> LoadAsync(CancellationToken ct = default)
     {
         var reported = await _connection.RequestAsync<CaptureSettingsReported>(id => new GetCaptureSettingsCommand { RequestId = id }, ct).ConfigureAwait(false);
+
+        // The chords as bound, for every string that teaches one (review finding E-03).
+        if (reported is not null)
+        {
+            HotkeyText.Use(reported.Settings.ToBindings());
+        }
+
         return reported is null
             ? null
             : new CaptureSnapshot(
@@ -437,6 +444,11 @@ public sealed class PipeCapture(CaptureConnection connection) : ICaptureGateway,
     public async Task<string?> SaveAsync(CaptureSettings settings, CancellationToken ct = default)
     {
         var result = await _connection.SendAsync(id => new SetCaptureSettingsCommand { RequestId = id, Settings = settings }, ct).ConfigureAwait(false);
+        if (result.Ok)
+        {
+            HotkeyText.Use(settings.ToBindings());
+        }
+
         return result.Ok ? null : result.Error ?? "The capture service refused the settings.";
     }
 

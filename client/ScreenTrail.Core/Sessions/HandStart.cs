@@ -32,9 +32,12 @@ public enum HandStartOutcome
 public static class HandStart
 {
     /// <summary>No remote tool window was in front recently: the friendliest refusal, with the next step.</summary>
-    public const string NoRemoteSession =
+    public static string NoRemoteSession =>
         "Nothing was started: no remote session has been in front in the last few minutes. Open the remote "
-        + "session, then choose Start capture or press Ctrl+Alt+R.";
+        + $"session, then choose Start capture{OrPress()}.";
+
+    /// <summary>" or press Ctrl+Alt+R", with the chord as it is bound now (review finding E-03), or nothing when Start has none.</summary>
+    public static string OrPress() => Input.HotkeyText.For(Input.HotkeyAction.StartCapture) is { Length: > 0 } chord ? $" or press {chord}" : string.Empty;
 
     /// <summary>The pill is not on screen. The tray's shorter form of <see cref="ManualStart.NotIndicated"/>.</summary>
     public const string NotIndicated =

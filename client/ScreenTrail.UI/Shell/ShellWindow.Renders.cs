@@ -439,13 +439,14 @@ public partial class ShellWindow
 
         // All sessions with none: the sentence as the screen's content, in place of the table.
         state.Navigate(ShellView.History);
-        for (var waited = 0; waited < 2000 && _model.Content is not History.HistoryViewModel { Rows.Count: 0, Status: Core.History.SessionHistory.Empty }; waited += 50)
+        bool ComeUpEmpty() => _model.Content is History.HistoryViewModel { Rows.Count: 0 } history && history.Status == Core.History.SessionHistory.Empty;
+        for (var waited = 0; waited < 2000 && !ComeUpEmpty(); waited += 50)
         {
             await SettleAsync();
             await Task.Delay(50).ConfigureAwait(true);
         }
 
-        if (_model.Content is not History.HistoryViewModel { Rows.Count: 0, Status: Core.History.SessionHistory.Empty })
+        if (!ComeUpEmpty())
         {
             throw new InvalidOperationException("All sessions did not come up empty.");
         }

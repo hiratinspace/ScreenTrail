@@ -55,7 +55,7 @@ public sealed class HudStateTests
         Assert.Equal(early.Announcement, later.Announcement);
         Assert.NotEqual(early.Spoken, later.Spoken);
         Assert.NotEqual(early.Announcement, paused.Announcement);
-        Assert.Equal("Paused: press Ctrl+Alt+P to resume", paused.Announcement);
+        Assert.Equal("Paused. Press Ctrl+Alt+P to resume.", paused.Announcement);
     }
 
     [Theory]
@@ -86,7 +86,9 @@ public sealed class HudStateTests
         var hud = HudState.For(Capture(CaptureStates.Paused, reason: CaptureReasons.User));
 
         Assert.Equal(HudTone.Paused, hud.State.Tone);
-        Assert.Equal("Paused: press Ctrl+Alt+P to resume", hud.State.Text);
+        // The word alone, so it never trims; the chord in the tooltip and the spoken name (E-03).
+        Assert.Equal("Paused", hud.State.Text);
+        Assert.Equal("Press Ctrl+Alt+P to resume.", hud.State.Tooltip);
     }
 
     [Theory]

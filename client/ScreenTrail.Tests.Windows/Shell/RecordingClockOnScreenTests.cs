@@ -174,12 +174,12 @@ public sealed class PillClockTests(TheApplication app)
                 Assert.Empty(heard);
 
                 var paused = await LiveRegionTests.HeardAsync(() => state.Observe(new CaptureStateSnapshot { State = CaptureStates.Paused, SessionId = "s1", Reason = "user", ElapsedMs = 8_000 }));
-                Assert.Contains("Paused: press Ctrl+Alt+P to resume", paused);
+                Assert.Contains("Paused. Press Ctrl+Alt+P to resume.", paused);
 
                 // Paused, nothing counts and nothing wakes.
                 time.Advance(TimeSpan.FromMinutes(1));
                 await Audit.Settle();
-                Assert.Equal("Paused: press Ctrl+Alt+P to resume", segment.Text);
+                Assert.Equal("Paused", segment.Text);
                 Assert.Equal(0, time.Armed);
             }
             finally

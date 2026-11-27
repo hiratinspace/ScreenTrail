@@ -50,6 +50,7 @@ namespace ScreenTrail.UI.Shell;
 [SupportedOSPlatform("windows")]
 public sealed class LiveShell : IAsyncDisposable
 {
+    private ServiceConnection _lastConnection = ServiceConnection.Connecting;
     private readonly ShellState _state = new();
 
     /// <summary>
@@ -145,6 +146,14 @@ public sealed class LiveShell : IAsyncDisposable
                 return;
             }
 
+            // Each time the service is reached, the chords it binds, so the pill, the tray and the empty
+            // screens teach the technician's chords and not the shipped ones (review finding E-03).
+            if (snapshot.Connection == ServiceConnection.Connected && _lastConnection != ServiceConnection.Connected)
+            {
+                _ = ReadHotkeysAsync();
+            }
+
+            _lastConnection = snapshot.Connection;
             _tray.Update(_clock.Show(snapshot));
             ShowOrHideHud(snapshot);
             Announce(snapshot);
@@ -481,6 +490,19 @@ public sealed class LiveShell : IAsyncDisposable
         finally
         {
             Array.Clear(token);
+        }
+    }
+
+    /// <summary>Reads the capture settings once, for their chords (PipeCapture hands them to HotkeyText). A failure keeps the last ones.</summary>
+    private async Task ReadHotkeysAsync()
+    {
+        try
+        {
+            _ = await new PipeCapture(_connection).LoadAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception error) when (error is IOException or TimeoutException or InvalidOperationException or OperationCanceledException)
+        {
+            // The words stay as they were; the next connection asks again.
         }
     }
 

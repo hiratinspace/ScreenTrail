@@ -179,10 +179,14 @@ public static class ShellStatus
     public const string Unknown = "Capture state unknown";
 
     /// <summary>Review with nothing to show between sessions: how to make a draft.</summary>
-    public const string NothingToReviewYet = "No draft to review yet. Record a session and stop it with Ctrl+Alt+S.";
+    public static string NothingToReviewYet => Input.HotkeyText.For(Input.HotkeyAction.StopAndDraft) is { Length: > 0 } chord
+        ? $"No draft to review yet. Record a session and stop it with {chord}."
+        : "No draft to review yet. Record a session and stop it.";
 
     /// <summary>Review with nothing to show while a session is being captured: the draft is on its way here.</summary>
-    public const string CapturingNow = "Capturing now: the draft opens here when you stop (Ctrl+Alt+S).";
+    public static string CapturingNow => Input.HotkeyText.For(Input.HotkeyAction.StopAndDraft) is { Length: > 0 } chord
+        ? $"Recording now: the draft opens here when you stop ({chord})."
+        : "Recording now: the draft opens here when you stop.";
 
     /// <summary>
     /// What Review says with no session to show. While one is being captured it says the draft is coming
