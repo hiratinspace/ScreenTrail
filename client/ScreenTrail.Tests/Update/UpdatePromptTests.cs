@@ -33,7 +33,9 @@ public sealed class UpdatePromptTests
         Assert.NotNull(notice);
         // The label-then-detail form the other notices take since #228 ("Draft ready: ..."), no trailing
         // full stop on the label, sentence case, nothing exclaimed.
-        Assert.Equal("Update ready: ScreenTrail 0.1.20. Open Settings, then Updates, to install it.", notice.Text);
+        // Review finding E-14: the event is the title; the body says the version and where to install it.
+        Assert.Equal("Update ready", notice.Title);
+        Assert.Equal("ScreenTrail 0.1.20 is ready. Install it in Settings > Updates.", notice.Text);
         Assert.Equal("update-ready:0.1.20", notice.Key);
     }
 

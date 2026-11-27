@@ -52,6 +52,7 @@ public sealed class TrayIconHost : IDisposable
     private Bitmap? _stateGlyph;
     private Font? _menuFont;
     private Font? _stateFont;
+    private Font? _shortcutFont;
 
     public TrayIconHost()
         : this(ReadLightTaskbar)
@@ -64,9 +65,12 @@ public sealed class TrayIconHost : IDisposable
         _readLightTaskbar = readLightTaskbar;
         _lightTaskbar = readLightTaskbar();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnUserPreferenceChanged;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
 
         // Spec §5 S1 drawn in the app's tokens (TrayMenuRenderer), with the rows TrayMenu decides.
-        _menu = new Forms.ContextMenuStrip { Renderer = new TrayMenuRenderer(), ShowItemToolTips = false };
+        // No image or check margin (design system 10.7): the state row draws its own glyph, and no row
+        // has a check, so the margin was an empty column pushing every label right.
+        _menu = new Forms.ContextMenuStrip { Renderer = new TrayMenuRenderer(), ShowItemToolTips = false, ShowImageMargin = false, ShowCheckMargin = false };
         using (var probe = new Forms.ToolStripMenuItem())
         {
             _padding = probe.Padding;
@@ -78,7 +82,11 @@ public sealed class TrayIconHost : IDisposable
         // and every time it opens, since only then is its DPI known (ST-084: a fixed padding worked out at
         // construction came to 25.6 px on the laptop's scaled screen). The font and the state line's glyph
         // are taken again on opening too, so a theme changed since the last time is the one drawn.
-        _menu.HandleCreated += (_, _) => FitItems(_menu);
+        _menu.HandleCreated += (_, _) =>
+        {
+            RoundCorners(_menu.Handle);
+            FitItems(_menu);
+        };
         _menu.Opening += (_, _) =>
         {
             Restyle();
@@ -124,6 +132,9 @@ public sealed class TrayIconHost : IDisposable
     public event Action? Discard;
 
     public event Action? ShowDiagnostics;
+
+    /// <summary>"Start the capture service", while it is not running (review finding E-13).</summary>
+    public event Action? StartService;
 
     /// <summary>The icon double-clicked: the shell, as it was left.</summary>
     public event Action? Open;
@@ -252,9 +263,11 @@ public sealed class TrayIconHost : IDisposable
         }
 
         _pending = notice.Action;
-        _icon.BalloonTipTitle = "ScreenTrail";
+        // The event as the title and the body says what a click does (review finding E-14); the icon
+        // marks the two that need a look.
+        _icon.BalloonTipTitle = notice.Title;
         _icon.BalloonTipText = notice.Text;
-        _icon.BalloonTipIcon = Forms.ToolTipIcon.None;
+        _icon.BalloonTipIcon = notice.Level == NotificationLevel.Warning ? Forms.ToolTipIcon.Warning : Forms.ToolTipIcon.Info;
 
         // Ten seconds is a hint; Windows applies its own accessibility timeout, which is longer for
         // people who have asked for longer.
@@ -312,6 +325,7 @@ public sealed class TrayIconHost : IDisposable
 
         Disposed = true;
         Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnUserPreferenceChanged;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
         _icon.Visible = false;
         _icon.Dispose();
         foreach (var icon in _icons.Values)
@@ -325,6 +339,7 @@ public sealed class TrayIconHost : IDisposable
         _stateGlyph = null;
         _menuFont?.Dispose();
         _stateFont?.Dispose();
+        _shortcutFont?.Dispose();
     }
 
     /// <summary>
@@ -356,6 +371,41 @@ public sealed class TrayIconHost : IDisposable
             ShowIcon(shown.Icon);
         }
     }
+
+    /// <summary>
+    /// Takes the icon again at the small-icon size the screen has now (review finding D-31). The icons are
+    /// kept per state and taskbar theme, at the size read when each was first shown, so after a change of
+    /// display scale, or a dock to a screen of another, the tray kept the old frame and Windows scaled it,
+    /// soft beside the system's own icons. Windows raises this on its own thread.
+    /// </summary>
+    internal void RefreshScale()
+    {
+        if (!_dispatcher.CheckAccess())
+        {
+            _ = _dispatcher.BeginInvoke(RefreshScale);
+            return;
+        }
+
+        if (Disposed)
+        {
+            return;
+        }
+
+        // Off the icon before the cached ones are let go, so it never holds one that is disposed.
+        _icon.Icon = null;
+        foreach (var icon in _icons.Values)
+        {
+            icon.Dispose();
+        }
+
+        _icons.Clear();
+        if (_shown is { } shown)
+        {
+            ShowIcon(shown.Icon);
+        }
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => RefreshScale();
 
     /// <summary>
     /// One state's icon at this screen's small-icon size, from the embedded .ico: 16 px at 100%, 20 at
@@ -398,10 +448,16 @@ public sealed class TrayIconHost : IDisposable
         {
             RefreshTheme();
         }
+
+        // A change of text scale arrives as Desktop; the small-icon size can change with it (D-31).
+        if (e.Category == Microsoft.Win32.UserPreferenceCategory.Desktop)
+        {
+            RefreshScale();
+        }
     }
 
     /// <summary>
-    /// Pads each item to at least 28 device-independent pixels at the menu's DPI: back to its own padding,
+    /// Pads each item to at least 32 device-independent pixels at the menu's DPI: back to its own padding,
     /// laid out, then whatever it lacks added above and below.
     /// </summary>
     private void FitItems(Forms.ContextMenuStrip menu) => FitItems(menu, menu.DeviceDpi);
@@ -414,27 +470,65 @@ public sealed class TrayIconHost : IDisposable
         FitItems(_menu);
     }
 
+    /// <summary>
+    /// Asks Windows 11 for its 8 px menu corners and the system shadow and edge on the menu's window
+    /// (design system 10.7, review finding C-T2): every other Windows 11 menu has them, and a square box
+    /// with a drawn 1 px line was the stock look. Windows 10 does not know the attribute and ignores it.
+    /// </summary>
+    private static void RoundCorners(IntPtr handle)
+    {
+        if (!TrayMenuRenderer.SystemRoundsTheMenu)
+        {
+            return;
+        }
+
+        var round = DwmwcpRound;
+        _ = DwmSetWindowAttribute(handle, DwmwaWindowCornerPreference, ref round, sizeof(int));
+    }
+
+    private const int DwmwaWindowCornerPreference = 33;
+    private const int DwmwcpRound = 2;
+
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
     /// <param name="deviceDpi">The DPI the menu is drawn at; a test passes a scaled one the hosted runner's screen does not have.</param>
     internal void FitItems(Forms.ContextMenuStrip menu, int deviceDpi)
     {
         ArgumentNullException.ThrowIfNull(menu);
-        var floor = (int)Math.Ceiling(28 * deviceDpi / 96.0);
+
+        // 4 on every side inside the menu (design system 10.7), so the rounded hover row sits clear of the edge.
+        var inset = (int)Math.Round(4 * deviceDpi / 96.0);
+        menu.Padding = new Forms.Padding(inset);
+        menu.MaximumSize = new System.Drawing.Size((int)Math.Round(TrayMenuRenderer.MaxWidth * deviceDpi / 96.0), 0);
+        // 32 at the menu's DPI (design system 10.7, review finding C-T4): 28 read dense beside Windows'
+        // own menus. Spec §7's 28 px target is met with room.
+        var floor = (int)Math.Ceiling(32 * deviceDpi / 96.0);
         var items = menu.Items.OfType<Forms.ToolStripMenuItem>().ToList();
+        // The state row's words start at 36, after its glyph (TrayMenuRenderer.Header): the extra is
+        // given as padding so the menu is measured wide enough for them.
+        var glyphRoom = (int)Math.Round(24 * deviceDpi / 96.0);
         foreach (var item in items)
         {
-            item.Padding = _padding;
+            item.Padding = (item.Tag as TrayRowTag)?.Kind == TrayRowKind.State ? Pad(_padding, left: glyphRoom) : _padding;
         }
 
         menu.PerformLayout();
         foreach (var item in items)
         {
-            var lacking = Math.Max(0, floor - item.Height);
+            // The state row is 36 (design system 10.7), taller with its counts under it; the others at least 32.
+            var wanted = item.Tag is TrayRowTag { Kind: TrayRowKind.State } state
+                ? TrayMenuRenderer.HeaderLayout(item.Width, item.Font, state.Detail, _shortcutFont ?? item.Font, deviceDpi / 96f).Height
+                : floor;
+            var lacking = Math.Max(0, wanted - item.Height);
             var above = lacking / 2;
-            item.Padding = new Forms.Padding(_padding.Left, _padding.Top + above, _padding.Right, _padding.Bottom + lacking - above);
+            item.Padding = new Forms.Padding(item.Padding.Left, _padding.Top + above, _padding.Right, _padding.Bottom + lacking - above);
         }
 
         menu.PerformLayout();
     }
+
+    private static Forms.Padding Pad(Forms.Padding padding, int left) => new(padding.Left + left, padding.Top, padding.Right, padding.Bottom);
 
     /// <summary>
     /// Puts the rows on the menu. The same rows in the same places, which is every tick of the recording
@@ -491,7 +585,7 @@ public sealed class TrayIconHost : IDisposable
             return new Forms.ToolStripSeparator { Tag = new TrayRowTag(row.Kind, row.Command), AccessibleRole = Forms.AccessibleRole.Separator };
         }
 
-        var item = new Forms.ToolStripMenuItem { Tag = new TrayRowTag(row.Kind, row.Command), ImageScaling = Forms.ToolStripItemImageScaling.None };
+        var item = new Forms.ToolStripMenuItem { Tag = new TrayRowTag(row.Kind, row.Command, row.Detail), ImageScaling = Forms.ToolStripItemImageScaling.None };
         var command = row.Command;
         item.Click += (_, _) => Invoke(command);
         Fill(item, row);
@@ -508,12 +602,19 @@ public sealed class TrayIconHost : IDisposable
             item.Text = text;
         }
 
+        // The header's second line changes with the counts; the row is the same row (ApplyRows).
+        if (item.Tag is TrayRowTag tag && tag.Detail != row.Detail)
+        {
+            item.Tag = tag with { Detail = row.Detail };
+        }
+
         item.ShortcutKeyDisplayString = row.Hotkey;
         item.ShowShortcutKeys = row.Hotkey is not null;
         item.Enabled = row.Enabled;
 
-        // Read as the words; the chord, a global hotkey rather than a menu shortcut, as its description.
-        item.AccessibleName = row.Name;
+        // Read as the words (the header with its second line); the chord, a global hotkey rather than a
+        // menu shortcut, as its description.
+        item.AccessibleName = row.Spoken;
         item.AccessibleDescription = row.Hotkey is { } chord ? $"Hotkey {chord}" : null;
     }
 
@@ -531,12 +632,21 @@ public sealed class TrayIconHost : IDisposable
             _menuFont?.Dispose();
             _menuFont = font;
             _stateFont?.Dispose();
-            _stateFont = new Font(font, FontStyle.Bold);
+            _stateFont = StateFont(font);
+
+            // The chord beside a row, 12 px in the same face (review finding C-T4).
+            var shortcut = new Font(family, 12f * 72 / 96, FontStyle.Regular);
+            if (_menu.Renderer is TrayMenuRenderer renderer)
+            {
+                renderer.ShortcutFont = shortcut;
+            }
+
+            _shortcutFont?.Dispose();
+            _shortcutFont = shortcut;
         }
 
         if (_menu.Items.Count > 0 && _menu.Items[0] is Forms.ToolStripMenuItem state && !ReferenceEquals(state.Font, _stateFont))
         {
-            // Semibold where the face has it; GDI+ offers bold, the nearest it can draw.
             state.Font = _stateFont;
         }
 
@@ -544,6 +654,24 @@ public sealed class TrayIconHost : IDisposable
         {
             SetStateGlyph(shown.Icon);
         }
+    }
+
+    /// <summary>
+    /// The state row's face (review finding C-T3): semibold, which GDI+ reaches only through a family
+    /// with Semibold in its name, drawn Regular. FontStyle.Bold made it 700, heavier than anything in the
+    /// app. Bold is the fallback where neither semibold family is installed.
+    /// </summary>
+    private static Font StateFont(Font menu)
+    {
+        foreach (var family in new[] { "Segoe UI Variable Text Semibold", "Segoe UI Semibold" })
+        {
+            if (Installed.Value.Contains(family))
+            {
+                return new Font(family, menu.SizeInPoints, FontStyle.Regular);
+            }
+        }
+
+        return new Font(menu, FontStyle.Bold);
     }
 
     /// <summary>The faces installed on this machine, read once.</summary>
@@ -604,6 +732,7 @@ public sealed class TrayIconHost : IDisposable
             TrayCommand.Settings => Settings,
             TrayCommand.Setup => Setup,
             TrayCommand.Quit => Quit,
+            TrayCommand.StartService => StartService,
             _ => null,
         };
         handler?.Invoke();

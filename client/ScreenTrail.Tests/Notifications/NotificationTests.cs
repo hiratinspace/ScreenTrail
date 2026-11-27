@@ -24,8 +24,21 @@ public sealed class NotificationTests
         var notice = Notices.For(Capture(CaptureStates.DraftReady, "Printer offline", "Acme Dental"));
 
         Assert.NotNull(notice);
-        Assert.Equal("Draft ready: Printer offline · Acme Dental", notice.Text);
+        // Review finding E-14: the event in the title, the draft joined by a comma and what a click does.
+        Assert.Equal("Draft ready to check", notice.Title);
+        Assert.Equal("Printer offline, Acme Dental. Select to open it.", notice.Text);
         Assert.Equal(NotificationAction.Review, notice.Action);
+        Assert.Equal(NotificationLevel.Info, notice.Level);
+    }
+
+    [Fact]
+    public void ADraftWithNoTitleOrCompanyStillSaysWhatAClickDoes()
+    {
+        var notice = Notices.For(Capture(CaptureStates.DraftReady));
+
+        Assert.NotNull(notice);
+        Assert.Equal("Draft ready to check", notice.Title);
+        Assert.Equal("Select to open it.", notice.Text);
     }
 
     [Fact]
@@ -36,8 +49,10 @@ public sealed class NotificationTests
         var notice = Notices.For(Capture(CaptureStates.DraftFailed, reason: "The provider did not answer."));
 
         Assert.NotNull(notice);
-        Assert.Equal("We couldn't draft this session. Your screenshots and transcript are saved.", notice.Text);
+        Assert.Equal("Draft not created", notice.Title);
+        Assert.Equal("Your screenshots and transcript are kept. Select to see why.", notice.Text);
         Assert.Equal(NotificationAction.Open, notice.Action);
+        Assert.Equal(NotificationLevel.Warning, notice.Level);
     }
 
     [Fact]
@@ -50,7 +65,8 @@ public sealed class NotificationTests
             new OutboxWaiting(Drafts: 1, Publishes: 0, Uncertain: 0));
 
         Assert.NotNull(notice);
-        Assert.Equal("Offline: your draft will be created when you're back online.", notice.Text);
+        Assert.Equal("Waiting for a connection", notice.Title);
+        Assert.Equal("Your draft is created when you are back online.", notice.Text);
         Assert.Equal(NotificationAction.None, notice.Action);
     }
 
@@ -113,12 +129,16 @@ public sealed class NotificationTests
             Assert.NotNull(notice);
             Assert.False(string.IsNullOrWhiteSpace(notice.Text));
 
-            // Sentence case and no exclamation marks, which is what Spec §6 actually asks for. Not a
-            // trailing full stop: "Draft ready: Printer offline · Acme Dental" is a label rather than a
-            // sentence, and the spec writes it without one.
+            // Sentence case and no exclamation marks, which is what Spec §6 actually asks for. Review
+            // finding E-14: the event is the title, the body is sentences, each with its full stop, and no
+            // middle dot joins two things.
             Assert.DoesNotContain("!", notice.Text, StringComparison.Ordinal);
             Assert.True(char.IsUpper(notice.Text[0]), $"'{notice.Text}' should start with a capital");
             Assert.NotEqual(notice.Text.ToUpperInvariant(), notice.Text);
+            Assert.EndsWith(".", notice.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("·", notice.Text, StringComparison.Ordinal);
+            Assert.NotEqual(Notification.DefaultTitle, notice.Title);
+            Assert.DoesNotContain(".", notice.Title, StringComparison.Ordinal);
         }
     }
 

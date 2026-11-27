@@ -53,6 +53,9 @@ public enum TrayCommand
 
     /// <summary>Quit, finishing a session first if one is being captured.</summary>
     Quit,
+
+    /// <summary>The capture service, started again, as the main window's banner's Start does (review finding E-13).</summary>
+    StartService,
 }
 
 /// <summary>What kind of row it is, which is how the host draws it.</summary>
@@ -72,10 +75,14 @@ public enum TrayRowKind
 
 /// <param name="Text">The words, with <c>&amp;</c> before the access key; an <c>&amp;</c> that is text is not used.</param>
 /// <param name="Hotkey">The default global chord that does the same, shown on the right ("Ctrl+Alt+P"), or null.</param>
-public sealed record TrayRow(TrayRowKind Kind, TrayCommand Command, string Text, string? Hotkey, bool Enabled)
+/// <param name="Detail">The state row's second line, what waits between sessions (<see cref="TrayPresence.Counts"/>), or null.</param>
+public sealed record TrayRow(TrayRowKind Kind, TrayCommand Command, string Text, string? Hotkey, bool Enabled, string? Detail = null)
 {
-    /// <summary>The words without the access key's marker: what a screen reader says and a test compares.</summary>
+    /// <summary>The words without the access key's marker: what a test compares.</summary>
     public string Name => Text.Replace("&", string.Empty, StringComparison.Ordinal);
+
+    /// <summary>What a screen reader says: the words, then the second line when there is one.</summary>
+    public string Spoken => Detail is { } more ? $"{Name}. {more}" : Name;
 
     /// <summary>The access key, upper case, or null for a row that has none.</summary>
     public char? AccessKey => Text.IndexOf('&', StringComparison.Ordinal) is var at and >= 0 && at + 1 < Text.Length
@@ -143,7 +150,7 @@ public static class TrayMenu
         var presence = TrayPresence.From(snapshot);
         var connected = snapshot.Connection == ServiceConnection.Connected;
         var capture = connected ? snapshot.Capture : null;
-        var rows = new List<TrayRow> { TrayRow.Line(TrayRowKind.State, presence.StateLine) };
+        var rows = new List<TrayRow> { TrayRow.Line(TrayRowKind.State, presence.StateLine) with { Detail = presence.Counts } };
 
         // The first block. While a session is under way, or the UI does not know whether one is: Pause or
         // Resume, Stop and draft, Discard, each enabled only where the service accepts it now (the pill's
@@ -164,7 +171,14 @@ public static class TrayMenu
         {
             // Nothing can be sent, so every row that sends is disabled. The state line above them says
             // why once ("Capture service not running"); each row repeating it in brackets made four
-            // copies of one reason (review finding E-13, which replaces v0.6.12's per-row reasons).
+            // copies of one reason (review finding E-13, which replaces v0.6.12's per-row reasons). With the
+            // service not running, the first row offers to start it, as the main window's banner does;
+            // not while the first connection is still being made, when it is starting already.
+            if (snapshot.Connection != ServiceConnection.Connecting)
+            {
+                rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.StartService, CaptureServiceStart.RowText, null, Enabled: true));
+            }
+
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Pause, "&Pause", HudControls.Pause.Hotkey, Enabled: false));
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Stop, "&Stop and draft", HudControls.Stop.Hotkey, Enabled: false));
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Discard, DiscardText, null, Enabled: false));
@@ -252,7 +266,7 @@ public static class TrayMenu
         }
 
         var words = string.IsNullOrWhiteSpace(result.Error) ? StartRefused : result.Error;
-        return new Notification(words, NotificationAction.None, $"tray-start-refused:{words}");
+        return new Notification(words, NotificationAction.None, $"tray-start-refused:{words}", "Capture not started");
     }
 
     /// <summary>The reason a row cannot be chosen while the service is not answering (the state line says "Capture service not running").</summary>

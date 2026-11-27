@@ -41,14 +41,15 @@ public partial class ShellWindow : Window
         Func<object> settings,
         RecordingClock? clock = null,
         Func<CancellationToken, Task<IReadOnlyList<SessionRow>?>>? sessions = null,
-        Action? diagnostics = null)
+        Action? diagnostics = null,
+        Action? startService = null)
     {
         ArgumentNullException.ThrowIfNull(state);
         ArgumentNullException.ThrowIfNull(loadReview);
         ArgumentNullException.ThrowIfNull(history);
         ArgumentNullException.ThrowIfNull(settings);
         InitializeComponent();
-        _model = new ShellViewModel(state, loadReview, history, settings, clock, sessions, diagnostics);
+        _model = new ShellViewModel(state, loadReview, history, settings, clock, sessions, diagnostics, startService: startService);
         DataContext = _model;
         BindFind();
     }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO;
 using System.Net.NetworkInformation;
 using System.Reflection;
@@ -170,6 +171,7 @@ public sealed class LiveShell : IAsyncDisposable
         _tray.Settings += () => ShowView(ShellView.Settings);
         _tray.Setup += ShowOnboarding;
         _tray.ShowDiagnostics += ShowDiagnostics;
+        _tray.StartService += StartCaptureService;
         _tray.HidePill += HidePillForThisSession;
         _tray.ShowPill += ShowPillAgain;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;
@@ -401,7 +403,8 @@ public sealed class LiveShell : IAsyncDisposable
                 // The inbox rail reads History's rows, and its foot opens the panel the tray's "What's being
                 // captured?" opens (Spec §5 S4).
                 sessions: ListSessionsAsync,
-                diagnostics: ShowDiagnostics);
+                diagnostics: ShowDiagnostics,
+                startService: StartCaptureService);
 
             // Once, when the window is made. A closed window's Review pane may still be writing its last,
             // and Quit waits for it even after the window has gone (T-169).
@@ -514,6 +517,23 @@ public sealed class LiveShell : IAsyncDisposable
     /// tool window most recently in front, and a refusal is said in a balloon, since otherwise the click
     /// would look like it did nothing. A start that worked is shown by the pill and the icon (INV-4).
     /// </summary>
+    /// <summary>
+    /// The banner's Start and the tray's "Start the capture service" (review finding E-13): the service
+    /// run again from beside this app, in this session (ADR-0003). The connection, which keeps trying,
+    /// finds it; only a start that could not happen is said, in a balloon.
+    /// </summary>
+    private void StartCaptureService()
+    {
+        var problem = CaptureServiceStart.Run(
+            AppContext.BaseDirectory,
+            File.Exists,
+            path => Process.Start(new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(path) })?.Dispose());
+        if (problem is not null && !_disposed)
+        {
+            _tray.Notify(new Notification(problem, NotificationAction.None, "start-service-failed", "Capture service not started", NotificationLevel.Warning));
+        }
+    }
+
     private async Task StartFromTrayAsync()
     {
         var notice = await TrayMenu.StartAsync(

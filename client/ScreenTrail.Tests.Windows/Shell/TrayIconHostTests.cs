@@ -126,6 +126,29 @@ public sealed class TrayIconHostTests
     }
 
     /// <summary>
+    /// Review finding D-31: a change of display scale takes the icons again at the size the screen has now,
+    /// and the tray goes on showing the state it showed, never an icon it has let go of.
+    /// </summary>
+    [Fact]
+    public void AScaleChangeTakesTheIconAgainForTheSameState()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        StaThread.Run(() =>
+        {
+            using var tray = new TrayIconHost(() => true);
+            tray.Show(Snapshot("recording"));
+            Assert.Equal("tray-recording-light.ico", tray.ShownIcon);
+
+            tray.RefreshScale();
+            Assert.Equal("tray-recording-light.ico", tray.ShownIcon);
+
+            tray.Update(Snapshot("paused"));
+            Assert.Equal("tray-paused-light.ico", tray.ShownIcon);
+            return Task.CompletedTask;
+        });
+    }
+
+    /// <summary>
     /// Spec §5 S1, as built v0.6.10: the menu is <see cref="TrayMenu"/>'s rows, in order, with their words,
     /// hotkeys and disabled states, as the state changes under it.
     /// </summary>
@@ -158,7 +181,7 @@ public sealed class TrayIconHostTests
                     }
 
                     var item = Assert.IsType<System.Windows.Forms.ToolStripMenuItem>(items[i]);
-                    Assert.Equal(rows[i].Name, item.AccessibleName);
+                    Assert.Equal(rows[i].Spoken, item.AccessibleName);
                     Assert.Equal(rows[i].Enabled, item.Enabled);
                     Assert.Equal(rows[i].Hotkey, item.ShowShortcutKeys ? item.ShortcutKeyDisplayString : null);
                 }

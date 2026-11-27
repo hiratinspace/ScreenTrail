@@ -127,7 +127,7 @@ public sealed class TrayAndDiagnosticsTests
         // nowhere: "Not capturing" over a badge said a draft was waiting and not how many (v0.6.10).
         var presence = TrayPresence.From(new ShellSnapshot(ServiceConnection.Connected, new CaptureStateSnapshot { State = state, DraftsReady = drafts }, ShellView.Review, null));
 
-        Assert.Equal(line, presence.StateLine);
+        TrayHeader.Is(line, presence);
         Assert.Equal($"ScreenTrail · {line}", presence.Tooltip);
     }
 
@@ -136,7 +136,7 @@ public sealed class TrayAndDiagnosticsTests
     {
         var presence = TrayPresence.From(new ShellSnapshot(ServiceConnection.Connected, new CaptureStateSnapshot { State = CaptureStates.Idle, DraftsReady = 2, PublishesUnconfirmed = 3 }, ShellView.Review, null));
 
-        Assert.Equal("Not recording · 2 drafts ready · 3 publishes not confirmed", presence.StateLine);
+        TrayHeader.Is("Not recording · 2 drafts ready · 3 publishes not confirmed", presence);
         Assert.Equal("ScreenTrail · Not recording · 2 drafts ready", presence.Tooltip);
     }
 

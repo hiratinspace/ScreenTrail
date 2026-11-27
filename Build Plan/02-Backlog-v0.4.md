@@ -2335,7 +2335,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** C-T1 to C-T5, C-T7, D-31, E-13, E-14
 - **Blocked By:** ST-127, ST-133
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the rounded hover fill (C-T1), Windows 11 corners and 4 px padding (C-T2), the state row's undimmed glyph and semibold face (C-T3), 32 px rows with a quiet chord and a red Discard (C-T4), the header split into state and counts with a 360 px cap (C-T5), #FF6363 and the note badge (C-T7), icons reloaded on a scale change (D-31), "Start the capture service" in the tray and a working banner Start (E-13; ST-133 had renamed the rows and dropped the repeated reason), balloon titles, bodies and icons (E-14). Left: the taskbar monitor's DPI for the icon size waits for D-01. Laptop: the menu on Windows 11 and 10 at 100% and 150% (corners, shadow, hover, header glyph in colour, semibold family names), each balloon, the icons at 16 and 24 px in a real tray, a scale change and a dock, and Start from the banner and the tray with the service quit.
 
 ### **ST-136 · Review: envelope and receipt**
 - **Findings:** A-15 to A-17, A-20, E-27, A-23 to A-25

@@ -43,6 +43,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private object? _settingsPane;
     private readonly HeldPane _review = new();
     private readonly Action? _diagnostics;
+    private readonly Action? _startService;
     private int _loads;
 
     /// <summary>What the rail last read the list for, so a snapshot that changes nothing it shows does not read it again.</summary>
@@ -66,6 +67,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <param name="sessions">The rail's rows, the same <c>list_sessions</c> History reads. None given, the rail says the service did not answer.</param>
     /// <param name="diagnostics">Opens the diagnostics panel from the rail's foot (Spec §5 S4). None given, the button is off.</param>
     /// <param name="time">The rail's clock, for its ages and Published today. The system's when none is given.</param>
+    /// <param name="startService">The banner's Start: runs the capture service again (review finding E-13). None given, Start does nothing.</param>
     public ShellViewModel(
         ShellState state,
         Func<string, CancellationToken, Task<object?>>? loadReview = null,
@@ -74,13 +76,15 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         RecordingClock? clock = null,
         Func<CancellationToken, Task<IReadOnlyList<Shared.Ipc.SessionRow>?>>? sessions = null,
         Action? diagnostics = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        Action? startService = null)
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _loadReview = loadReview;
         _history = history;
         _settings = settings;
         _diagnostics = diagnostics;
+        _startService = startService;
         _closing = _lifetime.Token;
         Rail = new History.InboxRailViewModel(state, sessions ?? (_ => Task.FromResult<IReadOnlyList<Shared.Ipc.SessionRow>?>(null)), time);
 
@@ -159,14 +163,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// Starting the service is ST-071's tray work; the banner offers it here because Spec §5 S1 puts the
-    /// offer where the problem is reported. Wired to nothing yet rather than silently doing nothing
-    /// forever. The command exists so the button is real when the tray can answer it.
+    /// The banner's Start (Spec §5 S1 puts the offer where the problem is reported): the capture service
+    /// run again, as the tray's "Start the capture service" does (review finding E-13).
     /// </summary>
     [RelayCommand]
-    private static void StartService()
-    {
-    }
+    private void StartService() => _startService?.Invoke();
 
     /// <summary>
     /// Finishes once every Review pane this model let go of has finished going: the last of the note

@@ -59,8 +59,11 @@ TRAY_STATES = ["idle", "recording", "paused", "offline", "draftready"]
 TRAY_THEMES = ["light", "dark"]
 TRAY_SIZES = [16, 20, 24, 32, 40, 48]
 
-# The draft-ready badge: the screen's colour on each taskbar, so it reads as part of the mark.
+# The draft-ready badge: the screen's colour on each taskbar, so it reads as part of the mark, with one
+# line across it in the other colour, a note to read (review finding C-T7): a plain filled square was the
+# Stop glyph's shape and read "stopped" at 16 px.
 DRAFT_BADGE = {"light": "#141030", "dark": "#F7F5FE"}
+DRAFT_LINE = {"light": "#F7F5FE", "dark": "#141030"}
 
 CHROME_CANDIDATES = [
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -93,7 +96,10 @@ def draft_ready(idle: str, theme: str) -> str:
     svg = idle.replace("</defs>", mask + "</defs>", 1)
     body_start = svg.index("</defs>") + len("</defs>")
     body_end = svg.rindex("</svg>")
-    badge = f'<rect x="39" y="39" width="22" height="22" rx="4" fill="{DRAFT_BADGE[theme]}"/>'
+    badge = (
+        f'<rect x="39" y="39" width="22" height="22" rx="4" fill="{DRAFT_BADGE[theme]}"/>'
+        f'<rect x="43" y="47" width="14" height="6" rx="3" fill="{DRAFT_LINE[theme]}"/>'
+    )
     svg = (
         svg[:body_start]
         + f'<g mask="url(#{mask_id})">'

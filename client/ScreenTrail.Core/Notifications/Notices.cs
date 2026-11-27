@@ -16,12 +16,31 @@ public enum NotificationAction
     Open,
 }
 
-/// <param name="Text">Spec §6's wording, verbatim. Shown to a technician mid-session.</param>
+/// <summary>How a notice is marked: the balloon's icon.</summary>
+public enum NotificationLevel
+{
+    /// <summary>Something to know: a draft is ready, an update is waiting.</summary>
+    Info,
+
+    /// <summary>Something that needs a look: a draft not created, a publish not confirmed.</summary>
+    Warning,
+}
+
+/// <param name="Text">
+/// The body: what it is about and what pressing it does ("Select to open it."), each sentence with its
+/// full stop (review finding E-14). Shown to a technician between sessions.
+/// </param>
 /// <param name="Key">
 /// What makes this notification the same notification. The service repeats state on every reconnect and
 /// on every <c>get_state</c>, and two identical toasts say the thing happened twice.
 /// </param>
-public sealed record Notification(string Text, NotificationAction Action, string Key);
+/// <param name="Title">The event, in a few words ("Draft ready to check"), where Windows puts it in bold.</param>
+/// <param name="Level">The balloon's icon.</param>
+public sealed record Notification(string Text, NotificationAction Action, string Key, string Title = Notification.DefaultTitle, NotificationLevel Level = NotificationLevel.Info)
+{
+    /// <summary>The title of a notice that names no event of its own.</summary>
+    public const string DefaultTitle = "ScreenTrail";
+}
 
 /// <summary>
 /// What ScreenTrail says, and when it says nothing (ST-073, Spec §6).
@@ -57,15 +76,19 @@ public static class Notices
 
         return capture.State switch
         {
+            // The event in the title, the draft and what a click does in the body (review finding E-14).
             CaptureStates.DraftReady => new Notification(
-                $"Draft ready: {Describe(capture)}",
+                Describe(capture) is { } draft ? $"{draft}. {SelectToOpen}" : SelectToOpen,
                 NotificationAction.Review,
-                $"draft-ready:{capture.SessionId}"),
+                $"draft-ready:{capture.SessionId}",
+                "Draft ready to check"),
 
             CaptureStates.DraftFailed => new Notification(
-                DraftFailure.Headline,
+                "Your screenshots and transcript are kept. Select to see why.",
                 NotificationAction.Open,
-                $"draft-failed:{capture.SessionId}"),
+                $"draft-failed:{capture.SessionId}",
+                "Draft not created",
+                NotificationLevel.Warning),
 
             _ => Queued(waiting),
         };
@@ -83,30 +106,39 @@ public static class Notices
         if (waiting.Uncertain > 0)
         {
             return new Notification(
-                "A publish may not have gone through. Check the ticket before sending it again.",
+                "It may already be on the ticket. Check the ticket before publishing again.",
                 NotificationAction.Open,
-                $"outbox-uncertain:{waiting.Uncertain}");
+                $"outbox-uncertain:{waiting.Uncertain}",
+                "Publish not confirmed",
+                NotificationLevel.Warning);
         }
 
         if (waiting.Drafts > 0)
         {
             return new Notification(
-                "Offline: your draft will be created when you're back online.",
+                "Your draft is created when you are back online.",
                 NotificationAction.None,
-                "outbox-offline");
+                "outbox-offline",
+                "Waiting for a connection");
         }
 
         return null;
     }
 
-    /// <summary>The session in the technician's words: its draft title and the customer it belongs to.</summary>
-    private static string Describe(CaptureStateSnapshot capture) =>
+    /// <summary>What pressing a notice that opens something does, said in its body (review finding E-14).</summary>
+    public const string SelectToOpen = "Select to open it.";
+
+    /// <summary>
+    /// The session in the technician's words: its draft title and the customer it belongs to, joined by a
+    /// comma rather than a middle dot ("Printer offline, Acme Dental"); null when the draft has neither.
+    /// </summary>
+    private static string? Describe(CaptureStateSnapshot capture) =>
         (capture.DraftTitle, capture.DraftCompany) switch
         {
-            (not null, not null) => $"{capture.DraftTitle} · {capture.DraftCompany}",
-            (not null, null) => capture.DraftTitle!,
-            (null, not null) => capture.DraftCompany!,
-            _ => "session ready to review",
+            (not null, not null) => $"{capture.DraftTitle}, {capture.DraftCompany}",
+            (not null, null) => capture.DraftTitle,
+            (null, not null) => capture.DraftCompany,
+            _ => null,
         };
 }
 
