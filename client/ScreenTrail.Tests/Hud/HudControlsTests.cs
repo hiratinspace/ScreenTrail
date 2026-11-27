@@ -69,15 +69,21 @@ public sealed class HudControlsTests
         Assert.Equal("Resume · Ctrl+Alt+P", paused[HudAction.Resume]);
     }
 
-    /// <summary>A screen reader hears the same words, the hotkey included, without the separator glyph.</summary>
+    /// <summary>
+    /// A screen reader hears the action alone; the chord is the button's accelerator key, not part of its
+    /// name (review finding E-22).
+    /// </summary>
     [Fact]
-    public void EachControlIsNamedForAScreenReaderWithItsHotkey()
+    public void EachControlIsNamedForAScreenReaderAndKeepsItsHotkeyApart()
     {
         var pause = HudControls.For(Capture(CaptureStates.Recording)).Single(c => c.Action == HudAction.Pause);
 
         Assert.Equal("Pause", pause.Name);
         Assert.Equal("Ctrl+Alt+P", pause.Hotkey);
-        Assert.Equal("Pause, Ctrl+Alt+P", pause.Spoken);
+
+        var pill = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        Assert.DoesNotContain(".Spoken}", pill.Replace("SpokenState}", "", StringComparison.Ordinal).Replace("RedactionSpoken}", "", StringComparison.Ordinal).Replace("{Binding Spoken}", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains("AutomationProperties.AcceleratorKey=\"{Binding PauseButton.Hotkey}\"", pill, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -85,7 +91,7 @@ public sealed class HudControlsTests
     {
         var all = HudControls.For(Capture(CaptureStates.Recording))
             .Concat(HudControls.For(Capture(CaptureStates.Paused, CaptureReasons.User)));
-        Assert.DoesNotContain(all, c => c.Tooltip.Contains('\u2014', StringComparison.Ordinal) || c.Spoken.Contains('\u2014', StringComparison.Ordinal));
+        Assert.DoesNotContain(all, c => c.Tooltip.Contains('\u2014', StringComparison.Ordinal));
     }
 
     private static CaptureStateSnapshot Capture(string state, string? reason = null) =>

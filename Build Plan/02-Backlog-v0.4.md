@@ -2293,7 +2293,7 @@ The no-code review of the client and installer against a Linear, Raycast and 1Pa
 - **Findings:** A-13, A-32/B-02, B-01, B-03 to B-07, B-53, A-14/B-08/E-22, B-32
 - **Blocked By:** ST-127
 - **Laptop:** Yes
-- **Status:** Open
+- **Status:** Built (2026-11-26), PR open. All findings: the shared base with the pressed and disabled states (A-13 for buttons, A-32/B-02, B-01), the compact size at Looks right, Edit, Undo, Remove, Forget and the capture banner (B-03), Install update Secondary (B-04), DangerSolid in destructive dialogs (B-05), the leading delete icon (B-06), Link (B-07), Close Secondary on the sheet and the panel (B-53), the shortcut pattern and names (A-14/B-08/E-22, the pill's names included), focus ring radii (B-32), and `Button.Icon`. Laptop: hover and pressed of every style, the link underline, the rings at 100% and 150%, Narrator reading "Save" with its shortcut. Left for their tickets: Open disabled until a row is selected (A-13, ST-139), the loading ring (ST-130), `Chip`, `Nav.Item`, `Pill.Control`, `Rail.Link` and `Rail.FootItem` retired with their rows (ST-130, ST-131, ST-134).
 
 ### **ST-129 · Inputs and choices: fields, error and placeholder, combo, check box, radio, chip, segmented, slider, meter**
 - **Findings:** B-09 to B-15, B-17 to B-19, A-18/B-20, A-19/B-21, B-23, B-30, B-13/E-26

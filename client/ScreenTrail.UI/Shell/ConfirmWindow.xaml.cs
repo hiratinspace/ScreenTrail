@@ -37,7 +37,8 @@ public partial class ConfirmWindow : Window
         InitializeComponent();
         DataContext = words;
 
-        if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.Danger" : "Button.Primary") is Style style)
+        // A destructive confirm is the solid danger button, never weaker than the safe one (review finding B-05).
+        if (FindResource(words.Tone == ConfirmTone.Danger ? "Button.DangerSolid" : "Button.Primary") is Style style)
         {
             Confirm.Style = style;
         }

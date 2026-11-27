@@ -17,12 +17,12 @@ public sealed class DiscardControlsTests
     private static readonly XNamespace Controls = "clr-namespace:ScreenTrail.UI.Controls";
 
     [Fact]
-    public void ReviewsHeaderHasAGhostDiscardBoundToTheNotesCommand()
+    public void ReviewsHeaderHasADangerDiscardBoundToTheNotesCommand()
     {
         var review = Load("Review", "ReviewPane.xaml");
 
         var discard = Assert.Single(Buttons(review), b => (string?)b.Attribute("Command") == "{Binding Note.DiscardCommand}");
-        Assert.Equal("{StaticResource Button.GhostDanger}", (string?)discard.Attribute("Style"));
+        Assert.Equal("{StaticResource Button.Danger}", (string?)discard.Attribute("Style"));
         Assert.False(string.IsNullOrWhiteSpace((string?)discard.Attribute("AutomationProperties.Name")));
         Assert.Equal("Discard", (string?)discard.Attribute("Content"));
         Assert.NotEqual("False", (string?)discard.Attribute("IsTabStop"));
@@ -33,18 +33,21 @@ public sealed class DiscardControlsTests
     }
 
     [Fact]
-    public void TheGhostDangerButtonIsTheGhostButtonTurningDangerOnHover()
+    public void TheDangerButtonIsRedWordsWithNoFillThatTakeTheDangerTintOnHover()
     {
-        // Spec §5 S3: "ghost, danger on hover". Built on the ghost button, with the hover taking the danger
-        // tint and the danger colour from the tokens, and no colour written into the style.
+        // Design system 10.1 (review finding A-32): quiet beside Publish because it has no fill, plainly the
+        // destructive one because its words are red, and the danger tint with its tinted edge on hover. Built
+        // on the shared base, not on Secondary, so no Secondary trigger leaks in; no colour in the style.
         var components = Load("Theme", "Components.xaml");
 
-        var style = Assert.Single(components.Descendants(Wpf + "Style"), s => (string?)s.Attribute(X + "Key") == "Button.GhostDanger");
-        Assert.Equal("{StaticResource Button.Ghost}", (string?)style.Attribute("BasedOn"));
+        var style = Assert.Single(components.Descendants(Wpf + "Style"), s => (string?)s.Attribute(X + "Key") == "Button.Danger");
+        Assert.Equal("{StaticResource Button.Base}", (string?)style.Attribute("BasedOn"));
+        Assert.DoesNotContain(style.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") is "Background" or "BorderBrush");
+        Assert.Contains(style.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "Foreground" && (string?)s.Attribute("Value") == "{DynamicResource Brush.state.danger}");
         var hover = Assert.Single(style.Descendants(Wpf + "Trigger"), t => (string?)t.Attribute("Property") == "IsMouseOver");
         var setters = hover.Elements(Wpf + "Setter").ToDictionary(s => (string)s.Attribute("Property")!, s => (string)s.Attribute("Value")!);
         Assert.Equal("{DynamicResource Brush.bg.danger}", setters["Background"]);
-        Assert.Equal("{DynamicResource Brush.state.danger}", setters["Foreground"]);
+        Assert.Equal("{DynamicResource Brush.border.danger}", setters["BorderBrush"]);
         Assert.DoesNotContain(style.Descendants().Attributes(), a => a.Value.StartsWith('#'));
     }
 

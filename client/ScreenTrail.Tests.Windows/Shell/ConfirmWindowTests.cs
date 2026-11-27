@@ -35,10 +35,10 @@ public sealed class ConfirmWindowTests(TheApplication app)
                 Assert.Equal(typeof(TextBox), typed.Style?.TargetType);
                 Assert.Contains("Mono", typed.FontFamily.Source, StringComparison.Ordinal);
 
-                // The button says what happens, in the danger style.
+                // The button says what happens, in the solid danger style (review finding B-05).
                 var confirm = Screens.Named<Button>(dialog, "Discard session");
                 Assert.Equal("Discard session", confirm.Content);
-                Assert.Same(dialog.FindResource("Button.Danger"), confirm.Style);
+                Assert.Same(dialog.FindResource("Button.DangerSolid"), confirm.Style);
                 Assert.False(confirm.IsEnabled, "Discard is enabled before anything was typed.");
 
                 typed.Text = "discard";

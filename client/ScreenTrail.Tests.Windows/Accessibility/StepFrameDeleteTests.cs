@@ -142,7 +142,7 @@ public sealed class StepFrameDeleteTests(TheApplication app)
             try
             {
                 var strip = Audit.Descendants(shell).OfType<FilmstripView>().Single();
-                var ocr = Audit.Descendants(strip).OfType<Button>().Single(b => b.Content is "OCR text  T");
+                var ocr = Audit.Descendants(strip).OfType<Button>().Single(b => b.Name == "OcrText");
                 var blur = Audit.Descendants(strip).OfType<ToggleButton>().Single(b => b.Name == "BlurMode");
                 var control = (double)shell.FindResource("Layout.control-height");
 

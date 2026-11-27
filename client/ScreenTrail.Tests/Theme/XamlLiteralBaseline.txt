@@ -42,7 +42,7 @@ Theme/Components.xaml	Height	12	3
 Theme/Components.xaml	Height	16	3
 Theme/Components.xaml	Height	20	2
 Theme/Components.xaml	Height	8	3
-Theme/Components.xaml	Margin	-3	1
+Theme/Components.xaml	Margin	-3	3
 Theme/Components.xaml	Margin	0,0,0,1	1
 Theme/Components.xaml	Margin	0,0,5,0	1
 Theme/Components.xaml	Margin	0,1	2

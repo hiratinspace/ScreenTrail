@@ -25,13 +25,11 @@
                         Content="{Binding ToggleLabel}"
                         Command="{Binding ToggleCommand}"
                         AutomationProperties.Name="Toggle the timeline and transcript panel"
-                        AutomationProperties.HelpText="Alt+T" />
-                <TextBlock Grid.Column="1"
-                           Margin="4,0,12,0"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource Text.Muted}"
-                           FontSize="{DynamicResource Size.xs}"
-                           Text="Alt+T" />
+                        AutomationProperties.AcceleratorKey="Alt+T" />
+                <!-- Beside the toggle it belongs to: a key cap, as the envelope's Change carries Ctrl+T. -->
+                <Border Grid.Column="1" Margin="4,0,12,0" Style="{StaticResource KeyCap}">
+                    <TextBlock Style="{StaticResource Text.KeyHint}" Text="Alt+T" />
+                </Border>
 
                 <!-- Dots are clicks, squares are frames, a flag is a marked moment, bands are gaps. -->
                 <Canvas Grid.Column="2"

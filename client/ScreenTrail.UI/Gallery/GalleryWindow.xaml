@@ -37,8 +37,9 @@
                 <StackPanel Style="{StaticResource Row}">
                     <Button Content="Publish" Style="{StaticResource Button.Primary}" />
                     <Button Margin="8,0,0,0" Content="Retry" Style="{StaticResource Button.Secondary}" />
-                    <Button Margin="8,0,0,0" Content="Discard" Style="{StaticResource Button.Subtle}" />
-                    <Button Margin="8,0,0,0" Content="Delete everything" Style="{StaticResource Button.Danger}" />
+                    <Button Margin="8,0,0,0" Content="Skip for now" Style="{StaticResource Button.Ghost}" />
+                    <Button Margin="8,0,0,0" Content="Discard" Style="{StaticResource Button.Danger}" />
+                    <Button Margin="8,0,0,0" Content="{StaticResource Icon.Settings}" Style="{StaticResource Button.Icon}" ToolTip="Settings" AutomationProperties.Name="Settings" />
                     <Button Margin="8,0,0,0" Content="Publish" IsEnabled="False" Style="{StaticResource Button.Primary}" ToolTip="Choose a ticket first" />
                     <Button Margin="8,0,0,0" Content="Retry" IsEnabled="False" Style="{StaticResource Button.Secondary}" />
                     <Button Margin="16,0,0,0" Content="frame 2" Style="{StaticResource Chip}" />

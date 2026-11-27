@@ -17,14 +17,47 @@
         <ResourceDictionary Source="Icons.xaml" />
     </ResourceDictionary.MergedDictionaries>
 
-    <!-- Focus ring: 2 px accent just outside the control; WPF shows FocusVisualStyle for keyboard focus only. -->
+    <!-- Focus ring: 2 px accent 3 px outside the control; WPF shows FocusVisualStyle for keyboard focus only.
+         Its radius is the control's plus the 3 px gap, so the ring runs parallel to the edge it circles
+         (design system 5, review finding B-32): 9 on the 6 px controls (Radius.control + 3). -->
     <Style x:Key="FocusRing">
         <Setter Property="Control.Template">
             <Setter.Value>
                 <ControlTemplate>
                     <Rectangle Margin="-3"
-                               RadiusX="8"
-                               RadiusY="8"
+                               RadiusX="9"
+                               RadiusY="9"
+                               SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource Brush.accent.primary}"
+                               StrokeThickness="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- 7 on the 4 px shapes: check boxes, radio buttons and key caps (Radius.sm + 3). -->
+    <Style x:Key="FocusRing.Small">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               RadiusX="7"
+                               RadiusY="7"
+                               SnapsToDevicePixels="True"
+                               Stroke="{DynamicResource Brush.accent.primary}"
+                               StrokeThickness="2" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- Fully round on the pill shapes: toggles and pill toggles. A rectangle clamps the radius to half its
+         height, as a Border does for Radius.pill. -->
+    <Style x:Key="FocusRing.Pill">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-3"
+                               RadiusX="999"
+                               RadiusY="999"
                                SnapsToDevicePixels="True"
                                Stroke="{DynamicResource Brush.accent.primary}"
                                StrokeThickness="2" />
@@ -130,8 +163,13 @@
         <Setter Property="HorizontalAlignment" Value="Center" />
     </Style>
 
-    <!-- Button: primary, secondary, subtle (ghost), danger. 32 px tall at least; the reason a button is
-         disabled goes beside it as text (v0.4.3), and in its ToolTip for the mouse. -->
+    <!-- Buttons (design system 10.1, v0.7.0): one template and one base under every style, so a state means
+         the same on each. Pressed darkens the fill and never changes the label or fades (review findings
+         A-32, B-02). Disabled is its own fill and label colour, never an opacity, and never a look one
+         edge away from Secondary (A-13). The reason a button is disabled goes beside it as text (v0.4.3),
+         and in its ToolTip for the mouse. Default 32 high, 12 px sides, 72 wide at least; theme:Density.Compact
+         makes it 28, 8 and 56 (B-03). A shortcut inside a button is Text.KeyHint after the label, 8 apart,
+         and stays out of AutomationProperties.Name (it goes in AcceleratorKey, E-22). -->
     <ControlTemplate x:Key="Button.Template" TargetType="ButtonBase">
         <Border x:Name="Chrome"
                 Background="{TemplateBinding Background}"
@@ -139,16 +177,35 @@
                 BorderThickness="{TemplateBinding BorderThickness}"
                 CornerRadius="{DynamicResource Radius.control}"
                 SnapsToDevicePixels="True">
-            <ContentPresenter Margin="{TemplateBinding Padding}"
-                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
-                              RecognizesAccessKey="True" />
+            <!-- A grid, not a stack panel, so a label in a narrow button is still measured to its room and trims. -->
+            <Grid Margin="{TemplateBinding Padding}"
+                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <!-- The leading icon (theme:ButtonIcon.Leading), in the label's colour; not there when unset. -->
+                <controls:Glyph x:Name="Leading"
+                                Grid.Column="0"
+                                Margin="0,0,8,0"
+                                Style="{StaticResource Icon}"
+                                Foreground="{TemplateBinding Foreground}"
+                                Text="{TemplateBinding theme:ButtonIcon.Leading}" />
+                <ContentPresenter Grid.Column="1" VerticalAlignment="Center" RecognizesAccessKey="True" />
+            </Grid>
         </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="theme:ButtonIcon.Leading" Value="{x:Null}">
+                <Setter TargetName="Leading" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </ControlTemplate.Triggers>
     </ControlTemplate>
 
-    <Style x:Key="Button.Secondary" TargetType="Button">
+    <!-- What every button shares. Not used on its own: a button is one of the styles below. -->
+    <Style x:Key="Button.Base" TargetType="Button">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.button-min-width}" />
         <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -156,30 +213,42 @@
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
-        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template" Value="{StaticResource Button.Template}" />
+        <Style.Triggers>
+            <Trigger Property="theme:Density.Compact" Value="True">
+                <Setter Property="MinHeight" Value="{DynamicResource Layout.control-height-compact}" />
+                <Setter Property="MinWidth" Value="{DynamicResource Layout.button-min-width-compact}" />
+                <Setter Property="Padding" Value="{DynamicResource Padding.control-compact}" />
+            </Trigger>
+            <!-- The shared disabled look, for the styles with a fill: Primary, Secondary, DangerSolid. -->
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Button.Secondary" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-                <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="Button.Primary" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
+    <Style x:Key="Button.Primary" BasedOn="{StaticResource Button.Base}" TargetType="Button">
         <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
@@ -189,27 +258,27 @@
                 <Setter Property="Background" Value="{DynamicResource Brush.accent.primary.hover}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.hover}" />
             </Trigger>
+            <!-- Its own pressed colour (v0.7.0), not the rest fill at 85%: the fade let the card show through
+                 and looked lighter than hover. -->
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                <Setter Property="Opacity" Value="0.85" />
+                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary.pressed}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.accent.primary.pressed}" />
             </Trigger>
             <!-- Neutral when disabled, the way Windows 11 does it: a faded accent reads as "primary, but
-                 broken", and its words fell to about 2:1. -->
+                 broken". Repeated after hover and pressed so it wins over both. -->
             <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <Style x:Key="Button.Ghost" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
-        <Setter Property="Background" Value="Transparent" />
-        <Setter Property="BorderBrush" Value="Transparent" />
+    <!-- Ghost: no fill and no edge at rest. Hover fills, and no box appears (a border growing on hover is
+         the flat WinForms button). Disabled is the label alone, in text.disabled. -->
+    <Style x:Key="Button.Ghost" BasedOn="{StaticResource Button.Base}" TargetType="Button">
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
@@ -217,56 +286,86 @@
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
             </Trigger>
         </Style.Triggers>
     </Style>
-    <!-- Subtle is the Windows 11 name for the same button. -->
-    <Style x:Key="Button.Subtle" BasedOn="{StaticResource Button.Ghost}" TargetType="Button" />
-    <Style x:Key="Button.Danger" BasedOn="{StaticResource Button.Secondary}" TargetType="Button">
+    <!-- Danger: an entry point to something destructive (Discard in Review, Bulk discard, Delete
+         everything). Red words with no fill at rest, so it is plainly the destructive one without being
+         the loudest thing on the screen; hover and pressed take the danger tint, and the words stay red
+         throughout (review finding B-01: built on Secondary, the label went grey at the click). Built on
+         the base, so no Secondary trigger can leak into it. -->
+    <Style x:Key="Button.Danger" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="theme:ButtonIcon.Leading" Value="{StaticResource Icon.Delete}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-            </Trigger>
-            <!-- Secondary's pressed trigger turns the label text.secondary, and this style inherits it: the
-                 red label went grey at the click on the most certain button in the app (review finding B-01).
-                 Pressed keeps the danger fill and the red label. -->
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-            </Trigger>
-            <Trigger Property="IsEnabled" Value="False">
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
-    <!-- Ghost, danger on hover (Spec §5 S3, Review's Discard): quiet at rest beside Publish, and plainly the
-         destructive one the moment the pointer or the keyboard reaches it. Keyboard focus takes the same
-         look as hover, so a technician tabbing to it sees what it is before pressing it. -->
-    <Style x:Key="Button.GhostDanger" BasedOn="{StaticResource Button.Ghost}" TargetType="Button">
-        <Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.danger}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.danger}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.state.danger}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.text.muted}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <!-- DangerSolid: the confirm button of a destructive dialog only (Discard session, Delete everything),
+         once it can be pressed. The decisive act was a thin red outline beside the safe button, weaker than
+         it (review finding B-05); benchmarks fill it. The safe button beside it is Secondary and keeps the
+         initial focus. Until the phrase is typed it has the shared disabled look. In high contrast the fill
+         is Highlight and the words HighlightText. -->
+    <Style x:Key="Button.DangerSolid" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="theme:ButtonIcon.Leading" Value="{StaticResource Icon.Delete}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.danger.fill}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.danger.fill.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.danger.fill.hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.danger.fill.hover}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+    <!-- Icon (design system 10.1): a square button holding one glyph, 32 x 32 (compact 28 x 28), no fill or
+         edge at rest, the glyph 16 px in text.secondary. Its Content is the icon itself
+         (Content="{StaticResource Icon.Settings}"), drawn in the icon font. Every icon button has a ToolTip
+         and an AutomationProperties.Name, since the glyph says nothing to a screen reader. -->
+    <Style x:Key="Button.Icon" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
+        <Setter Property="FontSize" Value="{DynamicResource Icon.control}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
+        <Style.Triggers>
+            <Trigger Property="theme:Density.Compact" Value="True">
+                <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height-compact}" />
+                <Setter Property="Padding" Value="0" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.bg.pressed}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="Transparent" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -566,7 +665,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="CheckBox">
@@ -656,7 +755,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.muted}" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Small}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
@@ -833,21 +932,30 @@
         </Setter>
     </Style>
 
-    <!-- A shortcut beside the control it belongs to ("Ctrl+T"): small, quiet, outlined like a key cap. -->
+    <!-- A shortcut shown one of two ways, never typed into a button's Content with spaces (design system
+         10.1 and 10.5; review findings A-14, B-08, E-22). Inside the button it presses ("Publish  Ctrl+Enter",
+         "Save  Ctrl+S"): Text.KeyHint 8 after the label, in the label's colour. Beside a link or toggle it
+         belongs to ("Change  Ctrl+T", "Timeline  Alt+T"): a KeyCap 4 after the control. Either way the key
+         stays out of the control's AutomationProperties.Name and goes in AcceleratorKey, so Narrator reads
+         "Save", not "Save Ctrl+S". -->
     <Style x:Key="KeyCap" TargetType="Border">
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.keycap-height}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.bg.raised}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
-        <Setter Property="BorderThickness" Value="1" />
-        <Setter Property="CornerRadius" Value="{DynamicResource Radius.control}" />
-        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.border}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource Radius.sm}" />
+        <Setter Property="Padding" Value="4,0" />
         <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.muted}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.text.secondary}" />
     </Style>
-    <!-- The shortcut's words, in a key cap or inside the button it presses ("Publish  Ctrl+Enter"): the
-         foreground is inherited, so on the filled button it is the on-accent colour. -->
+    <!-- Micro (design system 3.2): 11/16 semibold. The foreground is inherited, so inside a filled button it
+         is the on-accent colour and inside a key cap the cap's. -->
     <Style x:Key="Text.KeyHint" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
+        <Setter Property="FontFamily" Value="{DynamicResource Font.small}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.xs}" />
-        <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
+        <Setter Property="LineHeight" Value="{DynamicResource Leading.micro}" />
+        <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
+        <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="TextWrapping" Value="NoWrap" />
     </Style>
@@ -858,7 +966,7 @@
         <Setter Property="Height" Value="20" />
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Pill}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="controls:ToggleSwitch">
@@ -1543,12 +1651,16 @@
         </Setter>
     </Style>
 
-    <!-- A link that acts inside the screen (the Save bar's section name): accent words, underlined, with
-         the hit-target floor and the focus ring. -->
+    <!-- Link (design system 10.1, review finding B-07): accent words with no padding, no fill and no
+         underline at rest, so a sentence that holds one still reads as a sentence. Hover and pressed take
+         accent.primary.hover and the underline, never a fill; disabled is text.disabled. 28 high alone,
+         the hit-target floor. Any content works: a string is drawn by the presenter's TextBlock, which takes
+         the underline from the style below. The focus ring hugs the words, since there is no padding. -->
     <Style x:Key="Button.Link" TargetType="Button">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="MinWidth" Value="{DynamicResource Layout.hit-target-min}" />
-        <Setter Property="Padding" Value="4,0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
         <Setter Property="FontSize" Value="{DynamicResource Size.md}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary}" />
@@ -1556,14 +1668,26 @@
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" CornerRadius="{DynamicResource Radius.control}" SnapsToDevicePixels="True">
-                        <TextBlock VerticalAlignment="Center"
-                                   Foreground="{TemplateBinding Foreground}"
-                                   Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}}"
-                                   TextDecorations="Underline" />
+                    <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}">
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                            <Setter Property="TextDecorations" Value="Underline" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
@@ -1571,7 +1695,13 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary.hover}" />
-                <Setter Property="Background" Value="{DynamicResource Brush.bg.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.accent.primary.hover}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
+                <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
         </Style.Triggers>
     </Style>
@@ -1634,7 +1764,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.border.strong}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Pill}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
         <Setter Property="Template" Value="{StaticResource Button.Template}" />
         <Style.Triggers>

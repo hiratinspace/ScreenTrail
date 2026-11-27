@@ -20,7 +20,7 @@
 
                 <Button Margin="0,16,0,0"
                         HorizontalAlignment="Left"
-                        Style="{StaticResource Button.Primary}"
+                        Style="{StaticResource Button.Secondary}"
                         Content="Install update"
                         Command="{Binding InstallCommand}"
                         IsEnabled="{Binding CanInstall}" />

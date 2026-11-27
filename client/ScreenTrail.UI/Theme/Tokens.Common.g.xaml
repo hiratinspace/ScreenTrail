@@ -64,9 +64,14 @@
     <sys:Double x:Key="Layout.rail-row-padding-x">12</sys:Double>
     <sys:Double x:Key="Layout.rail-row-padding-y">8</sys:Double>
     <sys:Double x:Key="Layout.dialog-width">420</sys:Double>
+    <sys:Double x:Key="Layout.button-min-width">72</sys:Double>
+    <sys:Double x:Key="Layout.button-min-width-compact">56</sys:Double>
+    <sys:Double x:Key="Layout.control-padding-x-compact">8</sys:Double>
+    <sys:Double x:Key="Layout.keycap-height">20</sys:Double>
     <Thickness x:Key="Padding.pane">24</Thickness>
     <Thickness x:Key="Padding.card">16</Thickness>
     <Thickness x:Key="Padding.control">12,0</Thickness>
+    <Thickness x:Key="Padding.control-compact">8,0</Thickness>
     <Thickness x:Key="Padding.pane-narrow">16</Thickness>
     <Thickness x:Key="Padding.rail-row">12,8</Thickness>
     <CornerRadius x:Key="Radius.xs">2</CornerRadius>
