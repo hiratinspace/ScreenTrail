@@ -37,7 +37,9 @@
         </ContentControl>
 
         <!-- To: the ticket as a value, why it is that one, and Change. With none, "No ticket yet" and
-             Choose a ticket, and Publish waits with its reason beside it. -->
+             Choose a ticket, and Publish waits with its reason beside it. The value is words, not a box
+             (review finding A-17): framed like the Time field it read as an input, and clicking it did
+             nothing. Change, a link 12 after it, is what changes it. -->
         <Border Style="{StaticResource Envelope.Line}">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -47,20 +49,15 @@
                 <TextBlock Grid.Column="0" Style="{StaticResource Envelope.Label}" Text="To" />
                 <StackPanel Grid.Column="1">
                     <WrapPanel Orientation="Horizontal">
-                        <Border Margin="0,2,12,2"
-                                Padding="{DynamicResource Padding.control}"
-                                VerticalAlignment="Center"
-                                Background="{DynamicResource Brush.bg.raised}"
-                                BorderBrush="{DynamicResource Brush.border.control}"
-                                BorderThickness="1"
-                                CornerRadius="{DynamicResource Radius.control}"
-                                Visibility="{Binding TicketChipVisibility}"
-                                AutomationProperties.Name="{Binding ToValue}">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
-                                <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" TextWrapping="NoWrap" Text="{Binding TicketRest}" />
-                            </StackPanel>
-                        </Border>
+                        <StackPanel x:Name="TicketValue"
+                                    Margin="0,0,12,0"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal"
+                                    Visibility="{Binding TicketChipVisibility}"
+                                    AutomationProperties.Name="{Binding ToValue}">
+                            <TextBlock Style="{StaticResource Text.BodyStrong}" TextWrapping="NoWrap" Text="{Binding TicketId}" />
+                            <TextBlock Margin="8,0,0,0" Style="{StaticResource Text.Body}" TextWrapping="NoWrap" Text="{Binding TicketRest}" />
+                        </StackPanel>
                         <TextBlock Margin="0,0,12,0"
                                    VerticalAlignment="Center"
                                    Style="{StaticResource Text.Secondary}"

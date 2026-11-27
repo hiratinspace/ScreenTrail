@@ -64,6 +64,34 @@ public sealed class EnvelopeLayoutTests
         Assert.Equal("0,8,0,0", (string?)envelope.Attribute("Margin"));
     }
 
+    /// <summary>
+    /// Review finding A-17: the bound ticket is a value, its ID in Body strong and the rest in Body 8 after,
+    /// with no box, background or edge, so it does not look like the Time field two lines down. Change is a
+    /// link 12 after it, its key cap 4 after that.
+    /// </summary>
+    [Fact]
+    public void TheBoundTicketIsWordsNotABox()
+    {
+        var envelope = Load("Review", "Publish", "EnvelopeView.xaml");
+        var value = envelope.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "TicketValue");
+        Assert.Equal("StackPanel", value.Name.LocalName);
+        Assert.Null(value.Attribute("Background"));
+        Assert.Null(value.Attribute("BorderBrush"));
+        Assert.Equal("0,0,12,0", (string?)value.Attribute("Margin"));
+        Assert.Equal("{Binding ToValue}", (string?)value.Attribute("AutomationProperties.Name"));
+        Assert.DoesNotContain(value.Ancestors(Wpf + "Border"), b => (string?)b.Attribute("BorderBrush") == "{DynamicResource Brush.border.control}");
+
+        var words = value.Elements(Wpf + "TextBlock").ToList();
+        Assert.Equal("{StaticResource Text.BodyStrong}", (string?)words[0].Attribute("Style"));
+        Assert.Equal("{StaticResource Text.Body}", (string?)words[1].Attribute("Style"));
+        Assert.Equal("8,0,0,0", (string?)words[1].Attribute("Margin"));
+
+        var change = envelope.Descendants(Wpf + "Button").Single(b => (string?)b.Attribute(X + "Name") == "ChangeButton");
+        Assert.Equal("{StaticResource Button.Link}", (string?)change.Attribute("Style"));
+        var cap = change.ElementsAfterSelf(Wpf + "Border").First();
+        Assert.Equal("4,0,0,0", (string?)cap.Attribute("Margin"));
+    }
+
     internal static XElement Load(params string[] path) => XDocument.Load(Path.Combine([Ui(), .. path])).Root!;
 
     private static string Token(XElement dictionary, string key) =>
