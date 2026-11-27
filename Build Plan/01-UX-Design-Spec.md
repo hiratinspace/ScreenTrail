@@ -245,14 +245,14 @@ Focus ring: 2 px `accent.primary` outside the control (`shell.accent` on the fra
   Stop and draft               Ctrl+Alt+S
   Discard session…
 ──────────────────────────────
-  Open last draft (2 ready)
+  Open next draft (2 ready)
   All sessions
-  What's being captured right now?
+  Diagnostics
 ──────────────────────────────
   Settings
   Quit ScreenTrail
 ```
-When idle, the first block becomes `Start capture   Ctrl+Alt+R`.
+When idle, the first block becomes `Start capture   Ctrl+Alt+R`. With the service not answering, the state line says why once ("Capture service not running") and the rows that send are disabled without repeating it *(v0.7.13, review finding E-13; replaces v0.6.12's per-row reasons. The row that starts the service is ST-135)*.
 
 A remote tool is named the way the registry's `display_name` names it (ScreenConnect, Remote Desktop, AnyDesk), never by its id (`screenconnect`, `rdp`), here, in the shell's status chip and in History *(v0.5.5)*.
 
