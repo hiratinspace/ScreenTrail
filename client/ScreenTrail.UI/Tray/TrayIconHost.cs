@@ -125,6 +125,9 @@ public sealed class TrayIconHost : IDisposable
 
     public event Action? ShowDiagnostics;
 
+    /// <summary>"Start the capture service", while it is not running (review finding E-13).</summary>
+    public event Action? StartService;
+
     /// <summary>The icon double-clicked: the shell, as it was left.</summary>
     public event Action? Open;
 
@@ -604,6 +607,7 @@ public sealed class TrayIconHost : IDisposable
             TrayCommand.Settings => Settings,
             TrayCommand.Setup => Setup,
             TrayCommand.Quit => Quit,
+            TrayCommand.StartService => StartService,
             _ => null,
         };
         handler?.Invoke();

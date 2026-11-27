@@ -196,6 +196,45 @@ public sealed class TrayMenuTests
         Assert.True(Row(rows, TrayCommand.Diagnostics).Enabled);
     }
 
+    [Fact]
+    public void WithTheServiceNotRunningTheFirstRowStartsIt()
+    {
+        // Review finding E-13: the main window's banner offers Start; the tray, the only thing on screen
+        // when the window is closed, now does too, as the first thing under the state line.
+        var rows = TrayMenu.For(new ShellSnapshot(ServiceConnection.Unavailable, null, ShellView.Review, null), pillHidden: false);
+
+        Assert.Equal(TrayCommand.StartService, rows[1].Command);
+        Assert.Equal("Start the capture service", rows[1].Name);
+        Assert.Equal('T', rows[1].AccessKey);
+        Assert.True(rows[1].Enabled);
+        Assert.DoesNotContain(rows.Where(r => r.Kind == TrayRowKind.Item && r != rows[1]), r => r.AccessKey == 'T');
+    }
+
+    [Fact]
+    public void WhileTheFirstConnectionIsBeingMadeNothingOffersToStartTheService()
+    {
+        var connecting = TrayMenu.For(new ShellSnapshot(ServiceConnection.Connecting, null, ShellView.Review, null), pillHidden: false);
+        var connected = Rows(Capture(CaptureStates.Recording));
+
+        Assert.DoesNotContain(connecting, r => r.Command == TrayCommand.StartService);
+        Assert.DoesNotContain(connected, r => r.Command == TrayCommand.StartService);
+    }
+
+    [Fact]
+    public void StartingTheServiceRunsItFromBesideTheApp()
+    {
+        var started = new List<string>();
+        var folder = Path.Combine("C:", "Program Files", "ScreenTrail");
+
+        Assert.Null(CaptureServiceStart.Run(folder, _ => true, started.Add));
+        Assert.Equal([Path.Combine(folder, "ScreenTrail.Service.exe")], started);
+
+        // Not there, or Windows would not run it: said in words, and never thrown at the technician.
+        Assert.Equal(CaptureServiceStart.Failed, CaptureServiceStart.Run(folder, _ => false, started.Add));
+        Assert.Equal(CaptureServiceStart.Failed, CaptureServiceStart.Run(folder, _ => true, _ => throw new System.ComponentModel.Win32Exception(5)));
+        Assert.Single(started);
+    }
+
     [Theory]
     [InlineData(ServiceConnection.Unavailable, "Capture service not running")]
     [InlineData(ServiceConnection.Connecting, "Connecting to the capture service")]

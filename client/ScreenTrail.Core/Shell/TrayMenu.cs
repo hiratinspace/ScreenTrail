@@ -53,6 +53,9 @@ public enum TrayCommand
 
     /// <summary>Quit, finishing a session first if one is being captured.</summary>
     Quit,
+
+    /// <summary>The capture service, started again, as the main window's banner's Start does (review finding E-13).</summary>
+    StartService,
 }
 
 /// <summary>What kind of row it is, which is how the host draws it.</summary>
@@ -164,7 +167,14 @@ public static class TrayMenu
         {
             // Nothing can be sent, so every row that sends is disabled. The state line above them says
             // why once ("Capture service not running"); each row repeating it in brackets made four
-            // copies of one reason (review finding E-13, which replaces v0.6.12's per-row reasons).
+            // copies of one reason (review finding E-13, which replaces v0.6.12's per-row reasons). With the
+            // service not running, the first row offers to start it, as the main window's banner does;
+            // not while the first connection is still being made, when it is starting already.
+            if (snapshot.Connection != ServiceConnection.Connecting)
+            {
+                rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.StartService, CaptureServiceStart.RowText, null, Enabled: true));
+            }
+
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Pause, "&Pause", HudControls.Pause.Hotkey, Enabled: false));
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Stop, "&Stop and draft", HudControls.Stop.Hotkey, Enabled: false));
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Discard, DiscardText, null, Enabled: false));
