@@ -38,4 +38,18 @@ public sealed class SettingsPolishTests
         Assert.Null(tile.Attribute("Margin"));
         Assert.Contains(tile.Descendants(Wpf + "Button"), b => (string?)b.Attribute("Style") == "{StaticResource Button.Danger}");
     }
+
+    /// <summary>
+    /// Review finding B-45: a section heading has 32 above and 12 below, every one alike, and the first is
+    /// level with the nav (whose first item is 16 down). Activation's heading had its own 16 and 12.
+    /// </summary>
+    [Fact]
+    public void SectionHeadingsShareOneRhythm()
+    {
+        var pane = EmptyStateTests.View("Settings", "SettingsPane.xaml");
+        Assert.Equal("0,32,0,12", Setter(Style(pane, "Settings.Group"), "Margin"));
+        var headings = pane.Descendants(Wpf + "TextBlock").Where(t => (string?)t.Attribute("Style") == "{StaticResource Settings.Group}").ToList();
+        Assert.Equal("0,16,0,12", (string?)headings[0].Attribute("Margin"));
+        Assert.All(headings.Skip(1), h => Assert.Null(h.Attribute("Margin")));
+    }
 }

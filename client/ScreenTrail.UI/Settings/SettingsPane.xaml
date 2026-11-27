@@ -11,9 +11,11 @@
              xmlns:update="clr-namespace:ScreenTrail.UI.Update"
              AutomationProperties.Name="Settings">
     <UserControl.Resources>
-        <!-- A group of cards: more space above than below, so the heading belongs to what follows. -->
+        <!-- A group of tiles: more space above than below, so the heading belongs to what follows. Review
+             finding B-45: 32 above (layout.section-gap) and 12 below; the first section's heading is level
+             with the nav's first item instead. -->
         <Style x:Key="Settings.Group" BasedOn="{StaticResource Text.SectionHeading}" TargetType="TextBlock">
-            <Setter Property="Margin" Value="0,24,0,8" />
+            <Setter Property="Margin" Value="0,32,0,12" />
         </Style>
     </UserControl.Resources>
     <!-- Ctrl+S saves every changed section (Spec, Settings layout). Esc undoes only from the bar itself
