@@ -64,4 +64,26 @@ public sealed class SettingsPolishTests
         Assert.Equal(2, hints.Count);
         Assert.DoesNotContain(appearance.Descendants(Wpf + "TextBlock"), t => ((string?)t.Attribute("Margin"))?.StartsWith("24,", StringComparison.Ordinal) == true);
     }
+
+    /// <summary>
+    /// Review finding B-43: a connection check's answer leads with a 16 px glyph in its state's colour (a
+    /// check in state.published, a warning in state.danger), not a "✓" or "✗" in body colour, and wraps at
+    /// the tile's width rather than a literal 520.
+    /// </summary>
+    [Fact]
+    public void ACheckResultLeadsWithAGlyphInItsStatesColour()
+    {
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var pane = EmptyStateTests.View("Settings/Integrations", "IntegrationsPane.xaml");
+        var line = pane.Descendants(Wpf + "Grid").Single(g => (string?)g.Attribute(Xaml + "Name") == "CheckLine");
+        var glyph = line.Descendants(controls + "Glyph").Single();
+        var style = glyph.Descendants(Wpf + "Style").Single();
+        Assert.Equal("{StaticResource Icon}", (string?)style.Attribute("BasedOn"));
+        Assert.Equal("{DynamicResource Brush.state.danger}", Setter(style, "Foreground"));
+        var passed = style.Descendants(Wpf + "DataTrigger").Single();
+        Assert.Equal("{Binding CheckPassed}", (string?)passed.Attribute("Binding"));
+        Assert.Contains(passed.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Value") == "{DynamicResource Brush.state.published}");
+        Assert.DoesNotContain(line.Descendants(Wpf + "TextBlock"), t => t.Attribute("MaxWidth") is not null);
+        Assert.DoesNotContain(pane.Descendants(), e => (string?)e.Attribute("Text") == "{Binding CheckMark}");
+    }
 }

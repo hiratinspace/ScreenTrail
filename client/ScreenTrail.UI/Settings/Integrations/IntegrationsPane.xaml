@@ -55,15 +55,34 @@
                                 Command="{Binding CheckCommand}"
                                 AutomationProperties.Name="{Binding Title, StringFormat='Test connection to {0}'}" />
                     </StackPanel>
-                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal" Visibility="{Binding CheckVisibility}">
-                        <TextBlock Style="{StaticResource Text.Body}" Text="{Binding CheckMark}" />
-                        <TextBlock Margin="8,0,0,0"
+                    <!-- Review finding B-43: a 16 px check in state.published or a warning in state.danger, 8,
+                         then the words in Body, wrapping at the tile's width (not a 520 literal). -->
+                    <Grid x:Name="CheckLine" Margin="0,8,0,0" Visibility="{Binding CheckVisibility}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <controls:Glyph Grid.Column="0" VerticalAlignment="Top">
+                            <controls:Glyph.Style>
+                                <Style BasedOn="{StaticResource Icon}" TargetType="controls:Glyph">
+                                    <Setter Property="Text" Value="{DynamicResource Icon.Warning}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource Brush.state.danger}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CheckPassed}" Value="True">
+                                            <Setter Property="Text" Value="{DynamicResource Icon.Check}" />
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.state.published}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </controls:Glyph.Style>
+                        </controls:Glyph>
+                        <TextBlock Grid.Column="1"
+                                   Margin="8,0,0,0"
                                    Style="{StaticResource Text.Body}"
                                    TextWrapping="Wrap"
-                                   MaxWidth="520"
                                    Text="{Binding CheckResult}"
                                    controls:LiveRegion.Setting="Polite" />
-                    </StackPanel>
+                    </Grid>
                 </StackPanel>
             </Border>
         </DataTemplate>
