@@ -78,8 +78,13 @@ public sealed class SessionTimeline
     /// <summary>Spec §5 S3: 40 px of scrubber when collapsed.</summary>
     public const double CollapsedHeight = 40;
 
-    /// <summary>220 px expanded, which is about eight transcript lines.</summary>
-    public const double ExpandedHeight = 220;
+    /// <summary>
+    /// 176 px expanded: the 40 px header, five transcript lines of 24 and 16 of padding (review finding
+    /// A-20). At 220 the open timeline made the Review form scroll at 1280 x 800, around the note's own
+    /// scroller; at 176 the envelope, the note's 300 px floor, the timeline and two 16 px gaps fit the
+    /// 752 px pane.
+    /// </summary>
+    public const double ExpandedHeight = 176;
 
     /// <summary>
     /// How many click dots the strip will draw.

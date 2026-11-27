@@ -92,6 +92,28 @@ public sealed class EnvelopeLayoutTests
         Assert.Equal("4,0,0,0", (string?)cap.Attribute("Margin"));
     }
 
+    /// <summary>
+    /// Review finding A-20: 16 px between envelope and note and between note and timeline, and an open
+    /// timeline of 176 (40 header, five 24 px transcript lines, 16 padding), so at 1280 x 800 the envelope's
+    /// 222, the note's 300 floor and the timeline fit the 752 px pane with no form scroll bar beside the
+    /// note's.
+    /// </summary>
+    [Fact]
+    public void TheReviewPaneFitsAt800HighWithTheTimelineOpen()
+    {
+        Assert.Equal(40 + (5 * 24) + 16, ScreenTrail.Core.Review.SessionTimeline.ExpandedHeight);
+
+        var review = Load("Review", "ReviewPane.xaml");
+        Assert.Equal("0,0,0,16", (string?)Named(review, "EnvelopeCard").Attribute("Margin"));
+        Assert.Equal("0,16,0,0", (string?)Named(review, "TimelineRow").Attribute("Margin"));
+
+        var paneFloor = double.Parse(Token(Load("Theme", "Tokens.Common.g.xaml"), "Layout.pane-min-height"), System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(222 + 16 + paneFloor + 16 + ScreenTrail.Core.Review.SessionTimeline.ExpandedHeight <= 752);
+    }
+
+    private static XElement Named(XElement root, string name) =>
+        root.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
+
     internal static XElement Load(params string[] path) => XDocument.Load(Path.Combine([Ui(), .. path])).Root!;
 
     private static string Token(XElement dictionary, string key) =>

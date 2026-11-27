@@ -213,9 +213,10 @@
                     </Border>
                 </Grid>
 
-                <!-- After the panes in the tree, not before them: Tab follows the tree, and the timeline is the
+                <!-- 16 above it, layout.pane-gap, as under the envelope (review finding A-20).
+                     After the panes in the tree, not before them: Tab follows the tree, and the timeline is the
                      bottom row, so it comes last (ST-084 found it first, between Discard and the note). -->
-                <Border x:Name="TimelineRow" Grid.Row="2" Margin="0,12,0,0" SizeChanged="OnFormPartSizeChanged">
+                <Border x:Name="TimelineRow" Grid.Row="2" Margin="0,16,0,0" SizeChanged="OnFormPartSizeChanged">
                     <timeline:TimelineView DataContext="{Binding Timeline}" />
                 </Border>
             </Grid>

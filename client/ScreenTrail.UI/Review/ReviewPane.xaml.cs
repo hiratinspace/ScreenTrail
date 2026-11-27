@@ -28,6 +28,24 @@ public partial class ReviewPane : UserControl
         // Handled events too: whatever took focus may have marked it, and the form still has to show it.
         FormScroll.AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnFormFocus), handledEventsToo: true);
         NotePane.AddHandler(Keyboard.GotKeyboardFocusEvent, new KeyboardFocusChangedEventHandler(OnNoteFocus), handledEventsToo: true);
+        FormScroll.ScrollChanged += OnFormScrollChanged;
+    }
+
+    /// <summary>
+    /// Review finding A-20: two scroll bars side by side, the form's and the note's, read as an unfinished
+    /// layout. While the whole form scrolls (a short window, the picker out) the note's bar is hidden: the
+    /// note still scrolls with the wheel and the keyboard, and Tab brings what it reaches into view. When
+    /// the form fits again the note's bar comes back.
+    /// </summary>
+    private void OnFormScrollChanged(object sender, ScrollChangedEventArgs e)
+    {
+        // The note's and the transcript's scrollers raise this too, and bubble it here.
+        if (!ReferenceEquals(e.OriginalSource, FormScroll) || (e.ExtentHeightChange == 0 && e.ViewportHeightChange == 0))
+        {
+            return;
+        }
+
+        Note.NoteScroll.VerticalScrollBarVisibility = FormScroll.ScrollableHeight > 0.5 ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
     }
 
     /// <summary>
