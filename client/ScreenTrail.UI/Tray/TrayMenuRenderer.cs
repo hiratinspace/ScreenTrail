@@ -31,7 +31,7 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         // high-contrast dictionary maps each token to, which are always legible together.
         return name switch
         {
-            "bg.surface" or "bg.hover" or "bg.selected" => SystemColors.Window,
+            "bg.surface" or "bg.hover" or "bg.pressed" or "bg.selected" or "bg.danger" => SystemColors.Window,
             "text.primary" or "text.secondary" => SystemColors.WindowText,
             "text.muted" => SystemColors.GrayText,
             "accent.primary" => SystemColors.Highlight,
@@ -97,19 +97,39 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
             return;
         }
 
-        // The row under the pointer or the arrow keys: the selection tint with a 2 px accent edge just
-        // inside it (§3's focus ring, drawn inside as on a table row), so the keyboard's place is plain on
-        // a white menu where the tint alone is faint. High contrast: the Highlight fill.
-        var bounds = new Rectangle(2, 0, item.Width - 4, item.Height);
-        using var fill = new SolidBrush(HighContrast ? Token("accent.primary") : Token("bg.selected"));
-        e.Graphics.FillRectangle(fill, bounds);
-        if (!HighContrast)
-        {
-            var scale = e.ToolStrip?.DeviceDpi / 96f ?? 1f;
-            var width = Math.Max(2f, 2f * scale);
-            using var ring = new Pen(Token("accent.primary"), width) { Alignment = System.Drawing.Drawing2D.PenAlignment.Inset };
-            e.Graphics.DrawRectangle(ring, bounds);
-        }
+        // The row under the pointer or the arrow keys (design system 10.7, review finding C-T1): a filled
+        // rounded rectangle, radius 4, the full width inside the menu's padding, with no border; pressed
+        // is a step darker. Iris does not appear: a lavender tint inside a 2 px Iris box was the 2009 menu
+        // look. High contrast: the Highlight fill, as in every other Windows menu.
+        var scale = Scale(e.ToolStrip);
+        using var fill = new SolidBrush(BackgroundColour(item));
+        using var shape = Rounded(new RectangleF(0, 0, item.Width, item.Height), 4 * scale);
+        var smoothing = e.Graphics.SmoothingMode;
+        e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+        e.Graphics.FillPath(fill, shape);
+        e.Graphics.SmoothingMode = smoothing;
+    }
+
+    /// <summary>The fill under a row the pointer or the keyboard is on: hover, pressed, or Highlight in high contrast.</summary>
+    internal static Color BackgroundColour(Forms.ToolStripItem item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return HighContrast ? Token("accent.primary") : Token(item.Pressed ? "bg.pressed" : "bg.hover");
+    }
+
+    /// <summary>The menu's scale: its DPI over 96, since every pixel value in design system 10.7 is at 96.</summary>
+    internal static float Scale(Forms.ToolStrip? strip) => (strip?.DeviceDpi ?? 96) / 96f;
+
+    private static System.Drawing.Drawing2D.GraphicsPath Rounded(RectangleF bounds, float radius)
+    {
+        var path = new System.Drawing.Drawing2D.GraphicsPath();
+        var d = Math.Min(radius * 2, Math.Min(bounds.Width, bounds.Height));
+        path.AddArc(bounds.Left, bounds.Top, d, d, 180, 90);
+        path.AddArc(bounds.Right - d, bounds.Top, d, d, 270, 90);
+        path.AddArc(bounds.Right - d, bounds.Bottom - d, d, d, 0, 90);
+        path.AddArc(bounds.Left, bounds.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        return path;
     }
 
     protected override void OnRenderItemText(Forms.ToolStripItemTextRenderEventArgs e)
