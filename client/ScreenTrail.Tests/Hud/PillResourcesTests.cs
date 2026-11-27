@@ -118,6 +118,25 @@ public sealed partial class PillResourcesTests
     private static partial Regex StaticLookup();
 
     /// <summary>
+    /// Review finding C-H8: the pill's buttons draw no outline in any state; hover and pressed are fills,
+    /// pressed is never Iris, and disabled dims the glyph.
+    /// </summary>
+    [Fact]
+    public void ThePillsButtonsChangeTheirFillAndNeverDrawARing()
+    {
+        var components = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", "Components.xaml"));
+        var style = components.Root!.Elements().Single(e => e.Name.LocalName == "Style" && (string?)e.Attribute(X + "Key") == "Hud.IconButton");
+
+        Assert.DoesNotContain(style.Descendants(), e => (string?)e.Attribute("Property") == "BorderBrush" || e.Attribute("BorderBrush") is not null);
+        Assert.Contains(style.Descendants(), e => (string?)e.Attribute("Property") == "BorderThickness" && (string?)e.Attribute("Value") == "0");
+        var triggers = style.Descendants().Where(e => e.Name.LocalName == "Trigger").ToDictionary(t => $"{(string?)t.Attribute("Property")}={(string?)t.Attribute("Value")}", t => t.Elements().ToList());
+        Assert.Contains(triggers["IsMouseOver=True"], e => (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.hover}");
+        Assert.Contains(triggers["IsPressed=True"], e => (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.pressed}");
+        Assert.Contains(triggers["IsEnabled=False"], e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.text.disabled}");
+        Assert.DoesNotContain(style.Descendants(), e => ((string?)e.Attribute("Value") ?? string.Empty).Contains("shell.accent", StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Review finding C-H2: a long state word trims with an ellipsis and keeps its whole words in the
     /// tooltip, so the pill stays a pill; and it is never narrower than 240.
     /// </summary>

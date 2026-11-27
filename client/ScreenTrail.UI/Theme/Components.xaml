@@ -2040,7 +2040,10 @@
     </Style>
 
     <!-- A round 32 px icon button on the pill: Mark, Pause, Stop and the chevron. Named and tool-tipped by
-         the caller (name and hotkey, "Pause · Ctrl+Alt+P"). -->
+         the caller (name and hotkey, "Pause · Ctrl+Alt+P"). No outline in any state (review finding C-H8,
+         design system 10.10): rings appearing round a circle on hover is the default-template look, and Iris
+         on press broke the brand's one job. Hover fills shell.hover, pressed shell.pressed, keyboard focus
+         draws FocusRing.Frame outside, disabled dims the glyph. -->
     <Style x:Key="Hud.IconButton" TargetType="Button">
         <Setter Property="Width" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
@@ -2049,8 +2052,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.bg}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.bg}" />
-        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing.Frame}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
@@ -2059,8 +2061,6 @@
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{DynamicResource Radius.pill}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter Margin="{TemplateBinding Padding}"
@@ -2073,11 +2073,12 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.muted}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.shell.accent}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
             </Trigger>
         </Style.Triggers>
     </Style>
