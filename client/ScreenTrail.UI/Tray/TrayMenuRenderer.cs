@@ -80,9 +80,21 @@ internal sealed class TrayMenuRenderer : Forms.ToolStripRenderer
         // Flat: the margin is the menu's own fill (§2.0, no gradients).
     }
 
+    /// <summary>
+    /// Whether Windows rounds the menu and draws its edge and shadow (Windows 11, build 22000 and up), as
+    /// TrayIconHost asks it to (review finding C-T2). Windows 10 ignores the request: the menu stays square
+    /// with its system drop shadow and the 1 px edge drawn here.
+    /// </summary>
+    internal static bool SystemRoundsTheMenu => OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000);
+
     protected override void OnRenderToolStripBorder(Forms.ToolStripRenderEventArgs e)
     {
         ArgumentNullException.ThrowIfNull(e);
+        if (SystemRoundsTheMenu)
+        {
+            return;
+        }
+
         using var edge = new Pen(Token("border.strong"));
         var bounds = new Rectangle(Point.Empty, e.ToolStrip.Size);
         e.Graphics.DrawRectangle(edge, bounds.X, bounds.Y, bounds.Width - 1, bounds.Height - 1);

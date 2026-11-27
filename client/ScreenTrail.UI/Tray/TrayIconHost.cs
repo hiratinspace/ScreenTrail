@@ -78,7 +78,11 @@ public sealed class TrayIconHost : IDisposable
         // and every time it opens, since only then is its DPI known (ST-084: a fixed padding worked out at
         // construction came to 25.6 px on the laptop's scaled screen). The font and the state line's glyph
         // are taken again on opening too, so a theme changed since the last time is the one drawn.
-        _menu.HandleCreated += (_, _) => FitItems(_menu);
+        _menu.HandleCreated += (_, _) =>
+        {
+            RoundCorners(_menu.Handle);
+            FitItems(_menu);
+        };
         _menu.Opening += (_, _) =>
         {
             Restyle();
@@ -419,10 +423,36 @@ public sealed class TrayIconHost : IDisposable
         FitItems(_menu);
     }
 
+    /// <summary>
+    /// Asks Windows 11 for its 8 px menu corners and the system shadow and edge on the menu's window
+    /// (design system 10.7, review finding C-T2): every other Windows 11 menu has them, and a square box
+    /// with a drawn 1 px line was the stock look. Windows 10 does not know the attribute and ignores it.
+    /// </summary>
+    private static void RoundCorners(IntPtr handle)
+    {
+        if (!TrayMenuRenderer.SystemRoundsTheMenu)
+        {
+            return;
+        }
+
+        var round = DwmwcpRound;
+        _ = DwmSetWindowAttribute(handle, DwmwaWindowCornerPreference, ref round, sizeof(int));
+    }
+
+    private const int DwmwaWindowCornerPreference = 33;
+    private const int DwmwcpRound = 2;
+
+    [System.Runtime.InteropServices.DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+
     /// <param name="deviceDpi">The DPI the menu is drawn at; a test passes a scaled one the hosted runner's screen does not have.</param>
     internal void FitItems(Forms.ContextMenuStrip menu, int deviceDpi)
     {
         ArgumentNullException.ThrowIfNull(menu);
+
+        // 4 on every side inside the menu (design system 10.7), so the rounded hover row sits clear of the edge.
+        var inset = (int)Math.Round(4 * deviceDpi / 96.0);
+        menu.Padding = new Forms.Padding(inset);
         var floor = (int)Math.Ceiling(28 * deviceDpi / 96.0);
         var items = menu.Items.OfType<Forms.ToolStripMenuItem>().ToList();
         foreach (var item in items)
