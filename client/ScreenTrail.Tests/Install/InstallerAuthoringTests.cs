@@ -102,6 +102,75 @@ public sealed class InstallerAuthoringTests
         Assert.Contains(Package().Descendants(Wix + "ComponentRef"), r => (string?)r.Attribute("Id") == component);
     }
 
+    /// <summary>
+    /// Review findings C-I1, C-I2 and D-11: one publisher everywhere Windows names one, the executables'
+    /// Company, the MSI's and the bundle's Manufacturer, so the owner's legal name (C-I3) goes in once and
+    /// they cannot drift apart; and the programs carry a product name and a title, not "ScreenTrail.UI".
+    /// </summary>
+    [Fact]
+    public void ThePublisherIsTheSameEverywhereWindowsNamesIt()
+    {
+        var props = XDocument.Load(Repo.File("client", "Directory.Build.props"));
+        string Prop(XDocument d, string name) => d.Descendants(name).Single().Value;
+        var publisher = Prop(props, "ScreenTrailPublisher");
+        Assert.Equal("$(ScreenTrailPublisher)", Prop(props, "Company"));
+        Assert.Contains("$(ScreenTrailPublisher)", Prop(props, "Copyright"), StringComparison.Ordinal);
+        Assert.Equal("ScreenTrail", Prop(props, "Product"));
+
+        Assert.Equal(publisher, (string?)Package().Root!.Element(Wix + "Package")!.Attribute("Manufacturer"));
+        Assert.Equal(publisher, (string?)Bundle().Root!.Element(Wix + "Bundle")!.Attribute("Manufacturer"));
+
+        Assert.Equal("ScreenTrail", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.UI", "ScreenTrail.UI.csproj")), "AssemblyTitle"));
+        Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
+    }
+
+    /// <summary>
+    /// Review finding C-I5: the setup program has a window of its own, with the brand's mark, no licence
+    /// link to a licence that does not exist, and a finish page whose Launch starts the installed UI.
+    /// </summary>
+    [Fact]
+    public void TheSetupProgramHasItsOwnWindowWithLaunch()
+    {
+        XNamespace bal = "http://wixtoolset.org/schemas/v4/wxs/bal";
+        var standard = Assert.Single(Bundle().Descendants(bal + "WixStandardBootstrapperApplication"));
+        Assert.Empty(Bundle().Descendants(bal + "WixInternalUIBootstrapperApplication"));
+        Assert.Equal("hyperlinkSidebarLicense", (string?)standard.Attribute("Theme"));
+        // Present and empty: WiX requires it for the hyperlink themes, and empty shows no licence link.
+        Assert.Equal(string.Empty, (string?)standard.Attribute("LicenseUrl"));
+        Assert.Null(standard.Attribute("LicenseFile"));
+        Assert.Equal("yes", (string?)standard.Attribute("SuppressOptionsUI"));
+        Assert.Equal($@"[ProgramFiles64Folder]ScreenTrail\{InstalledFootprint.UiExecutable}", (string?)standard.Attribute("LaunchTarget"));
+
+        var logo = (string)standard.Attribute("LogoSideFile")!;
+        Assert.True(File.Exists(Repo.File([.. logo.Split('\\')])), "the side logo is in the repository");
+    }
+
+    /// <summary>Review findings C-T6 and D-10: the Start menu shortcut carries the identity the UI's toasts use.</summary>
+    [Fact]
+    public void TheShortcutCarriesTheAppsToastIdentity()
+    {
+        var shortcut = Package().Descendants(Wix + "Shortcut").Single(s => (string?)s.Attribute("Id") == "UiShortcut");
+        var id = Assert.Single(shortcut.Elements(Wix + "ShortcutProperty"));
+        Assert.Equal("System.AppUserModel.ID", (string?)id.Attribute("Key"));
+        Assert.Equal(ScreenTrail.Core.Notifications.ToastContent.AppId, (string?)id.Attribute("Value"));
+        Assert.Contains("WindowsToasts.Identify()", File.ReadAllText(Repo.File("client", "ScreenTrail.UI", "App.xaml.cs")), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Review finding C-I1: Installed apps says what the product is, and Modify stays off. No link points
+    /// at a placeholder address: a support link in a fleet's Installed apps that goes nowhere is worse than
+    /// none.
+    /// </summary>
+    [Fact]
+    public void InstalledAppsSaysWhatItIsAndLinksNowhereFake()
+    {
+        var properties = Package().Descendants(Wix + "Property").ToDictionary(p => (string)p.Attribute("Id")!, p => (string?)p.Attribute("Value"));
+        Assert.Equal("Session notes from remote support", properties["ARPCOMMENTS"]);
+        Assert.Equal("1", properties["ARPNOMODIFY"]);
+        var installer = File.ReadAllText(Repo.File("installer", "Package.wxs")) + File.ReadAllText(Repo.File("installer", "Bundle.wxs"));
+        Assert.DoesNotContain(".example", installer, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void UserDataIsRemovedOnUninstallAndNeverDuringAnUpgrade()
     {

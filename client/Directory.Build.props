@@ -5,4 +5,16 @@
     <!-- Windows-only projects compile on macOS/Linux dev boxes; they only run on Windows. -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
+
+  <!-- Review findings C-I2 and D-11: what Windows names the programs by (Task Manager, Startup apps, the
+       notification settings list). Without these the SDK fills in the assembly name, "ScreenTrail.UI".
+       ScreenTrailPublisher is the company: the owner sets it to the legal name on the code-signing
+       certificate (C-I3), and it must stay the same as the Manufacturer in installer/Package.wxs and
+       installer/Bundle.wxs, which InstallerAuthoringTests holds. Each executable sets its AssemblyTitle. -->
+  <PropertyGroup>
+    <ScreenTrailPublisher>ScreenTrail</ScreenTrailPublisher>
+    <Product>ScreenTrail</Product>
+    <Company>$(ScreenTrailPublisher)</Company>
+    <Copyright>© 2026 $(ScreenTrailPublisher)</Copyright>
+  </PropertyGroup>
 </Project>

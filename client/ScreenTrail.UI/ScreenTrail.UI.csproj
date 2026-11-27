@@ -2,7 +2,9 @@
   <!-- WPF UI process: shell, tray, HUD, Review, Settings, Onboarding (MVVM, CommunityToolkit.Mvvm). -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <!-- The Windows SDK projections, for Windows.UI.Notifications: real toasts (review findings C-T6, D-10)
+         through Windows' own API, as the service takes Windows.Media.Ocr. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <!-- For NotifyIcon only (ST-071, ST-085). WPF has no tray icon of its own, and INV-4 makes one
          non-negotiable: the tray is the indicator that is on screen even when the HUD is dismissed.
@@ -10,6 +12,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>ScreenTrail.UI</RootNamespace>
     <AssemblyName>ScreenTrail.UI</AssemblyName>
+    <!-- The file description Windows shows for this program (review finding D-11). -->
+    <AssemblyTitle>ScreenTrail</AssemblyTitle>
     <!-- ST-012 (ADR-0003): the runtime loads no startup hook into this process, whatever the
          environment asks. RunningHonestly's check runs at start-up, after a hook would already have
          run, so it cannot be what keeps one out. ProcessStartupTests pins this for both processes. -->

@@ -262,6 +262,13 @@ public sealed class TrayIconHost : IDisposable
             return;
         }
 
+        // Review findings C-T6 and D-10: a real toast, titled by its event with one named button, where
+        // Windows will show one; otherwise the balloon below, as before.
+        if (WindowsToasts.TryShow(notice, _dispatcher, action => NotificationClicked?.Invoke(action)))
+        {
+            return;
+        }
+
         _pending = notice.Action;
         // The event as the title and the body says what a click does (review finding E-14); the icon
         // marks the two that need a look.

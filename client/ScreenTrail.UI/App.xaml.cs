@@ -22,6 +22,10 @@ public partial class App : Application, IDisposable
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Review findings C-T6 and D-10: the app's identity to Windows, before any window or toast, the same
+        // one the Start menu shortcut carries.
+        Tray.WindowsToasts.Identify();
         ToolTipTiming.Apply();
 
         // The product was ScreenTail until 2026-11-17: %LOCALAPPDATA%\ScreenTail comes across before
