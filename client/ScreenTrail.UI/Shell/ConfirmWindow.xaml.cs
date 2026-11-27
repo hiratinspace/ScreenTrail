@@ -59,9 +59,10 @@ public partial class ConfirmWindow : Window
                 Cancel.Style = primary;
             }
 
-            if (FindResource("Banner.Warning") is Style banner)
+            if (FindResource("Banner") is Style banner)
             {
                 ConsequenceBox.Style = banner;
+                Theme.Banner.SetTone(ConsequenceBox, "Warning");
                 ConsequenceBox.Margin = new Thickness(0, 12, 0, 0);
             }
         }

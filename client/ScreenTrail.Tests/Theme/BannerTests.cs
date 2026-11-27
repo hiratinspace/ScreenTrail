@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace ScreenTrail.Tests.Theme;
@@ -6,7 +7,7 @@ namespace ScreenTrail.Tests.Theme;
 /// One banner with a tone and a glyph slot (design system 10.6; review findings A-11, A-12, B-26): every
 /// screen used to improvise its own glyph, a Unicode sign in the text face or none at all.
 /// </summary>
-public sealed class BannerTests
+public sealed partial class BannerTests
 {
     private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
     private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
@@ -41,7 +42,20 @@ public sealed class BannerTests
         {
             Assert.DoesNotContain(components.Elements(Wpf + "Style"), s => (string?)s.Attribute(X + "Key") == retired);
         }
+
+        // Nor does anything still ask for one by name: the notice dialog looked up Banner.Warning from code
+        // after the style was gone, and every one-button notice threw on Windows.
+        var ui = Path.Combine(Root(), "client", "ScreenTrail.UI");
+        var askers = Directory.EnumerateFiles(ui, "*.*", SearchOption.AllDirectories)
+            .Where(f => (f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".xaml", StringComparison.Ordinal))
+                && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => Retired().IsMatch(File.ReadAllText(f)))
+            .Select(f => Path.GetRelativePath(ui, f));
+        Assert.Empty(askers);
     }
+
+    [GeneratedRegex(@"\bBanner\.(?:Info|Warning|Error)\b")]
+    private static partial Regex Retired();
 
     [Fact]
     public void NoViewDrawsAWarningOrInfoSignInTheTextFace()
