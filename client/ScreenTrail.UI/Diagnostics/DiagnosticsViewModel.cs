@@ -5,7 +5,8 @@ using CoreShell = ScreenTrail.Core.Shell;
 namespace ScreenTrail.UI.Diagnostics;
 
 /// <param name="Label">The left column. Fixed wording, never derived from anything captured.</param>
-public sealed record DiagnosticsRow(string Label, string Value);
+/// <param name="Kind">What the value is (review finding B-54): words, a count in tabular figures, or an identifier in mono.</param>
+public sealed record DiagnosticsRow(string Label, string Value, CoreShell.DiagnosticsValue Kind = CoreShell.DiagnosticsValue.Words);
 
 /// <summary>
 /// The "What's being captured right now?" panel (ST-071, Spec §5 S1).
@@ -76,7 +77,7 @@ public sealed partial class DiagnosticsViewModel : ObservableObject
     }
 
     private static IReadOnlyList<DiagnosticsRow> RowsOf(CoreShell.DiagnosticsPanel panel) =>
-        [.. panel.Rows.Select(line => new DiagnosticsRow(line.Label, line.Value))];
+        [.. panel.Rows.Select(line => new DiagnosticsRow(line.Label, line.Value, line.Kind))];
 
     private static System.Windows.Visibility VisibilityOf(CoreShell.DiagnosticsPanel panel) =>
         panel.LocalOnly == true ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;

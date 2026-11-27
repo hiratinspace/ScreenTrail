@@ -222,6 +222,27 @@ public sealed class TrayAndDiagnosticsTests
         Assert.Equal("Paused: a password field has focus", suppressed.Headline);
     }
 
+    /// <summary>
+    /// Review finding B-54: counts and percentages are drawn in tabular figures and the policy and client
+    /// versions in mono, so each row says what its value is; the words stay words, and an unanswered panel
+    /// has nothing but words.
+    /// </summary>
+    [Fact]
+    public void EachValueSaysWhatItIsSoThePanelDrawsItInTheRightFace()
+    {
+        var rows = DiagnosticsPanel.From(Sample()).Rows.ToDictionary(r => r.Label, r => r.Kind);
+
+        Assert.Equal(DiagnosticsValue.Words, rows["Scope"]);
+        Assert.Equal(DiagnosticsValue.Words, rows["Microphone"]);
+        Assert.Equal(DiagnosticsValue.Words, rows["Local-only"]);
+        Assert.Equal(DiagnosticsValue.Identifier, rows["Policy"]);
+        Assert.Equal(DiagnosticsValue.Identifier, rows[DiagnosticsPanel.Version]);
+        Assert.Equal(DiagnosticsValue.Number, rows[DiagnosticsPanel.Cpu]);
+        Assert.Equal(DiagnosticsValue.Number, rows[DiagnosticsPanel.Memory]);
+        Assert.Equal(DiagnosticsValue.Number, rows[DiagnosticsPanel.ScreenshotsDropped]);
+        Assert.All(DiagnosticsPanel.Unanswered.Rows, r => Assert.Equal(DiagnosticsValue.Words, r.Kind));
+    }
+
     private static Diagnostics Sample() => new(
         Scope: "Not capturing: outlook",
         Microphone: "Headset Microphone (Realtek)",

@@ -5,7 +5,20 @@ using ScreenTrail.Shared.Ipc;
 namespace ScreenTrail.Core.Shell;
 
 /// <param name="Label">The left column. Fixed wording, never derived from anything captured.</param>
-public sealed record DiagnosticsLine(string Label, string Value);
+/// <param name="Kind">What the value is, which picks its face on screen (review finding B-54).</param>
+public sealed record DiagnosticsLine(string Label, string Value, DiagnosticsValue Kind = DiagnosticsValue.Words);
+
+/// <summary>
+/// What a diagnostics value is, so the panel draws it in the face that reads it best (review finding B-54):
+/// counts and percentages in tabular figures, so a changing count does not shift, and the policy and
+/// client versions in the mono face a support person reads them back in.
+/// </summary>
+public enum DiagnosticsValue
+{
+    Words,
+    Number,
+    Identifier,
+}
 
 /// <summary>What the diagnostics panel's headline says about capture, drawn with a glyph beside its words.</summary>
 public enum DiagnosticsState
@@ -224,16 +237,16 @@ public sealed class DiagnosticsPanel
     [
         new("Microphone", d.Microphone ?? "none"),
         new(PrivacyPause, d.Suppression ?? "no"),
-        new(NotYetMasked, d.RedactionBacklog.ToString(CultureInfo.InvariantCulture)),
-        new(ScreenshotsDropped, d.FramesDropped.ToString(CultureInfo.InvariantCulture)),
-        new(TypingIgnored, d.KeystrokesDropped.ToString(CultureInfo.InvariantCulture)),
-        new(BlockedUploads, d.EgressBlocked.ToString(CultureInfo.InvariantCulture)),
-        new(HookFallbacks, HookFallbacksValue(d.NameHookRefusals)),
+        new(NotYetMasked, d.RedactionBacklog.ToString(CultureInfo.InvariantCulture), DiagnosticsValue.Number),
+        new(ScreenshotsDropped, d.FramesDropped.ToString(CultureInfo.InvariantCulture), DiagnosticsValue.Number),
+        new(TypingIgnored, d.KeystrokesDropped.ToString(CultureInfo.InvariantCulture), DiagnosticsValue.Number),
+        new(BlockedUploads, d.EgressBlocked.ToString(CultureInfo.InvariantCulture), DiagnosticsValue.Number),
+        new(HookFallbacks, HookFallbacksValue(d.NameHookRefusals), DiagnosticsValue.Number),
         new("Local-only", d.LocalOnly ? "yes" : "no"),
-        new("Policy", d.PolicyVersion),
-        new(Cpu, CpuValue(d.CpuPercent)),
-        new(Memory, MemoryValue(d.WorkingSetBytes)),
-        new(Version, d.ClientVersion),
+        new("Policy", d.PolicyVersion, DiagnosticsValue.Identifier),
+        new(Cpu, CpuValue(d.CpuPercent), DiagnosticsValue.Number),
+        new(Memory, MemoryValue(d.WorkingSetBytes), DiagnosticsValue.Number),
+        new(Version, d.ClientVersion, DiagnosticsValue.Identifier),
     ];
 
     /// <summary>The count, unknown when the service could not know it, and what it means when it is not 0.</summary>

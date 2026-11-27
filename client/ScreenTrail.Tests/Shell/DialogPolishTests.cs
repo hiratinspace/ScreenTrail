@@ -83,4 +83,27 @@ public sealed class DialogPolishTests
         Assert.DoesNotContain("Banner.SetTone", code, StringComparison.Ordinal);
         Assert.Contains("words.Action is null ? \"Brush.state.paused\"", code, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// Review finding B-54: a diagnostics value is Body 14 in text.primary beside its Label, tabular for a
+    /// count and mono for an identifier; the label column's width is a token; capturing is the drawn 8 px
+    /// recording dot, not a "●" in the UI face; the status card is the Info banner.
+    /// </summary>
+    [Fact]
+    public void DiagnosticsValuesReadFirstAndTheRecordingMarkIsDrawn()
+    {
+        var panel = EmptyStateTests.View("Diagnostics", "DiagnosticsWindow.xaml");
+        var row = panel.Descendants(Wpf + "DataTemplate").Single();
+        var value = Named(row, "Value");
+        Assert.Equal("{StaticResource Text.Body}", (string?)value.Attribute("Style"));
+        Assert.Null(value.Attribute("FontSize"));
+        Assert.Contains(row.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Width") == "{DynamicResource Layout.diagnostics-label-width}" && (string?)t.Attribute("Style") == "{StaticResource Text.Label}");
+        var faces = row.Descendants(Wpf + "Setter").Where(s => (string?)s.Attribute("Property") == "Style").Select(s => (string?)s.Attribute("Value")).ToList();
+        Assert.Equal(["{StaticResource Text.Numeric}", "{StaticResource Text.Mono}"], faces);
+
+        Assert.DoesNotContain(panel.Descendants().Attributes(), a => a.Value.Contains('●', StringComparison.Ordinal));
+        var dot = Named(panel, "RecordingMark");
+        Assert.Equal("{StaticResource StateDot}", (string?)dot.Descendants(Wpf + "Style").Single().Attribute("BasedOn"));
+        Assert.DoesNotContain(panel.Descendants(Wpf + "ColumnDefinition"), c => (string?)c.Attribute("Width") == "128");
+    }
 }
