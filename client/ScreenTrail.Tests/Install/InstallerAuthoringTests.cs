@@ -102,6 +102,28 @@ public sealed class InstallerAuthoringTests
         Assert.Contains(Package().Descendants(Wix + "ComponentRef"), r => (string?)r.Attribute("Id") == component);
     }
 
+    /// <summary>
+    /// Review findings C-I1, C-I2 and D-11: one publisher everywhere Windows names one, the executables'
+    /// Company, the MSI's and the bundle's Manufacturer, so the owner's legal name (C-I3) goes in once and
+    /// they cannot drift apart; and the programs carry a product name and a title, not "ScreenTrail.UI".
+    /// </summary>
+    [Fact]
+    public void ThePublisherIsTheSameEverywhereWindowsNamesIt()
+    {
+        var props = XDocument.Load(Repo.File("client", "Directory.Build.props"));
+        string Prop(XDocument d, string name) => d.Descendants(name).Single().Value;
+        var publisher = Prop(props, "ScreenTrailPublisher");
+        Assert.Equal("$(ScreenTrailPublisher)", Prop(props, "Company"));
+        Assert.Contains("$(ScreenTrailPublisher)", Prop(props, "Copyright"), StringComparison.Ordinal);
+        Assert.Equal("ScreenTrail", Prop(props, "Product"));
+
+        Assert.Equal(publisher, (string?)Package().Root!.Element(Wix + "Package")!.Attribute("Manufacturer"));
+        Assert.Equal(publisher, (string?)Bundle().Root!.Element(Wix + "Bundle")!.Attribute("Manufacturer"));
+
+        Assert.Equal("ScreenTrail", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.UI", "ScreenTrail.UI.csproj")), "AssemblyTitle"));
+        Assert.Equal("ScreenTrail capture service", Prop(XDocument.Load(Repo.File("client", "ScreenTrail.Service", "ScreenTrail.Service.csproj")), "AssemblyTitle"));
+    }
+
     [Fact]
     public void UserDataIsRemovedOnUninstallAndNeverDuringAnUpgrade()
     {
