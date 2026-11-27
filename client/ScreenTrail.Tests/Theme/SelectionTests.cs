@@ -131,3 +131,30 @@ public sealed class RailGroupHeaderTests
         Assert.Equal("{Binding Chevron}", (string?)parts[2].Attribute("Text"));
     }
 }
+
+/// <summary>The rail's foot nav (design system 10.4, review finding A-07).</summary>
+public sealed class FootNavTests
+{
+    private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    [Fact]
+    public void AFootItemIsANavRowWithAPressedState()
+    {
+        var item = ChoiceStatesTests.Components().Elements(Wpf + "Style").Single(s => (string?)s.Attribute(X + "Key") == "Rail.FootItem");
+        Assert.Contains(item.Elements(Wpf + "Setter"), s => (string?)s.Attribute("Property") == "MinHeight" && (string?)s.Attribute("Value") == "{DynamicResource Layout.nav-row-height}");
+        var pressed = item.Element(Wpf + "Style.Triggers")!.Elements(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsPressed");
+        Assert.Equal("{DynamicResource Brush.shell.pressed}", (string?)pressed.Element(Wpf + "Setter")!.Attribute("Value"));
+    }
+
+    [Fact]
+    public void TheFootIsInsetEvenlyAndItsItemsAreTwoApart()
+    {
+        var shell = EmptyStateTests.View("Shell", "ShellWindow.xaml");
+        var items = shell.Descendants(Wpf + "Button").Where(b => ((string?)b.Attribute("Style"))?.Contains("Foot", StringComparison.Ordinal) == true || (string?)b.Attribute("Style") == "{StaticResource Rail.FootItem}").ToList();
+        Assert.Equal(3, items.Count);
+        Assert.Null(items[0].Attribute("Margin"));
+        Assert.All(items.Skip(1), b => Assert.Equal("0,2,0,0", (string?)b.Attribute("Margin")));
+        Assert.Equal("8", (string?)items[0].Parent!.Parent!.Attribute("Padding"));
+    }
+}

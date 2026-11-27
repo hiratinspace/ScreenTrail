@@ -2663,7 +2663,9 @@
          selection bar and Body strong in text.primary, so it is shape and not colour alone, and no longer
          the same grey as hover. -->
     <Style x:Key="Rail.FootItem" TargetType="Button">
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.row-height}" />
+        <!-- A nav row (design system 10.4, review finding A-07): 32 high from its own token, not the table's
+             row height, so the foot does not grow when rows do. -->
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.nav-row-height}" />
         <Setter Property="Padding" Value="12,0" />
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.ui}" />
@@ -2702,6 +2704,9 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />

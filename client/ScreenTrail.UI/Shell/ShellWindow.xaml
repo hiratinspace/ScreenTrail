@@ -141,9 +141,10 @@
             <history:InboxRailView x:Name="Rail" Grid.Row="1" DataContext="{Binding Rail}" />
 
             <!-- The foot: every session in a table (select several to discard them, or mark one as
-                 published), Settings and the diagnostics panel. -->
+                 published), Settings and the diagnostics panel. 8 in on every side, so a selected item's fill
+                 sits centred in the rail, and its items 2 apart (review finding A-07). -->
             <Border Grid.Row="2"
-                    Padding="8,8,16,12"
+                    Padding="8"
                     BorderBrush="{DynamicResource Brush.shell.line}"
                     BorderThickness="0,1,0,0">
                 <StackPanel>
@@ -157,7 +158,8 @@
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="All sessions" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource Foot.Settings}"
+                    <Button Margin="0,2,0,0"
+                            Style="{StaticResource Foot.Settings}"
                             Command="{Binding NavigateCommand}"
                             CommandParameter="Settings"
                             AutomationProperties.Name="Settings">
@@ -166,7 +168,8 @@
                             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" Text="Settings" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource Rail.FootItem}"
+                    <Button Margin="0,2,0,0"
+                            Style="{StaticResource Rail.FootItem}"
                             Command="{Binding OpenDiagnosticsCommand}"
                             AutomationProperties.Name="Diagnostics"
                             AutomationProperties.HelpText="What's being captured, in a window of its own.">
