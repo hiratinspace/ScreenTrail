@@ -170,7 +170,7 @@ public sealed class StopTimeTests : IAsyncDisposable
             var before = await DiagnosticsAsync(service, ct);
             microphone = before.Microphone is not null;
             Assert.True(service.Pipe.State.State == CaptureStates.Recording, $"the session was {service.Pipe.State.State} ({service.Pipe.State.Reason}) when Windows was to ask, not recording\n{service.Log}");
-            Assert.True(before.Scope.StartsWith("Capturing", StringComparison.Ordinal), $"the test window was not in scope at the ask\n{service.Log}");
+            Assert.True(before.Scope.StartsWith("Recording", StringComparison.Ordinal), $"the test window was not in scope at the ask\n{service.Log}");
             Assert.True(marks > 0, $"no moment was marked in {Recording.TotalSeconds:F0} s\n{service.Log}");
             Assert.True(service.Says("Input hooks installed: True"), $"the input hooks were not in during the recording\n{service.Log}");
             if (speech)
@@ -622,7 +622,7 @@ public sealed class StopTimeTests : IAsyncDisposable
     {
         var clock = Stopwatch.StartNew();
         string scope;
-        while (!(scope = (await DiagnosticsAsync(service, ct)).Scope).StartsWith("Capturing", StringComparison.Ordinal)
+        while (!(scope = (await DiagnosticsAsync(service, ct)).Scope).StartsWith("Recording", StringComparison.Ordinal)
             && clock.Elapsed < TimeSpan.FromSeconds(10))
         {
             if (!window.IsForeground)
@@ -633,7 +633,7 @@ public sealed class StopTimeTests : IAsyncDisposable
             await Task.Delay(100, ct);
         }
 
-        Assert.True(scope.StartsWith("Capturing", StringComparison.Ordinal), $"the service never took the test window for a remote tool in 10 s\n{service.Log}");
+        Assert.True(scope.StartsWith("Recording", StringComparison.Ordinal), $"the service never took the test window for a remote tool in 10 s\n{service.Log}");
     }
 
     /// <summary>

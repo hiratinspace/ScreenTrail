@@ -116,6 +116,25 @@ public sealed class ScopeEnforcementTests
         Assert.Equal(CaptureScope.Excluded, decision.Scope);
     }
 
+    /// <summary>
+    /// The end-to-end driver and the laptop's stop-time tests wait for the service's scope line to start
+    /// with "Recording" before they go on. ST-133 renamed "Capturing" to "Recording" here and the driver
+    /// waited 30 s for a word that was gone (CI, End to end, loop-05), so the word is held in both places.
+    /// </summary>
+    [Fact]
+    public void AnInScopeLineStartsWithTheWordTheDriversWaitFor()
+    {
+        Assert.StartsWith("Recording: ", new ScopePolicy(Registry).Decide(Window("mstsc", handle: 7)).Reason, StringComparison.Ordinal);
+
+        var root = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..");
+        foreach (var driver in new[] { "client/ScreenTrail.E2E/Loop.cs", "client/ScreenTrail.Tests.Windows/Host/StopTimeTests.cs" })
+        {
+            var source = File.ReadAllText(Path.Combine(root, driver));
+            Assert.Contains("StartsWith(\"Recording\", StringComparison.Ordinal)", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("StartsWith(\"Capturing\"", source, StringComparison.Ordinal);
+        }
+    }
+
     [Fact]
     public void WithNoExclusionsLoadedNothingChanges()
     {

@@ -196,7 +196,7 @@ internal sealed class Loop(Steps steps, Uri backend, string secret, bool injectC
             Front();
             var diagnostics = await Pipe.RequestAsync<DiagnosticsReported>(id => new GetDiagnosticsCommand { RequestId = id }).ConfigureAwait(false);
             scope = diagnostics.Scope;
-            if (scope.StartsWith("Capturing", StringComparison.Ordinal) && scope.Contains(ProcessName, StringComparison.OrdinalIgnoreCase))
+            if (scope.StartsWith("Recording", StringComparison.Ordinal) && scope.Contains(ProcessName, StringComparison.OrdinalIgnoreCase))
             {
                 return $"Scope: {scope}";
             }
