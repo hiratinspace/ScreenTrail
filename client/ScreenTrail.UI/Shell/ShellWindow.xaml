@@ -225,6 +225,7 @@
                     Margin="24,16,24,0"
                     Style="{StaticResource Banner}"
                     theme:Banner.Tone="Warning"
+                    theme:Motion.FadeIn="True"
                     Visibility="{Binding BannerVisibility}">
                 <Grid>
                     <Grid.ColumnDefinitions>

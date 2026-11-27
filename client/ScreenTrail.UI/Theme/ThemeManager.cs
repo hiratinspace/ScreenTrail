@@ -21,8 +21,19 @@ public static class ThemeManager
 
     public static AppTheme Current { get; private set; } = AppTheme.Dark;
 
-    /// <summary>Spec §2.3: honour the OS "reduce motion" (Windows: "Show animations") setting.</summary>
-    public static bool ReduceMotion => !ClientAreaAnimation();
+    /// <summary>
+    /// Spec §2.3 and design system 9.5 (review finding D-32): nothing moves when Windows' "Animation effects"
+    /// is off, over Remote Desktop (where every frame of a fade is sent down the wire, and a technician on a
+    /// support call is often remote), or when the graphics card renders in software (render tier 0). Read
+    /// each time it is asked, so a change in Windows applies at the next motion.
+    /// </summary>
+    public static bool ReduceMotion => !ClientAreaAnimation() || RemoteSession() || SoftwareRendering();
+
+    /// <inheritdoc cref="ClientAreaAnimation"/>
+    internal static Func<bool> RemoteSession { get; set; } = () => SystemParameters.IsRemoteSession;
+
+    /// <inheritdoc cref="ClientAreaAnimation"/>
+    internal static Func<bool> SoftwareRendering { get; set; } = () => (System.Windows.Media.RenderCapability.Tier >> 16) == 0;
 
     public static AppTheme Effective(AppTheme requested) => SystemHighContrast() ? AppTheme.HighContrast : requested;
 
