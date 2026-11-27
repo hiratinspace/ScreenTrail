@@ -385,8 +385,17 @@
     <!-- Icon (design system 10.1): a square button holding one glyph, 32 x 32 (compact 28 x 28), no fill or
          edge at rest, the glyph 16 px in text.secondary. Its Content is the icon itself
          (Content="{StaticResource Icon.Settings}"), drawn in the icon font. Every icon button has a ToolTip
-         and an AutomationProperties.Name, since the glyph says nothing to a screen reader. -->
+         and an AutomationProperties.Name, since the glyph says nothing to a screen reader. The glyph is drawn
+         by a Glyph, which UI Automation does not see: a string Content would get a plain TextBlock from the
+         ContentPresenter, read aloud as a private-use character (the section 7 audit on ST-137). -->
     <Style x:Key="Button.Icon" BasedOn="{StaticResource Button.Base}" TargetType="Button">
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <controls:Glyph Text="{Binding}" VerticalAlignment="Center" TextWrapping="NoWrap" />
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
         <Setter Property="MinWidth" Value="{DynamicResource Layout.control-height}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />

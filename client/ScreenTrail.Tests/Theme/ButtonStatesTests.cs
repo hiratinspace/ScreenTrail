@@ -85,6 +85,20 @@ public sealed class ButtonStatesTests
         Assert.Equal("{DynamicResource Layout.control-height-compact}", Setter(Trigger(icon, "theme:Density.Compact"), "MinWidth"));
     }
 
+    /// <summary>
+    /// An icon button's glyph is drawn by a Glyph, which UI Automation does not see. A string Content in the
+    /// default ContentPresenter becomes a plain TextBlock, and a screen reader reads the private-use
+    /// character (the Windows section 7 audit on ST-137's enlarged toolbar).
+    /// </summary>
+    [Fact]
+    public void AnIconButtonsGlyphIsHiddenFromScreenReaders()
+    {
+        var template = Style("Button.Icon").Elements(Wpf + "Setter").Single(e => (string?)e.Attribute("Property") == "ContentTemplate");
+        XNamespace controls = "clr-namespace:ScreenTrail.UI.Controls";
+        var glyph = template.Descendants(controls + "Glyph").Single();
+        Assert.Equal("{Binding}", (string?)glyph.Attribute("Text"));
+    }
+
     [Fact]
     public void ADestructiveDialogConfirmsWithTheSolidDangerButton()
     {
