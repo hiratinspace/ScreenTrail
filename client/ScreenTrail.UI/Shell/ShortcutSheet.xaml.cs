@@ -99,12 +99,13 @@ public partial class ShortcutSheet : Window
     /// <summary>
     /// The sheet's left column: anywhere, during a session, inside a step and in Settings, seventeen lines.
     /// The columns are balanced by lines (v0.6.11, when Review gained Ctrl+T and the receipt's Enter) so
-    /// neither grows the sheet past a 768 px screen; the step's group stays here, as v0.6.8 put it.
+    /// neither grows the sheet past a 768 px screen; the step's group stays here, as v0.6.8 put it. Read
+    /// each time the sheet opens, as Groups is, so a chord rebound in Settings shows here without a restart.
     /// </summary>
-    public static IReadOnlyList<Group> LeftColumn { get; } = [.. Groups.Where(g => g.Name is not ("Review" or "In the screenshots"))];
+    public static IReadOnlyList<Group> LeftColumn => [.. Groups.Where(g => g.Name is not ("Review" or "In the screenshots"))];
 
     /// <summary>The right column: Review and the screenshots, sixteen lines (v0.6.9 added Enter on a session to the left).</summary>
-    public static IReadOnlyList<Group> RightColumn { get; } = [.. Groups.Where(g => g.Name is "Review" or "In the screenshots")];
+    public static IReadOnlyList<Group> RightColumn => [.. Groups.Where(g => g.Name is "Review" or "In the screenshots")];
 
     /// <summary>
     /// Whether <c>?</c> typed with focus on <paramref name="focused"/> means the sheet. In a text box, a

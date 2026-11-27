@@ -62,7 +62,7 @@ public sealed class DiscardControlsTests
 
         var bulk = Assert.Single(Buttons(history), b => (string?)b.Attribute("Command") == "{Binding BulkDiscardCommand}");
         Assert.Equal("Discard selected", (string?)bulk.Attribute("Content"));
-        Assert.False(string.IsNullOrWhiteSpace((string?)bulk.Attribute("AutomationProperties.Name")));
+        Assert.StartsWith("Discard selected", (string?)bulk.Attribute("AutomationProperties.Name"), StringComparison.Ordinal);
         Assert.Equal("{StaticResource Button.Danger}", (string?)bulk.Attribute("Style"));
 
         var reason = Assert.Single(history.Descendants(Wpf + "TextBlock"), t => (string?)t.Attribute("Text") == "{Binding DiscardError}");
