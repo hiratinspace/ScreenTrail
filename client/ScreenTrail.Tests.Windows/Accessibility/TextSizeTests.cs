@@ -27,7 +27,8 @@ public sealed class TextSizeTests(TheApplication app)
         Assert.Equal(54d, resources["Layout.row-height"]);
 
         ThemeManager.ApplyTextSize(resources, null);
-        Assert.False(resources.Contains("Size.md"));
+        // Its own keys only: Contains also looks in the merged token dictionary, which always has it.
+        Assert.DoesNotContain("Size.md", resources.Keys.Cast<object>());
         Assert.Equal(14d, resources["Size.md"]);
     }
 }
