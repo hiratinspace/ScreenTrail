@@ -240,6 +240,12 @@ public interface ISessionStore : IAsyncDisposable
     /// </summary>
     Task<Session?> LoadSessionAsync(string sessionId, CancellationToken ct = default);
 
+    /// <summary>
+    /// What the session's failed draft recorded as the reason (review finding E-10), or null when its draft
+    /// has not failed or gave none. Review says it under "This session could not be drafted".
+    /// </summary>
+    Task<string?> DraftFailureReasonAsync(string sessionId, CancellationToken ct = default);
+
     /// <summary>Image bytes of a redacted frame; null when the frame is pending or doesn't exist.</summary>
     Task<byte[]?> GetRedactedFrameImageAsync(string frameId, CancellationToken ct = default);
 

@@ -276,6 +276,7 @@ public sealed partial class ReviewCommands(ISessionStore store, IFrameMasker mas
             RequestId = get.RequestId,
             Session = session with { Frames = [.. session.Frames.Select(frame => frame.OcrText is null ? frame : frame with { OcrText = null })] },
             DraftPending = pending.Contains(get.SessionId, StringComparer.Ordinal),
+            DraftFailure = session.Draft is null ? await _store.DraftFailureReasonAsync(get.SessionId, ct).ConfigureAwait(false) : null,
             PublishOutcomes = await PublishOutcomesAsync(get.SessionId, ct).ConfigureAwait(false),
         };
         return (reply, IpcFraming.MeasureBytes<IpcEvent>(reply));

@@ -187,6 +187,8 @@ public sealed class ReviewSessionTests : IAsyncDisposable
 
         public Task<Session?> LoadSessionAsync(string sessionId, CancellationToken ct = default) => throw new NotSupportedException();
 
+        public Task<string?> DraftFailureReasonAsync(string sessionId, CancellationToken ct = default) => throw new NotSupportedException();
+
         public Task<byte[]?> GetRedactedFrameImageAsync(string frameId, CancellationToken ct = default) => throw new NotSupportedException();
 
         public Task<StoredFrameImage?> GetRedactedFrameForBlurAsync(string frameId, CancellationToken ct = default) => throw new NotSupportedException();

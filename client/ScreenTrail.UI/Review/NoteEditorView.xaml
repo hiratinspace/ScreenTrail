@@ -41,10 +41,12 @@
         </Grid.RowDefinitions>
 
         <!-- What this is and how to change it, quietly, where the v0.5 pane had its title. -->
+        <!-- Only over a note (review finding E-10): "Click any line to edit it" above no note misled. -->
         <TextBlock Grid.Row="0"
                    Margin="24,16,24,12"
                    Style="{StaticResource Text.Muted}"
-                   Text="{Binding Guide}" />
+                   Text="{Binding Guide}"
+                   Visibility="{Binding ShowsNoteHints, Converter={StaticResource Visible}}" />
 
         <!-- Banners. Spec §7: never colour alone, so each carries a glyph and the kind as a word. -->
         <controls:Repeater Grid.Row="1" Margin="24,0,24,4" ItemsSource="{Binding Banners}">
@@ -77,21 +79,36 @@
                            Foreground="{DynamicResource Brush.state.danger}"
                            Text="{StaticResource Icon.Warning}" />
             </Border>
+            <!-- Review finding E-10: the heading in the product's voice, the reason in plain words (said
+                 only when the service gave one), that the session is kept, and "Try drafting again" only
+                 when a second try could work. -->
             <TextBlock Margin="0,16,0,0"
                        Style="{StaticResource Text.SectionHeading}"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
+                       TextWrapping="Wrap"
                        Text="{Binding DraftFailedMessage}" />
+            <TextBlock x:Name="DraftFailedReason"
+                       Margin="0,8,0,0"
+                       Style="{StaticResource Text.Body}"
+                       HorizontalAlignment="Center"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       Text="{Binding DraftFailedReason}"
+                       Visibility="{Binding HasDraftFailedReason, Converter={StaticResource Visible}}" />
             <TextBlock Margin="0,8,0,0"
                        Style="{StaticResource Text.Secondary}"
                        HorizontalAlignment="Center"
                        TextAlignment="Center"
-                       Text="Your screenshots and transcript are saved." />
-            <Button Margin="0,16,0,0"
+                       TextWrapping="Wrap"
+                       Text="{Binding DraftFailedKept}" />
+            <Button x:Name="TryDraftingAgain"
+                    Margin="0,16,0,0"
                     HorizontalAlignment="Center"
                     Style="{StaticResource Button.Primary}"
-                    Content="Retry"
-                    Command="{Binding RetryDraftCommand}" />
+                    Content="Try drafting again"
+                    Command="{Binding RetryDraftCommand}"
+                    Visibility="{Binding CanTryDraftingAgain, Converter={StaticResource Visible}}" />
         </StackPanel>
 
         <!-- ST-013: a draft queued for the backend is on its way, not failed, so there is no Retry. The
@@ -481,11 +498,13 @@
                 </WrapPanel>
 
                 <StackPanel Grid.Column="1" Margin="16,0,0,0" Orientation="Horizontal">
-                    <TextBlock Margin="0,0,12,0"
+                    <TextBlock x:Name="NoteKeyHints"
+                               Margin="0,0,12,0"
                                VerticalAlignment="Center"
                                Style="{StaticResource Text.Muted}"
                                FontSize="{DynamicResource Size.xs}"
-                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save" />
+                               Text="Alt+C looks right · Alt+Up or Down to reorder · Ctrl+S save"
+                               Visibility="{Binding ShowsNoteHints, Converter={StaticResource Visible}}" />
 
                     <!-- The whole strip, in the note's place: the frames no step shows, Del and its undo. -->
                     <Button Style="{StaticResource Button.Secondary}"

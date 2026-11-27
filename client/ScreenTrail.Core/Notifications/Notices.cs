@@ -87,7 +87,7 @@ public static class Notices
                 "Your screenshots and transcript are kept. Select to see why.",
                 NotificationAction.Open,
                 $"draft-failed:{capture.SessionId}",
-                "Draft not created",
+                DraftFailure.Headline,
                 NotificationLevel.Warning),
 
             _ => Queued(waiting),

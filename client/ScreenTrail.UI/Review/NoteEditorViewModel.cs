@@ -235,7 +235,8 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
         Action<string?>? showFrame = null,
         bool draftPending = false,
         Func<string?>? discardBlocked = null,
-        FilmstripViewModel? strip = null)
+        FilmstripViewModel? strip = null,
+        Core.Notifications.DraftFailure? draftFailure = null)
     {
         ArgumentNullException.ThrowIfNull(session);
         _session = session;
@@ -266,7 +267,9 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
         _note.Changed += OnNoteChanged;
 
         Banners = [.. NoteBanners.For(session, offline).Select(Row)];
-        PublishBlockedBecause = NoteBanners.PublishBlockedBecause(session, ticketChosen: false, offline, draftPending);
+        // A failure the caller did not describe can be tried again when there is a way to (the harness).
+        _failure = draftFailure ?? Core.Notifications.DraftFailure.For(null) with { CanRetryNow = retryDraft is not null };
+        PublishBlockedBecause = NoteBanners.PublishBlockedBecause(session, ticketChosen: false, offline, draftPending, _failure);
         _problem = _note.Problem;
         _result = _note.Result;
         _followUps = _note.FollowUpsText();
@@ -455,8 +458,28 @@ public sealed partial class NoteEditorViewModel : ObservableObject, IAsyncDispos
     /// showing both states at once.</summary>
     public bool DraftFailed => !HasDraft && !DraftPending;
 
-    /// <summary>Spec v0.4.1 Q4: what the pane says instead of an editor when drafting failed.</summary>
-    public string DraftFailedMessage { get; } = "We couldn't draft this session.";
+    /// <summary>Spec v0.4.1 Q4: what the pane says instead of an editor when drafting failed (E-10's words).</summary>
+    public string DraftFailedMessage { get; } = Core.Notifications.DraftFailure.Headline;
+
+    private readonly Core.Notifications.DraftFailure _failure;
+
+    /// <summary>Why, in plain words (review finding E-10); empty when the service gave no reason.</summary>
+    public string DraftFailedReason => _failure.Plain ?? string.Empty;
+
+    public bool HasDraftFailedReason => DraftFailed && _failure.Plain is not null;
+
+    /// <summary>Said under the reason, always: the session is still there (Spec §6).</summary>
+    public string DraftFailedKept { get; } = Core.Notifications.DraftFailure.Kept;
+
+    /// <summary>
+    /// "Try drafting again" shows only when it could work (review finding E-10): there is a way to ask, and
+    /// the failure is one a second try could change. A deployment with no provider fails the same way every
+    /// time, and a button that cannot help is pressed twice before the support call.
+    /// </summary>
+    public bool CanTryDraftingAgain => DraftFailed && _retryDraft is not null && _failure.CanRetryNow;
+
+    /// <summary>The landing line and the key hints are about a note; with none (failed or on its way) they go.</summary>
+    public bool ShowsNoteHints => HasDraft;
 
     /// <summary>
     /// The draft is on its way from the backend (ST-013). Review used to say drafting had failed and offer

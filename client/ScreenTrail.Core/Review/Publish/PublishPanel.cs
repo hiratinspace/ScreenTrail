@@ -272,6 +272,9 @@ public sealed class PublishPanel
     /// <param name="earlierOutcomes">What the service remembers an earlier publish left on the ticket (O3): those destinations start unticked.</param>
     /// <param name="reloadEarlier">Asks the service for those again, after it refused a send because of an earlier publish this pane did not know about.</param>
     /// <param name="time">The clock the receipt reads its times from; the system's when none is given.</param>
+    /// <summary>Why the draft failed, for the reason Publish gives (review finding E-10); null when it has not.</summary>
+    private readonly Notifications.DraftFailure? _draftFailure;
+
     public PublishPanel(
         Session session,
         IReadOnlyList<string> integrations,
@@ -283,8 +286,10 @@ public sealed class PublishPanel
         bool draftPending = false,
         IReadOnlyDictionary<Destination, EarlierOutcome>? earlierOutcomes = null,
         Func<CancellationToken, Task<IReadOnlyDictionary<Destination, EarlierOutcome>>>? reloadEarlier = null,
-        TimeProvider? time = null)
+        TimeProvider? time = null,
+        Notifications.DraftFailure? draftFailure = null)
     {
+        _draftFailure = draftFailure;
         _reloadEarlier = reloadEarlier;
         _time = time ?? TimeProvider.System;
         _openedAt = _time.GetUtcNow();
@@ -528,7 +533,7 @@ public sealed class PublishPanel
                 return ConnectPrompt;
             }
 
-            if (NoteBanners.PublishBlockedBecause(_session, ticketChosen: Ticket is not null, _offline, _draftPending) is { } reason)
+            if (NoteBanners.PublishBlockedBecause(_session, ticketChosen: Ticket is not null, _offline, _draftPending, _draftFailure) is { } reason)
             {
                 return reason;
             }
