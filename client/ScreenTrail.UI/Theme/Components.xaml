@@ -898,25 +898,32 @@
         <Setter Property="FontWeight" Value="{DynamicResource Weight.regular}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.text.secondary}" />
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="MinHeight" Value="{DynamicResource Layout.segment-height}" />
+        <!-- Drawn 26 high inside the group's 2 px inset (design system 10.3), but at least a 28 px target
+             (Spec 7): the segment reaches across the inset above and below, 30 high, and its chrome is drawn
+             2 px in. -->
+        <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
+        <Setter Property="Margin" Value="0,-2" />
         <Setter Property="Padding" Value="{DynamicResource Padding.control}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="Chrome"
-                            MinHeight="{TemplateBinding MinHeight}"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{DynamicResource Brush.accent.primary}"
-                            BorderThickness="0"
-                            CornerRadius="{DynamicResource Radius.sm}"
-                            SnapsToDevicePixels="True">
-                        <ContentPresenter Margin="{TemplateBinding Padding}"
-                                          HorizontalAlignment="Center"
-                                          VerticalAlignment="Center"
-                                          RecognizesAccessKey="True" />
-                    </Border>
+                    <Grid Background="Transparent">
+                        <Border x:Name="Chrome"
+                                Margin="0,2"
+                                MinHeight="{DynamicResource Layout.segment-height}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource Brush.accent.primary}"
+                                BorderThickness="0"
+                                CornerRadius="{DynamicResource Radius.sm}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.hover}" />
