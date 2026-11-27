@@ -1163,6 +1163,15 @@
         <Setter Property="IsHitTestVisible" Value="False" />
         <Setter Property="Visibility" Value="Collapsed" />
     </Style>
+    <!-- And its edge (design system 12, review findings A-35, E-28): 2 px Highlight all round the selected row
+         in high contrast, nothing in light and dark. Rows show it by name (Edge) when selected. -->
+    <Style x:Key="SelectionEdge" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.selection.edge}" />
+        <Setter Property="BorderThickness" Value="{DynamicResource Thickness.selected-edge}" />
+        <Setter Property="IsHitTestVisible" Value="False" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Visibility" Value="Collapsed" />
+    </Style>
 
     <Style TargetType="ListBoxItem">
         <Setter Property="MinHeight" Value="{DynamicResource Layout.hit-target-min}" />
@@ -1184,6 +1193,7 @@
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="4" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -1192,6 +1202,7 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -1869,6 +1880,7 @@
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -1880,6 +1892,7 @@
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.selected}" />
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -2162,6 +2175,7 @@
                             </SelectiveScrollingGrid>
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" />
                         <!-- Over the cells, the grid line along the row's bottom edge included. -->
                         <Rectangle x:Name="FocusOutline"
                                    RadiusX="4"
@@ -2175,6 +2189,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="controls:RowFocus.Shown" Value="True">
                             <Setter TargetName="FocusOutline" Property="Visibility" Value="Visible" />
@@ -2191,15 +2206,6 @@
             <Trigger Property="IsSelected" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.bg.selected}" />
             </Trigger>
-            <!-- High contrast: the system's selection, and the outline in its text colour so it shows on it. -->
-            <MultiDataTrigger>
-                <MultiDataTrigger.Conditions>
-                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
-                    <Condition Binding="{Binding Source={x:Static SystemParameters.HighContrast}}" Value="True" />
-                </MultiDataTrigger.Conditions>
-                <Setter Property="Background" Value="{DynamicResource Brush.accent.primary}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.text.on-accent}" />
-            </MultiDataTrigger>
         </Style.Triggers>
     </Style>
     <Style x:Key="Table" TargetType="DataGrid">
@@ -2290,16 +2296,6 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Style.Triggers>
-                        <!-- The selection's fill is the row's. In high contrast the words take its text colour. -->
-                        <MultiDataTrigger>
-                            <MultiDataTrigger.Conditions>
-                                <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource Self}}" Value="True" />
-                                <Condition Binding="{Binding Source={x:Static SystemParameters.HighContrast}}" Value="True" />
-                            </MultiDataTrigger.Conditions>
-                            <Setter Property="Foreground" Value="{DynamicResource Brush.text.on-accent}" />
-                        </MultiDataTrigger>
-                    </Style.Triggers>
                 </Style>
             </Setter.Value>
         </Setter>
@@ -2567,6 +2563,7 @@
                             <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -2579,6 +2576,7 @@
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
                             <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Brush.border.subtle}" />
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                             <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
                         </DataTrigger>
                     </ControlTemplate.Triggers>
@@ -2719,10 +2717,12 @@
                                               RecognizesAccessKey="True" />
                         </Border>
                         <Rectangle x:Name="Indicator" Style="{StaticResource SelectionBar}" />
+                        <Border x:Name="Edge" Style="{StaticResource SelectionEdge}" CornerRadius="{DynamicResource Radius.control}" />
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="Tag" Value="Selected">
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Edge" Property="Visibility" Value="Visible" />
                             <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Brush.bg.surface}" />
                             <Setter Property="Foreground" Value="{DynamicResource Brush.text.primary}" />
                             <Setter Property="FontWeight" Value="{DynamicResource Weight.semibold}" />

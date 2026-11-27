@@ -126,6 +126,7 @@ internal sealed class ContrastPalette
         ["danger.fill"] = "Highlight",
         ["danger.fill.hover"] = "HotTrack",
         ["shell.pressed"] = "Window",
+        ["selection.edge"] = "Highlight",
     };
 
     public string Name { get; }

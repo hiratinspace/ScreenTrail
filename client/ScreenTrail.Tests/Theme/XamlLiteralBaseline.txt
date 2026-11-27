@@ -30,7 +30,7 @@ Settings/SettingsPane.xaml	Height	8	1
 Settings/SettingsPane.xaml	Width	8	1
 Theme/Components.xaml	BorderThickness	2	1
 Theme/Components.xaml	BorderThickness	3	2
-Theme/Components.xaml	CornerRadius	4	1
+Theme/Components.xaml	CornerRadius	4	2
 Theme/Components.xaml	CornerRadius	8	1
 Theme/Components.xaml	Height	12	2
 Theme/Components.xaml	Height	16	1

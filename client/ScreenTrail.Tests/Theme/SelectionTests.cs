@@ -53,7 +53,7 @@ public sealed class SettingsNavRowTests
         Assert.Equal("{DynamicResource Layout.nav-row-height}", setters["Height"]);
         Assert.Equal("12,0", setters["Padding"]);
         Assert.Equal("0,0,0,2", setters["Margin"]);
-        Assert.Equal("{DynamicResource Radius.control}", (string?)item.Descendants(Wpf + "Border").Single().Attribute("CornerRadius"));
+        Assert.Equal("{DynamicResource Radius.control}", (string?)item.Descendants(Wpf + "Border").Single(b => (string?)b.Attribute(X + "Name") == "Chrome").Attribute("CornerRadius"));
     }
 
     [Fact]
@@ -175,5 +175,43 @@ public sealed class RailSearchTests
 
         var hover = search.Descendants(Wpf + "Trigger").Single(t => (string?)t.Attribute("Property") == "IsMouseOver");
         Assert.Equal("{DynamicResource Brush.text.muted}", (string?)hover.Element(Wpf + "Setter")!.Attribute("Value"));
+    }
+}
+
+/// <summary>
+/// High contrast draws a selected row as a 2 px Highlight edge, from the token dictionaries and not the
+/// system flag, so a render with the high-contrast dictionary shows what high contrast does (design system
+/// 12, review findings A-35, E-28).
+/// </summary>
+public sealed class HighContrastSelectionTests
+{
+    private static readonly XNamespace Wpf = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace X = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    [Theory]
+    [InlineData("Tokens.Light.g.xaml", "Transparent")]
+    [InlineData("Tokens.Dark.g.xaml", "Transparent")]
+    [InlineData("Tokens.HighContrast.xaml", "{DynamicResource {x:Static SystemColors.HighlightColorKey}}")]
+    public void TheEdgeIsClearExceptInHighContrast(string file, string colour)
+    {
+        var root = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Theme", file)).Root!;
+        var edge = root.Elements(Wpf + "SolidColorBrush").Single(b => (string?)b.Attribute(X + "Key") == "Brush.selection.edge");
+        Assert.Equal(colour, (string?)edge.Attribute("Color"));
+    }
+
+    [Fact]
+    public void EveryRowWithTheBarAlsoHasTheEdgeAndNoRowAsksTheSystemFlag()
+    {
+        var components = ChoiceStatesTests.Components();
+        var edges = components.Descendants(Wpf + "Border").Where(b => (string?)b.Attribute(X + "Name") == "Edge").ToList();
+        Assert.Equal(5, edges.Count);
+        Assert.All(edges, e => Assert.Equal("{StaticResource SelectionEdge}", (string?)e.Attribute("Style")));
+        Assert.DoesNotContain(components.Descendants().Attributes(), a => a.Value.Contains("SystemParameters.HighContrast", StringComparison.Ordinal));
+
+        // Shown wherever the bar is shown.
+        foreach (var setter in components.Descendants(Wpf + "Setter").Where(s => (string?)s.Attribute("TargetName") == "Indicator"))
+        {
+            Assert.Contains(setter.Parent!.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Edge" && (string?)s.Attribute("Value") == "Visible");
+        }
     }
 }

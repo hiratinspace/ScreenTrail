@@ -42,8 +42,8 @@ public sealed class AllSessionsTableTests
         var cell = CellStyle();
         Assert.Equal("Transparent", Setter(cell, "Background"));
         Assert.DoesNotContain(
-            cell.Element(Wpf + "Style.Triggers")!.Descendants(Wpf + "Setter"),
-            s => (string?)s.Attribute("Property") == "Background");
+            cell.Descendants(Wpf + "Setter"),
+            s => (string?)s.Attribute("Property") == "Background" && (string?)s.Attribute("Value") != "Transparent");
     }
 
     [Fact]
@@ -88,19 +88,18 @@ public sealed class AllSessionsTableTests
     }
 
     [Fact]
-    public void InHighContrastTheSelectedRowIsTheSystemsSelectionAndTheOutlineShowsOnIt()
+    public void InHighContrastTheSelectedRowIsAHighlightEdgeFromTheTokens()
     {
+        // Design system 12, review finding A-35: not the system flag, which a render with the high-contrast
+        // dictionary never sets, but the SelectionEdge, which is Highlight in that dictionary alone.
         var row = Style("Table.Row");
-        var contrast = Assert.Single(row.Element(Wpf + "Style.Triggers")!.Elements(Wpf + "MultiDataTrigger"));
-        var conditions = contrast.Descendants(Wpf + "Condition").Select(c => (string?)c.Attribute("Binding")).ToList();
-        Assert.Contains("{Binding Source={x:Static SystemParameters.HighContrast}}", conditions);
-        Assert.Equal("{DynamicResource Brush.accent.primary}", Setter(contrast, "Background"));
+        Assert.DoesNotContain(row.Descendants(Wpf + "MultiDataTrigger"), _ => true);
+        var edge = Assert.Single(row.Descendants(Wpf + "Border"), b => (string?)b.Attribute(Xaml + "Name") == "Edge");
+        Assert.Equal("{StaticResource SelectionEdge}", (string?)edge.Attribute("Style"));
 
-        // The outline is the accent, which is the selection's fill there: it takes the fill's text colour.
-        Assert.Equal("{DynamicResource Brush.text.on-accent}", Setter(contrast, "BorderBrush"));
-
-        var words = Assert.Single(CellStyle().Element(Wpf + "Style.Triggers")!.Elements(Wpf + "MultiDataTrigger"));
-        Assert.Equal("{DynamicResource Brush.text.on-accent}", Setter(words, "Foreground"));
+        var selected = Assert.Single(TemplateTriggers(row), t => (string?)t.Attribute("Property") == "IsSelected");
+        Assert.Contains(selected.Elements(Wpf + "Setter"), s => (string?)s.Attribute("TargetName") == "Edge" && (string?)s.Attribute("Value") == "Visible");
+        Assert.Null(CellStyle().Element(Wpf + "Style.Triggers"));
     }
 
     [Fact]
