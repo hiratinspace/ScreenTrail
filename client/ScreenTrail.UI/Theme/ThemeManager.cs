@@ -129,6 +129,58 @@ public static class ThemeManager
         };
     }
 
+    /// <summary>
+    /// Windows' Text size (review finding D-14, <see cref="Core.Shell.TextScale"/>): the scaled tokens are set
+    /// on the application's own resources, which win over the merged token dictionary, and every text style
+    /// reads them dynamically. Read now and again when Windows says an accessibility setting changed. Not
+    /// for a render, whose pictures stay at 100%.
+    /// </summary>
+    public static void FollowTextSize(ResourceDictionary resources)
+    {
+        ArgumentNullException.ThrowIfNull(resources);
+        ApplyTextSize(resources, TextScaleStored());
+        var dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+        SystemEvents.UserPreferenceChanged += (_, e) =>
+        {
+            if (e.Category == UserPreferenceCategory.Accessibility)
+            {
+                dispatcher.BeginInvoke(() => ApplyTextSize(resources, TextScaleStored()));
+            }
+        };
+    }
+
+    /// <summary>The tokens at the stored Text size; at 100% the overrides are taken away and the tokens show.</summary>
+    internal static void ApplyTextSize(ResourceDictionary resources, object? stored)
+    {
+        var factor = Core.Shell.TextScale.Factor(stored);
+        var tokens = resources.MergedDictionaries.FirstOrDefault(d => d.Source?.OriginalString.EndsWith("Tokens.Common.g.xaml", StringComparison.Ordinal) == true);
+        foreach (var key in Core.Shell.TextScale.Keys)
+        {
+            if (factor == 1d || tokens?[key] is not double token)
+            {
+                resources.Remove(key);
+            }
+            else
+            {
+                resources[key] = Core.Shell.TextScale.Scaled(token, factor);
+            }
+        }
+    }
+
+    /// <summary>Where Windows keeps Text size; a seam like the others, so a test never changes the machine's.</summary>
+    internal static Func<object?> TextScaleStored { get; set; } = () =>
+    {
+        try
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Accessibility");
+            return key?.GetValue("TextScaleFactor");
+        }
+        catch (Exception ex) when (ex is System.Security.SecurityException or UnauthorizedAccessException or System.IO.IOException)
+        {
+            return null;
+        }
+    };
+
     /// <summary>Windows' app mode may have changed: a System choice shows the palette it now asks for.</summary>
     internal static void ModeChanged(ResourceDictionary resources)
     {

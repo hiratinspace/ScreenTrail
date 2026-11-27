@@ -80,6 +80,7 @@ public partial class App : Application, IDisposable
         else
         {
             ThemeManager.Follow(new Core.Shell.ShellPreferencesStore(Core.Shell.ShellPreferencesStore.DefaultPath).Load().Appearance, Resources);
+            ThemeManager.FollowTextSize(Resources);
         }
 
         ThemeManager.FollowSystem(Resources);
