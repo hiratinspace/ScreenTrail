@@ -134,6 +134,15 @@ public sealed partial class PillResourcesTests
         Assert.Contains(triggers["IsPressed=True"], e => (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.pressed}");
         Assert.Contains(triggers["IsEnabled=False"], e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.text.disabled}");
         Assert.DoesNotContain(style.Descendants(), e => ((string?)e.Attribute("Value") ?? string.Empty).Contains("shell.accent", StringComparison.Ordinal));
+
+        // C-H7: the glyph rests in shell.muted and turns shell.text under the pointer, and the pill's button
+        // glyphs take the button's colour rather than setting their own.
+        Assert.Contains(style.Elements(), e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.muted}");
+        Assert.Contains(triggers["IsMouseOver=True"], e => (string?)e.Attribute("Property") == "Foreground" && (string?)e.Attribute("Value") == "{DynamicResource Brush.shell.text}");
+        var pill = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "Hud", "HudWindow.xaml"));
+        var buttonGlyphs = pill.Descendants().Where(e => e.Name.LocalName == "Button").SelectMany(b => b.Descendants().Where(g => g.Name.LocalName == "Glyph")).ToList();
+        Assert.Equal(4, buttonGlyphs.Count);
+        Assert.All(buttonGlyphs, g => Assert.Equal("{StaticResource Hud.Glyph}", (string?)g.Attribute("Style")));
     }
 
     /// <summary>

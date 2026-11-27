@@ -75,14 +75,18 @@
             <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
         </Style>
 
-        <!-- An icon-font glyph on the frame, hidden from a screen reader (controls:Glyph). -->
-        <Style x:Key="Hud.Icon" TargetType="TextBlock">
+        <!-- An icon-font glyph on the frame, hidden from a screen reader (controls:Glyph). Hud.Glyph takes its
+             colour from what holds it: inside a pill button, the button's (shell.muted at rest, shell.text on
+             hover, review finding C-H7), so the state word stays the strongest thing on the pill. -->
+        <Style x:Key="Hud.Glyph" TargetType="TextBlock">
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="FontFamily" Value="{DynamicResource Font.icon}" />
             <Setter Property="FontSize" Value="{DynamicResource Icon.control}" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
             <Setter Property="TextWrapping" Value="NoWrap" />
+        </Style>
+        <Style x:Key="Hud.Icon" BasedOn="{StaticResource Hud.Glyph}" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
         </Style>
 
         <!-- A segment after the state, set off by a short shell.line rule (the masked count, No mic, Offline). -->
@@ -225,7 +229,7 @@
                             AutomationProperties.Name="{Binding MarkButton.Name}"
                             AutomationProperties.AcceleratorKey="{Binding MarkButton.Hotkey}"
                             Visibility="{Binding ShowMarkControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Flag}" />
+                        <controls:Glyph Style="{StaticResource Hud.Glyph}" Text="{DynamicResource Icon.Flag}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
@@ -234,7 +238,7 @@
                             AutomationProperties.Name="{Binding PauseButton.Name}"
                             AutomationProperties.AcceleratorKey="{Binding PauseButton.Hotkey}"
                             Visibility="{Binding ShowPauseControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{Binding PauseGlyph}" />
+                        <controls:Glyph Style="{StaticResource Hud.Glyph}" Text="{Binding PauseGlyph}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
@@ -243,14 +247,14 @@
                             AutomationProperties.Name="{Binding StopButton.Name}"
                             AutomationProperties.AcceleratorKey="{Binding StopButton.Hotkey}"
                             Visibility="{Binding ShowStopControl, Converter={StaticResource Visible}}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{DynamicResource Icon.Stop}" />
+                        <controls:Glyph Style="{StaticResource Hud.Glyph}" Text="{DynamicResource Icon.Stop}" />
                     </Button>
                     <Button Margin="4,0,0,0"
                             Style="{DynamicResource Hud.IconButton}"
                             Command="{Binding ToggleExpandedCommand}"
                             ToolTip="{Binding ExpandName}"
                             AutomationProperties.Name="{Binding ExpandName}">
-                        <controls:Glyph Style="{StaticResource Hud.Icon}" Text="{Binding ExpandGlyph}" />
+                        <controls:Glyph Style="{StaticResource Hud.Glyph}" Text="{Binding ExpandGlyph}" />
                     </Button>
                 </StackPanel>
             </Grid>

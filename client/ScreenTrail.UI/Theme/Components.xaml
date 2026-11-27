@@ -2043,14 +2043,15 @@
          the caller (name and hotkey, "Pause · Ctrl+Alt+P"). No outline in any state (review finding C-H8,
          design system 10.10): rings appearing round a circle on hover is the default-template look, and Iris
          on press broke the brand's one job. Hover fills shell.hover, pressed shell.pressed, keyboard focus
-         draws FocusRing.Frame outside, disabled dims the glyph. -->
+         draws FocusRing.Frame outside, disabled dims the glyph. The glyph rests in shell.muted and turns
+         shell.text under the pointer (C-H7), so the state word is the only full-strength mark at rest. -->
     <Style x:Key="Hud.IconButton" TargetType="Button">
         <Setter Property="Width" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Height" Value="{DynamicResource Layout.hud-control}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="HorizontalContentAlignment" Value="Center" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.shell.muted}" />
         <Setter Property="Background" Value="{DynamicResource Brush.shell.bg}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Cursor" Value="Hand" />
@@ -2073,9 +2074,11 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.hover}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource Brush.shell.pressed}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.shell.text}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.text.disabled}" />
