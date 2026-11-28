@@ -117,6 +117,27 @@ public sealed class SecretKindTests
     }
 
     /// <summary>
+    /// A column longer than the rule follows down (<see cref="RedactionEngine.PasswordColumnRows"/>) is
+    /// not stored with its last rows readable: either every cell is masked or the frame is reported
+    /// incomplete, and the worker discards it. No screen holds a table that long; a frame built to is
+    /// still not kept half masked.
+    /// </summary>
+    [Fact]
+    public void AColumnLongerThanTheRuleFollowsIsMaskedToItsEndOrTheFrameIsDiscarded()
+    {
+        var rows = RedactionEngine.PasswordColumnRows + 100;
+        var words = Table([["User", "Password"], .. Enumerable.Range(1, rows).Select(r => new[] { $"user{r}", $"Harbour{r}Lamp" })]);
+
+        var redaction = Default.RedactFrame(words);
+
+        var shown = redaction.Text.Split(' ').ToHashSet(StringComparer.Ordinal);
+        var readable = Enumerable.Range(1, rows).Where(r => shown.Contains($"Harbour{r}Lamp")).ToList();
+        Assert.True(
+            !redaction.Complete || readable.Count == 0,
+            $"{readable.Count} of {rows} passwords are readable (the first in row {readable.FirstOrDefault()}), and the frame was reported complete");
+    }
+
+    /// <summary>
     /// A "Password" heading on its own with a sentence under it is not a table, and the sentence is the
     /// technician's material, so the column rule leaves it alone.
     /// </summary>
@@ -287,6 +308,9 @@ public sealed class SecretKindCostTests
         "shared password cue",
         "wifi key",
         "password column",
+        "password column, every word a header",
+        "password column, tables of headers under the rule's bound",
+        "password column, every word a header on a wide page",
     ];
 
     [Theory]
@@ -318,19 +342,40 @@ public sealed class SecretKindCostTests
         };
 
         var best = double.MaxValue;
-        if (rule == "password column")
+        if (rule.StartsWith("password column", StringComparison.Ordinal))
         {
-            // 8,000 words in columns far enough apart that every other header heads a column of its own.
-            var words = Enumerable.Range(0, 8000).Select(i => (Row: i / 40, Col: i % 40))
-                .Select(c => new OcrWord(c.Row == 0 ? (c.Col % 2 == 0 ? "Password" : "User") : $"Ab{c.Row}x{c.Col}", c.Col * 100, c.Row * 30, 45, OcrTokenRuleTests.Height))
-                .ToList();
+            // 8,000 words. Each column stands far enough from the next (21 px, 0.875 of a row's height) that
+            // every header heads a column of its own, and near enough that the wrap pass reads each row as
+            // one run, so what is timed is the column rule. A page of 8,000 cells each a run of its own is
+            // the wrap pass's most costly shape, timed by OcrWrapCostTests; the column rule adds little to it.
+            var (words, mustMask, mayEnd) = rule switch
+            {
+                // Every other header a password column 199 rows deep.
+                "password column" => (Grid(40, 200, (row, col) => row == 0 ? (col % 2 == 0 ? "Password" : "User") : $"Ab{row}x{col}"), (Func<int, int, bool>)((row, col) => row > 0 && col % 2 == 0), false),
+
+                // Every word a header with a column under it, deeper than the rule follows one down.
+                "password column, every word a header" => (Grid(2, 4000, (_, _) => "Password"), (row, _) => row > 0, true),
+
+                // The same in tables of 400 rows, each a column the rule follows to its end.
+                "password column, tables of headers under the rule's bound" => (Grid(4, 2000, (_, _) => "Password", tableRows: 400), (row, _) => row % 400 > 0, false),
+
+                // Eighty headers a row, so each one's row below holds eighty cells to look through.
+                _ => (Grid(80, 100, (_, _) => "Password"), (row, _) => row > 0, false),
+            };
+
             for (var i = 0; i < 3; i++)
             {
                 var clock = Stopwatch.StartNew();
                 var frame = WithLabels.RedactFrame(words);
                 best = Math.Min(best, clock.Elapsed.TotalMilliseconds);
-                Assert.True(frame.Complete, rule);
-                Assert.DoesNotContain("Ab199x0", frame.Text, StringComparison.Ordinal);
+
+                // Every cell masked, or (only where the column goes on past the rule's bound) the frame
+                // reported incomplete, which the worker discards: never stored with a cell readable.
+                Assert.True(frame.Complete || mayEnd, $"{rule}: a pattern ran out of its time");
+                if (frame.Complete)
+                {
+                    Assert.Empty(Readable(frame, words, mustMask));
+                }
             }
         }
         else
@@ -345,5 +390,23 @@ public sealed class SecretKindCostTests
         }
 
         Assert.True(best < 700, $"{rule}: {best:0} ms, over the 700 ms a frame may take");
+    }
+
+    /// <summary>Cells 66 px apart (45 wide), a row every 30 px; a gap of 200 px between tables.</summary>
+    private static List<OcrWord> Grid(int columns, int rows, Func<int, int, string> text, int tableRows = int.MaxValue) =>
+        [.. Enumerable.Range(0, columns * rows).Select(i => (Row: i / columns, Col: i % columns))
+            .Select(c => new OcrWord(text(c.Row, c.Col), c.Col * 66, (c.Row * 30) + (c.Row / tableRows * 200), 45, OcrTokenRuleTests.Height))];
+
+    /// <summary>
+    /// The texts of cells that must be masked and are still in the stored text: a text is counted where
+    /// it shows more often than the words that may show (headers, other columns) hold it.
+    /// </summary>
+    private static List<string> Readable(FrameRedaction frame, List<OcrWord> words, Func<int, int, bool> mustMask)
+    {
+        var shown = frame.Text.Split(' ').CountBy(t => t, StringComparer.Ordinal).ToDictionary(StringComparer.Ordinal);
+        var columns = words.Count(w => w.Y == words[0].Y);
+        var mayShow = words.Where((_, i) => !mustMask(i / columns, i % columns)).CountBy(w => w.Text, StringComparer.Ordinal).ToDictionary(StringComparer.Ordinal);
+        return [.. words.Where((_, i) => mustMask(i / columns, i % columns)).Select(w => w.Text).Distinct(StringComparer.Ordinal)
+            .Where(t => shown.GetValueOrDefault(t) > mayShow.GetValueOrDefault(t))];
     }
 }
