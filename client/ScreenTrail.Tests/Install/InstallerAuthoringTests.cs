@@ -251,10 +251,18 @@ public sealed class InstallerAuthoringTests
     {
         // INSTALLFOLDER is a public property, so a command line could install somewhere ordinary users
         // can write, and the uninstall would then run the service from there as the system account. The
-        // package refuses any folder but ScreenTrail under the machine's own Program Files, worked out
-        // from the environment rather than from a property the same command line could set.
+        // package refuses any folder but ScreenTrail under the machine's own Program Files. C-06: that is
+        // ProgramFiles64Folder, which Windows Installer sets from the known folder and a command line cannot
+        // (a private property), the folder the Directory tree installs into; never an environment variable,
+        // which a caller's environment could set.
         var expected = Package().Descendants(Wix + "SetProperty").Single(p => (string?)p.Attribute("Id") == "EXPECTEDINSTALLFOLDER");
-        Assert.Equal(@"[%ProgramW6432]\ScreenTrail\", (string?)expected.Attribute("Value"));
+        Assert.DoesNotContain("[%", (string?)expected.Attribute("Value"), StringComparison.Ordinal);
+        Assert.Equal(@"[ProgramFiles64Folder]ScreenTrail\", (string?)expected.Attribute("Value"));
+        Assert.Equal("CostInitialize", (string?)expected.Attribute("Before"));
+        Assert.Equal("both", (string?)expected.Attribute("Sequence"));
+
+        // And the smoke test tries the other folder with the caller's ProgramW6432 pointed at it as well.
+        Assert.Contains("$env:ProgramW6432 = $spoofRoot", File.ReadAllText(Repo.File("installer", "smoke-test.ps1")), StringComparison.Ordinal);
 
         var refusal = Package().Descendants(Wix + "CustomAction").Single(a => (string?)a.Attribute("Id") == "RefuseInstallFolder");
         Assert.False(string.IsNullOrWhiteSpace((string?)refusal.Attribute("Error")));
