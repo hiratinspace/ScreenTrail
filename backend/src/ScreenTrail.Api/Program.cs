@@ -201,7 +201,9 @@ builder.Services.AddScoped<SummarizationService>(services => new SummarizationSe
     fallback: null,
     services.GetRequiredService<ICostLedger>(),
     summarization,
-    services.GetRequiredService<TimeProvider>()));
+    services.GetRequiredService<TimeProvider>(),
+    services.GetRequiredService<DeviceDraftShares>()));
+builder.Services.AddSingleton<DeviceDraftShares>();
 
 // ST-009. The vault's master key has no default either: without one the service starts, lists what it
 // has, and refuses to store a credential with a reason. A development default would protect every

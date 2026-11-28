@@ -117,12 +117,17 @@ public sealed record SummarizeResult(
 /// in one it moves, so a deadline lands on the call it means to cut off rather than on whichever call a
 /// busy machine was still in when the real one ran out.
 /// </param>
+/// <param name="shares">
+/// Each device's share of the day's budget (E-15). When none is given, as in a test of the service on
+/// its own, only the tenant's cap applies.
+/// </param>
 public sealed class SummarizationService(
     ILlmProvider primary,
     ILlmProvider? fallback,
     ICostLedger ledger,
     SummarizationOptions options,
-    TimeProvider? time = null)
+    TimeProvider? time = null,
+    DeviceDraftShares? shares = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -136,7 +141,11 @@ public sealed class SummarizationService(
         System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(1));
 
-    public async Task<SummarizeResult> DraftAsync(Guid tenantId, SummarizeBundle bundle, CancellationToken ct = default)
+    public Task<SummarizeResult> DraftAsync(Guid tenantId, SummarizeBundle bundle, CancellationToken ct = default) =>
+        DraftAsync(tenantId, bundle, device: null, ct);
+
+    /// <param name="device">The device drafting, for its share of the day's budget (E-15). Without one only the tenant's cap applies.</param>
+    public async Task<SummarizeResult> DraftAsync(Guid tenantId, SummarizeBundle bundle, DeviceShare? device, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(bundle);
 
@@ -153,18 +162,40 @@ public sealed class SummarizationService(
         //
         // A tenant past its budget is told so and drafts on the device (Spec §6's "Cloud drafting paused
         // for today").
-        var reservation = await ledger
-            .ReserveAsync(tenantId, bundle.SessionId, primary.Name, options.MaxSessionCostUsd, ct)
-            .ConfigureAwait(false);
+        //
+        // The device's share first, in memory, so a device past it claims nothing on the tenant's row.
+        var claim = device is not null && shares is not null
+            ? shares.TryClaim(tenantId, device.DeviceId, DeviceDraftShares.ShareOf(options.DailyCostCapUsd, device.ActiveDevices), options.MaxSessionCostUsd)
+            : null;
+        if (device is not null && shares is not null && claim is null)
+        {
+            return new SummarizeResult(
+                SummarizeStatus.CostCapReached,
+                Reason: "This PC has used its share of your team's drafting budget for today.");
+        }
+
+        Guid? reservation;
+        try
+        {
+            reservation = await ledger
+                .ReserveAsync(tenantId, bundle.SessionId, primary.Name, options.MaxSessionCostUsd, ct)
+                .ConfigureAwait(false);
+        }
+        catch
+        {
+            claim?.Settle(0m);
+            throw;
+        }
 
         if (reservation is null)
         {
+            claim?.Settle(0m);
             return new SummarizeResult(
                 SummarizeStatus.CostCapReached,
                 Reason: "This tenant has reached its drafting budget for today.");
         }
 
-        return await DraftWithinBudgetAsync(reservation.Value, bundle, ct).ConfigureAwait(false);
+        return await DraftWithinBudgetAsync(reservation.Value, bundle, claim, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -173,7 +204,7 @@ public sealed class SummarizationService(
     /// Its own method so that every way out settles the reservation. An outage costs nothing and must
     /// give the budget back, or one bad afternoon at the provider spends a tenant's whole day.
     /// </summary>
-    private async Task<SummarizeResult> DraftWithinBudgetAsync(Guid reservation, SummarizeBundle bundle, CancellationToken ct)
+    private async Task<SummarizeResult> DraftWithinBudgetAsync(Guid reservation, SummarizeBundle bundle, DeviceDraftShares.Claim? claim, CancellationToken ct)
     {
         using var timer = new CancellationTokenSource(options.Timeout, time ?? TimeProvider.System);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct, timer.Token);
@@ -237,6 +268,7 @@ public sealed class SummarizationService(
             // is still waiting for the answer, and a client that hangs up mid-request was cancelling the
             // write that records what they spent.
             cost += owed.Value;
+            claim?.Settle(cost);
             await ledger.SettleAsync(reservation, cost, CancellationToken.None).ConfigureAwait(false);
         }
 

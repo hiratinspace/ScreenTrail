@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ScreenTrail.Api.Auth;
 using ScreenTrail.Api.Data;
 using ScreenTrail.Api.Summarize;
@@ -88,7 +89,10 @@ public static class SummarizeEndpoint
                 return Results.BadRequest(new SummarizeResponse("rejected", problem));
             }
 
-            var result = await summarizer.DraftAsync(who.TenantId, bundle, ct).ConfigureAwait(false);
+            // One device spends at most its share of the tenant's day (E-15). Counted from the tenant's
+            // devices that are not revoked, so a tenant of one device keeps the whole budget for it.
+            var active = await EntityFrameworkQueryableExtensions.CountAsync(db.Devices, d => d.TenantId == who.TenantId && d.RevokedAt == null, ct).ConfigureAwait(false);
+            var result = await summarizer.DraftAsync(who.TenantId, bundle, new DeviceShare(who.DeviceId, active), ct).ConfigureAwait(false);
 
             return result.Status switch
             {
