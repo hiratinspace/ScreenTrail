@@ -143,14 +143,18 @@ public sealed class EgressGuard(EgressPolicy policy, HttpMessageHandler? inner =
             //
             // So it is handed back unfollowed. The caller asked to publish and learns that the address
             // moved, which is a thing a person can act on.
-            if (KeepsItsMethod(response) && request.Method != HttpMethod.Get)
+            //
+            // A write (POST, PUT, PATCH, DELETE) is handed back whatever the redirect. Followed as a GET,
+            // the page it pointed to answered 200, and that read as the write's own answer: a change
+            // reported saved that nothing saved (K-Q14).
+            if (!IsRead(request.Method) || (KeepsItsMethod(response) && request.Method != HttpMethod.Get))
             {
                 return response;
             }
 
             response.Dispose();
 
-            // Every other redirect is a GET: 302 on a POST is defined as one, and re-sending a bundle to
+            // Every other redirect is a GET: what was asked for was a read, and re-sending anything to
             // a second host is the thing being prevented.
             using var hopRequest = EgressRequest.For(HttpMethod.Get, next, purpose);
             if (onBehalfOf is { } behalf)
@@ -176,6 +180,9 @@ public sealed class EgressGuard(EgressPolicy policy, HttpMessageHandler? inner =
 
         return response;
     }
+
+    /// <summary>A request that only reads, so following its redirect as a GET changes nothing it meant.</summary>
+    private static bool IsRead(HttpMethod method) => method == HttpMethod.Get || method == HttpMethod.Head;
 
     /// <summary>The two redirects that forbid changing the method.</summary>
     private static bool KeepsItsMethod(HttpResponseMessage response) => response.StatusCode is
