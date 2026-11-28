@@ -75,8 +75,10 @@ public sealed class VacuumPolicyTests : IAsyncDisposable
         await store.CreateSessionAsync(new NewSession(id, T0, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null));
         for (var i = 0; i < frames; i++)
         {
-            await store.StageFrameAsync(id, new StagedFrame($"{id}-f{i}", i * 1000, FrameTrigger.Click, 1920, 1080, null, new byte[64 * 1024]));
-            await store.MarkFrameRedactedAsync($"{id}-f{i}", new RedactionOutcome(new byte[32 * 1024], "text", [], SensitiveContext: false, T0));
+            await store.SaveRedactedFrameAsync(
+                id,
+                new StagedFrame($"{id}-f{i}", i * 1000, FrameTrigger.Click, 1920, 1080, null, new byte[64 * 1024]),
+                new RedactionOutcome(new byte[32 * 1024], "text", [], SensitiveContext: false, T0));
         }
 
         await store.FinalizeSessionAsync(id, new FinalizeInfo(frames * 1000, false));

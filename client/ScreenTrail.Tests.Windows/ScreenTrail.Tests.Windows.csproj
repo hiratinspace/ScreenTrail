@@ -37,6 +37,8 @@
     <Compile Include="..\ScreenTrail.Tests\TickingTime.cs" Link="TickingTime.cs" />
     <!-- ST-112: the rule the stop-time test refuses to run by while a real remote session is on screen; held by the Mac suite. -->
     <Compile Include="..\ScreenTrail.Tests\Detection\RealRemoteSessions.cs" Link="Host\RealRemoteSessions.cs" />
+    <!-- A-04: a pending row as a build before ADR-0006 left it, written into the file directly, since the store has no way to write one. -->
+    <Compile Include="..\ScreenTrail.Tests\Store\LegacyPendingFrame.cs" Link="Store\LegacyPendingFrame.cs" />
   </ItemGroup>
 
   <ItemGroup>

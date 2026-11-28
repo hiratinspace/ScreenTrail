@@ -7,6 +7,7 @@ using ScreenTrail.Core.Sessions;
 using ScreenTrail.Core.Store;
 using ScreenTrail.Service.Intel;
 using ScreenTrail.Shared.Schema;
+using ScreenTrail.Tests.Store;
 
 namespace ScreenTrail.Tests.Windows.Host;
 
@@ -22,6 +23,7 @@ public sealed class BundlingDrafterTests : IAsyncDisposable
 {
     private static readonly DateTimeOffset At = new(2026, 9, 18, 9, 0, 0, TimeSpan.Zero);
     private readonly string _path = Path.Combine(Path.GetTempPath(), "screentrail-tests", $"{Guid.NewGuid():N}.db");
+    private readonly FixedKey _key = new(RandomNumberGenerator.GetBytes(32));
     private SqliteSessionStore? _store;
 
     [Fact]
@@ -32,7 +34,7 @@ public sealed class BundlingDrafterTests : IAsyncDisposable
         var ct = TestContext.Current.CancellationToken;
         var store = await OpenAsync(ct);
         await store.CreateSessionAsync(new NewSession("s1", At, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null), ct);
-        await store.StageFrameAsync("s1", new StagedFrame("pending", 1_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1, 2, 3 }), ct);
+        await LegacyPendingFrame.WriteAsync(_path, _key, "s1", new StagedFrame("pending", 1_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1, 2, 3 }), ct);
 
         var drafter = new BundlingDrafter(store, NullLogger.Instance);
         var outcome = await drafter.DraftAsync("s1", ct);
@@ -140,7 +142,7 @@ public sealed class BundlingDrafterTests : IAsyncDisposable
     }
 
     private async Task<SqliteSessionStore> OpenAsync(CancellationToken ct) =>
-        _store ??= await SqliteSessionStore.OpenAsync(_path, new FixedKey(RandomNumberGenerator.GetBytes(32)), ct: ct);
+        _store ??= await SqliteSessionStore.OpenAsync(_path, _key, ct: ct);
 
     private sealed class FixedKey(byte[] key) : IStoreKeyProvider
     {

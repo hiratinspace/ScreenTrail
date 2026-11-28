@@ -4,6 +4,7 @@ using ScreenTrail.Core.Review;
 using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
+using ScreenTrail.Tests.Store;
 using static ScreenTrail.Tests.Review.ReviewFixture;
 
 namespace ScreenTrail.Tests.Review;
@@ -19,6 +20,7 @@ namespace ScreenTrail.Tests.Review;
 public sealed class ReviewCommandsTests : IAsyncDisposable
 {
     private readonly string _path = Path.Combine(Path.GetTempPath(), "screentrail-tests", $"{Guid.NewGuid():N}.db");
+    private readonly byte[] _key = RandomNumberGenerator.GetBytes(32);
     private readonly RecordingMasker _masker = new();
     private SqliteSessionStore? _store;
 
@@ -656,7 +658,7 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
 
     private async Task<ReviewCommands> CommandsAsync(IFrameMasker? masker = null)
     {
-        _store = await SqliteSessionStore.OpenAsync(_path, new FixedKey(RandomNumberGenerator.GetBytes(32)));
+        _store = await SqliteSessionStore.OpenAsync(_path, new FixedKey(_key));
         return new ReviewCommands(_store, masker ?? _masker);
     }
 
@@ -692,7 +694,7 @@ public sealed class ReviewCommandsTests : IAsyncDisposable
 
         foreach (var id in pending)
         {
-            await store.StageFrameAsync("s1", Staged(id, 2000));
+            await LegacyPendingFrame.WriteAsync(_path, new FixedKey(_key), "s1", Staged(id, 2000));
         }
 
         await store.SaveDraftAsync("s1", Draft());

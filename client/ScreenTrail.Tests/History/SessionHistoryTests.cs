@@ -131,8 +131,7 @@ public sealed class SessionHistoryTests : IAsyncDisposable
             // the reason it was written (weaknesses P2-11).
             for (var f = 0; f < 25; f++)
             {
-                await store.StageFrameAsync(id, new StagedFrame($"f{i}-{f}", 1000 + f, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }));
-                await store.MarkFrameRedactedAsync($"f{i}-{f}", new RedactionOutcome(new byte[] { 0xBB }, null, [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
+                await store.SaveRedactedFrameAsync(id, new StagedFrame($"f{i}-{f}", 1000 + f, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }), new RedactionOutcome(new byte[] { 0xBB }, null, [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
             }
         }
 
@@ -205,8 +204,7 @@ public sealed class SessionHistoryTests : IAsyncDisposable
         // title, which the technician wrote; nothing here can hold OCR, transcript or a window title.
         var store = await OpenAsync();
         await store.CreateSessionAsync(new NewSession("s1", DateTimeOffset.UnixEpoch, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, "v14"));
-        await store.StageFrameAsync("s1", new StagedFrame("f1", 1000, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }));
-        await store.MarkFrameRedactedAsync("f1", new RedactionOutcome(new byte[] { 0xBB }, "SECRET OCR TEXT", [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
+        await store.SaveRedactedFrameAsync("s1", new StagedFrame("f1", 1000, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }), new RedactionOutcome(new byte[] { 0xBB }, "SECRET OCR TEXT", [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
         await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "t1", TsMs = 1, EndMs = 2, Speaker = Speaker.Tech, Text = "SECRET SPOKEN WORDS" });
 
         var row = Assert.Single(await store.ListSessionsAsync());

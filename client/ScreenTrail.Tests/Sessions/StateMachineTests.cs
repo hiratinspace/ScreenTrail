@@ -9,6 +9,7 @@ using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
 using ScreenTrail.Tests.Speech;
+using ScreenTrail.Tests.Store;
 
 namespace ScreenTrail.Tests.Sessions;
 
@@ -1040,7 +1041,7 @@ public sealed class StateMachineTests : IAsyncDisposable
         await store.CreateSessionAsync(new NewSession("orphan", DateTimeOffset.UtcNow, ScreenConnect, false, null));
         await store.SetSessionStateAsync("orphan", CaptureStates.Recording, null);
         await store.AppendEventAsync("orphan", new ClickEvent { TsMs = 5_000, X = 0, Y = 0, Button = MouseButton.Left });
-        await store.StageFrameAsync("orphan", Frame("straggler", 6_000));
+        await LegacyPendingFrame.WriteAsync(_path, _key, "orphan", Frame("straggler", 6_000), TestContext.Current.CancellationToken);
 
         var machine = await MachineAsync(grace: TimeSpan.FromMilliseconds(100));
         var recovered = await machine.RecoverAsync();
@@ -1184,7 +1185,7 @@ public sealed class StateMachineTests : IAsyncDisposable
         var store = await OpenStoreAsync();
         await store.CreateSessionAsync(new NewSession("orphan", DateTimeOffset.UtcNow, ScreenConnect, false, null));
         await store.SetSessionStateAsync("orphan", CaptureStates.Recording, null);
-        await store.StageFrameAsync("orphan", Frame("straggler", 6_000));
+        await LegacyPendingFrame.WriteAsync(_path, _key, "orphan", Frame("straggler", 6_000), TestContext.Current.CancellationToken);
 
         var frozen = new ManualTime(new DateTimeOffset(2026, 9, 21, 9, 0, 0, TimeSpan.Zero));
         var machine = await MachineAsync(grace: TimeSpan.FromSeconds(20), time: frozen);

@@ -3,10 +3,11 @@ using ScreenTrail.Shared.Schema;
 namespace ScreenTrail.Core.Store;
 
 /// <summary>
-/// The encrypted local store (ST-005). Frames enter with <c>redaction_pending</c> set and only the
-/// redaction worker can read one back (<see cref="TakeNextPendingFrameAsync"/>). Everything else (Review,
-/// bundle builder, export) reads through <see cref="LoadSessionAsync"/> and
-/// <see cref="GetRedactedFrameImageAsync"/>, which return redacted frames only (INV-1).
+/// The encrypted local store (ST-005). A captured frame waits in memory and reaches the store only once it
+/// has been read and masked, through <see cref="SaveRedactedFrameAsync"/> (ADR-0006); there is no way to
+/// write a frame that is still pending redaction, or to read one back. Everything (Review, bundle builder,
+/// export) reads through <see cref="LoadSessionAsync"/> and <see cref="GetRedactedFrameImageAsync"/>, which
+/// return redacted frames only (INV-1), and still skip a pending row a build before ADR-0006 left behind.
 /// </summary>
 public interface ISessionStore : IAsyncDisposable
 {
@@ -18,25 +19,9 @@ public interface ISessionStore : IAsyncDisposable
     /// <returns>Whether it was written: false for a session that is gone or discarded.</returns>
     Task<bool> AppendTranscriptAsync(string sessionId, TranscriptSegment segment, CancellationToken ct = default);
 
-    /// <summary>Writes a freshly captured frame with <c>redaction_pending = 1</c>.</summary>
-    /// <returns>Whether it was written: false for a session that is gone or discarded.</returns>
-    Task<bool> StageFrameAsync(string sessionId, StagedFrame frame, CancellationToken ct = default);
-
-    /// <summary>For the redaction worker only: the oldest frame still waiting for redaction, with its image.</summary>
-    Task<PendingFrame?> TakeNextPendingFrameAsync(CancellationToken ct = default);
-
     /// <summary>
-    /// The same, skipping frames another worker already has in hand. A frame stays
-    /// <c>redaction_pending</c> until its redaction finishes, so the query alone cannot tell "waiting"
-    /// from "being worked on" and two workers would take the same row.
-    /// </summary>
-    Task<PendingFrame?> TakeNextPendingFrameAsync(IReadOnlySet<string>? except, CancellationToken ct = default);
-
-    /// <summary>Replaces the staged image with the redacted one and clears <c>redaction_pending</c>.</summary>
-    /// <exception cref="InvalidOperationException">The frame doesn't exist or was already redacted.</exception>
-    /// <summary>
-    /// Writes a frame that has already been read and masked (ADR-0006). The only frame insert the
-    /// running service makes; <paramref name="frame"/>'s own image is not written.
+    /// Writes a frame that has already been read and masked (ADR-0006). The only way a frame reaches
+    /// the store; <paramref name="frame"/>'s own image is not written.
     /// </summary>
     /// <returns>Whether it was stored: false for a session that is gone or discarded, which is a refusal, not a fault.</returns>
     Task<bool> SaveRedactedFrameAsync(string sessionId, StagedFrame frame, RedactionOutcome outcome, CancellationToken ct = default);
@@ -46,8 +31,6 @@ public interface ISessionStore : IAsyncDisposable
     /// purge count and the audit row are what the bundle reads.
     /// </summary>
     Task RecordPurgedFramesAsync(string sessionId, int count, CancellationToken ct = default);
-
-    Task MarkFrameRedactedAsync(string frameId, RedactionOutcome outcome, CancellationToken ct = default);
 
     Task<int> CountPendingFramesAsync(string sessionId, CancellationToken ct = default);
 

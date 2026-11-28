@@ -346,8 +346,7 @@ public sealed class NamedDiscardTests : IAsyncDisposable
         for (var i = 0; i < frames; i++)
         {
             var frame = $"{id}-f{i}";
-            await store.StageFrameAsync(id, new StagedFrame(frame, 1_000 + i, FrameTrigger.Click, 80, 60, null, new byte[] { 0xAA }), Ct);
-            await store.MarkFrameRedactedAsync(frame, new RedactionOutcome(new byte[] { 0xBB }, "SECRET OCR TEXT", [], SensitiveContext: false, DateTimeOffset.UtcNow), Ct);
+            await store.SaveRedactedFrameAsync(id, new StagedFrame(frame, 1_000 + i, FrameTrigger.Click, 80, 60, null, new byte[] { 0xAA }), new RedactionOutcome(new byte[] { 0xBB }, "SECRET OCR TEXT", [], SensitiveContext: false, DateTimeOffset.UtcNow), Ct);
         }
 
         await store.AppendTranscriptAsync(id, new TranscriptSegment { Id = $"{id}-t", TsMs = 1_000, EndMs = 1_500, Speaker = Speaker.Tech, Text = "SECRET restarting the spooler" }, Ct);

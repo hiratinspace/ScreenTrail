@@ -55,7 +55,7 @@ An agent that finds a ticket seemingly requiring one of these to be broken must 
 
 | ID | Invariant | Where enforced |
 |---|---|---|
-| INV-1 | **No unredacted frame is ever shown, exported or transmitted.** Frames enter the store with `redaction_pending: true`; only the redaction worker flips it; every read path (Review, bundle builder, export, KB publish) filters `redaction_pending = false`. | Store read API, bundle builder tests |
+| INV-1 | **No unredacted frame is ever shown, exported or transmitted.** A captured frame waits in memory and reaches the store only after the redaction worker has masked it, written with `redaction_pending: false` (ADR-0006); the store has no way to write a frame without its redaction; every read path (Review, bundle builder, export, KB publish) still filters `redaction_pending = false`, for rows an older build wrote. | Store write and read API (`StoreWritePathTests`), bundle builder tests |
 | INV-2 | **Raw keystrokes are never recorded.** Keyboard hooks emit categories (`typing_burst`, `shortcut`, `enter`) with counts only. | Hook layer, schema |
 | INV-3 | **Nothing is published without a human click** in v1. No auto-publish path exists. | Publish panel, backend (no unauthenticated publish endpoint) |
 | INV-4 | **Capture is visibly indicated** while recording (tray state + HUD unless the user explicitly chose tray-only). There is no silent-capture mode. | State machine → tray/HUD bindings |

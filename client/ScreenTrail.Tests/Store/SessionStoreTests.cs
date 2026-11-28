@@ -18,9 +18,11 @@ public sealed class SessionStoreTests : IAsyncDisposable
     [Fact]
     public async Task PendingFramesNeverReadable()
     {
+        // A pending row can only be one an older build left in the file (ADR-0006): the store has no way
+        // to write one or to read one back. It is written here as that build wrote it.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
+        await PendingAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
         await store.AppendEventAsync("s1", new ClickEvent { TsMs = 990, X = 1, Y = 1, Button = MouseButton.Left, FrameId = "f1" });
         await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "t1", TsMs = 995, EndMs = 1200, Speaker = Speaker.Tech, Text = "hi", FrameId = "f1" });
 
@@ -32,22 +34,24 @@ public sealed class SessionStoreTests : IAsyncDisposable
         Assert.Null(loaded.Transcript[0].FrameId);
         Assert.Equal(1, await store.CountPendingFramesAsync("s1"));
 
-        // The redaction worker is the one path that sees it.
-        var pending = await store.TakeNextPendingFrameAsync();
-        Assert.Equal("f1", pending!.Id);
-        Assert.Equal(Bytes(0xAA, 2000), pending.Image);
-
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(0xBB, 1500), "Service status: Stopped"));
+        // A frame written redacted beside it is read, and so are the references to it.
+        await store.SaveRedactedFrameAsync("s1", Staged("f2", 1100, Bytes(0xAA, 2000)), Outcome(Bytes(0xBB, 1500), "Service status: Stopped"));
+        await store.AppendEventAsync("s1", new ClickEvent { TsMs = 1090, X = 1, Y = 1, Button = MouseButton.Left, FrameId = "f2" });
+        await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "t2", TsMs = 1095, EndMs = 1300, Speaker = Speaker.Tech, Text = "there", FrameId = "f2" });
 
         loaded = (await store.LoadSessionAsync("s1"))!;
         var frame = Assert.Single(loaded.Frames);
+        Assert.Equal("f2", frame.Id);
         Assert.False(frame.RedactionPending);
         Assert.Equal("Service status: Stopped", frame.OcrText);
         Assert.Single(frame.MaskedRegions);
-        Assert.Equal(Bytes(0xBB, 1500), await store.GetRedactedFrameImageAsync("f1"));
-        Assert.Equal("f1", Assert.IsType<ClickEvent>(loaded.Events[0]).FrameId);
-        Assert.Equal("f1", loaded.Transcript[0].FrameId);
-        Assert.Null(await store.TakeNextPendingFrameAsync());
+        Assert.Equal(Bytes(0xBB, 1500), await store.GetRedactedFrameImageAsync("f2"));
+        Assert.Null(await store.GetRedactedFrameImageAsync("f1"));
+        Assert.Null(Assert.IsType<ClickEvent>(loaded.Events[0]).FrameId);
+        Assert.Equal("f2", Assert.IsType<ClickEvent>(loaded.Events[1]).FrameId);
+        Assert.Null(loaded.Transcript[0].FrameId);
+        Assert.Equal("f2", loaded.Transcript[1].FrameId);
+        Assert.Equal(1, await store.CountPendingFramesAsync("s1"));
     }
 
     /// <summary>
@@ -91,13 +95,13 @@ public sealed class SessionStoreTests : IAsyncDisposable
     [Fact]
     public async Task RedactingTwiceIsRefused()
     {
+        // A stored frame is written once. A second write under its id is refused and the first image stands.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(2, 10), null));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)), Outcome(Bytes(2, 10), null));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => store.MarkFrameRedactedAsync("f1", Outcome(Bytes(3, 10), null)));
-        await Assert.ThrowsAsync<InvalidOperationException>(() => store.MarkFrameRedactedAsync("missing", Outcome(Bytes(3, 10), null)));
+        await Assert.ThrowsAsync<SqliteException>(() => store.SaveRedactedFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)), Outcome(Bytes(3, 10), null)));
+        Assert.Equal(Bytes(2, 10), await store.GetRedactedFrameImageAsync("f1"));
     }
 
     [Fact]
@@ -107,7 +111,8 @@ public sealed class SessionStoreTests : IAsyncDisposable
         await store.CreateSessionAsync(Session("s1"));
         var marker = Encoding.UTF8.GetBytes("the admin password is Winter2026");
         await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "t1", TsMs = 1, EndMs = 2, Speaker = Speaker.Tech, Text = Encoding.UTF8.GetString(marker) });
-        await store.StageFrameAsync("s1", Staged("f1", 3, Enumerable.Repeat(marker, 40).SelectMany(b => b).ToArray()));
+        var image = Enumerable.Repeat(marker, 40).SelectMany(b => b).ToArray();
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 3, image), Outcome(image, Encoding.UTF8.GetString(marker)));
         await store.DisposeAsync();
 
         var raw = await File.ReadAllBytesAsync(_path);
@@ -156,11 +161,10 @@ public sealed class SessionStoreTests : IAsyncDisposable
     {
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("keep", 1, Bytes(1, 10)));
-        await store.MarkFrameRedactedAsync("keep", Outcome(Bytes(1, 10), null));
+        await store.SaveRedactedFrameAsync("s1", Staged("keep", 1, Bytes(1, 10)), Outcome(Bytes(1, 10), null));
         foreach (var id in new[] { "p1", "p2", "p3" })
         {
-            await store.StageFrameAsync("s1", Staged(id, 2, Bytes(9, 10)));
+            await PendingAsync("s1", Staged(id, 2, Bytes(9, 10)));
         }
 
         var purged = await store.PurgePendingFramesAsync("s1");
@@ -183,7 +187,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
     {
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("gone", 10, Bytes(1, 10)));
+        await PendingAsync("s1", Staged("gone", 10, Bytes(1, 10)));
         await store.AppendEventAsync("s1", new MarkerEvent { TsMs = 10, FrameId = "gone" });
         await store.SaveDraftAsync("s1", new DraftNote
         {
@@ -217,8 +221,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
     {
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(1, 10), null));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)), Outcome(Bytes(1, 10), null));
 
         await store.SetFrameExcludedAsync("f1", true);
 
@@ -241,13 +244,13 @@ public sealed class SessionStoreTests : IAsyncDisposable
     {
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1, Bytes(1, 10)));
+        await PendingAsync("s1", Staged("f1", 1, Bytes(1, 10)));
         await store.AppendEventAsync("s1", new EnterEvent { TsMs = 1 });
 
         await store.DeleteSessionAsync("s1");
 
         Assert.Null(await store.LoadSessionAsync("s1"));
-        Assert.Null(await store.TakeNextPendingFrameAsync());
+        Assert.Equal(0, await store.CountAllPendingFramesAsync());
         Assert.Equal(AuditTypes.SessionDiscarded, Assert.Single(await store.GetAuditAsync("s1")).Type);
     }
 
@@ -322,7 +325,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         var clock = Stopwatch.StartNew();
         for (var i = 0; i < 60; i++)
         {
-            await store.StageFrameAsync("s1", Staged($"f{i}", i * 100, image));
+            await store.SaveRedactedFrameAsync("s1", Staged($"f{i}", i * 100, image), Outcome(image, null));
         }
 
         clock.Stop();
@@ -339,8 +342,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         var image = RandomNumberGenerator.GetBytes(150 * 1024);
         for (var i = 0; i < 85; i++)
         {
-            await store.StageFrameAsync("s1", Staged($"f{i}", i * 14_000, image));
-            await store.MarkFrameRedactedAsync($"f{i}", Outcome(image, new string('x', 600)));
+            await store.SaveRedactedFrameAsync("s1", Staged($"f{i}", i * 14_000, image), Outcome(image, new string('x', 600)));
         }
 
         for (var i = 0; i < 600; i++)
@@ -380,8 +382,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         // that left a readable note behind would be the worst of both: the technician believes it is gone.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(0xBB, 1500), "Service status: Stopped"));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)), Outcome(Bytes(0xBB, 1500), "Service status: Stopped"));
         await store.AppendEventAsync("s1", new ClickEvent { TsMs = 990, X = 1, Y = 1, Button = MouseButton.Left });
         await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "t1", TsMs = 995, EndMs = 1200, Speaker = Speaker.Tech, Text = "hi" });
         await store.SaveDraftAsync("s1", Note());
@@ -437,8 +438,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         // through a connection that was not open when the blur happened.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(0xBB, 1500), "Password: hunter2"));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)), Outcome(Bytes(0xBB, 1500), "Password: hunter2"));
 
         var blurred = Bytes(0xCC, 1400);
         await store.ApplyUserBlurAsync("f1", blurred, new MaskedRegion { X = 40, Y = 12, Width = 120, Height = 20, Kind = MaskKind.UserBlur });
@@ -468,9 +468,8 @@ public sealed class SessionStoreTests : IAsyncDisposable
             "s1",
             Staged("new", 1000, Bytes(0xAA, 10)) with { Width = 2560, Height = 1440 },
             Outcome(Bytes(0xBB, 10), null) with { StoredWidth = 1600, StoredHeight = 900 });
-        await store.StageFrameAsync("s1", Staged("old", 2000, Bytes(0xAA, 10)) with { Width = 3840, Height = 2160 });
-        await store.MarkFrameRedactedAsync("old", Outcome(Bytes(0xBB, 10), null));
-        await store.StageFrameAsync("s1", Staged("pending", 3000, Bytes(0xAA, 10)));
+        await store.SaveRedactedFrameAsync("s1", Staged("old", 2000, Bytes(0xAA, 10)) with { Width = 3840, Height = 2160 }, Outcome(Bytes(0xBB, 10), null));
+        await PendingAsync("s1", Staged("pending", 3000, Bytes(0xAA, 10)));
 
         var recorded = await store.GetRedactedFrameForBlurAsync("new");
         var legacy = await store.GetRedactedFrameForBlurAsync("old");
@@ -677,8 +676,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         // findings with the technician's one region would erase the record that a card number was masked.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(0xBB, 1500), null));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)), Outcome(Bytes(0xBB, 1500), null));
 
         await store.ApplyUserBlurAsync("f1", Bytes(0xCC, 1400), new MaskedRegion { X = 40, Y = 12, Width = 120, Height = 20, Kind = MaskKind.UserBlur });
 
@@ -694,7 +692,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         // caller's bytes over a frame the redaction worker is about to overwrite.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
+        await PendingAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => store.ApplyUserBlurAsync("f1", Bytes(0xCC, 10), new MaskedRegion { X = 1, Y = 1, Width = 2, Height = 2, Kind = MaskKind.UserBlur }));
@@ -708,8 +706,7 @@ public sealed class SessionStoreTests : IAsyncDisposable
         // and an audit entry with no session cannot be found again by the person it concerns.
         var store = await OpenAsync();
         await store.CreateSessionAsync(Session("s1"));
-        await store.StageFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)));
-        await store.MarkFrameRedactedAsync("f1", Outcome(Bytes(0xBB, 1500), null));
+        await store.SaveRedactedFrameAsync("s1", Staged("f1", 1000, Bytes(0xAA, 2000)), Outcome(Bytes(0xBB, 1500), null));
 
         Assert.True(await store.DeleteFrameAsync("f1"));
 
@@ -736,6 +733,10 @@ public sealed class SessionStoreTests : IAsyncDisposable
         _stores.Add(store);
         return store;
     }
+
+    /// <summary>A pending row as a build before ADR-0006 wrote it (<see cref="LegacyPendingFrame"/>).</summary>
+    private Task<bool> PendingAsync(string sessionId, StagedFrame frame) =>
+        LegacyPendingFrame.WriteAsync(_path, _key, sessionId, frame, TestContext.Current.CancellationToken);
 
     private static NewSession Session(string id) => new(id, At, new RemoteTool { Kind = RemoteToolKind.Screenconnect, ClientVersion = "24.1" }, LocalOnly: false, PolicyVersion: "v14");
 

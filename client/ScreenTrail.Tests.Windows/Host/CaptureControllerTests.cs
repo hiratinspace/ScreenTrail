@@ -10,6 +10,7 @@ using ScreenTrail.Service.Host;
 using ScreenTrail.Service.Privacy;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
+using ScreenTrail.Tests.Store;
 
 namespace ScreenTrail.Tests.Windows.Host;
 
@@ -29,6 +30,7 @@ public sealed class CaptureControllerTests : IAsyncDisposable
 
     private static readonly DateTimeOffset At = new(2026, 9, 16, 9, 0, 0, TimeSpan.Zero);
     private readonly string _path = Path.Combine(Path.GetTempPath(), "screentrail-tests", $"{Guid.NewGuid():N}.db");
+    private readonly FixedKey _key = new(RandomNumberGenerator.GetBytes(32));
     private SqliteSessionStore? _store;
     private SessionMachine? _machine;
 
@@ -38,7 +40,7 @@ public sealed class CaptureControllerTests : IAsyncDisposable
         var ct = TestContext.Current.CancellationToken;
         var store = await OpenAsync(ct);
         await store.CreateSessionAsync(new NewSession("s1", At, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null), ct);
-        await store.StageFrameAsync("s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1, 2, 3 }), ct);
+        await LegacyPendingFrame.WriteAsync(_path, _key, "s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1, 2, 3 }), ct);
 
         var reply = await ListAsync(store, ct);
 
@@ -680,7 +682,7 @@ public sealed class CaptureControllerTests : IAsyncDisposable
         _machine ??= new SessionMachine(store, new NoCaptureSources(), new UnavailableDrafter());
 
     private async Task<SqliteSessionStore> OpenAsync(CancellationToken ct) =>
-        _store ??= await SqliteSessionStore.OpenAsync(_path, new FixedKey(RandomNumberGenerator.GetBytes(32)), ct: ct);
+        _store ??= await SqliteSessionStore.OpenAsync(_path, _key, ct: ct);
 
     private sealed class FixedKey(byte[] key) : IStoreKeyProvider
     {

@@ -416,8 +416,7 @@ public sealed class PolicyApplierTests : IAsyncDisposable
     {
         var store = _store ??= await SqliteSessionStore.OpenAsync(Path.Combine(_dir, "store.db"), new FixedKey(RandomNumberGenerator.GetBytes(32)));
         await store.CreateSessionAsync(new NewSession("s1", At, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null));
-        await store.StageFrameAsync("s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 1920, 1080, null, new byte[] { 0x01 }));
-        await store.MarkFrameRedactedAsync("f1", new RedactionOutcome(new byte[] { 0xFF, 0xD8, 0xFF }, "Services", [], SensitiveContext: false, At));
+        await store.SaveRedactedFrameAsync("s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 1920, 1080, null, new byte[] { 0x01 }), new RedactionOutcome(new byte[] { 0xFF, 0xD8, 0xFF }, "Services", [], SensitiveContext: false, At));
         await store.FinalizeSessionAsync("s1", new FinalizeInfo(60_000, false));
         return store;
     }

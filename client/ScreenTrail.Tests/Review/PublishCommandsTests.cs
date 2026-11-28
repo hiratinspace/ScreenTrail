@@ -4,6 +4,7 @@ using ScreenTrail.Core.Review.Publish;
 using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
+using ScreenTrail.Tests.Store;
 using static ScreenTrail.Tests.Review.ReviewFixture;
 
 namespace ScreenTrail.Tests.Review;
@@ -144,7 +145,7 @@ public sealed class PublishCommandsTests : IAsyncDisposable
     {
         var commands = await CommandsAsync();
         await SeedAsync(["f1"]);
-        await _store!.StageFrameAsync("s1", new StagedFrame("raw", 2000, FrameTrigger.Click, 1600, 900, null, new byte[] { 9 }));
+        await LegacyPendingFrame.WriteAsync(_path, new FixedKey(_key), "s1", new StagedFrame("raw", 2000, FrameTrigger.Click, 1600, 900, null, new byte[] { 9 }));
 
         await commands.ReplyToAsync(Publish(["raw", "f1"]));
 

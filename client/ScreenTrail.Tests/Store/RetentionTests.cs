@@ -64,7 +64,7 @@ public sealed class RetentionTests : IAsyncDisposable
         var store = await OpenAsync();
         await FinishedSessionAsync(store, "recent", frames: 1);
         await store.CreateSessionAsync(new NewSession("live", T0, Tool(), false, null));
-        await store.StageFrameAsync("live", Frame("live-f", 1));
+        await PendingAsync("live", Frame("live-f", 1));
         var job = new RetentionJob(store, _time, new RetentionOptions(), () => "live");
 
         _time.Now = T0 + TimeSpan.FromDays(6);
@@ -96,8 +96,7 @@ public sealed class RetentionTests : IAsyncDisposable
 
         Assert.True(await machine.StartAsync(Tool()));
         var finished = machine.SessionId!;
-        await store.StageFrameAsync(finished, Frame("finished-f", 1));
-        await store.MarkFrameRedactedAsync("finished-f", new RedactionOutcome(new byte[] { 1 }, "Service status: Stopped", [], false, T0));
+        await store.SaveRedactedFrameAsync(finished, Frame("finished-f", 1), new RedactionOutcome(new byte[] { 1 }, "Service status: Stopped", [], false, T0));
         Assert.True(await machine.StopAsync());
         Assert.Equal(finished, machine.SessionId); // the machine still names it, which is the trap
         Assert.Single((await store.LoadSessionAsync(finished))!.Frames);
@@ -110,7 +109,7 @@ public sealed class RetentionTests : IAsyncDisposable
         Assert.True(await machine.StartAsync(Tool()));
         var live = machine.SessionId!;
         Assert.NotEqual(finished, live);
-        await store.StageFrameAsync(live, Frame("live-f", 1));
+        await PendingAsync(live, Frame("live-f", 1));
         _time.Now = T0 + TimeSpan.FromDays(60);
         Assert.Equal(0, await job.RunAsync());
         Assert.Equal(1, await store.CountPendingFramesAsync(live));
@@ -153,7 +152,7 @@ public sealed class RetentionTests : IAsyncDisposable
         // raw frames would sit on disk for ever, which is exactly what INV-12 forbids.
         var store = await OpenAsync();
         await store.CreateSessionAsync(new NewSession("orphan", T0, Tool(), false, null));
-        await store.StageFrameAsync("orphan", Frame("orphan-f", 1));
+        await PendingAsync("orphan", Frame("orphan-f", 1));
         await store.AppendTranscriptAsync("orphan", new TranscriptSegment { Id = "orphan-t", TsMs = 2, EndMs = 3, Speaker = Speaker.Tech, Text = "the password is hunter2" });
         var job = new RetentionJob(store, _time, new RetentionOptions(), () => null);
 
@@ -255,19 +254,18 @@ public sealed class RetentionTests : IAsyncDisposable
     }
 
     /// <summary>A drafted, finished session with redacted frames, a transcript, events and one audit row, ended at the clock's current time.</summary>
-    private static async Task FinishedSessionAsync(SqliteSessionStore store, string id, int frames)
+    private async Task FinishedSessionAsync(SqliteSessionStore store, string id, int frames)
     {
         await store.CreateSessionAsync(new NewSession(id, T0, Tool(), false, "v14"));
         var image = RandomNumberGenerator.GetBytes(150 * 1024);
         for (var i = 0; i < frames; i++)
         {
-            await store.StageFrameAsync(id, Frame($"{id}-f{i}", i * 1000, image));
-            await store.MarkFrameRedactedAsync($"{id}-f{i}", new RedactionOutcome(image, "Service status: Stopped", [], false, T0));
+            await store.SaveRedactedFrameAsync(id, Frame($"{id}-f{i}", i * 1000, image), new RedactionOutcome(image, "Service status: Stopped", [], false, T0));
         }
 
         await store.AppendEventAsync(id, new ClickEvent { TsMs = 1, X = 1, Y = 1, Button = MouseButton.Left });
         await store.AppendTranscriptAsync(id, new TranscriptSegment { Id = $"{id}-t", TsMs = 2, EndMs = 3, Speaker = Speaker.Tech, Text = "the password is [REDACTED]" });
-        await store.StageFrameAsync(id, Frame($"{id}-straggler", 9_000, image));
+        await PendingAsync(id, Frame($"{id}-straggler", 9_000, image));
         await store.PurgePendingFramesAsync(id);
         await store.SaveDraftAsync(id, new DraftNote
         {
@@ -294,6 +292,10 @@ public sealed class RetentionTests : IAsyncDisposable
         .Sum(p => new FileInfo(p).Length);
 
     private static RemoteTool Tool() => new() { Kind = RemoteToolKind.Rdp };
+
+    /// <summary>A pending row as a build before ADR-0006 wrote it (<see cref="LegacyPendingFrame"/>).</summary>
+    private Task<bool> PendingAsync(string sessionId, StagedFrame frame) =>
+        LegacyPendingFrame.WriteAsync(Path.Combine(_dir, "store.db"), _key, sessionId, frame, TestContext.Current.CancellationToken);
 
     private static StagedFrame Frame(string id, long tsMs, byte[]? image = null) =>
         new(id, tsMs, FrameTrigger.Click, 1600, 900, null, image ?? new byte[] { 1, 2, 3 });

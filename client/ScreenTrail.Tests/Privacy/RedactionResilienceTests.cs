@@ -349,17 +349,6 @@ public sealed class RedactionResilienceTests : IAsyncDisposable
                 ? throw new InvalidOperationException($"Frame '{frame.Id}' could not be written.")
                 : inner.SaveRedactedFrameAsync(sessionId, frame, outcome, ct);
 
-        public Task MarkFrameRedactedAsync(string id, RedactionOutcome outcome, CancellationToken ct = default) =>
-            id == frameId
-                ? throw new InvalidOperationException($"Frame '{id}' is not pending redaction.")
-                : inner.MarkFrameRedactedAsync(id, outcome, ct);
-
-        public Task<PendingFrame?> TakeNextPendingFrameAsync(CancellationToken ct = default) =>
-            inner.TakeNextPendingFrameAsync(ct);
-
-        public Task<PendingFrame?> TakeNextPendingFrameAsync(IReadOnlySet<string>? except, CancellationToken ct = default) =>
-            inner.TakeNextPendingFrameAsync(except, ct);
-
         public Task DiscardPendingFrameAsync(string id, CancellationToken ct = default) =>
             alsoDiscard && id == frameId
                 ? throw new IOException("There is no space left on the device.")
@@ -379,8 +368,6 @@ public sealed class RedactionResilienceTests : IAsyncDisposable
         public Task<bool> AppendEventAsync(string sessionId, SessionEvent e, CancellationToken ct = default) => inner.AppendEventAsync(sessionId, e, ct);
 
         public Task<bool> AppendTranscriptAsync(string sessionId, TranscriptSegment segment, CancellationToken ct = default) => inner.AppendTranscriptAsync(sessionId, segment, ct);
-
-        public Task<bool> StageFrameAsync(string sessionId, StagedFrame frame, CancellationToken ct = default) => inner.StageFrameAsync(sessionId, frame, ct);
 
         public Task<int> PurgePendingFramesAsync(string sessionId, CancellationToken ct = default) => inner.PurgePendingFramesAsync(sessionId, ct);
 

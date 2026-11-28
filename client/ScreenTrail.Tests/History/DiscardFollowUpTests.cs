@@ -109,7 +109,6 @@ public sealed class DiscardFollowUpTests : IAsyncDisposable
         Assert.Equal(0, await store.GetLastTimestampAsync("s1", Ct));
 
         await store.SaveRedactedFrameAsync("s1", new StagedFrame("late", 99_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), new RedactionOutcome(new byte[] { 2 }, "SECRET", [], false, DateTimeOffset.UtcNow), Ct);
-        await store.StageFrameAsync("s1", new StagedFrame("late-staged", 98_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), Ct);
         await store.AppendEventAsync("s1", new ClickEvent { TsMs = 97_000, X = 1, Y = 1, Button = MouseButton.Left }, Ct);
         await store.AppendTranscriptAsync("s1", new TranscriptSegment { Id = "late-t", TsMs = 96_000, EndMs = 96_500, Speaker = Speaker.Tech, Text = "SECRET" }, Ct);
 
@@ -281,12 +280,10 @@ public sealed class DiscardFollowUpTests : IAsyncDisposable
         var outcome = new RedactionOutcome(new byte[] { 2 }, null, [], false, DateTimeOffset.UtcNow);
 
         Assert.True(await store.SaveRedactedFrameAsync("live", new StagedFrame("live-late", 9_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), outcome, Ct));
-        Assert.True(await store.StageFrameAsync("live", new StagedFrame("live-staged", 9_001, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), Ct));
         Assert.True(await store.AppendEventAsync("live", new MarkerEvent { TsMs = 9_002 }, Ct));
         Assert.True(await store.AppendTranscriptAsync("live", new TranscriptSegment { Id = "live-late-t", TsMs = 9_003, EndMs = 9_004, Speaker = Speaker.Tech, Text = "ok" }, Ct));
 
         Assert.False(await store.SaveRedactedFrameAsync("gone", new StagedFrame("gone-late", 9_000, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), outcome, Ct));
-        Assert.False(await store.StageFrameAsync("gone", new StagedFrame("gone-staged", 9_001, FrameTrigger.Click, 80, 60, null, new byte[] { 1 }), Ct));
         Assert.False(await store.AppendEventAsync("gone", new MarkerEvent { TsMs = 9_002 }, Ct));
         Assert.False(await store.AppendTranscriptAsync("gone", new TranscriptSegment { Id = "gone-late-t", TsMs = 9_003, EndMs = 9_004, Speaker = Speaker.Tech, Text = "ok" }, Ct));
     }

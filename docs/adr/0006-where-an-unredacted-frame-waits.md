@@ -117,7 +117,12 @@ open longest.
 ## Consequences
 
 - `ISessionStore.StageFrameAsync` and `TakeNextPendingFrameAsync` lose their callers in the running
-  service and are kept only for the recovery path and for tests that exercise it.
+  service and are kept only for the recovery path and for tests that exercise it. *(2026-11-27: removed,
+  with `MarkFrameRedactedAsync`. Nothing in the service called them, recovery included, and they were
+  the only way a captured image could be written to disk. The store's one frame write is now
+  `SaveRedactedFrameAsync`, and `StoreWritePathTests` fails if a way to write a frame without its
+  redaction comes back. A pending row an older build left is still invisible to every reader, counted
+  and deleted; the tests write one straight into the file.)*
 - The redaction worker's backlog count becomes a queue depth rather than a query, which the HUD reads
   the same way.
 - A session recorded on a machine where redaction cannot keep up produces fewer frames than one on a

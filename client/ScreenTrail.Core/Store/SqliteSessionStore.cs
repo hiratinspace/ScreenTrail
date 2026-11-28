@@ -143,30 +143,10 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             ("@confidence", segment.Confidence)).ConfigureAwait(false) > 0;
     }
 
-    public async Task<bool> StageFrameAsync(string sessionId, StagedFrame frame, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(frame);
-        return await RunAsync(
-            """
-            INSERT INTO frames (id, session_id, ts_ms, trigger, width, height, cursor_x, cursor_y, redaction_pending, image)
-            SELECT @id, @session, @ts, @trigger, @w, @h, @cx, @cy, 1, @image
-            """ + Writable,
-            ct,
-            ("@id", frame.Id),
-            ("@session", sessionId),
-            ("@ts", frame.TsMs),
-            ("@trigger", EnumName(frame.Trigger)),
-            ("@w", frame.Width),
-            ("@h", frame.Height),
-            ("@cx", frame.Cursor?.X),
-            ("@cy", frame.Cursor?.Y),
-            ("@image", frame.Image.ToArray())).ConfigureAwait(false) > 0;
-    }
-
     /// <summary>
     /// Writes a frame that has already been read and masked (ADR-0006).
     ///
-    /// The only insert the running service makes. A frame used to arrive unredacted and be updated in
+    /// The only frame insert the store has. A frame used to arrive unredacted and be updated in
     /// place once the worker had read it, which is why <c>redaction_pending</c> was ever a state on
     /// disk; it waits in memory now, so a row written here was never pending and no window could have
     /// been open on it.
@@ -210,60 +190,6 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             ("@at", Iso(outcome.RedactedAt)),
             ("@sw", StoredSize(outcome)?.Width),
             ("@sh", StoredSize(outcome)?.Height)).ConfigureAwait(false) > 0;
-    }
-
-    public Task<PendingFrame?> TakeNextPendingFrameAsync(CancellationToken ct = default) =>
-        TakeNextPendingFrameAsync(null, ct);
-
-    /// <param name="except">
-    /// Frames another worker is already redacting. Without this, two workers select the same row: the
-    /// query cannot claim it, because a frame stays <c>redaction_pending</c> until the redaction finishes,
-    /// and the slower one's MarkFrameRedactedAsync then finds nothing to update and throws.
-    /// </param>
-    public Task<PendingFrame?> TakeNextPendingFrameAsync(IReadOnlySet<string>? except, CancellationToken ct = default)
-    {
-        // Built rather than parameterised because the set is a handful of ids the caller owns, never user
-        // input; SQLite has no array parameter, and the ids are our own GUID-derived strings.
-        var skip = except is { Count: > 0 }
-            ? " AND id NOT IN (" + string.Join(",", except.Select((_, i) => "@skip" + i.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ")"
-            : string.Empty;
-        var parameters = except is { Count: > 0 }
-            ? except.Select((id, i) => ("@skip" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), (object?)id)).ToArray()
-            : [];
-
-        return QueryAsync(
-            "SELECT id, session_id, ts_ms, image FROM frames WHERE redaction_pending = 1" + skip + " ORDER BY ts_ms LIMIT 1",
-            async reader => await reader.ReadAsync(ct).ConfigureAwait(false)
-                ? new PendingFrame(reader.GetString(0), reader.GetString(1), reader.GetInt64(2), (byte[])reader[3])
-                : null,
-            ct,
-            parameters);
-    }
-
-    public async Task MarkFrameRedactedAsync(string frameId, RedactionOutcome outcome, CancellationToken ct = default)
-    {
-        ArgumentNullException.ThrowIfNull(outcome);
-        var changed = await RunAsync(
-            """
-            UPDATE frames
-            SET image = @image, ocr_text = @ocr, masked_regions_json = @regions, sensitive_context = @sensitive,
-                redacted_at = @at, redaction_pending = 0, stored_width = @sw, stored_height = @sh
-            WHERE id = @id AND redaction_pending = 1
-            """,
-            ct,
-            ("@id", frameId),
-            ("@image", outcome.RedactedImage.ToArray()),
-            ("@ocr", outcome.OcrText),
-            ("@regions", JsonSerializer.Serialize(outcome.MaskedRegions, SessionJson.Options)),
-            ("@sensitive", outcome.SensitiveContext ? 1 : 0),
-            ("@at", Iso(outcome.RedactedAt)),
-            ("@sw", StoredSize(outcome)?.Width),
-            ("@sh", StoredSize(outcome)?.Height)).ConfigureAwait(false);
-
-        if (changed != 1)
-        {
-            throw new InvalidOperationException($"Frame '{frameId}' is not pending redaction (missing or already redacted).");
-        }
     }
 
     public Task<int> CountPendingFramesAsync(string sessionId, CancellationToken ct = default) =>

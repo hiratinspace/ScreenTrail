@@ -772,10 +772,7 @@ public sealed class DraftSenderTests : IAsyncDisposable
     {
         var store = await StoreAsync();
         await store.CreateSessionAsync(new NewSession("s1", At, new RemoteTool { Kind = RemoteToolKind.Rdp }, false, null));
-        await store.StageFrameAsync("s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 1920, 1080, null, new byte[] { 0x01 }));
-        await store.MarkFrameRedactedAsync(
-            "f1",
-            new RedactionOutcome(Picture, "Services [REDACTED] stopped", [], SensitiveContext: false, At));
+        await store.SaveRedactedFrameAsync("s1", new StagedFrame("f1", 1_000, FrameTrigger.Click, 1920, 1080, null, new byte[] { 0x01 }), new RedactionOutcome(Picture, "Services [REDACTED] stopped", [], SensitiveContext: false, At));
         await store.AppendTranscriptAsync(
             "s1",
             new TranscriptSegment { Id = "t1", TsMs = 1_200, EndMs = 2_000, Speaker = Speaker.Tech, Text = "clearing the queue" });

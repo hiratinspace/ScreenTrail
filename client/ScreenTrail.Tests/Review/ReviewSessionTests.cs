@@ -86,8 +86,7 @@ public sealed class ReviewSessionTests : IAsyncDisposable
             new RemoteTool { Kind = RemoteToolKind.Screenconnect },
             LocalOnly: false,
             PolicyVersion: "v14"));
-        await store.StageFrameAsync("s1", new StagedFrame("f1", 1000, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }));
-        await store.MarkFrameRedactedAsync("f1", new RedactionOutcome(new byte[] { 0xBB }, null, [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
+        await store.SaveRedactedFrameAsync("s1", new StagedFrame("f1", 1000, FrameTrigger.Click, 1600, 900, null, new byte[] { 0xAA }), new RedactionOutcome(new byte[] { 0xBB }, null, [], SensitiveContext: false, DateTimeOffset.UnixEpoch));
         await store.SaveDraftAsync("s1", Draft(Step("Found the spooler stopped.", StepConfidence.Low, "f1")));
     }
 
@@ -115,17 +114,9 @@ public sealed class ReviewSessionTests : IAsyncDisposable
 
         public Task<bool> AppendTranscriptAsync(string sessionId, TranscriptSegment segment, CancellationToken ct = default) => throw new NotSupportedException();
 
-        public Task<bool> StageFrameAsync(string sessionId, StagedFrame frame, CancellationToken ct = default) => throw new NotSupportedException();
-
-        public Task<PendingFrame?> TakeNextPendingFrameAsync(CancellationToken ct = default) => throw new NotSupportedException();
-
-        public Task<PendingFrame?> TakeNextPendingFrameAsync(IReadOnlySet<string>? except, CancellationToken ct = default) => throw new NotSupportedException();
-
         public Task RecordPurgedFramesAsync(string sessionId, int count, CancellationToken ct = default) => throw new NotSupportedException();
 
         public Task<bool> SaveRedactedFrameAsync(string sessionId, StagedFrame frame, RedactionOutcome outcome, CancellationToken ct = default) => throw new NotSupportedException();
-
-        public Task MarkFrameRedactedAsync(string frameId, RedactionOutcome outcome, CancellationToken ct = default) => throw new NotSupportedException();
 
         public Task<int> CountPendingFramesAsync(string sessionId, CancellationToken ct = default) => throw new NotSupportedException();
 
