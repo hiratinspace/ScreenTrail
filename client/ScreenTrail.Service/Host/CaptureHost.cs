@@ -1056,15 +1056,14 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         try
         {
             await policyFetched.WaitAsync(ct).ConfigureAwait(false);
-            while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
-            {
-                _ = await outbox.DrainAsync(ct).ConfigureAwait(false);
-                var waiting = await outbox.WaitingAsync(ct).ConfigureAwait(false);
-                if (waiting.Total > 0)
-                {
-                    LogOutbox(logger, waiting.Drafts, waiting.Publishes, waiting.Uncertain);
-                }
-            }
+
+            // F-07: a store error in one tick is logged by type and the next tick drains again, as the
+            // retention loop beside it does.
+            await outbox.RunAsync(
+                token => timer.WaitForNextTickAsync(token).AsTask(),
+                waiting => LogOutbox(logger, waiting.Drafts, waiting.Publishes, waiting.Uncertain),
+                failure => LogLoopFailed(logger, "outbox", failure.GetType().Name),
+                ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

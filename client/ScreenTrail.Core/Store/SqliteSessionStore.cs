@@ -1478,7 +1478,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
     }
 
     public Task<OutboxItem?> TakeDueAsync(DateTimeOffset now, CancellationToken ct = default) =>
-        QueryAsync(
+        TakeReadableAsync(
             """
             SELECT id, session_id, kind, idempotency_key, payload, state, attempts, created_at, due_at,
                    last_attempt_at, last_error, remote_id
@@ -1487,12 +1487,11 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             ORDER BY created_at, id
             LIMIT 1
             """,
-            async reader => await reader.ReadAsync(ct).ConfigureAwait(false) ? ReadOutbox(reader) : null,
             ct,
             ("@now", Iso(now)));
 
     public Task<OutboxItem?> TakeUncertainAsync(CancellationToken ct = default) =>
-        QueryAsync(
+        TakeReadableAsync(
             """
             SELECT id, session_id, kind, idempotency_key, payload, state, attempts, created_at, due_at,
                    last_attempt_at, last_error, remote_id
@@ -1501,8 +1500,53 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             ORDER BY created_at, id
             LIMIT 1
             """,
-            async reader => await reader.ReadAsync(ct).ConfigureAwait(false) ? ReadOutbox(reader) : null,
             ct);
+
+    /// <summary>
+    /// The reason written for an outbox row this build cannot read. Fixed: nothing of the row is quoted.
+    /// </summary>
+    internal const string UnreadableOutboxItem = "This build of ScreenTrail cannot read this item.";
+
+    /// <summary>
+    /// The first row <paramref name="sql"/> finds that this build can read (F-07).
+    ///
+    /// A row whose kind or dates this build does not know (a newer build's kind after a downgrade, a
+    /// damaged date) used to throw out of the reader, and being the oldest it was found first at every
+    /// turn, so it stopped the queue after every restart. Its id is read first, and it is moved to
+    /// failed with a fixed reason, so it stops being found and the work behind it goes.
+    /// </summary>
+    private async Task<OutboxItem?> TakeReadableAsync(string sql, CancellationToken ct, params (string Name, object? Value)[] parameters)
+    {
+        while (true)
+        {
+            var row = await QueryAsync(
+                sql,
+                async reader => await reader.ReadAsync(ct).ConfigureAwait(false) ? ReadOutbox(reader) : default((string Id, OutboxItem? Item)?),
+                ct,
+                parameters).ConfigureAwait(false);
+            if (row is not { } found)
+            {
+                return null;
+            }
+
+            if (found.Item is { } item)
+            {
+                return item;
+            }
+
+            var moved = await RunAsync(
+                "UPDATE outbox SET state = @failed, last_error = @error WHERE id = @id",
+                ct,
+                ("@id", found.Id),
+                ("@failed", Wire(OutboxState.Failed)),
+                ("@error", UnreadableOutboxItem)).ConfigureAwait(false);
+            if (moved == 0)
+            {
+                // Gone meanwhile (its session was discarded or purged): nothing more to do this turn.
+                return null;
+            }
+        }
+    }
 
     public async Task<bool> UpdateAsync(OutboxItem item, CancellationToken ct = default)
     {
@@ -1538,25 +1582,59 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
                 : default,
             ct);
 
-    private static OutboxItem ReadOutbox(SqliteDataReader reader) => new(
-        reader.GetString(0),
-        reader.GetString(1),
-        Enum.Parse<OutboxKind>(reader.GetString(2)),
-        reader.GetString(3),
-        reader.GetString(4),
-        reader.GetString(5) switch
+    /// <returns>The row's id, and the item, or null when this build cannot read the row (F-07).</returns>
+    private static (string Id, OutboxItem? Item) ReadOutbox(SqliteDataReader reader)
+    {
+        var id = reader.GetString(0);
+        if (!Enum.TryParse<OutboxKind>(reader.GetString(2), ignoreCase: false, out var kind)
+            || !Enum.IsDefined(kind)
+            || !TryOutboxDate(reader.GetString(7), out var created)
+            || !TryOutboxDate(reader.GetString(8), out var due))
         {
-            "pending" => OutboxState.Pending,
-            "uncertain" => OutboxState.Uncertain,
-            "done" => OutboxState.Done,
-            _ => OutboxState.Failed,
-        },
-        reader.GetInt32(6),
-        DateTimeOffset.Parse(reader.GetString(7), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-        DateTimeOffset.Parse(reader.GetString(8), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-        reader.IsDBNull(9) ? null : DateTimeOffset.Parse(reader.GetString(9), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-        reader.IsDBNull(10) ? null : reader.GetString(10),
-        reader.IsDBNull(11) ? null : reader.GetString(11));
+            return (id, null);
+        }
+
+        DateTimeOffset? attempted = null;
+        if (!reader.IsDBNull(9))
+        {
+            if (!TryOutboxDate(reader.GetString(9), out var at))
+            {
+                return (id, null);
+            }
+
+            attempted = at;
+        }
+
+        try
+        {
+            return (id, new OutboxItem(
+                id,
+                reader.GetString(1),
+                kind,
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5) switch
+                {
+                    "pending" => OutboxState.Pending,
+                    "uncertain" => OutboxState.Uncertain,
+                    "done" => OutboxState.Done,
+                    _ => OutboxState.Failed,
+                },
+                reader.GetInt32(6),
+                created,
+                due,
+                attempted,
+                reader.IsDBNull(10) ? null : reader.GetString(10),
+                reader.IsDBNull(11) ? null : reader.GetString(11)));
+        }
+        catch (Exception ex) when (ex is InvalidCastException or OverflowException or FormatException)
+        {
+            return (id, null);
+        }
+    }
+
+    private static bool TryOutboxDate(string text, out DateTimeOffset at) =>
+        DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out at);
 
     private static string Wire(OutboxState state) => state.ToString().ToLowerInvariant();
 

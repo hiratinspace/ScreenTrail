@@ -1,3 +1,5 @@
+using ScreenTrail.Core.Privacy;
+
 namespace ScreenTrail.Core.Outbox;
 
 /// <summary>
@@ -131,6 +133,35 @@ public sealed class Outbox(
 
         return await AttemptAsync(item, ct).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Works the queue, one <see cref="DrainAsync"/> per turn of <paramref name="next"/>, until it ends or
+    /// <paramref name="ct"/> is cancelled. What is still waiting after each turn goes to
+    /// <paramref name="waiting"/> when there is any.
+    ///
+    /// A store error in one turn (a full disk, a file another program holds) costs that turn and no other
+    /// (F-07): it goes to <paramref name="failed"/>, which should log its type only (INV-10), and the next
+    /// turn drains again. The loop used to catch cancellation alone, so one such error ended sending for
+    /// the life of the service, with nothing logged, while Review went on saying a draft was on its way.
+    /// </summary>
+    public Task RunAsync(
+        Func<CancellationToken, Task<bool>> next,
+        Action<OutboxWaiting>? waiting,
+        Action<Exception>? failed,
+        CancellationToken ct) =>
+        ResilientLoop.RunAsync(
+            next,
+            async token =>
+            {
+                _ = await DrainAsync(token).ConfigureAwait(false);
+                var now = await WaitingAsync(token).ConfigureAwait(false);
+                if (now.Total > 0)
+                {
+                    waiting?.Invoke(now);
+                }
+            },
+            failed,
+            ct);
 
     /// <summary>What is waiting, for the HUD's offline pill and Review's banner (Spec §5 S2, S3).</summary>
     public Task<OutboxWaiting> WaitingAsync(CancellationToken ct = default) => store.CountWaitingAsync(ct);
