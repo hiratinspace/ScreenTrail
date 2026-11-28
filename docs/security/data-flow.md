@@ -63,8 +63,12 @@ cannot quietly add one.
 **Only the technician's microphone** is captured (INV-9). ScreenTrail does not record the customer's audio
 at all in v1. See [consent guidance](../legal/consent-guidance.md) for why that distinction matters.
 
-**Capture stops by itself** when a password field has focus, when an excluded application is in front,
-when a window is running as administrator, or when the screen looks sensitive. Those states **drop the
+**Capture stops by itself** when a password field on the technician's machine has focus, when an
+excluded application is in front, when a window is running as administrator, or when the screen looks
+sensitive. A password field on the customer's machine, seen through the remote-support tool, is not
+detected this way, because the technician's machine sees only the tool's picture of it; there the
+sign-in screen check and the masking below are what apply. A local application that does not answer
+Windows' accessibility interface (UI Automation) in time can be missed too. Those states **drop the
 data rather than hiding it** (INV-6): no screenshot is taken and no typing event is recorded for that
 interval. The gap is shown in the review screen so the technician can see that something was deliberately
 not captured, rather than wondering what went missing.

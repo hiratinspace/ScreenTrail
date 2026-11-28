@@ -55,8 +55,12 @@ No. The indicator sets `WDA_EXCLUDEFROMCAPTURE`, verified on the hosted runner a
 (ADR-0001 AC3), so a screen-share viewer does not see it while the technician does.
 
 **1.9 What happens when a password field has focus?**
-Capture stops. No screenshot and no typing event is recorded for that interval: the data is dropped, not
-hidden. Detection is by UI Automation, verified on real hardware. *(INV-6)*
+On the technician's own machine, capture stops. No screenshot and no typing event is recorded for that
+interval: the data is dropped, not hidden. Detection is by UI Automation, verified on real hardware.
+*(INV-6)* It does not cover a password field on the customer's machine seen through the remote-support
+tool: the technician's machine sees only the tool's picture of it, so capture goes on, and what stands in
+for it there is the sign-in screen check (which reads the words on screen) and the masking of a value beside
+a password label (2.5). A local application that does not answer UI Automation in time can be missed too.
 
 **1.10 What other conditions stop capture?**
 An excluded application in front, a window running elevated, or a screen that matches sensitive-context
