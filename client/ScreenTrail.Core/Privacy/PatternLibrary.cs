@@ -461,6 +461,11 @@ internal static partial class PatternLibrary
             {
                 yield return new PatternMatch(MaskKind.Ssn, m.Index, m.Length, "[SSN]");
             }
+
+            foreach (var match in Itins(text, onIncomplete))
+            {
+                yield return match;
+            }
         }
 
         if (policy.Cards)
@@ -504,6 +509,11 @@ internal static partial class PatternLibrary
                     yield return new PatternMatch(MaskKind.ApiKey, start, length, "[SECRET]");
                 }
             }
+
+            foreach (var match in RecoveryAndSetupKeys(text, onIncomplete))
+            {
+                yield return match;
+            }
         }
 
         if (policy.Passwords)
@@ -532,6 +542,19 @@ internal static partial class PatternLibrary
                 {
                     yield return new PatternMatch(MaskKind.Password, secret.Start, secret.Length, "[REDACTED]") { CueStarts = [m.Index] };
                 }
+            }
+
+            foreach (var match in SharedCuePasswords(text, onIncomplete).Concat(CommandLinePasswords(text, onIncomplete)))
+            {
+                yield return match;
+            }
+        }
+
+        if (policy.LabelledIds)
+        {
+            foreach (var match in LabelledIds(text, onIncomplete))
+            {
+                yield return match;
             }
         }
 
@@ -997,8 +1020,9 @@ internal static partial class PatternLibrary
 
     // "password", "pwd", "passphrase". Only the cue: where the secret sits after it is a question about
     // how somebody speaks, and a regex answered it by assuming the very next token (2026-09-20 review).
+    // And a Wi-Fi key: "Key Content : ..." as netsh lists it, and "the wifi key is ..." as it is said (K2).
     [GeneratedRegex(
-        @"\b(?:password|passphrase|passwd|pwd|pass\s?code|pass(?=\s{0,3}[:=])|pin(?:\s?number)?)\b",
+        @"\b(?:password|passphrase|passwd|pwd|pass\s?code|pass(?=\s{0,3}[:=])|pin(?:\s?number)?|key\s+content(?=\s{0,40}:)|(?:wi-?fi|wireless|wlan|wpa[23]?|network(?:\s+security)?)\s+(?:key|passkey|psk))\b",
         RegexOptions.CultureInvariant | RegexOptions.IgnoreCase,
         BuiltInTimeoutMs)]
     private static partial Regex PasswordCue();

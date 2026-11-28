@@ -200,6 +200,12 @@ public sealed class RedactionEngine
             }
         }
 
+        // And every cell under a "Password" column's header, which is the only cue a password list has.
+        if (_policy.Passwords)
+        {
+            PasswordColumns(page, starts, ends, taken, regions, widened, counts);
+        }
+
         // And the place after a credential cue whose value the engine did not read at all.
         if (UnreadValues)
         {
@@ -712,6 +718,116 @@ public sealed class RedactionEngine
                     var mine = new HashSet<int>();
                     _ = Mask(page, starts, ends, [next], [], piece, mine, regions, widened);
                     taken.UnionWith(mine);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// How far, in row heights, a table's next row may start below the last cell found in a column before
+    /// the column is taken to have ended. A table's rows are a fraction of a row height apart; a paragraph
+    /// under the table, or the next section, is further.
+    /// </summary>
+    internal const double PasswordColumnGap = 2.5;
+
+    /// <summary>
+    /// How far, in row heights, a column's header stands from the words either side of it on its row: more
+    /// than any space measured between two words of one line (0.28 to 0.56, <see cref="TokenGap"/>), so
+    /// "Change Password" and "Password Winter2026" are a phrase and a label, not a header.
+    /// </summary>
+    internal const double PasswordColumnApart = 0.8;
+
+    /// <summary>The most rows a column is followed down, so a page of headers costs a bounded walk each.</summary>
+    internal const int PasswordColumnRows = 500;
+
+    /// <summary>
+    /// The words that head a column of passwords. Fewer than <see cref="Cues"/>: "Pass" heads a column of
+    /// test results as often as of passwords.
+    /// </summary>
+    private static readonly HashSet<string> ColumnHeaders = new(
+        ["password", "passwords", "passwd", "passphrase", "passcode", "pwd", .. LoginScreenHeuristic.PasswordWords.Where(w => !w.Contains(' ', StringComparison.Ordinal))],
+        StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// A column of passwords (K2, A-01 (c)): a documentation tool's password list or a spreadsheet of
+    /// accounts, where the header is the only cue and the rule that masks a cue's value reaches one row
+    /// under it. A header is a password word on its own, with no colon after it, standing apart from the
+    /// words either side of it on its row and with at least one other column beside it. Every word below
+    /// it within its column is masked, with its token, down to where the column ends: a row starting more
+    /// than <see cref="PasswordColumnGap"/> row heights below the last cell found. The header stays, so the
+    /// page still says what the column was; so do the other columns.
+    /// </summary>
+    private static void PasswordColumns(
+        OcrPage page,
+        int[] starts,
+        int[] ends,
+        HashSet<int> taken,
+        List<MaskedRegion> regions,
+        List<PatternMatch> widened,
+        Dictionary<MaskKind, int> counts)
+    {
+        var words = page.Words;
+        for (var row = 0; row < page.RowCount; row++)
+        {
+            var members = page.RowAt(row);
+            if (members.RightToLeft || members.Members.Length < 2)
+            {
+                continue;
+            }
+
+            for (var place = 0; place < members.Members.Length; place++)
+            {
+                var header = words[members.Members[place]];
+                var name = header.Text.Trim();
+                if (name.Contains(':', StringComparison.Ordinal) || name.Contains('=', StringComparison.Ordinal) || !ColumnHeaders.Contains(name))
+                {
+                    continue;
+                }
+
+                var height = (double)Math.Max(Math.Max(members.Height, page.MedianHeight), header.Height);
+                OcrWord? before = place > 0 ? words[members.Members[place - 1]] : null;
+                OcrWord? after = place + 1 < members.Members.Length ? words[members.Members[place + 1]] : null;
+
+                // A cell of its own: no word beside it as close as the next word of a phrase or a label's value.
+                if ((before is { } b && header.X - (b.X + b.Width) <= PasswordColumnApart * height)
+                    || (after is { } a && a.X - (header.X + header.Width) <= PasswordColumnApart * height))
+                {
+                    continue;
+                }
+
+                // Halfway to the next column's header either side, or a generous reach where there is none.
+                var left = before is { } l ? (l.X + l.Width + header.X) / 2.0 : header.X - (4 * height);
+                var right = after is { } r ? (header.X + header.Width + r.X) / 2.0 : header.X + header.Width + (20 * height);
+                var bottom = (double)members.Bottom;
+                for (var below = row + 1; below < page.RowCount && below <= row + PasswordColumnRows; below++)
+                {
+                    var cells = page.RowAt(below);
+                    if (cells.Top - bottom > PasswordColumnGap * height)
+                    {
+                        break;
+                    }
+
+                    var found = false;
+                    foreach (var cell in cells.Members)
+                    {
+                        var word = words[cell];
+                        if (word.X >= right || word.X + word.Width <= left)
+                        {
+                            continue;
+                        }
+
+                        found = true;
+                        var value = new PatternMatch(MaskKind.Password, starts[cell], ends[cell] - starts[cell], "[REDACTED]");
+                        if (Mask(page, starts, ends, [cell], [], value, taken, regions, widened))
+                        {
+                            counts[MaskKind.Password] = counts.GetValueOrDefault(MaskKind.Password) + 1;
+                        }
+                    }
+
+                    if (found)
+                    {
+                        bottom = cells.Bottom;
+                    }
                 }
             }
         }

@@ -114,18 +114,37 @@ unreadable frame retained is an unredacted frame, and the count reaches the draf
 than claims to have seen everything.
 
 Redaction runs on the device. It reads the text on each screenshot with the local OCR engine and masks
-what matches (card numbers, United States social security numbers, API keys and tokens, private keys,
-and passwords beside a password label), and then, and only then, the frame becomes readable to the rest
-of the product.
+what matches, and then, and only then, the frame becomes readable to the rest of the product. The rules
+are written for the United States. What they mask:
 
-What it does not recognise yet, said plainly because a screenshot holding one is sent for drafting
-(see What leaves the device) and kept like any other: other countries' national identity numbers (a UK
-National Insurance number or a Canadian SIN, for example), bank account numbers such as IBANs, dates of
-birth, recovery keys written as groups of digits (a BitLocker recovery key), a Wi-Fi key as Windows lists
-it, and a password with no English password label beside it: one given on a command line (`net use`,
-for example), inside a web address, or under a label in another language. A label masks the value on its
-own row or the row under it, so in a table with a Password column only the first row is masked. Review's
-blur and exclude are the control for these, for what is published.
+- Card numbers (Luhn-checked), United States social security numbers, and ITINs (`9XX-XX-XXXX`, or
+  nine digits after "ITIN").
+- API keys and tokens, private keys, BitLocker recovery keys (eight groups of six digits, or groups of
+  six after "recovery key"), the setup key an authenticator app shows when its QR code cannot be
+  scanned (base32 after words such as "secret key", "setup key" or "can't scan"), and the secret in an
+  `otpauth://` address.
+- Passwords beside a password label in English or in another language the sign-in check knows
+  (Kennwort, Passwort, mot de passe, contraseña, senha, wachtwoord, hasło, lösenord); a password inside
+  a web address (`https://user:password@host`); a Wi-Fi key as `netsh wlan show profile key=clear`
+  lists it ("Key Content") or as said ("the wifi key is ..."); every cell of a table's Password column,
+  where the header stands as a column of its own with another column beside it; and on a command line
+  the password of `net use`, `net user`, `psexec -p`, `cmdkey /pass:`, `-Password`, `--password` and
+  `ConvertTo-SecureString`. After `net use`, `net user` and `psexec -p` the value is masked only when it
+  looks like a password (a digit, a capital inside it, a symbol, or twelve characters or more), so a
+  plain word given there is not. `runas` takes no password on its command line; the password it asks
+  for is masked like any other beside its label, if the window shows it.
+
+Built and not switched on: Medicare, passport, driver's licence, bank routing (with its checksum) and
+bank account numbers, each masked only beside its label. They wait for a measurement of how much
+ordinary text each one masks on real screens; until then they are not masked.
+
+What the rules do not recognise, said plainly because a screenshot holding one is sent for drafting
+(see What leaves the device) and kept like any other: names, addresses, dates of birth, phone numbers
+and other free-form personal data; other countries' national identity numbers (a UK National Insurance
+number or a Canadian SIN, for example) and bank account numbers such as IBANs; password hashes and
+hexadecimal keys with no label, MFA backup codes and Windows product keys; a card number said as words;
+and anything that is a picture rather than text (below). Review's blur and exclude are the control for
+these, for what is published.
 
 Masking works on the text the OCR engine read. A frame it could not read at all is deleted, but one it
 read only in part is kept, and text it did not read (small or scaled-down text in a remote viewer, low

@@ -24,6 +24,14 @@ public sealed record RedactionPolicy
     /// <summary>Off by default: an email address is usually the ticket's own contact, not a secret.</summary>
     public bool Emails { get; init; }
 
+    /// <summary>
+    /// United States ids that have no shape safe to mask on sight, masked only where their label sits
+    /// beside them: Medicare, passport, driver's licence, bank routing (its checksum held) and bank
+    /// account numbers (DEC-08). Off by default until the laptop measures how much honest text each one
+    /// masks; nothing turns it on yet but a test.
+    /// </summary>
+    public bool LabelledIds { get; init; }
+
     /// <summary>The technician's own regexes from Settings, already validated by <see cref="ValidateCustomPattern"/>.</summary>
     public IReadOnlyList<string> CustomPatterns { get; init; } = [];
 

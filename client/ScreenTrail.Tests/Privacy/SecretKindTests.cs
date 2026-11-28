@@ -284,6 +284,8 @@ public sealed class SecretKindCostTests
         "drivers licence",
         "routing",
         "bank account",
+        "shared password cue",
+        "wifi key",
         "password column",
     ];
 
@@ -302,7 +304,7 @@ public sealed class SecretKindCostTests
             "convertto-securestring" => Repeat("ConvertTo-SecureString -String \"", Length / 2) + Repeat("'", Length / 2),
             "key content" => Repeat("Key Content : ", Length),
             "recovery key" => "recovery key " + Repeat("111111-", Length / 2) + Repeat("111111 ", Length / 2),
-            "mfa setup key" => "Secret key: " + Repeat("ABCD ", Length / 2) + Repeat("abc2 ", Length / 2),
+            "mfa setup key" => "Secret key: " + Repeat("ABCD ", Length / 2) + Repeat("abc2 ", Length / 2) + Repeat("can't scan " + new string('a', 70), Length / 2),
             "otpauth" => Repeat("otpauth://totp/a?secret=", Length / 2) + Repeat("A", Length / 2),
             "itin" => Repeat("ITIN 912-70-", Length / 2) + Repeat("9127", Length / 2),
             "medicare" => Repeat("Medicare number: 1EG4-", Length),
@@ -310,19 +312,25 @@ public sealed class SecretKindCostTests
             "drivers licence" => Repeat("Driver's License #: D1-", Length),
             "routing" => Repeat("Routing number: 02100002", Length),
             "bank account" => Repeat("Bank account number: 0001 ", Length),
+            "shared password cue" => Repeat("Kennwort mot de passe contraseña ", Length / 2) + Repeat("ist ", Length / 2),
+            "wifi key" => Repeat("the wifi key is the network key ", Length),
             _ => string.Empty,
         };
 
         var best = double.MaxValue;
         if (rule == "password column")
         {
-            var words = OcrTokenRuleTests.Grid(8000, (row, col) => row == 0 ? (col % 2 == 0 ? "Password" : "User") : $"Ab{row}x{col}");
+            // 8,000 words in columns far enough apart that every other header heads a column of its own.
+            var words = Enumerable.Range(0, 8000).Select(i => (Row: i / 40, Col: i % 40))
+                .Select(c => new OcrWord(c.Row == 0 ? (c.Col % 2 == 0 ? "Password" : "User") : $"Ab{c.Row}x{c.Col}", c.Col * 100, c.Row * 30, 45, OcrTokenRuleTests.Height))
+                .ToList();
             for (var i = 0; i < 3; i++)
             {
                 var clock = Stopwatch.StartNew();
                 var frame = WithLabels.RedactFrame(words);
                 best = Math.Min(best, clock.Elapsed.TotalMilliseconds);
                 Assert.True(frame.Complete, rule);
+                Assert.DoesNotContain("Ab199x0", frame.Text, StringComparison.Ordinal);
             }
         }
         else

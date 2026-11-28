@@ -89,15 +89,23 @@ did. An unreadable frame retained is an unredacted frame. A frame the OCR engine
 treated as a failure: it is kept, and the text the engine did not read on it is not masked (2.5).
 
 **2.5 What is redacted?**
-Card numbers (Luhn-checked), United States social security numbers, API keys and tokens, private key
-blocks, password fields, and any patterns the technician adds in Settings (the tenant's policy does not
-carry patterns yet). In an installed copy the first four (cards, social security numbers, API keys,
-passwords) cannot be switched off; until the tenant's policy can set which rules are required, that is
-the rule for every installed device. Not yet recognised: other countries' national ID
-numbers (a UK National Insurance number, for one), IBANs, dates of birth, recovery keys written as digit
-groups, and a password with no English password label beside it (on a command line, in a web address, or
-under a label in another language); in a table with a Password column only the first row is masked. Such a
-value stays readable in the screenshot and in its text, including in what is sent for drafting (3.1). Masking happens on the device before any frame becomes readable.
+The rules are written for the United States. Card numbers (Luhn-checked), United States social security
+numbers and ITINs, API keys and tokens, private key blocks, BitLocker recovery keys, an authenticator's
+setup key and `otpauth://` secret, password fields, passwords beside a password label (in English and in
+the other languages the sign-in check knows), every cell of a table's Password column, a password in a
+web address, a Wi-Fi key as Windows lists it, the password on a `net use`, `net user`, `psexec -p`,
+`cmdkey`, `-Password`, `--password` or `ConvertTo-SecureString` command line (after `net use`, `net
+user` and `psexec -p` only when it looks like a password), and any patterns the technician adds in
+Settings (the tenant's policy does not carry patterns yet). In an installed copy the four built-in
+switches (cards, social security numbers, API keys, passwords) cannot be switched off; until the
+tenant's policy can set which rules are required, that is the rule for every installed device. Built and
+not switched on until measured on real screens: Medicare, passport, driver's licence, bank routing and
+bank account numbers beside their label. Not recognised: names, addresses, dates of birth, phone numbers
+and other free-form personal data, other countries' national ID numbers (a UK National Insurance number,
+for one), IBANs, password hashes and hexadecimal keys with no label, MFA backup codes, Windows product
+keys, a card number said as words, and anything that is a picture rather than text. Such a value stays
+readable in the screenshot and in its text, including in what is sent for drafting (3.1). Masking
+happens on the device before any frame becomes readable.
 On a screenshot, a password masks its cue's row and every row it touches, the cue included; only the
 words wholly left of the cue stay, and only when the secret is right of it. Every other match takes the whole of each on-screen token it
 touches, however the OCR engine split it. A value wrapped onto the next row by its window's edge is

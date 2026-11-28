@@ -27,8 +27,9 @@ public static class LoginScreenHeuristic
     /// situation this exists for, and a German or French prompt is no less a prompt. Only the English
     /// words used to count alone, so "Kennwort" above a box never suppressed anything (2026-10-12
     /// review, S-11). Windows says Kennwort and most German web forms say Passwort, so both are here.
+    /// Masking reads the same list (K2), so a value beside any of these words is masked as well.
     /// </summary>
-    private static readonly string[] PasswordWords =
+    internal static readonly string[] PasswordWords =
     [
         "password", "passphrase",
         "passwort", "kennwort",
