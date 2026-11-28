@@ -279,6 +279,16 @@ public sealed class ConnectWiseProvider(HttpClient http, string credential, Conn
         }
 
         var start = entry.StartedAt.ToUniversalTime();
+        if (start > DateTimeOffset.MaxValue.AddMinutes(-entry.Minutes))
+        {
+            // The end could not be written down, so the request is refused here, before it is built and
+            // before anything is sent: a refusal, not an answer that may have landed.
+            return ProviderResult.Failure<PublishedNote>(new ProviderError(
+                ProviderErrorKind.Invalid,
+                "The time entry ends after the last date a time entry can hold, so it was not sent.",
+                "Check this PC's clock, then publish the time entry again."));
+        }
+
         var body = new
         {
             chargeToId = ticketId,
@@ -423,22 +433,34 @@ public sealed class ConnectWiseProvider(HttpClient http, string credential, Conn
             "This is a ScreenTrail bug; there is nothing to change on your side."),
     };
 
+    /// <summary>
+    /// ConnectWise's own words for a refusal, from <c>errors[0].message</c> or <c>message</c>. Each value is
+    /// read only when it is the kind it should be, so a site that answers in another shape is still a
+    /// refusal, with no reason given, rather than an exception.
+    /// </summary>
     private static string Reason(string body)
     {
         try
         {
             using var document = JsonDocument.Parse(body);
             var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return ProviderHttp.Sanitise(null);
+            }
+
             var text = root.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array && errors.GetArrayLength() > 0
-                && errors[0].TryGetProperty("message", out var first)
-                ? first.GetString()
-                : root.TryGetProperty("message", out var message) ? message.GetString() : null;
+                && errors[0].ValueKind == JsonValueKind.Object && errors[0].TryGetProperty("message", out var first)
+                ? StringOrNull(first)
+                : root.TryGetProperty("message", out var message) ? StringOrNull(message) : null;
             return ProviderHttp.Sanitise(text);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             return "no reason given";
         }
     }
+
+    private static string? StringOrNull(JsonElement value) => value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
 }

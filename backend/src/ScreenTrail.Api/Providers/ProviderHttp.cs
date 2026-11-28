@@ -162,7 +162,18 @@ public static class ProviderHttp
                     "Ask your ScreenTrail owner to check the site address in the web admin."));
             }
 
-            var failed = failure(response.StatusCode, body, response.Headers.RetryAfter);
+            ProviderError failed;
+            try
+            {
+                failed = failure(response.StatusCode, body, response.Headers.RetryAfter);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or FormatException)
+            {
+                // The provider's reading of the body could not take it. The status still says what
+                // happened, so it is answered from that alone: never a 500 and never an exception.
+                failed = Unexplained(providerName, response.StatusCode);
+            }
+
             if (!failed.Retryable)
             {
                 return Outcome.Failed(failed);
@@ -283,6 +294,11 @@ public static class ProviderHttp
 
         public static Outcome Retry(ProviderError error) => new(default, error);
     }
+
+    /// <summary>A refusal, or an outage, said from the status alone, for a body nobody could read.</summary>
+    private static ProviderError Unexplained(string providerName, HttpStatusCode status) => (int)status >= 500 || status == HttpStatusCode.TooManyRequests
+        ? new ProviderError(ProviderErrorKind.Unavailable, $"{providerName} did not answer.", "Try again in a minute.")
+        : new ProviderError(ProviderErrorKind.Invalid, $"{providerName} refused the request: no reason given.", "This is a ScreenTrail bug; there is nothing to change on your side.");
 
     private static ProviderError Unreadable(string providerName, bool written) => written
         ? new ProviderError(

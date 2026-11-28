@@ -418,7 +418,7 @@ public sealed class ConnectWiseProviderTests : IDisposable
     [Fact]
     public async Task ATimeEntryWhoseEndNoDateCanHoldIsRefusedBeforeAnythingIsSent()
     {
-        var start = new DateTimeOffset(9999, 12, 31, 23, 59, 0, TimeSpan.Zero);
+        var start = DateTimeOffset.MaxValue.AddMinutes(-1);
 
         var result = await Provider().AddTimeEntryAsync(new TimeEntry("48213", start, 30, "Restarted the spooler.", Billable: true), TestContext.Current.CancellationToken);
 
@@ -437,7 +437,7 @@ public sealed class ConnectWiseProviderTests : IDisposable
             SessionId = "s-0001",
             TicketId = "48213",
             Minutes = 30,
-            StartedAt = new DateTimeOffset(9999, 12, 31, 23, 59, 0, TimeSpan.Zero),
+            StartedAt = DateTimeOffset.MaxValue.AddMinutes(-1),
             Destinations = ["time_entry"],
             Note = new DraftJson
             {

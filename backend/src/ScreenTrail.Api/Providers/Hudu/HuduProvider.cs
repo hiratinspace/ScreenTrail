@@ -289,15 +289,24 @@ public sealed partial class HuduProvider(HttpClient http, string apiKey, HuduOpt
     {
         try
         {
+            // Each value is read only when it is the kind it should be, so a site that answers in another
+            // shape is still a refusal, with no reason given, rather than an exception.
             using var document = JsonDocument.Parse(body);
             var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                return ProviderHttp.Sanitise(null);
+            }
+
             if (root.TryGetProperty("errors", out var errors))
             {
                 if (errors.ValueKind == JsonValueKind.Object)
                 {
                     foreach (var field in errors.EnumerateObject())
                     {
-                        var first = field.Value.ValueKind == JsonValueKind.Array ? field.Value.EnumerateArray().FirstOrDefault().GetString() : field.Value.GetString();
+                        var first = field.Value.ValueKind == JsonValueKind.Array
+                            ? field.Value.EnumerateArray().Select(StringOrNull).FirstOrDefault()
+                            : StringOrNull(field.Value);
                         return ProviderHttp.Sanitise($"{field.Name} {first}");
                     }
                 }
@@ -307,11 +316,13 @@ public sealed partial class HuduProvider(HttpClient http, string apiKey, HuduOpt
                 }
             }
 
-            return ProviderHttp.Sanitise(root.TryGetProperty("error", out var error) ? error.GetString() : null);
+            return ProviderHttp.Sanitise(root.TryGetProperty("error", out var error) ? StringOrNull(error) : null);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
         {
             return "no reason given";
         }
     }
+
+    private static string? StringOrNull(JsonElement value) => value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 }
