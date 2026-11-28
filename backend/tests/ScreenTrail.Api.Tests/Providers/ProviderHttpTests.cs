@@ -325,6 +325,32 @@ public sealed class ProviderHttpTests : IDisposable
         Assert.Contains("before", result.Error.Todo, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("GET", HttpStatusCode.BadRequest, ProviderErrorKind.Invalid)]
+    [InlineData("POST", HttpStatusCode.Conflict, ProviderErrorKind.Invalid)]
+    [InlineData("POST", HttpStatusCode.UnprocessableEntity, ProviderErrorKind.Invalid)]
+    public async Task AnAnswerTheProvidersOwnReadingCannotTakeIsStillATypedRefusal(string method, HttpStatusCode status, ProviderErrorKind kind)
+    {
+        // The provider's reading of a refusal is its own code over a site's body. If that reading throws,
+        // the status the site gave still says what happened: a refusal is answered as one, once.
+        _site.Then(Answer(status, "[1]"));
+        using var client = Client();
+
+        var result = await ProviderHttp.SendAsync(
+            client,
+            () => new HttpRequestMessage(new HttpMethod(method), "things") { Content = method == "GET" ? null : JsonContent.Create(new { text = "A note." }) },
+            new RetryPolicy(TimeSpan.Zero),
+            (_, body, _) => throw new InvalidOperationException("A reading that does not know this shape."),
+            "Site",
+            _time,
+            TestContext.Current.CancellationToken);
+
+        Assert.False(result.Ok);
+        Assert.Equal(kind, result.Error!.Kind);
+        Assert.Contains("Site refused the request", result.Error.What, StringComparison.Ordinal);
+        Assert.Single(_site.Requests);
+    }
+
     private async Task<ProviderResult<System.Text.Json.JsonElement>> SendAsync(HttpMethod method, RetryPolicy? policy = null, HttpClient? client = null, CancellationToken? ct = null)
     {
         using var own = client is null ? Client() : null;

@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using ScreenTrail.Api.Providers;
 using ScreenTrail.Api.Providers.ConnectWise;
+using ScreenTrail.Api.Publish;
+using ScreenTrail.Api.Summarize;
 
 namespace ScreenTrail.Api.Tests.Providers.ConnectWise;
 
@@ -374,6 +376,90 @@ public sealed class ConnectWiseProviderTests : IDisposable
         Assert.Equal(kind, result.Error!.Kind);
         Assert.EndsWith(".", result.Error.What, StringComparison.Ordinal);
         Assert.EndsWith(".", result.Error.Todo, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<HttpStatusCode, string> OddRefusals()
+    {
+        var data = new TheoryData<HttpStatusCode, string>();
+        foreach (var status in new[] { HttpStatusCode.BadRequest, HttpStatusCode.Conflict, HttpStatusCode.UnprocessableEntity })
+        {
+            foreach (var body in new[] { "[1]", """{"message": 5}""", """{"errors":{"name":[]}}""", """{"errors":[1]}""", """{"errors":[{"message":5}]}""", "\"words\"" })
+            {
+                data.Add(status, body);
+            }
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(OddRefusals))]
+    public async Task ARefusalInAShapeConnectWiseDoesNotUseIsStillATypedRefusal(HttpStatusCode status, string body)
+    {
+        // Test connection, a search and a note: a site that answers a refusal in an unexpected shape is
+        // refused in words, never a 500, and a note it refused is never "may have been saved".
+        foreach (var call in new Func<ConnectWiseProvider, Task<ProviderError?>>[]
+        {
+            async provider => (await provider.CheckAsync(TestContext.Current.CancellationToken)).Error,
+            async provider => (await provider.SearchTicketsAsync("printer", TestContext.Current.CancellationToken)).Error,
+            async provider => (await provider.AddNoteAsync(new TicketNote("48213", "Restarted the spooler.", Internal: true, []), TestContext.Current.CancellationToken)).Error,
+        })
+        {
+            _api.Scripted.Enqueue(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
+
+            var error = await call(Provider());
+
+            Assert.NotNull(error);
+            Assert.Equal(ProviderErrorKind.Invalid, error.Kind);
+            Assert.Contains("ConnectWise refused the request", error.What, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task ATimeEntryWhoseEndNoDateCanHoldIsRefusedBeforeAnythingIsSent()
+    {
+        var start = new DateTimeOffset(9999, 12, 31, 23, 59, 0, TimeSpan.Zero);
+
+        var result = await Provider().AddTimeEntryAsync(new TimeEntry("48213", start, 30, "Restarted the spooler.", Billable: true), TestContext.Current.CancellationToken);
+
+        Assert.False(result.Ok);
+        Assert.Equal(ProviderErrorKind.Invalid, result.Error!.Kind);
+        Assert.Empty(_api.Requests);
+    }
+
+    [Fact]
+    public async Task APublishWhoseTimeEntryCannotBeWrittenSaysItWasNeverSentNotThatItMayHaveLanded()
+    {
+        // Through the publisher, as the endpoint calls it: a refusal made before anything left is a
+        // refusal, which the technician can correct and send, not an unknown to check by hand.
+        var bundle = new PublishBundle
+        {
+            SessionId = "s-0001",
+            TicketId = "48213",
+            Minutes = 30,
+            StartedAt = new DateTimeOffset(9999, 12, 31, 23, 59, 0, TimeSpan.Zero),
+            Destinations = ["time_entry"],
+            Note = new DraftJson
+            {
+                Problem = "Printer offline in reception.",
+                Steps = [new DraftStepJson { Text = "Restarted the spooler.", Confidence = "high", FrameRefs = [] }],
+                Result = "Printing works again.",
+                FollowUps = [],
+                SuggestedTitle = "Printer offline",
+                SuggestedTimeMinutes = 23,
+                KbCandidate = false,
+                KbReason = "One-off fix",
+                Source = "cloud",
+                PromptVersion = "note_v2",
+            },
+        };
+
+        var response = await Publisher.PublishAsync(Provider(), bundle, ct: TestContext.Current.CancellationToken);
+
+        var row = Assert.Single(response.Results);
+        Assert.False(row.Ok);
+        Assert.NotEqual("unknown", row.Kind);
+        Assert.Empty(_api.Requests);
     }
 
     [Fact]

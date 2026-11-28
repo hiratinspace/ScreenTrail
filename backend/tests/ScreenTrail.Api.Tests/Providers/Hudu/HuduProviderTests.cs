@@ -191,6 +191,54 @@ public sealed class HuduProviderTests : IDisposable
         Assert.Equal(4, _api.Requests.Count);
     }
 
+    public static TheoryData<HttpStatusCode, string> OddRefusals()
+    {
+        var data = new TheoryData<HttpStatusCode, string>();
+        foreach (var status in new[] { HttpStatusCode.BadRequest, HttpStatusCode.Conflict, HttpStatusCode.UnprocessableEntity })
+        {
+            foreach (var body in new[] { "[1]", """{"message": 5}""", """{"errors":{"name":[]}}""", """{"errors":{"name":[5]}}""", """{"errors":{"name":5}}""", """{"errors":5,"error":7}""", "\"words\"" })
+            {
+                data.Add(status, body);
+            }
+        }
+
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(OddRefusals))]
+    public async Task ARefusalInAShapeHuduDoesNotUseIsStillATypedRefusal(HttpStatusCode status, string body)
+    {
+        // Test connection, the company list and an article: a site that answers a refusal in an
+        // unexpected shape is refused in words, never a 500, and an article it refused is never "may
+        // have been saved".
+        var cache = new HuduCompanyCache(_time);
+        foreach (var call in new Func<HuduProvider, Task<ProviderError?>>[]
+        {
+            async provider => (await provider.CheckAsync(TestContext.Current.CancellationToken)).Error,
+            async provider => (await provider.ListCompaniesAsync(TestContext.Current.CancellationToken)).Error,
+            async provider =>
+            {
+                _api.Scripted.Clear();
+                _ = await provider.ListCompaniesAsync(TestContext.Current.CancellationToken);
+                _api.Scripted.Enqueue(Refusal(status, body));
+                return (await provider.PublishArticleAsync(new KbArticle("7", "Printer offline", "Body", []), TestContext.Current.CancellationToken)).Error;
+            },
+        })
+        {
+            _api.Scripted.Enqueue(Refusal(status, body));
+
+            var error = await call(Provider(cache));
+
+            Assert.NotNull(error);
+            Assert.Equal(ProviderErrorKind.Invalid, error.Kind);
+            Assert.Contains("Hudu refused the request", error.What, StringComparison.Ordinal);
+        }
+    }
+
+    private static HttpResponseMessage Refusal(HttpStatusCode status, string body) =>
+        new(status) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+
     [Fact]
     public async Task AnArticleIsADraftUnderItsCompanyWithItsAttachmentsUploaded()
     {
