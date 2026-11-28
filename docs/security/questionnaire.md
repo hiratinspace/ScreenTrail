@@ -258,7 +258,11 @@ can exceed the captured one.
 **5.2 Can the audit log be tampered with?**
 Each row carries the hash of the previous row, so removing or editing one breaks every row after it.
 `VerifyAuditAsync` walks the chain and reports whether it is intact, how many rows were checked, and the
-id of the first row that does not follow from its predecessor.
+id of the first row that does not follow from its predecessor. That shows a careless edit, one that does
+not rewrite the chain. It is not proof against the technician's own Windows account: that account holds
+the store's key, so it can rewrite the log and its chain together, or put back an earlier copy of the
+store, and the check would still say intact. ⚠ Nothing off the device keeps the chain's length or last
+hash yet, which is what would catch that.
 
 **5.3 Does the audit log contain customer data?**
 No. Rows hold a kind, a count, a timestamp and an optional short detail from a fixed vocabulary. There is

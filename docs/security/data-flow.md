@@ -487,10 +487,12 @@ suppressed intervals and why, redactions by kind, bytes sent and to which host, 
 frame turned away before it was captured, because redaction had fallen behind, is counted as lost and
 not as captured, so the lost count can be larger than the captured one.
 
-It is **hash-chained** (each row carries the hash of the one before it), so a row cannot be removed or
-altered without breaking every row after it. That matters most for the rows recording that data was
-*destroyed*, which are the ones somebody would want gone. The export says whether the chain verified, and
-contains no content.
+It is **hash-chained** (each row carries the hash of the one before it), so a row removed or altered
+breaks every row after it unless the chain is rewritten too. That matters most for the rows recording
+that data was *destroyed*, which are the ones somebody would want gone. The export says whether the chain
+verified, and contains no content. The chain is checked on the device, against the device's own file: it
+shows a careless edit, not a rewrite by the technician's own Windows account, which holds the store's key,
+nor an earlier copy of the store put back. Nothing off the device keeps the chain's head yet.
 
 ---
 
