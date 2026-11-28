@@ -22,6 +22,7 @@ using ScreenTrail.Api.Providers;
 using ScreenTrail.Api.Providers.ConnectWise;
 using ScreenTrail.Api.Providers.Demo;
 using ScreenTrail.Api.Providers.Hudu;
+using ScreenTrail.Api.Tests.Publish;
 using ScreenTrail.Api.Vault;
 
 namespace ScreenTrail.Api.Tests.Providers.Demo;
@@ -500,7 +501,7 @@ public sealed class DemoPsaTests(ApiFixture api) : IClassFixture<ApiFixture>
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ScreenTrail.Api.Tests.publish-request.v1.json")
             ?? throw new InvalidOperationException("The publish contract fixture is not embedded in this assembly.");
         using var document = JsonDocument.Parse(stream);
-        return document.RootElement.GetProperty("request").GetRawText();
+        return PublishDates.WithStartedAt(document.RootElement.GetProperty("request").GetRawText());
     }
 
     /// <summary>The test server says nothing about where a request came from or arrived; this says it, first thing.</summary>

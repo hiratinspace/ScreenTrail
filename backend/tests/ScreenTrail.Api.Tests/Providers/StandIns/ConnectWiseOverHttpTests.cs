@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text;
 using ScreenTrail.Api.Endpoints;
 using ScreenTrail.Api.Publish;
+using ScreenTrail.Api.Tests.Publish;
 
 namespace ScreenTrail.Api.Tests.Providers.StandIns;
 
@@ -82,8 +83,8 @@ public sealed class ConnectWiseOverHttpTests(ApiFixture api) : IClassFixture<Api
         var entry = Assert.Single(cw.TimeEntries);
         Assert.Equal(entry.Id.ToString(CultureInfo.InvariantCulture), result.Id);
         Assert.Equal(int.Parse(Ticket, CultureInfo.InvariantCulture), entry.TicketId);
-        Assert.Equal(new DateTimeOffset(2026, 9, 24, 14, 2, 0, TimeSpan.Zero), entry.Start);
-        Assert.Equal(new DateTimeOffset(2026, 9, 24, 14, 32, 0, TimeSpan.Zero), entry.End);
+        Assert.Equal(PublishDates.StartedAt, entry.Start);
+        Assert.Equal(PublishDates.StartedAt.AddMinutes(30), entry.End);
         Assert.Equal(billable ? "Billable" : "DoNotBill", entry.BillableOption);
 
         // The text goes where the note type says: an internal note's words never reach an invoice.

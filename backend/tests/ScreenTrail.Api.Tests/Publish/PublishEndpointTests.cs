@@ -60,8 +60,8 @@ public sealed class PublishEndpointTests(ApiFixture api) : IClassFixture<ApiFixt
         Assert.True(note.GetProperty("internalAnalysisFlag").GetBoolean());
         Assert.EndsWith("reviewed by A Technician.", note.GetProperty("text").GetString(), StringComparison.Ordinal);
         Assert.Equal("Billable", entry.GetProperty("billableOption").GetString());
-        Assert.Equal("2026-09-24T14:02:00Z", entry.GetProperty("timeStart").GetString());
-        Assert.Equal("2026-09-24T14:32:00Z", entry.GetProperty("timeEnd").GetString());
+        Assert.Equal(PublishDates.Text(PublishDates.StartedAt), entry.GetProperty("timeStart").GetString());
+        Assert.Equal(PublishDates.Text(PublishDates.StartedAt.AddMinutes(30)), entry.GetProperty("timeEnd").GetString());
     }
 
     [Fact]
@@ -185,8 +185,8 @@ public sealed class PublishEndpointTests(ApiFixture api) : IClassFixture<ApiFixt
         using var response = await client.PostAsJsonAsync(new Uri("/v1/sessions/publish", UriKind.Relative), Bundle() with { Destinations = ["time_entry"] }, TestContext.Current.CancellationToken);
 
         var entry = JsonDocument.Parse(Assert.Single(cw.Bodies)!).RootElement;
-        Assert.Equal("2026-09-24T14:02:00Z", entry.GetProperty("timeStart").GetString());
-        Assert.Equal("2026-09-24T14:32:00Z", entry.GetProperty("timeEnd").GetString());
+        Assert.Equal(PublishDates.Text(PublishDates.StartedAt), entry.GetProperty("timeStart").GetString());
+        Assert.Equal(PublishDates.Text(PublishDates.StartedAt.AddMinutes(30)), entry.GetProperty("timeEnd").GetString());
         Assert.StartsWith("Problem\n", entry.GetProperty("internalNotes").GetString(), StringComparison.Ordinal);
         Assert.False(entry.TryGetProperty("notes", out _));
         Assert.Equal("Billable", entry.GetProperty("billableOption").GetString());
@@ -677,7 +677,7 @@ public sealed class PublishEndpointTests(ApiFixture api) : IClassFixture<ApiFixt
         TicketId = "48213",
         NoteType = "internal",
         Minutes = 30,
-        StartedAt = new DateTimeOffset(2026, 9, 24, 14, 2, 0, TimeSpan.Zero),
+        StartedAt = PublishDates.StartedAt,
         Billable = true,
         Reviewer = "A Technician",
         Footer = true,
@@ -827,7 +827,8 @@ public sealed class PublishEndpointTests(ApiFixture api) : IClassFixture<ApiFixt
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ScreenTrail.Api.Tests.publish-request.v1.json")
             ?? throw new InvalidOperationException("The publish contract fixture is not embedded in this assembly.");
         using var document = JsonDocument.Parse(stream);
-        return document.RootElement.GetProperty(property).GetRawText();
+        var raw = document.RootElement.GetProperty(property).GetRawText();
+        return property == "request" ? PublishDates.WithStartedAt(raw) : raw;
     }
 
     private Task<string> CountEverythingAsync() => api.UseAsync(async db =>

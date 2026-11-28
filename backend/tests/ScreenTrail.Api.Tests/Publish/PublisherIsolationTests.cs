@@ -180,7 +180,7 @@ public sealed class PublisherIsolationTests(ApiFixture api) : IClassFixture<ApiF
         SessionId = "s-0001",
         TicketId = "48213",
         Minutes = 30,
-        StartedAt = new DateTimeOffset(2026, 9, 24, 14, 2, 0, TimeSpan.Zero),
+        StartedAt = PublishDates.StartedAt,
         Destinations = destinations,
         Note = new DraftJson
         {

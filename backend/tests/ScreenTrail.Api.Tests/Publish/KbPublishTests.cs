@@ -1160,7 +1160,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         Company = company,
         NoteType = "internal",
         Minutes = 30,
-        StartedAt = new DateTimeOffset(2026, 9, 24, 14, 2, 0, TimeSpan.Zero),
+        StartedAt = PublishDates.StartedAt,
         Destinations = ["kb_article"],
         Note = new DraftJson
         {

@@ -17,6 +17,7 @@ using ScreenTrail.Api.Providers.ConnectWise;
 using ScreenTrail.Api.Providers.Hudu;
 using ScreenTrail.Api.Publish;
 using ScreenTrail.Api.Summarize;
+using ScreenTrail.Api.Tests.Publish;
 
 namespace ScreenTrail.Api.Tests.Providers.StandIns;
 
@@ -183,7 +184,7 @@ internal sealed class StandInBackend : IAsyncDisposable
         Company = company,
         NoteType = "internal",
         Minutes = 30,
-        StartedAt = new DateTimeOffset(2026, 9, 24, 14, 2, 0, TimeSpan.Zero),
+        StartedAt = PublishDates.StartedAt,
         Billable = true,
         Reviewer = "Riley Okafor",
         Footer = true,
