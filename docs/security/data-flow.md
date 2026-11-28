@@ -108,8 +108,18 @@ unreadable frame retained is an unredacted frame, and the count reaches the draf
 than claims to have seen everything.
 
 Redaction runs on the device. It reads the text on each screenshot with the local OCR engine and masks
-what matches (card numbers, national insurance and social security numbers, API keys and tokens,
-password fields), and then, and only then, the frame becomes readable to the rest of the product.
+what matches (card numbers, United States social security numbers, API keys and tokens, private keys,
+and passwords beside a password label), and then, and only then, the frame becomes readable to the rest
+of the product.
+
+What it does not recognise yet, said plainly because a screenshot holding one is sent for drafting
+(see What leaves the device) and kept like any other: other countries' national identity numbers (a UK
+National Insurance number or a Canadian SIN, for example), bank account numbers such as IBANs, dates of
+birth, recovery keys written as groups of digits (a BitLocker recovery key), a Wi-Fi key as Windows lists
+it, and a password with no English password label beside it: one given on a command line (`net use`,
+for example), inside a web address, or under a label in another language. A label masks the value on its
+own row or the row under it, so in a table with a Password column only the first row is masked. Review's
+blur and exclude are the control for these, for what is published.
 
 The OCR engine is given each frame at twice its captured size (2026-11-11), because it reads small
 text badly and long random strings worst: on the hosted runner's probe, of 1,200 secrets drawn at 9

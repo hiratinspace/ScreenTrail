@@ -84,8 +84,12 @@ The count reaches the drafted note, which then says it did not see everything ra
 did. An unreadable frame retained is an unredacted frame.
 
 **2.5 What is redacted?**
-Card numbers (Luhn-checked), national ID numbers, API keys and tokens, private key blocks, password
-fields, and tenant-defined patterns. Masking happens on the device before any frame becomes readable.
+Card numbers (Luhn-checked), United States social security numbers, API keys and tokens, private key
+blocks, password fields, and tenant-defined patterns. Not yet recognised: other countries' national ID
+numbers (a UK National Insurance number, for one), IBANs, dates of birth, recovery keys written as digit
+groups, and a password with no English password label beside it (on a command line, in a web address, or
+under a label in another language); in a table with a Password column only the first row is masked. Such a
+value stays readable in the screenshot and in its text, including in what is sent for drafting (3.1). Masking happens on the device before any frame becomes readable.
 On a screenshot, a password masks its cue's row and every row it touches, the cue included; only the
 words wholly left of the cue stay, and only when the secret is right of it. Every other match takes the whole of each on-screen token it
 touches, however the OCR engine split it. A value wrapped onto the next row by its window's edge is
