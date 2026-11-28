@@ -208,7 +208,9 @@ builder.Services.AddSingleton<DeviceDraftShares>();
 // ST-009. The vault's master key has no default either: without one the service starts, lists what it
 // has, and refuses to store a credential with a reason. A development default would protect every
 // tenant's PSA key with a string in the repository.
+// A key that is set must be one: 32 bytes of base64, and the previous key not the current one (E-08).
 var vault = builder.Configuration.GetSection(VaultOptions.Section).Get<VaultOptions>() ?? new VaultOptions();
+vault.Validate();
 builder.Services.AddSingleton(vault);
 builder.Services.AddScoped<IIntegrationVault, IntegrationVault>();
 

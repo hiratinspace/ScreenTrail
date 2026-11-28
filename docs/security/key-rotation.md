@@ -71,6 +71,9 @@ Every step is reversible until step 5, and a second run of step 4 is the check t
    ```bash
    openssl rand -base64 32
    ```
+   The service checks both keys when it starts and refuses to start with a key that is not 32 bytes of
+   base64, or with `Vault:PreviousMasterKey` set to the same key as `Vault:MasterKey`; the message names
+   the setting, never the key.
 2. **Configure both keys.** The one in use becomes the previous key; the new one becomes current.
    Where the deployment reads configuration (user secrets in development, environment variables in a
    container:

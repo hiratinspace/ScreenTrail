@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace ScreenTrail.Api.Vault;
 
 /// <summary>
@@ -38,6 +40,32 @@ public sealed class VaultOptions
     public byte[] CurrentKey() => Decode(MasterKey, nameof(MasterKey));
 
     public byte[]? PreviousKey() => string.IsNullOrWhiteSpace(PreviousMasterKey) ? null : Decode(PreviousMasterKey, nameof(PreviousMasterKey));
+
+    /// <summary>
+    /// Checked once, when the service starts (security review E-08): each key that is set decodes to
+    /// <see cref="KeyBytes"/> bytes, and the previous key is not the current one. A key that does neither
+    /// would otherwise let the service start and then fail every publish, ticket search and Test
+    /// connection. The messages name the setting, never the key. No key at all is still allowed: the
+    /// vault then says it is not configured.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A key that is not 32 bytes of base64, or the same key twice.</exception>
+    public void Validate()
+    {
+        var current = IsConfigured ? CurrentKey() : null;
+        var previous = PreviousKey();
+        try
+        {
+            if (current is not null && previous is not null && CryptographicOperations.FixedTimeEquals(current, previous))
+            {
+                throw new InvalidOperationException($"Vault:{nameof(PreviousMasterKey)} is the same key as Vault:{nameof(MasterKey)}. During a rotation it is the key in use until now and Vault:{nameof(MasterKey)} is the new one; otherwise leave it unset. docs/security/key-rotation.md.");
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(current);
+            CryptographicOperations.ZeroMemory(previous);
+        }
+    }
 
     private static byte[] Decode(string value, string name)
     {
