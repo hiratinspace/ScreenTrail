@@ -164,13 +164,19 @@ Dpi.MakePerMonitorAware();
 
 // ST-011: one log sink, scrubbed, at the level the environment asks for (Information by default); and a
 // crash leaves a stack-only report in the local queue when the technician opted in, otherwise nothing.
-AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
+void WriteCrashReport(Exception crash) =>
+    _ = CrashReport.Write(CrashReport.DefaultDirectory, crash, "ScreenTrail.Service", ServiceVersion(), CrashReport.Enabled(name => Environment.GetEnvironmentVariable(name)));
+
+// A-08: the report, then the process ends itself, so the runtime writes no event-log entry with the
+// exception's message and Windows Error Reporting takes no heap (CrashEnd).
+if (OperatingSystem.IsWindows())
 {
-    if (e.ExceptionObject is Exception crash)
-    {
-        _ = CrashReport.Write(CrashReport.DefaultDirectory, crash, "ScreenTrail.Service", ServiceVersion(), CrashReport.Enabled(name => Environment.GetEnvironmentVariable(name)));
-    }
-};
+    ScreenTrail.Platform.Lifecycle.ProcessEnd.Install(WriteCrashReport);
+}
+else
+{
+    AppDomain.CurrentDomain.UnhandledException += (sender, e) => WriteCrashReport(CrashEnd.Of(e.ExceptionObject));
+}
 
 var builder = Host.CreateApplicationBuilder(args);
 var logLevel = LogLevels.Parse(Environment.GetEnvironmentVariable(LogLevels.Variable));

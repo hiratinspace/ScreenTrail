@@ -30,17 +30,11 @@ public partial class App : Application, IDisposable
 
         Shell.StartAtLogin.MigrateLegacyValue();
 
-        // ST-011: a crash leaves a stack-only report in the local queue when the technician opted in,
-        // and otherwise nothing. Neither handler marks the exception handled: the process still dies,
-        // as it should, but it says where.
-        DispatcherUnhandledException += (_, args) => Report(args.Exception);
-        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-        {
-            if (args.ExceptionObject is Exception crash)
-            {
-                Report(crash);
-            }
-        };
+        // ST-011: a crash leaves a stack-only report in the local queue when the technician opted in.
+        // Then the process ends itself (A-08), before the runtime would write the exception's message to
+        // the Application event log; Windows Error Reporting is told to take no heap and show nothing.
+        Platform.Lifecycle.ProcessEnd.Install(Report);
+        DispatcherUnhandledException += (_, args) => Platform.Lifecycle.ProcessEnd.End(args.Exception, Report);
 
         // Before a window, a tray icon or a pipe. The service verifies the file this process started
         // from, and .NET will load somebody else's code into a genuine signed process if the environment

@@ -474,11 +474,15 @@ unless said otherwise.
 **ScreenTrail's own crash report is a stack trace and nothing else.** With `SCREENTRAIL_CRASH_REPORTS=1` a
 crash writes the exception types and frames (never the message, which is where a path or a title ends up)
 to `%LOCALAPPDATA%\ScreenTrail\crashes\`. Nothing reads that folder yet; sending is ST-098's. Without the
-opt-in ScreenTrail writes nothing. Windows can record more of the same crash, and ScreenTrail does not yet
-stop it: the .NET runtime writes an entry to the Application event log with the error's message and stack
-(other users of the machine can read that log by default, and an MSP's log forwarder may collect it), and
-where an administrator has turned crash dumps on for the machine, Windows Error Reporting writes a copy of
-the process's memory, which can hold what ScreenTrail was working on at that moment.
+opt-in ScreenTrail writes nothing of its own. Left to itself, the .NET runtime would go on to write an entry
+to the Application event log with the error's message and stack (other users of the machine can read that
+log by default, and an MSP's log forwarder may collect it), and Windows Error Reporting would take the
+crash. So once the report is written, ScreenTrail ends its own process, before the runtime writes that
+entry; it tells Windows Error Reporting at start to take no copy of its memory and show nothing; and the
+installer lists both programs as Windows Error Reporting's excluded applications. None of that covers a
+stack overflow or a fault in native code, which end the process before any of ScreenTrail's code runs:
+those can still leave the runtime's entry, and where an administrator has turned crash dumps on for the
+machine, a copy of the process's memory, which can hold what ScreenTrail was working on at that moment.
 
 **A local-only session is drafted on the device** (ST-065 AC3). When the egress guard would refuse the
 drafting request (local-only mode, or no backend at all), nothing is queued and the note is written
