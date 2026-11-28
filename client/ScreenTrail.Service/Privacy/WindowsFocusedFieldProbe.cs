@@ -106,9 +106,10 @@ internal sealed class WindowsFocusedFieldProbe : IFocusedFieldProbe, IDisposable
 
     /// <summary>
     /// The classic check, for a control UI Automation has no peer for. A non-zero password character means
-    /// the edit control masks its content.
+    /// the edit control masks its content; a zero means it does not only if the window is an edit control
+    /// at all (<see cref="PasswordCharacterAnswer"/>), and is no answer from any other window.
     /// </summary>
-    private static FocusedField ReadViaWindowMessage()
+    internal static FocusedField ReadViaWindowMessage()
     {
         var info = new GuiThreadInfo { Size = Marshal.SizeOf<GuiThreadInfo>() };
         if (!GetGUIThreadInfo(0, ref info) || info.Focus == IntPtr.Zero)
@@ -123,7 +124,16 @@ internal sealed class WindowsFocusedFieldProbe : IFocusedFieldProbe, IDisposable
             return FocusedField.Unknown;
         }
 
-        return result != IntPtr.Zero ? FocusedField.Password : FocusedField.NotPassword;
+        return PasswordCharacterAnswer.From(ClassOf(info.Focus), result);
+    }
+
+    /// <summary>The window's class name, or null if Windows will not say (the window has gone).</summary>
+    private static string? ClassOf(IntPtr window)
+    {
+        // 256 is the longest class name Windows registers.
+        var buffer = new char[256];
+        var length = GetClassName(window, buffer, buffer.Length);
+        return length > 0 ? new string(buffer, 0, length) : null;
     }
 
     /// <summary>
@@ -224,6 +234,9 @@ internal sealed class WindowsFocusedFieldProbe : IFocusedFieldProbe, IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetGUIThreadInfo(uint idThread, ref GuiThreadInfo lpgui);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern int GetClassName(IntPtr hWnd, [Out] char[] className, int count);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, uint fuFlags, uint uTimeout, out IntPtr lpdwResult);
