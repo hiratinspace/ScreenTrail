@@ -187,8 +187,128 @@ public sealed class InputBoundaryTests
         Assert.Empty((await harness.Store.LoadSessionAsync(first, ct))!.Events.OfType<TypingBurstEvent>());
     }
 
+    [Fact]
+    public async Task KeysTypedJustBeforeAHoldAreNotWrittenOnceItLifts()
+    {
+        // A-07. Keys drained while the session still records, then the hold lands and nothing at all is
+        // typed or clicked while it holds. Every drain in the hold was empty, so nothing told the reader to
+        // let go of the open burst, and the first click after the hold lifted wrote it with the time the
+        // keys were typed: a short secret's length, from just before the guard noticed the field.
+        await using var harness = await MachineHarness.StartAsync();
+        var ct = TestContext.Current.CancellationToken;
+        await harness.Machine.StartAsync(ScreenConnect, ct: ct);
+        var recorder = Recorder(harness, () => InScope);
+
+        await Drain(recorder, Keys(6, from: 1_000), ct);
+        Assert.True(await harness.Machine.SuppressAsync(CaptureStateReason.PasswordField, ct));
+        Assert.True(await harness.Machine.UnsuppressAsync(CaptureStateReason.PasswordField, ct));
+        await Drain(recorder, [Click(at: 9_000)], ct);
+
+        var stored = (await harness.Store.LoadSessionAsync(harness.Machine.SessionId!, ct))!;
+        Assert.Empty(stored.Events.OfType<TypingBurstEvent>());
+        Assert.Single(stored.Events.OfType<ClickEvent>());
+    }
+
+    [Fact]
+    public async Task KeysAndEnterJustBeforeAHoldLandsAreNotWritten()
+    {
+        // A-07, the plainer route: a PIN and Enter typed inside the moment between focus reaching the field
+        // and the guard's hold landing. Both were complete events before the hold existed, and were written
+        // as soon as they were drained. Keyboard events now wait out the guard's latency before they are
+        // written, and a hold landing in that time drops them.
+        await using var harness = await MachineHarness.StartAsync();
+        var ct = TestContext.Current.CancellationToken;
+        await harness.Machine.StartAsync(ScreenConnect, ct: ct);
+        var clock = new HookClock();
+        var recorder = Recorder(harness, () => InScope, clock);
+
+        clock.Now = 1_600;
+        await Drain(recorder, [.. Keys(6, from: 1_000), new InputSignal(InputKind.Enter, 1_550)], ct);
+        clock.Now = 1_700;
+        Assert.True(await harness.Machine.SuppressAsync(CaptureStateReason.PasswordField, ct));
+        clock.Now = 1_750;
+        await Drain(recorder, [], ct);
+        clock.Now = 4_000;
+        Assert.True(await harness.Machine.UnsuppressAsync(CaptureStateReason.PasswordField, ct));
+        clock.Now = 9_000;
+        await Drain(recorder, [Click(at: 9_000)], ct);
+        clock.Now = 9_000 + (long)SessionRecorder.KeyboardHoldBack.TotalMilliseconds + 50;
+        await Drain(recorder, [], ct);
+
+        var stored = (await harness.Store.LoadSessionAsync(harness.Machine.SessionId!, ct))!;
+        Assert.Empty(stored.Events.OfType<TypingBurstEvent>());
+        Assert.Empty(stored.Events.OfType<EnterEvent>());
+        Assert.Single(stored.Events.OfType<ClickEvent>());
+    }
+
+    [Fact]
+    public async Task InputMadeDuringAHoldAndDrainedAfterItLiftsIsNotRecorded()
+    {
+        // A-07, one drain's worth: the hold lifts between a key or click and the drain that reads it, so
+        // the drain finds the session recording and took what was typed and clicked inside the hold.
+        await using var harness = await MachineHarness.StartAsync();
+        var ct = TestContext.Current.CancellationToken;
+        await harness.Machine.StartAsync(ScreenConnect, ct: ct);
+        var clock = new HookClock();
+        var recorder = Recorder(harness, () => InScope, clock);
+
+        clock.Now = 1_000;
+        Assert.True(await harness.Machine.SuppressAsync(CaptureStateReason.PasswordField, ct));
+        clock.Now = 2_000;
+        Assert.True(await harness.Machine.UnsuppressAsync(CaptureStateReason.PasswordField, ct));
+        clock.Now = 2_040;
+        await Drain(recorder, [new InputSignal(InputKind.PrintableKey, 1_980), new InputSignal(InputKind.PrintableKey, 1_990), Click(at: 1_995)], ct);
+        clock.Now = 2_500;
+        await Drain(recorder, [new InputSignal(InputKind.Enter, 2_500)], ct);
+        clock.Now = 2_500 + (long)SessionRecorder.KeyboardHoldBack.TotalMilliseconds + 50;
+        await Drain(recorder, [], ct);
+
+        var stored = (await harness.Store.LoadSessionAsync(harness.Machine.SessionId!, ct))!;
+        Assert.Empty(stored.Events.OfType<TypingBurstEvent>());
+        Assert.Empty(stored.Events.OfType<ClickEvent>());
+        Assert.Equal(2_500, Assert.Single(stored.Events.OfType<EnterEvent>()).TsMs);
+    }
+
+    [Fact]
+    public async Task TypingWithNoHoldIsWrittenOnceTheGuardHasHadTimeToLook()
+    {
+        // The other direction for the two above: held back is not lost. With no hold, the burst and the
+        // Enter are written with the times they were typed, by an empty drain once the wait is over, as
+        // the capture loop makes every 50 ms.
+        await using var harness = await MachineHarness.StartAsync();
+        var ct = TestContext.Current.CancellationToken;
+        await harness.Machine.StartAsync(ScreenConnect, ct: ct);
+        var clock = new HookClock();
+        var recorder = Recorder(harness, () => InScope, clock);
+
+        clock.Now = 1_600;
+        await Drain(recorder, [.. Keys(5, from: 1_000), new InputSignal(InputKind.Enter, 1_550), Click(at: 1_580)], ct);
+        var early = (await harness.Store.LoadSessionAsync(harness.Machine.SessionId!, ct))!;
+        Assert.Empty(early.Events.OfType<TypingBurstEvent>());
+        Assert.Single(early.Events.OfType<ClickEvent>());
+
+        clock.Now = 1_600 + (long)SessionRecorder.KeyboardHoldBack.TotalMilliseconds + 50;
+        await Drain(recorder, [], ct);
+
+        var stored = (await harness.Store.LoadSessionAsync(harness.Machine.SessionId!, ct))!;
+        var burst = Assert.Single(stored.Events.OfType<TypingBurstEvent>());
+        Assert.Equal(5, burst.CharCount);
+        Assert.Equal(1_000, burst.TsMs);
+        Assert.Equal(1_550, Assert.Single(stored.Events.OfType<EnterEvent>()).TsMs);
+        Assert.Single(stored.Events.OfType<ClickEvent>());
+    }
+
     private static SessionRecorder Recorder(MachineHarness harness, Func<ScopeDecision?> scope) =>
         new(harness.Machine, new NoPictures(), scope);
+
+    private static SessionRecorder Recorder(MachineHarness harness, Func<ScopeDecision?> scope, HookClock clock) =>
+        new(harness.Machine, new NoPictures(), scope, now: () => clock.Now);
+
+    /// <summary>The hooks' clock, in the plain milliseconds the signals here are stamped in.</summary>
+    private sealed class HookClock
+    {
+        public long Now { get; set; }
+    }
 
     private static Task Drain(SessionRecorder recorder, InputSignal[] signals, CancellationToken ct) =>
         recorder.RecordSignalsAsync(
