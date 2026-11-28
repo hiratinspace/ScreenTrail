@@ -110,6 +110,21 @@ describe('httpApi', () => {
     }
   });
 
+  it('passes on the company mappings the backend lists, so the owner sees what a device mapped', async () => {
+    // G-01: the backend sends every PSA company's current mapping with the integrations; dropping the
+    // field left the owner's Company mappings table empty whatever the devices had mapped.
+    const mapping = {
+      psaCompany: 'Acme Dental',
+      docCompanyId: '7',
+      docCompanyName: 'Acme Dental Ltd',
+      setAt: '2026-11-28T12:00:00Z',
+      setBy: { kind: 'technician', name: 'Sam Rivera', device: 'TECH-LAPTOP' },
+    };
+    backend([{ status: 200, body: { integrations: [], changes: [], mappings: [mapping] } }]);
+
+    expect((await httpApi().integrations()).mappings).toEqual([mapping]);
+  });
+
   it('turns a 401 on an integrations write into the signed-out sentence', async () => {
     backend([{ status: 401 }]);
 
