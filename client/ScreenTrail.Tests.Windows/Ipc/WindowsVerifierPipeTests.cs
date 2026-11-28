@@ -1,5 +1,8 @@
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 using ScreenTrail.Core.Ipc;
 using ScreenTrail.Platform.Ipc;
 
@@ -120,6 +123,44 @@ public sealed class WindowsVerifierPipeTests
     }
 
     [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
+    public async Task TheServiceRefusesAClientThroughLoopbackSmb()
+    {
+        // Security review B-01: the capture pipe refuses remote clients itself, and the service's verifier
+        // also asks Windows where the client is. This pipe is a plain one that lets a client through the
+        // SMB server in, so only the verifier's question stands in the way. The client is this process,
+        // from its own directory, which the dev-build rule would otherwise pass.
+        var ct = TestContext.Current.CancellationToken;
+        var name = PipeName();
+        await using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        var accepting = pipe.WaitForConnectionAsync(ct);
+        await using var client = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+        try
+        {
+            await client.ConnectAsync(TimeSpan.FromSeconds(10), ct);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or TimeoutException)
+        {
+            Assert.Skip($"the SMB server does not let this user reach its own pipe on 127.0.0.1 here ({ex.GetType().Name})");
+        }
+
+        await accepting.WaitAsync(Soon, ct);
+
+        // A byte across first: Windows lets the server take on the client's identity only once it has read
+        // from the pipe, and that identity is half of what is recorded below.
+        await client.WriteAsync(new byte[] { 1 }, ct);
+        await client.FlushAsync(ct);
+        await pipe.ReadExactlyAsync(new byte[1], ct);
+        Measurements.Record($"{nameof(TheServiceRefusesAClientThroughLoopbackSmb)}: {SeenThroughSmb(pipe)}");
+
+        IClientVerifier verifier = new WindowsClientVerifier(Environment.ProcessPath!);
+        var check = await verifier.CheckAsync(pipe, DateTime.UtcNow, ct);
+        check.Peer?.Dispose();
+
+        Assert.Equal(PipeClientOrigin.ClientNotLocal, check.Refusal);
+        Assert.Null(check.Peer);
+    }
+
+    [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
     public async Task EachVerifierRefusesThePipeEndItDoesNotHold()
     {
         // The service's verifier handed a client stream, or the UI's a server stream, is being asked the
@@ -144,4 +185,45 @@ public sealed class WindowsVerifierPipeTests
     }
 
     private static string PipeName() => IpcPipeNames.ForUser($"test-peer-{Guid.NewGuid():N}");
+
+    /// <summary>
+    /// What the server end is told about a client that came through the SMB server: the process id the
+    /// pipe recorded (MC-a9), whether Windows names a client computer, and whether the identity the
+    /// server is given carries the NETWORK and INTERACTIVE groups (which says whether a deny for NETWORK
+    /// can reach such a client at all).
+    /// </summary>
+    private static string SeenThroughSmb(NamedPipeServerStream pipe)
+    {
+        var processId = GetNamedPipeClientProcessId(pipe.SafePipeHandle, out var pid) ? pid.ToString(System.Globalization.CultureInfo.InvariantCulture) : "unknown";
+        var buffer = new char[512];
+        var named = GetNamedPipeClientComputerName(pipe.SafePipeHandle, buffer, (uint)(buffer.Length * sizeof(char)));
+        var computer = named ? "a computer name" : $"no name, error {Marshal.GetLastPInvokeError()}";
+
+        string groups;
+        try
+        {
+            bool network = false, interactive = false;
+            pipe.RunAsClient(() =>
+            {
+                using var identity = WindowsIdentity.GetCurrent();
+                network = identity.Groups?.Contains(new SecurityIdentifier(WellKnownSidType.NetworkSid, null)) ?? false;
+                interactive = identity.Groups?.Contains(new SecurityIdentifier(WellKnownSidType.InteractiveSid, null)) ?? false;
+            });
+            groups = $"NETWORK {(network ? "present" : "absent")}, INTERACTIVE {(interactive ? "present" : "absent")}";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            groups = $"identity not readable ({ex.GetType().Name})";
+        }
+
+        return $"client process id {processId} (this process {Environment.ProcessId}); {computer}; client identity: {groups}";
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetNamedPipeClientProcessId(SafePipeHandle pipe, out uint clientProcessId);
+
+    [DllImport("kernel32.dll", EntryPoint = "GetNamedPipeClientComputerNameW", SetLastError = true, CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetNamedPipeClientComputerName(SafePipeHandle pipe, [Out] char[] clientComputerName, uint clientComputerNameLength);
 }
