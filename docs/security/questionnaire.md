@@ -146,10 +146,12 @@ Deletion is a hard delete with SQLite's secure delete on, so freed pages are ove
 vacuumed after a retention pass that freed enough of it, not after each delete. A blurred region is
 flattened to solid colour and the original bytes are overwritten in the same transaction, and no copy is
 kept for undo. The text read from that screenshot is deleted in the same statement, so it is not shown in
-Review or sent with a later draft either. ⚠ One gap: the store writes through a write-ahead log
-(`store.db-wal`), and until that log is next folded into the database, which can be days on a quiet
-machine, the database file can still hold the deleted or pre-blur screenshot, and the log can keep the
-earlier pages after that. Both files are encrypted like the rest of the store, so reading them needs the
+Review or sent with a later draft either. The store writes through a write-ahead log (`store.db-wal`);
+each delete, blur, discard and retention purge folds that log into the database file and empties it
+before it answers, so neither file keeps the deleted or pre-blur screenshot. A retention purge also
+removes the note as the model first wrote it; the published note stays. What is outside any
+application's reach is the disk itself: blocks a file once used can stay readable to recovery tools
+until the drive reuses them, which is why the store is encrypted, and reading anything in it needs the
 technician's Windows account.
 
 **2.10 Can a technician delete an individual screenshot?**

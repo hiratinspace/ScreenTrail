@@ -70,7 +70,12 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             // so that a provider swap or a stray pragma cannot quietly take it away, because INV-12's
             // promise is that the data is gone, not that it is hard to read for whoever holds the key
             // later (P2-12). The retention pass pays for it, not the capture path.
-            await ExecuteAsync(connection, "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON;", ct).ConfigureAwait(false);
+            //
+            // In WAL mode the overwrite is first a page appended to store.db-wal, and store.db changes only
+            // at a checkpoint, so each user-facing destructive write folds the log in and empties it
+            // (FoldLogHoldingGateAsync, F-08). journal_size_limit bounds what a log left by an automatic
+            // checkpoint keeps on disk between those, to 8 MiB.
+            await ExecuteAsync(connection, "PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL; PRAGMA foreign_keys = ON; PRAGMA secure_delete = ON; PRAGMA journal_size_limit = 8388608;", ct).ConfigureAwait(false);
             await MigrateAsync(connection, time, ct).ConfigureAwait(false);
         }
         catch
@@ -342,6 +347,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             await ExecuteAsync(_connection, "DELETE FROM frames WHERE id = @id", ct, ("@id", frameId)).ConfigureAwait(false);
             await AuditAsync(sessionId, AuditTypes.FrameDeletedByUser, 1, ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
             return true;
         }
         finally
@@ -390,6 +396,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             // text were destroyed, and the log says so or the blur did not happen.
             await AuditAsync(existing.SessionId, AuditTypes.FrameBlurred, 1, ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
         }
         finally
         {
@@ -606,7 +613,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             var now = Iso(_time.GetUtcNow());
             await ExecuteAsync(
                 _connection,
-                "UPDATE sessions SET raw_purged_at = @now, updated_at = @now WHERE id = @id",
+                "UPDATE sessions SET raw_purged_at = @now, original_draft_json = NULL, updated_at = @now WHERE id = @id",
                 ct,
                 ("@now", now),
                 ("@id", sessionId)).ConfigureAwait(false);
@@ -624,6 +631,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
                 ("@pending", Sessions.SessionStateNames.DraftPending)).ConfigureAwait(false);
             await AuditAsync(sessionId, AuditTypes.RetentionPurged, frames, ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
             return frames;
         }
         finally
@@ -647,6 +655,7 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             }
 
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
             return frames;
         }
         finally
@@ -679,6 +688,9 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             }
 
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+
+            // The notes, first drafts and queued work went with the mark; the screenshots go in chunks.
+            await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
             return frames;
         }
         finally
@@ -739,6 +751,12 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
             }
 
             await transaction.CommitAsync(ct).ConfigureAwait(false);
+            if (done)
+            {
+                // The last chunk: everything the discard deleted, folded in at once.
+                await FoldLogHoldingGateAsync(ct).ConfigureAwait(false);
+            }
+
             return done;
         }
         finally
@@ -895,6 +913,31 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
     /// <summary>Whether this connection overwrites what it deletes (P2-12). For the test that checks it.</summary>
     internal async Task<bool> SecureDeleteIsOnAsync(CancellationToken ct = default) =>
         await ScalarAsync<long>("PRAGMA secure_delete", ct).ConfigureAwait(false) == 1;
+
+    /// <summary>This connection's limit on the log, for the test that checks it (F-08).</summary>
+    internal async Task<long> JournalSizeLimitAsync(CancellationToken ct = default) =>
+        await ScalarAsync<long>("PRAGMA journal_size_limit", ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// Folds the write-ahead log into store.db and empties it, on the gate the caller holds, after a
+    /// user-facing destructive write has committed (F-08).
+    ///
+    /// secure_delete overwrites what a delete frees, but in WAL mode the overwrite is a page appended to
+    /// store.db-wal: store.db keeps the deleted screenshot until the next automatic checkpoint, which can
+    /// be days on a quiet machine, and the log keeps its earlier pages until something overwrites them.
+    /// With one connection the checkpoint always completes, and it costs the size of the log. If it
+    /// fails, the delete has still happened; the next destructive write or a clean close folds it in.
+    /// </summary>
+    private async Task FoldLogHoldingGateAsync(CancellationToken ct)
+    {
+        try
+        {
+            await ExecuteAsync(_connection, "PRAGMA wal_checkpoint(TRUNCATE)", ct).ConfigureAwait(false);
+        }
+        catch (SqliteException)
+        {
+        }
+    }
 
     public async Task VacuumAsync(CancellationToken ct = default)
     {
