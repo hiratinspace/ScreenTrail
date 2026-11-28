@@ -297,6 +297,56 @@ public sealed class DeviceSessionTests
         Assert.Equal("access-2", session.CurrentToken);
     }
 
+    [Fact]
+    public async Task ARenewedRefreshTokenIsSavedBeforeTheAccessTokenIsUsed()
+    {
+        // Security review D-03: a backend that replaces the refresh token at each exchange hands the new
+        // one back beside the access token. The device keeps the new one, so its next exchange presents it.
+        var start = DateTimeOffset.UtcNow;
+        var backend = new ScriptedBackend();
+        backend.Reply(Json(new { accessToken = "access-2", expiresAt = start.AddHours(1), refreshToken = "refresh-2" }));
+        var device = Guid.NewGuid();
+        var credentials = new InMemoryCredentials(new DeviceCredential("refresh-1", "Acme IT", device, start.AddHours(-1)));
+        var session = new DeviceSession(Client(backend), credentials, time: new ManualTime(start));
+
+        Assert.True(await session.RefreshAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal(new DeviceCredential("refresh-2", "Acme IT", device, start), credentials.Load());
+        Assert.Equal("access-2", session.CurrentToken);
+    }
+
+    [Fact]
+    public async Task ARenewedRefreshTokenThatWillNotSaveLeavesTheAccessTokenUnused()
+    {
+        // Saved first, then used: a device that cannot write the new refresh token keeps presenting the one
+        // it has, and must not act on an access token whose refresh token it would lose.
+        var start = DateTimeOffset.UtcNow;
+        var backend = new ScriptedBackend();
+        backend.Reply(Json(new { accessToken = "access-2", expiresAt = start.AddHours(1), refreshToken = "refresh-2" }));
+        var credentials = new StubbornCredentials(new DeviceCredential("refresh-1", "Acme IT", Guid.NewGuid(), start.AddHours(-1)));
+        var session = new DeviceSession(Client(backend), credentials, time: new ManualTime(start));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => session.RefreshAsync(TestContext.Current.CancellationToken));
+
+        Assert.Null(session.CurrentToken);
+    }
+
+    [Fact]
+    public async Task AnAnswerWithoutANewRefreshTokenKeepsTheOneTheDeviceHas()
+    {
+        // A backend that does not replace the token answers as it always has, and the device's token stays.
+        var start = DateTimeOffset.UtcNow;
+        var backend = new ScriptedBackend();
+        backend.Reply(Json(new { accessToken = "access-2", expiresAt = start.AddHours(1) }));
+        var credentials = new InMemoryCredentials(new DeviceCredential("refresh-1", "Acme IT", Guid.NewGuid(), start.AddHours(-1)));
+        var session = new DeviceSession(Client(backend), credentials, time: new ManualTime(start));
+
+        Assert.True(await session.RefreshAsync(TestContext.Current.CancellationToken));
+
+        Assert.Equal("refresh-1", credentials.Load()!.RefreshToken);
+        Assert.Equal("access-2", session.CurrentToken);
+    }
+
     private static HttpClient Client(ScriptedBackend backend) => new(backend) { BaseAddress = new Uri("https://api.screentrail.example/") };
 
     private static HttpResponseMessage Json(object body) => new(HttpStatusCode.OK) { Content = JsonContent.Create(body, options: new JsonSerializerOptions(JsonSerializerDefaults.Web)) };
