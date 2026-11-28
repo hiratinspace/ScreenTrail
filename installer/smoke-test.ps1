@@ -1008,10 +1008,44 @@ if ($RebuiltMsi) {
 # --- The backend address: given by an administrator, on an install or an upgrade ------------------------
 # C-02: the address properties are not Secure, so Windows Installer takes BACKENDURL only from a command line
 # that is already elevated, and drops it from anyone else's. A repair keeps the address on the machine,
-# whoever starts it: an administrator's repair given another one is refused, and a standard user's has it
-# dropped. A new address that is not https with a host name, or that carries a user name, a password or a
-# query, is refused before anything is installed.
+# whoever starts it: msiexec /f hands none of its command line's properties to Windows Installer's service
+# (the first hosted run's log: the service's command line had only REINSTALL and REINSTALLMODE), and a
+# repair whose command line does carry another address, as an administrator's msiexec /i of the installed
+# product with REINSTALL does, is refused by the package's address check. A new address that is not https
+# with a host name, or that carries a user name, a password or a query, is refused before anything is
+# installed.
 $otherBackend = 'https://screentrail-smoke-other.invalid'
+
+function Get-ServiceCommandLine([object[]]$Lines) {
+    # The command line Windows Installer's service ran with, as a verbose log records it (the property
+    # values hidden), or $null if the log has none.
+    return @($Lines | Where-Object { $_ -match '^MSI \(s\) .*: Command Line: ' }) | Select-Object -First 1
+}
+
+function Test-RepairKeepsAddress([string]$Action, [string]$LogName, [string]$Properties, [string]$Who) {
+    # A repair given another address may not change the one on the machine. Two outcomes are right: the
+    # package's address check refuses it (1603, RefuseBackendUrlChange), or it runs and BACKENDURL never
+    # reached Windows Installer's service. A repair that runs with BACKENDURL on the service's command line
+    # fails, whatever its exit code, and either way the address must be the one the machine had.
+    $code = Invoke-Msi $Action $productCode $LogName $Properties
+    $lines = @(Get-Content (Join-Path $Logs $LogName) -ErrorAction SilentlyContinue)
+    $refused = @($lines | Where-Object { $_ -match 'RefuseBackendUrlChange\. Return value 3' }).Count -ge 1
+    $server = Get-ServiceCommandLine $lines
+    $carried = [bool]$server -and ($server -match '\sBACKENDURL=')
+    $path = $null
+    if ($code -eq 1603 -and $refused) {
+        $path = 'refused by the address check (RefuseBackendUrlChange)'
+    } elseif ($code -eq 0 -and $server -and -not $carried) {
+        $path = 'ran, and BACKENDURL never reached Windows Installer''s service (not on its command line)'
+    }
+    Check "$Who given another address cannot change it: refused by the address check, or BACKENDURL never reaches Windows Installer's service" ([bool]$path) "exit $code, refused: $refused, service command line logged: $([bool]$server), BACKENDURL on it: $carried"
+    if ($path) {
+        Note "$Who given another address" $path
+    }
+    $address = Get-BackendUrl
+    Check 'and the address on the machine is unchanged' ($address -eq $smokeBackend) "value: $address"
+}
+
 Write-Step 'A new backend address that is not https with a host name, or that carries a user name or a query, is refused'
 $n = 0
 foreach ($bad in @('http://screentrail-smoke.invalid', 'https://', 'https://smoke:smoke@screentrail-smoke.invalid', 'https://screentrail-smoke.invalid/?next=1')) {
@@ -1037,11 +1071,8 @@ try {
 }
 Check 'the package''s product code was read' ([bool]$productCode) "$productCode"
 if ($productCode) {
-    $code = Invoke-Msi '/fm' $productCode 'repair-address-administrator.log' "BACKENDURL=$otherBackend"
-    $refused = @(Get-Content (Join-Path $Logs 'repair-address-administrator.log') -ErrorAction SilentlyContinue | Where-Object { $_ -match 'RefuseBackendUrlChange\. Return value 3' }).Count -ge 1
-    Check "an administrator's repair given another address is refused by the address check" ($code -eq 1603 -and $refused) "exit $code"
-    $address = Get-BackendUrl
-    Check 'and the address on the machine is unchanged' ($address -eq $smokeBackend) "value: $address"
+    Test-RepairKeepsAddress '/fm' 'repair-address-administrator.log' "BACKENDURL=$otherBackend" "an administrator's repair (msiexec /fm)"
+    Test-RepairKeepsAddress '/i' 'repair-address-administrator-reinstall.log' "REINSTALL=ALL REINSTALLMODE=m BACKENDURL=$otherBackend" "an administrator's repair (msiexec /i REINSTALL=ALL)"
 
     # A standard user's repair, as a second account on the machine would start it. Windows may want an
     # administrator first for a repair started without elevation, which a /qn run cannot ask for: then the
@@ -1078,7 +1109,8 @@ if ($productCode) {
     Check "a standard user's repair given another address leaves the address on the machine unchanged" ($address -eq $smokeBackend) "exit $plainCode, value: $address"
     if ($plainCode -eq 0) {
         $dropped = @($plainLines | Where-Object { $_ -match 'Ignoring disallowed property BACKENDURL' }).Count
-        Note "the standard user's repair ran" "Windows Installer's log has 'Ignoring disallowed property BACKENDURL' $dropped times"
+        $plainServer = Get-ServiceCommandLine $plainLines
+        Note "the standard user's repair ran" "Windows Installer's log has 'Ignoring disallowed property BACKENDURL' $dropped times; BACKENDURL on the service's command line: $([bool]$plainServer -and ($plainServer -match '\sBACKENDURL='))"
     } elseif ($null -ne $plainCode) {
         Note "the standard user's repair did not run here" "exit $plainCode; the address check above holds either way"
     }

@@ -342,8 +342,12 @@ install or upgrade; the service starts at the next sign-in, which is what the ti
   cover; the address is not a secret, and the deploy guide says not to put credentials in it.)*
   *(Amended 2026-11-28, security fix run, C-02: the address properties are not Secure, so only a command
   line that is already elevated, or the system account's, sets the address; the setup program elevates
-  itself. A repair given a different address is refused, and so is a new address that is not `https://`
-  with a host name, or that carries a user name, password or query. An address already on the machine is
+  itself. A repair cannot change the address: `msiexec /f` hands none of its command line's properties to
+  Windows Installer's service (seen in CI's verbose log), and a repair whose command line does carry a
+  different address, such as an administrator's `msiexec /i` with `REINSTALL=ALL`, is refused by the
+  package's `RefuseBackendUrlChange`, which also stays as the second guard should a policy or a later
+  change ever let a standard user's `BACKENDURL` through. A new address that is not `https://` with a host
+  name, or that carries a user name, password or query, is refused. An address already on the machine is
   never refused.)*
 
 ## Alternatives considered

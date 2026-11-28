@@ -56,7 +56,11 @@ another process reads `ScreenTrail.Service.exe` for 4 seconds from the moment th
 each must exit 0 with nothing left for a restart. It installs the setup program with `BACKENDURL` and
 checks the machine-wide `BackendUrl` value holds it, gives `msiexec` the address before the setup
 program's upgrade and checks the upgrade, given none, kept it, and checks that no installer log shows the
-address but for Windows Installer's record of the registry write (see "The backend address" below). The unsigned packages are a workflow artifact, `screentrail-installer-unsigned`,
+address but for Windows Installer's record of the registry write (see "The backend address" below). It
+gives an installed package's repair another address (`msiexec /fm`, `msiexec /i` with `REINSTALL=ALL`, and
+a standard user's `/fm`) and checks the address on the machine is unchanged and each repair was either
+refused by the package's check or never handed `BACKENDURL` to Windows Installer's service, which it reads
+from the service's command line in the verbose log; the output says which, as a `NOTE`. The unsigned packages are a workflow artifact, `screentrail-installer-unsigned`,
 kept seven days. To try one: download it from the run's summary page, on a throwaway VM.
 
 For every run of the setup program the test also reads the setup program's own log, because its exit
@@ -345,8 +349,13 @@ Left out, nothing is written (see below).
   run it (the setup program elevates itself, so its command line always counts). From a prompt that is
   not elevated, Windows Installer leaves `msiexec`'s `BACKENDURL` out even when the UAC prompt is approved,
   and the machine keeps the address it had. An upgrade or a repair without it keeps the value already
-  there, and a new `BACKENDURL` on an install or an upgrade replaces it; a repair given a different one is
-  refused (exit `1603`, the reason in the log). The address must be the backend's `https://` address, with
+  there, and a new `BACKENDURL` on an install or an upgrade replaces it. A repair never changes it:
+  `msiexec /f` hands none of its command line's properties to Windows Installer's service, so a
+  `BACKENDURL` given with it is not read at all (the repair runs and keeps the address), and a repair
+  whose command line does carry a different one, such as `msiexec /i` of the installed product with
+  `REINSTALL=ALL`, is refused by the package's own check (exit `1603`, the reason in the log). That check
+  is also the second guard behind the first: should a policy or a later change ever let a standard user's
+  `BACKENDURL` through, a repair still cannot change the address. The address must be the backend's `https://` address, with
   a host name and no user name, password or query, or the install is refused the same way. The logs name `BACKENDURL` and show asterisks for
   its value (the setup program's log, and Windows Installer's command line and property lines), as the
   service never logs the address. One line is the exception: a verbose Windows Installer log (`/l*v`,
