@@ -201,9 +201,10 @@ public sealed class RedactionEngine
         }
 
         // And every cell under a "Password" column's header, which is the only cue a password list has.
+        // A column that goes on past the rule's bound leaves the frame not searched to its end.
         if (_policy.Passwords)
         {
-            PasswordColumns(page, starts, ends, taken, regions, widened, counts);
+            complete &= PasswordColumns(page, starts, ends, taken, regions, widened, counts);
         }
 
         // And the place after a credential cue whose value the engine did not read at all.
@@ -737,7 +738,11 @@ public sealed class RedactionEngine
     /// </summary>
     internal const double PasswordColumnApart = 0.8;
 
-    /// <summary>The most rows a column is followed down, so a page of headers costs a bounded walk each.</summary>
+    /// <summary>
+    /// The most rows a column is followed down, so a page of headers costs a bounded walk each. More rows
+    /// than any screen holds; a column that goes on past them makes the frame incomplete, so it is
+    /// discarded rather than stored with its last rows readable.
+    /// </summary>
     internal const int PasswordColumnRows = 500;
 
     /// <summary>
@@ -757,7 +762,11 @@ public sealed class RedactionEngine
     /// than <see cref="PasswordColumnGap"/> row heights below the last cell found. The header stays, so the
     /// page still says what the column was; so do the other columns.
     /// </summary>
-    private static void PasswordColumns(
+    /// <returns>
+    /// False when a column goes on past <see cref="PasswordColumnRows"/> rows: its cells below them were
+    /// not looked at, so the frame must be discarded as for a scan that did not finish.
+    /// </returns>
+    private static bool PasswordColumns(
         OcrPage page,
         int[] starts,
         int[] ends,
@@ -767,6 +776,10 @@ public sealed class RedactionEngine
         Dictionary<MaskKind, int> counts)
     {
         var words = page.Words;
+
+        // The cells a column has masked. Masking one again adds nothing (its token is already taken), so
+        // a cell under several headers, on a page where every word is one, is masked once, not once each.
+        var masked = new bool[words.Count];
         for (var row = 0; row < page.RowCount; row++)
         {
             var members = page.RowAt(row);
@@ -799,7 +812,7 @@ public sealed class RedactionEngine
                 var left = before is { } l ? (l.X + l.Width + header.X) / 2.0 : header.X - (4 * height);
                 var right = after is { } r ? (header.X + header.Width + r.X) / 2.0 : header.X + header.Width + (20 * height);
                 var bottom = (double)members.Bottom;
-                for (var below = row + 1; below < page.RowCount && below <= row + PasswordColumnRows; below++)
+                for (var below = row + 1; below < page.RowCount; below++)
                 {
                     var cells = page.RowAt(below);
                     if (cells.Top - bottom > PasswordColumnGap * height)
@@ -807,16 +820,36 @@ public sealed class RedactionEngine
                         break;
                     }
 
-                    var found = false;
-                    foreach (var cell in cells.Members)
+                    // The column goes on past the bound: what is below was not looked at.
+                    if (below > row + PasswordColumnRows)
                     {
+                        return false;
+                    }
+
+                    // The row's words are in order of their left edges: from the first that may reach
+                    // into the column (none is wider than the row's widest) to the first past it.
+                    var found = false;
+                    for (var at = LowerBound(cells.Lefts, (int)Math.Floor(left - cells.MaxWidth) + 1); at < cells.Members.Length; at++)
+                    {
+                        var cell = cells.Members[at];
                         var word = words[cell];
-                        if (word.X >= right || word.X + word.Width <= left)
+                        if (word.X >= right)
+                        {
+                            break;
+                        }
+
+                        if (word.X + word.Width <= left)
                         {
                             continue;
                         }
 
                         found = true;
+                        if (masked[cell])
+                        {
+                            continue;
+                        }
+
+                        masked[cell] = true;
                         var value = new PatternMatch(MaskKind.Password, starts[cell], ends[cell] - starts[cell], "[REDACTED]");
                         if (Mask(page, starts, ends, [cell], [], value, taken, regions, widened))
                         {
@@ -831,6 +864,8 @@ public sealed class RedactionEngine
                 }
             }
         }
+
+        return true;
     }
 
     /// <summary>The words that say a credential follows them, as their last part reads once marks are trimmed.</summary>
