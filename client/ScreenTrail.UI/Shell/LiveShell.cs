@@ -486,6 +486,12 @@ public sealed class LiveShell : IAsyncDisposable
     /// reason: null means "give the session token to whoever answered", which is right for a test and
     /// wrong in a shipped application.
     /// </summary>
+    /// <summary>
+    /// One for the process (security review B-08): making one checks this executable's own signature, a
+    /// full WinVerifyTrust on a cold file the first time, and every attempt used to make a new one.
+    /// </summary>
+    private static readonly Lazy<WindowsServerVerifier> ServerVerifier = new(() => new WindowsServerVerifier(Environment.ProcessPath!));
+
     private static async Task<ICaptureChannel> OpenAsync(string version, CancellationToken ct)
     {
         var token = IpcTokenFile.Read(IpcTokenFile.DefaultPath)
@@ -497,7 +503,7 @@ public sealed class LiveShell : IAsyncDisposable
                 IpcPipeNames.ForUser(sid),
                 token,
                 clientName: "ScreenTrail.UI",
-                serverVerifier: new WindowsServerVerifier(Environment.ProcessPath!),
+                serverVerifier: ServerVerifier.Value,
                 clientVersion: version,
                 ct: ct).ConfigureAwait(false);
         }

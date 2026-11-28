@@ -94,6 +94,17 @@ public sealed class IpcServer : IAsyncDisposable
 
     private bool _claimed;
 
+    /// <summary>How long verifying a client may take once its token has matched (security review B-08).</summary>
+    public static readonly TimeSpan DefaultVerificationTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>
+    /// The bound on verifying a client, and on admitting it, once its token has matched. Separate from
+    /// <see cref="HandshakeTimeout"/>, which is for saying hello: a signed UI's first verification after a
+    /// boot (full signature checks on cold files) can take longer than that, and used to be dropped with
+    /// nothing said or recorded. Settable for tests.
+    /// </summary>
+    internal TimeSpan VerificationTimeout { get; init; } = DefaultVerificationTimeout;
+
     /// <summary>
     /// How long a peer has to complete the handshake. A real client writes <c>hello</c> in the same
     /// breath as connecting; two seconds is generous for a local pipe and short enough that holding one
@@ -351,6 +362,9 @@ public sealed class IpcServer : IAsyncDisposable
                     {
                         _ = _handshakes.TryRemove(id, out _);
                         counted = false;
+
+                        // From here the bound is verification's own (B-08).
+                        handshake.Deadline(VerificationTimeout);
                     },
                     connectedAt,
                     handshake.Token).ConfigureAwait(false);
@@ -362,7 +376,24 @@ public sealed class IpcServer : IAsyncDisposable
             catch (OperationCanceledException) when (!_stopping.IsCancellationRequested)
             {
                 RefusedConnections++;
-                return;
+
+                // Evicted for being the oldest of too many silent peers: dropped, as it always was, and not
+                // recorded, or a flood of them would be a flood of rows.
+                if (handshake.Evicted)
+                {
+                    return;
+                }
+
+                // Out of time. A peer that never got as far as a matching token is not listening, so it is
+                // sent nothing; it is recorded, one row a minute (B-08). One whose verification ran out is
+                // told why, below, as any other refusal is.
+                if (counted)
+                {
+                    await AuditRejectionAsync(RejectReasons.Slow).ConfigureAwait(false);
+                    return;
+                }
+
+                reason = RejectReasons.Slow;
             }
 
             if (reason is not null)
@@ -453,8 +484,9 @@ public sealed class IpcServer : IAsyncDisposable
     }
 
     /// <param name="spoke">
-    /// Called the moment a hello has been read, so the eviction table stops counting this connection as
-    /// silent.
+    /// Called the moment a hello with this run's token has been read, so the eviction table stops counting
+    /// this connection as silent and the handshake's deadline gives way to verification's (B-08). A hello
+    /// that is refused at once (another contract version, a wrong token) needs neither.
     ///
     /// It used to be called after the whole handshake, which includes verifying the peer's Authenticode
     /// signature: two WinVerifyTrust calls that take real time on a cold file. So the genuine UI was
@@ -478,9 +510,6 @@ public sealed class IpcServer : IAsyncDisposable
             return RejectReasons.Protocol;
         }
 
-        // Said something, whatever it turns out to be worth. Everything below can take its time.
-        spoke();
-
         if (hello.ContractVersion != IpcContract.Version)
         {
             return RejectReasons.ContractMismatch;
@@ -490,6 +519,10 @@ public sealed class IpcServer : IAsyncDisposable
         {
             return RejectReasons.BadToken;
         }
+
+        // A hello with this run's token: the peer is no longer silent, and what is left (verifying it,
+        // which can take real time) has its own bound (B-08). Everything below can take its time.
+        spoke();
 
         var check = await _verifier.CheckAsync(connection.Pipe, connectedAt, ct).ConfigureAwait(false);
         if (check.Refusal is not null)
@@ -710,8 +743,12 @@ public sealed class IpcServer : IAsyncDisposable
 
         public void Deadline(TimeSpan within) => _cts.CancelAfter(within);
 
+        /// <summary>Whether it was cancelled for eviction rather than running out of time.</summary>
+        public bool Evicted { get; private set; }
+
         public void Cancel()
         {
+            Evicted = true;
             try
             {
                 _cts.Cancel();

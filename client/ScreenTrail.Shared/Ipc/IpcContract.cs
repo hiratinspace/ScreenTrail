@@ -97,6 +97,8 @@ namespace ScreenTrail.Shared.Ipc;
 /// rectangle, from one connection at a time; a report it does not believe is answered with <c>ok</c> false.
 /// The members are the same, but a v17 UI's rectangle would be read in the wrong unit and its pill not
 /// found on any display that is not at 100 percent, so the handshake turns such a pair away instead.
+/// The same version adds the <c>rejected</c> reason <c>slow</c>: the token matched and the client could not
+/// be verified in time (B-08).
 /// </summary>
 public static class IpcContract
 {

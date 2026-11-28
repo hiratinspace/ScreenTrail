@@ -75,7 +75,7 @@ Every command carries `request_id`, an integer the client chooses. `hello` is an
 | `type` | Fields | When |
 |---|---|---|
 | `hello_ack` | `contract_version`, `service_version`, `state` | Handshake succeeded |
-| `rejected` | `reason` (`unverified_client`, `bad_token`, `contract_mismatch`, `protocol`) | Handshake failed; the pipe closes after |
+| `rejected` | `reason` (`unverified_client`, `bad_token`, `contract_mismatch`, `protocol`, or since v18 `slow`) | Handshake failed; the pipe closes after. `slow`: the token matched and the service could not verify the client within ten seconds (security review B-08) |
 | `result` | `request_id`, `ok`, `error?` | Reply to a command |
 | `state_changed` | `state` | Capture state changed, or a count it carries (`drafts_ready`, `pending_redactions`) moved; sent to every connected client. Not sent for the clock: `elapsed_ms` is as of the snapshot, and the UI counts on from it locally while recording (ST-072) |
 | `capabilities` | `checked_at`, `can_capture`, `checks[]` | Answers `get_capabilities`; also sent when a check changes |
@@ -546,7 +546,11 @@ A client that cannot be told a `state_changed` is made to reattach. `state_chang
 
 ## Connection limits
 
-The handshake table holds 16 in flight and a peer has two seconds to say `hello`. When the table is full
+The handshake table holds 16 in flight and a peer has two seconds to say `hello` with the right token.
+From then on verifying it has a bound of its own, ten seconds, so a signed UI's first verification after a
+boot is not cut short (security review B-08); a verification that runs out is answered `rejected` with
+`slow`. A peer that has not said `hello` with the right token in its two seconds is sent nothing (it is
+not reading) and is recorded as `ipc_rejected_slow`, one row a minute however many. When the table is full
 the **oldest silent** handshake is dropped to make room, and the newcomer is never refused. Refusing the
 newcomer was the earlier policy and it handed a same-user process a better attack than the one it fixed:
 sixteen silent connections kept the table full, every refusal fell on whoever asked next, and the real UI
@@ -592,4 +596,4 @@ indicator unreachable rather than by touching capture.
 | 2026-11-21 | `cpu_percent` on `diagnostics` is real (the service's share of the machine, the throttle's last reading while a session is under way) and optional, absent while still being measured, where it was required and always 0; `capture_level`, optional, is the capture throttle's level (ST-031, spec v0.7.4). A changed and a new member on a reply both sides exchange, which a v14 UI would fail on, so the version moves. The service and the UI must both be v15 | **15** |
 | 2026-11-27 | `session` gains `draft_failure`, optional, the reason a failed draft recorded, so Review says why (review finding E-10, spec v0.7.18). A new member on a reply, which a v15 UI would fail on, so the version moves. The service and the UI must both be v16 | **16** |
 | 2026-11-28 | `set_settings` and `set_capture_settings` gain `confirmation`, optional; `request_confirmation` gains the actions `change_settings` and `change_capture_settings`; the `settings` reply gains `built_in_rules_locked` (security review A-03, DEC-06). A new member on a command and on a reply both sides exchange, so the version moves. The service and the UI must both be v17 | **17** |
-| 2026-11-28 | `indicator_showing`'s rectangle is the pill window's in device pixels (it was WPF's device-independent units), checked against the windows of the process the connection was verified as, from one connection at a time; a report not believed is answered `ok` false (security review B-03). The members are unchanged but their unit is not, so the version moves. The service and the UI must both be v18 | **18** |
+| 2026-11-28 | `indicator_showing`'s rectangle is the pill window's in device pixels (it was WPF's device-independent units), checked against the windows of the process the connection was verified as, from one connection at a time; a report not believed is answered `ok` false (security review B-03). The members are unchanged but their unit is not, so the version moves. Also `rejected` gains the reason `slow` (B-08). The service and the UI must both be v18 | **18** |

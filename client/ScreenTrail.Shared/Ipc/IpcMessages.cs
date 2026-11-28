@@ -1033,6 +1033,13 @@ public static class RejectReasons
     public const string BadToken = "bad_token";
     public const string ContractMismatch = "contract_mismatch";
     public const string Protocol = "protocol";
+
+    /// <summary>
+    /// The handshake ran out of time after the token matched: the service could not verify the client in
+    /// time (security review B-08). Also the audit reason for a peer that said nothing in time, which is
+    /// sent nothing.
+    /// </summary>
+    public const string Slow = "slow";
 }
 
 /// <summary>What every open UI shows. ST-020 owns the transitions and extends this.</summary>

@@ -28,7 +28,7 @@ Guide §2 and ST-004 describe a per-user background **capture service** and a se
 
 ### Authentication (per Guide §5, "every command is authenticated with the session token")
 
-A connection must pass three checks before its first command is accepted; failing any one gets a `rejected` reply, an audit row (`ipc_rejected_<reason>`, nothing else), and a closed pipe.
+A connection must pass three checks before its first command is accepted; failing any one gets a `rejected` reply, an audit row (`ipc_rejected_<reason>`, nothing else), and a closed pipe. *(Amended 2026-11-28, security fix run, B-08: a check that ran past the two-second handshake deadline used to close the pipe with neither. The deadline now covers saying `hello` with the right token, verification has ten seconds of its own and one that runs out gets `rejected` with `slow` and its row; a peer that says nothing in time is sent nothing and gets the row.)*
 
 1. **Same user.** The pipe ACL on Windows; the socket's file permissions elsewhere.
 2. **Verified client executable.** The service resolves the client's process from the pipe and checks its executable. Release builds: Authenticode-signed by the same publisher certificate as the service itself. Unsigned (development) builds: the client executable must sit in the same directory as the service executable. *(Amended 2026-11-15: release builds require the same directory as well as the signature, because a signature covers the executable and not the libraries it loads from its folder. The installer puts both executables in one folder under Program Files.)* This is `IClientVerifier`; the Windows implementation lives in the service, tests use fakes. It is what makes ST-004's "unsigned process is rejected" true.
