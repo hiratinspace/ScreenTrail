@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,57 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
         Assert.Equal("https://na.myconnectwise.net", row.SiteUrl);
         Assert.Equal("••••9876", row.Secret);
         Assert.DoesNotContain("PRIVATE", body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ADeviceIsToldWhatIsConnectedAndNoPartOfTheCredential()
+    {
+        // Security review E-14 (DEC-11). A device lists the provider, the site and when it was connected,
+        // and no part of the credential, not even its last four; nor is any part kept outside the envelope.
+        var (tenantId, userId, deviceId) = await SeedAsync();
+        using var client = Client(api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
+        var secret = $"acme+{Convert.ToBase64String(RandomNumberGenerator.GetBytes(12))}:{Convert.ToBase64String(RandomNumberGenerator.GetBytes(12))}Qzxw";
+
+        using var put = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", secret));
+        using var get = await client.GetAsync(new Uri("/v1/integrations", UriKind.Relative), TestContext.Current.CancellationToken);
+        var body = await get.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var row = Assert.Single((await get.Content.ReadFromJsonAsync<IntegrationsResponse>(TestContext.Current.CancellationToken))!.Integrations);
+        var stored = await api.UseAsync(db => db.Integrations.AsNoTracking().SingleAsync(i => i.TenantId == tenantId));
+
+        Assert.Equal(HttpStatusCode.NoContent, put.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+        Assert.Equal("connectwise", row.Provider);
+        Assert.NotNull(row.ConnectedAt);
+        Assert.Equal(string.Empty, row.Secret);
+        Assert.DoesNotContain(secret[^4..], body, StringComparison.Ordinal);
+        for (var at = 5; at + 6 <= secret.Length; at++)
+        {
+            Assert.DoesNotContain(secret.Substring(at, 6), body, StringComparison.Ordinal);
+        }
+
+        Assert.True(string.IsNullOrEmpty(stored.SecretHint), "no part of the credential is kept in the clear");
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(15)]
+    public async Task ACredentialShorterThanSixteenCharactersIsRefusedInWords(int length)
+    {
+        // Security review E-14 (DEC-11). A real ConnectWise or Hudu key is far longer; a short one is a
+        // placeholder or a paste that went wrong, and is not stored.
+        var (tenantId, userId, deviceId) = await SeedAsync();
+        using var client = Client(api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
+
+        using var shortOne = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", new string('k', length)));
+        var body = await shortOne.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var nothing = await api.UseAsync(db => db.Integrations.AnyAsync(i => i.TenantId == tenantId));
+        using var atTheLimit = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", new string('k', 16)));
+
+        Assert.Equal(HttpStatusCode.BadRequest, shortOne.StatusCode);
+        Assert.Contains("secret_too_short", body, StringComparison.Ordinal);
+        Assert.Contains("16 characters", body, StringComparison.Ordinal);
+        Assert.False(nothing);
+        Assert.Equal(HttpStatusCode.NoContent, atTheLimit.StatusCode);
     }
 
     [Fact]

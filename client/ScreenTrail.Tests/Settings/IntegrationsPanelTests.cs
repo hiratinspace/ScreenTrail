@@ -13,6 +13,45 @@ namespace ScreenTrail.Tests.Settings;
 public sealed class IntegrationsPanelTests
 {
     [Fact]
+    public void NoPartOfACredentialReachesTheCardOrWhatItIsLoadedFrom()
+    {
+        // Security review E-14 (DEC-11): a device cannot change an integration, so a piece of the
+        // credential decides nothing on it. The backend sends none, and nothing here has a place for one.
+        static IEnumerable<string> Named(Type type) =>
+            type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(p => p.Name)
+                .Where(name => name.Contains("Secret", StringComparison.OrdinalIgnoreCase) || name.Contains("Hint", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Empty(Named(typeof(IntegrationCard)));
+        Assert.Empty(Named(typeof(IntegrationDetail)));
+    }
+
+    [Fact]
+    public async Task AConnectedCardSaysConnectedAndWhen()
+    {
+        // In the credential's old place: "Connected" and the day it was connected (DEC-11). A row with no
+        // date (one stored before the date was kept) still says Connected; nothing connected says nothing.
+        var connected = DateTimeOffset.UtcNow.AddDays(-3);
+        var gateway = new FakeIntegrations
+        {
+            Rows =
+            [
+                new IntegrationDetail("connectwise", "https://na.myconnectwise.net", connected, null, null),
+                new IntegrationDetail("hudu", "https://acme.huducloud.com", null, null, null),
+            ],
+        };
+        var panel = new IntegrationsPanel(gateway);
+
+        await panel.LoadAsync();
+
+        Assert.Equal("Connected " + connected.ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture), panel.ConnectWise.ConnectedLine);
+        Assert.Equal("Connected", panel.Hudu.ConnectedLine);
+
+        gateway.Rows = [];
+        await panel.LoadAsync();
+        Assert.Equal(string.Empty, panel.ConnectWise.ConnectedLine);
+    }
+
+    [Fact]
     public async Task LoadShowsEachProviderConnectedOrNot()
     {
         var gateway = new FakeIntegrations
