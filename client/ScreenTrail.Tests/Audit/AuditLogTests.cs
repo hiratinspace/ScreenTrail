@@ -173,6 +173,49 @@ public sealed class AuditLogTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task HashesTakenOffEveryRowAreNoticed()
+    {
+        // A log whose head names a last hash has had a hashed row written to it. If no row carries a hash
+        // any more, the rows are not from before the chain: the head is the second opinion that says so.
+        var store = await OpenAsync();
+        for (var i = 0; i < 5; i++)
+        {
+            await store.RecordAsync(AuditTypes.FrameCaptured, "s1", 1, "Click");
+        }
+
+        store = await TamperAsync("UPDATE audit_log SET hash = NULL, prev_hash = NULL");
+
+        var verification = await store.VerifyAuditAsync();
+
+        Assert.False(verification.Intact, verification.Describe());
+    }
+
+    [Fact]
+    public async Task ALogFromBeforeTheChainStillVerifies()
+    {
+        // What schema 4 and 7 leave on a store an older build wrote: rows with no hashes, and a head seeded
+        // from them with an empty last hash. Unattested, not broken, and the chain begins at the next row.
+        var store = await OpenAsync();
+        for (var i = 0; i < 3; i++)
+        {
+            await store.RecordAsync(AuditTypes.FrameCaptured, "s1", 1, "Click");
+        }
+
+        store = await TamperAsync("UPDATE audit_log SET hash = NULL, prev_hash = NULL; UPDATE audit_head SET hash = ''");
+
+        var before = await store.VerifyAuditAsync();
+        Assert.True(before.Intact, before.Describe());
+        Assert.Equal(0, before.Checked);
+        Assert.Equal(3, before.Unchained);
+
+        await store.RecordAsync(AuditTypes.FrameCaptured, "s1", 1, "Click");
+        var after = await store.VerifyAuditAsync();
+        Assert.True(after.Intact, after.Describe());
+        Assert.Equal(1, after.Checked);
+        Assert.Equal(3, after.Unchained);
+    }
+
+    [Fact]
     public async Task AnAppendThatFailsHalfwayLeavesNoRowAndNoOpenSavepoint()
     {
         // T-64. The row and the head are written under one savepoint; if the second write fails the
