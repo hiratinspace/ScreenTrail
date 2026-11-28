@@ -461,6 +461,55 @@ public sealed class GeminiProviderTests
         Assert.DoesNotContain(Texts(handler.Body!), text => text.Contains("rejected", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task TheRulesTravelAsTheSystemInstructionAndTheUserTurnCarriesOnlyTheSession()
+    {
+        // ScreenTrail's rules and the technician's style are the system's, and the session (OCR of a
+        // customer's screen, what was said, the screenshots) is the user's. In one user turn, on-screen
+        // text written in the prompt's own voice had the same standing as the prompt.
+        var handler = new RecordingHandler(Answer());
+        var bundle = Bundle() with { StyleHints = ["past_tense"] };
+
+        _ = await Provider(handler).DraftAsync(bundle, "Step 1 cites frame 'f9'.", TestContext.Current.CancellationToken);
+
+        using var document = JsonDocument.Parse(handler.Body!);
+        var system = document.RootElement.GetProperty("systemInstruction").GetProperty("parts").EnumerateArray()
+            .Select(part => part.GetProperty("text").GetString()!).ToList();
+        Assert.Equal("the note prompt", system[0]);
+        Assert.Contains(system, text => text.Contains("past tense", StringComparison.Ordinal));
+
+        var user = Texts(handler.Body!);
+        Assert.DoesNotContain("the note prompt", user);
+        Assert.DoesNotContain(user, text => text.Contains("past tense", StringComparison.Ordinal));
+        Assert.Contains(user, text => text.Contains("rejected_because", StringComparison.Ordinal));
+        using var session = JsonDocument.Parse(SessionText(handler.Body!));
+        Assert.Equal("s1", session.RootElement.GetProperty("session_id").GetString());
+    }
+
+    [Fact]
+    public async Task TheAnswerIsAskedForInTheNotesOwnShape()
+    {
+        // The schema the Claude request carries, in the form Gemini reads: every field the note has, the
+        // ones it requires, and the values the enums allow.
+        var handler = new RecordingHandler(Answer());
+
+        _ = await Provider(handler).DraftAsync(Bundle(), null, TestContext.Current.CancellationToken);
+
+        var schema = Generation(handler.Body!).GetProperty("responseSchema");
+        Assert.Equal("OBJECT", schema.GetProperty("type").GetString());
+        var required = schema.GetProperty("required").EnumerateArray().Select(field => field.GetString()).ToList();
+        Assert.Equal(
+            ["problem", "steps", "result", "follow_ups", "suggested_title", "suggested_time_minutes", "kb_candidate", "kb_reason", "source", "prompt_version"],
+            required);
+        var properties = schema.GetProperty("properties");
+        Assert.Equal("ARRAY", properties.GetProperty("steps").GetProperty("type").GetString());
+        var step = properties.GetProperty("steps").GetProperty("items");
+        Assert.Equal("OBJECT", step.GetProperty("type").GetString());
+        Assert.Equal(["high", "low"], step.GetProperty("properties").GetProperty("confidence").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal(["note_v2"], properties.GetProperty("prompt_version").GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+        Assert.Equal("INTEGER", properties.GetProperty("suggested_time_minutes").GetProperty("type").GetString());
+    }
+
     /// <summary>Every text part of the request, in order.</summary>
     private static List<string> Texts(string body)
     {
