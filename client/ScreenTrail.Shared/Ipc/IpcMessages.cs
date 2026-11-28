@@ -21,6 +21,7 @@ namespace ScreenTrail.Shared.Ipc;
 [JsonDerivedType(typeof(ListSessionsCommand), "list_sessions")]
 [JsonDerivedType(typeof(GetCoverageCommand), "get_coverage")]
 [JsonDerivedType(typeof(EraseAllLocalDataCommand), "erase_all_local_data")]
+[JsonDerivedType(typeof(RetryStoreCommand), "retry_store")]
 [JsonDerivedType(typeof(RequestConfirmationCommand), "request_confirmation")]
 [JsonDerivedType(typeof(IndicatorShowingCommand), "indicator_showing")]
 [JsonDerivedType(typeof(GetSessionCommand), "get_session")]
@@ -226,6 +227,13 @@ public sealed record EraseAllLocalDataCommand : IpcCommand
     [JsonPropertyName("confirmation")]
     public string? Confirmation { get; init; }
 }
+
+/// <summary>
+/// Asks a service whose store would not open to try again (contract v19). Accepted only in the
+/// <see cref="CaptureStates.StoreUnavailable"/> state: a key that would not open can come back, when the
+/// password Windows protected it with is restored. Anywhere else it is refused.
+/// </summary>
+public sealed record RetryStoreCommand : IpcCommand;
 
 /// <summary>
 /// Asks for a token to confirm something irreversible with (ST-085). Answered by a
@@ -1173,6 +1181,26 @@ public static class CaptureStates
     /// Nothing is being captured; the session is named, and can still be discarded.
     /// </summary>
     public const string DraftPending = "draft_pending";
+
+    /// <summary>
+    /// The service is running and its store would not open (contract v19). Nothing is captured and nothing
+    /// is read; <c>reason</c> says why, from <see cref="StoreUnavailableReasons"/>. The service accepts only
+    /// <c>retry_store</c> and "Delete everything" with its typed confirmation.
+    /// </summary>
+    public const string StoreUnavailable = "store_unavailable";
+}
+
+/// <summary>Why the store would not open, in the <c>reason</c> of a <see cref="CaptureStates.StoreUnavailable"/> snapshot (v19).</summary>
+public static class StoreUnavailableReasons
+{
+    /// <summary>
+    /// Windows would not unprotect the key file: the account's password was reset, or the profile came from
+    /// another PC. It can come back when the password does.
+    /// </summary>
+    public const string KeyRefused = "key_refused";
+
+    /// <summary>The key was read and the store would not open with it.</summary>
+    public const string StoreRefused = "store_refused";
 }
 
 /// <summary>

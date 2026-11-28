@@ -455,4 +455,10 @@ public sealed class StoreKeyException(string message, Exception inner) : Excepti
         : this(message, new InvalidOperationException())
     {
     }
+
+    /// <summary>
+    /// Why, as the <c>store_unavailable</c> state says it (contract v19): the key file would not unprotect,
+    /// or the store would not open with the key. Never the key, a path or anything from the file.
+    /// </summary>
+    public string Reason { get; init; } = Shared.Ipc.StoreUnavailableReasons.StoreRefused;
 }

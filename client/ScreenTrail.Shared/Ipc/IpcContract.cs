@@ -99,8 +99,13 @@ namespace ScreenTrail.Shared.Ipc;
 /// found on any display that is not at 100 percent, so the handshake turns such a pair away instead.
 /// The same version adds the <c>rejected</c> reason <c>slow</c>: the token matched and the client could not
 /// be verified in time (B-08).
+///
+/// Version 19 (security review F-10): a service whose store will not open no longer exits at every start.
+/// It serves the pipe in the new state <c>store_unavailable</c>, with a <c>reason</c>, captures nothing, and
+/// accepts only the new command <c>retry_store</c> and "Delete everything" with its typed confirmation. A
+/// v18 UI would show the new state as unknown and could not ask to retry, so the handshake turns it away.
 /// </summary>
 public static class IpcContract
 {
-    public const int Version = 18;
+    public const int Version = 19;
 }

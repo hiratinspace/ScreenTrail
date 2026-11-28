@@ -172,6 +172,7 @@ public sealed class LiveShell : IAsyncDisposable
         _tray.Setup += ShowOnboarding;
         _tray.ShowDiagnostics += ShowDiagnostics;
         _tray.StartService += StartCaptureService;
+        _tray.RetryStore += () => Send(id => new RetryStoreCommand { RequestId = id });
         _tray.HidePill += HidePillForThisSession;
         _tray.ShowPill += ShowPillAgain;
         NetworkChange.NetworkAvailabilityChanged += OnNetworkChanged;

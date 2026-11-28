@@ -136,6 +136,9 @@ public sealed class TrayIconHost : IDisposable
     /// <summary>"Start the capture service", while it is not running (review finding E-13).</summary>
     public event Action? StartService;
 
+    /// <summary>The menu's "Try opening saved sessions again", while the service's store would not open (F-10).</summary>
+    public event Action? RetryStore;
+
     /// <summary>The icon double-clicked: the shell, as it was left.</summary>
     public event Action? Open;
 
@@ -740,6 +743,7 @@ public sealed class TrayIconHost : IDisposable
             TrayCommand.Setup => Setup,
             TrayCommand.Quit => Quit,
             TrayCommand.StartService => StartService,
+            TrayCommand.RetryStore => RetryStore,
             _ => null,
         };
         handler?.Invoke();

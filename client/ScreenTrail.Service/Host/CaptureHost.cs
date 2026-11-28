@@ -84,6 +84,60 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         }
     }
 
+    /// <summary>The service's pipe, as both the running service and the unavailable state serve it.</summary>
+    private IpcServer Pipe(byte[] token, IClientVerifier verifier, IIpcCommandHandler handler, Core.Audit.IAuditLog audit, string version) => new(
+        // A pipe name another pipe already holds is logged, a warning at first (it may be this
+        // service's previous run, still open in a UI) and an error if it stays held. The UI, which
+        // cannot reach this service meanwhile, says the capture service is not running (2026-11-15 review).
+        WindowsPipeFactory.ForCurrentUser(paths.PipeName, refusals =>
+        {
+            if (refusals == 1)
+            {
+                LogPipeNameHeld(logger);
+            }
+            else if (refusals == WindowsPipeFactory.HeldIsAnErrorAfter)
+            {
+                LogPipeNameStillHeld(logger, refusals);
+            }
+        }),
+        token,
+        verifier,
+        handler,
+        audit,
+        version)
+    {
+        // The token file, written only once this service's pipe holds the name and before any
+        // connection is accepted (security review B-07): a copy of the service that cannot claim it
+        // (this account's second Windows session, say) leaves the running one's token alone.
+        Claimed = claimedToken => IpcTokenFile.Write(paths.IpcTokenFile, claimedToken),
+    };
+
+    /// <summary>
+    /// The pipe while the store will not open (F-10): the same name, token file and client check as the
+    /// running service, with <see cref="StoreUnavailable"/> behind it. Nothing is captured and nothing is read.
+    /// </summary>
+    private async Task<StoreUnavailableOutcome> ServeUnavailableAsync(string reason, string version, string serviceExecutable, CancellationToken ct)
+    {
+        LogStoreUnavailable(logger, reason);
+        var handler = new StoreUnavailable(
+            reason,
+            () => new WindowsCapabilityProbe().Probe().ToWire(),
+            () => LocalDataEraser.MarkPending(paths.DataDirectory));
+        var token = IpcToken.Generate();
+        StoreUnavailableOutcome outcome;
+        await using (var server = Pipe(token, new WindowsClientVerifier(serviceExecutable), handler, StoreUnavailable.NoAudit, version))
+        {
+            Array.Clear(token);
+            server.Start();
+            outcome = await handler.Outcome.WaitAsync(ct).ConfigureAwait(false);
+
+            // The answer to the command that ended it is on its way to the UI; let it arrive before the pipe closes.
+            await Task.Delay(TimeSpan.FromMilliseconds(500), ct).ConfigureAwait(false);
+        }
+
+        return outcome;
+    }
+
     private async Task RunAsync(CancellationToken stoppingToken)
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
@@ -108,10 +162,25 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             return;
         }
 
-        await using var store = await SqliteSessionStore.OpenAsync(
-            Path.Combine(paths.DataDirectory, "store.db"),
-            new DpapiKeyProvider(paths.KeyFile),
-            ct: stoppingToken).ConfigureAwait(false);
+        // A store whose key will not open (an account password reset, a profile from another PC) used to
+        // end the service at every start, out of reach of Settings and "Delete everything". Now the pipe is
+        // served with nothing captured until the technician retries or erases (F-10, contract v19).
+        var opened = await StoreUnavailable.OpenOrServeAsync(
+            ct => SqliteSessionStore.OpenAsync(
+                Path.Combine(paths.DataDirectory, "store.db"),
+                new DpapiKeyProvider(paths.KeyFile),
+                ct: ct),
+            (reason, ct) => ServeUnavailableAsync(reason, version, serviceExecutable, ct),
+            stoppingToken).ConfigureAwait(false);
+        if (opened is null)
+        {
+            // Written down as owed already; the erasure runs once this has returned (ExecuteAsync).
+            _eraseOnShutdown = true;
+            lifetime.StopApplication();
+            return;
+        }
+
+        await using var store = opened;
 
         // Recover before serving, so the first UI to connect sees the outcome, not the orphan.
         // The sources need the capturer and the scope coordinator, which are built further down; the
@@ -307,7 +376,6 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         var token = IpcToken.Generate();
 
         var verifier = new WindowsClientVerifier(serviceExecutable);
-        var pipeName = paths.PipeName;
 
         // ST-031: the panel's processor figure. The throttle reads through it while a session is under
         // way, so the panel shows the share the throttle acts on; between sessions the panel's own request
@@ -450,32 +518,7 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             // window, and only from the connection reporting the indicator; a change of connection is audited.
             indicatorWindowRequired: true,
             audit: store);
-        await using var server = new IpcServer(
-            // A pipe name another pipe already holds is logged, a warning at first (it may be this
-            // service's previous run, still open in a UI) and an error if it stays held. The UI, which
-            // cannot reach this service meanwhile, says the capture service is not running (2026-11-15 review).
-            WindowsPipeFactory.ForCurrentUser(pipeName, refusals =>
-            {
-                if (refusals == 1)
-                {
-                    LogPipeNameHeld(logger);
-                }
-                else if (refusals == WindowsPipeFactory.HeldIsAnErrorAfter)
-                {
-                    LogPipeNameStillHeld(logger, refusals);
-                }
-            }),
-            token,
-            verifier,
-            controller,
-            store,
-            version)
-        {
-            // The token file, written only once this service's pipe holds the name and before any
-            // connection is accepted (security review B-07): a copy of the service that cannot claim it
-            // (this account's second Windows session, say) leaves the running one's token alone.
-            Claimed = claimedToken => IpcTokenFile.Write(paths.IpcTokenFile, claimedToken),
-        };
+        await using var server = Pipe(token, verifier, controller, store, version);
         Array.Clear(token);
 
         // Every transition, and every count that moved without one, to every connected UI (ST-072).
@@ -1035,6 +1078,9 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Capture throttle {From} -> {To} at {Percent:F1}% of the machine")]
     private static partial void LogThrottle(ILogger logger, CaptureLevel from, CaptureLevel to, double percent);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "The store would not open ({Reason}); serving the pipe with nothing captured until a retry or Delete everything")]
+    private static partial void LogStoreUnavailable(ILogger logger, string reason);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "An erasure of local data still owes the store, its key or a credential; the service will not start until it finishes")]
     private static partial void LogErasureBlocksStart(ILogger logger);

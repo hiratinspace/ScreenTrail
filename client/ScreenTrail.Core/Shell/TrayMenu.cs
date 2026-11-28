@@ -56,6 +56,9 @@ public enum TrayCommand
 
     /// <summary>The capture service, started again, as the main window's banner's Start does (review finding E-13).</summary>
     StartService,
+
+    /// <summary><c>retry_store</c> (contract v19): the service tries its store again after it would not open (F-10).</summary>
+    RetryStore,
 }
 
 /// <summary>What kind of row it is, which is how the host draws it.</summary>
@@ -159,7 +162,14 @@ public static class TrayMenu
         // finishing, ready or failed). Resting is known only from a connected service, so Start capture
         // is never offered into a dropped pipe.
         var resting = capture?.State is CaptureStates.Idle or CaptureStates.DraftPending or CaptureStates.DraftReady or CaptureStates.DraftFailed;
-        if (resting)
+        if (capture?.State == CaptureStates.StoreUnavailable)
+        {
+            // The store would not open (F-10): nothing can be captured or discarded, and the service takes
+            // two things, a retry, offered here, and "Delete everything", which is in Settings with its
+            // typed confirmation.
+            rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.RetryStore, StoreUnavailableWords.RetryText, null, Enabled: true));
+        }
+        else if (resting)
         {
             rows.Add(new TrayRow(TrayRowKind.Item, TrayCommand.Start, StartText, StartHotkey, Enabled: true));
             if (capture!.State != CaptureStates.Idle)

@@ -23,6 +23,9 @@ public sealed class DpapiKeyProvider(string keyFilePath) : IStoreKeyProvider
 
     public byte[] GetKey()
     {
+        // A file that holds no key beside a store that holds nothing: a first write the power cut short.
+        // Anything else that is there is kept, whether or not it will open (F-10).
+        StoreKeyFile.RemoveUnwritten(keyFilePath, StoreFilePath);
         if (!File.Exists(keyFilePath))
         {
             CreateKeyFile();
@@ -34,27 +37,26 @@ public sealed class DpapiKeyProvider(string keyFilePath) : IStoreKeyProvider
         }
         catch (CryptographicException ex)
         {
-            throw new StoreKeyException("The store key belongs to a different Windows user or machine.", ex);
+            throw new StoreKeyException("Windows would not unprotect the store key for this account.", ex)
+            {
+                Reason = Shared.Ipc.StoreUnavailableReasons.KeyRefused,
+            };
         }
     }
+
+    /// <summary>The store the key opens, beside it.</summary>
+    private string StoreFilePath => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(keyFilePath))!, "store.db");
 
     private void CreateKeyFile()
     {
         var key = RandomNumberGenerator.GetBytes(32);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(keyFilePath)!);
             var protectedKey = ProtectedData.Protect(key, Entropy, DataProtectionScope.CurrentUser);
 
-            // CreateNew: if another process won the race, keep its key and read that instead.
-            try
-            {
-                using var stream = new FileStream(keyFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-                stream.Write(protectedKey);
-            }
-            catch (IOException) when (File.Exists(keyFilePath))
-            {
-            }
+            // As the credential is written: a file of its own, flushed, then moved into place. Never over a
+            // file that is there: if another process won the race, its key is kept and read instead.
+            _ = StoreKeyFile.TryPlace(keyFilePath, protectedKey);
         }
         finally
         {

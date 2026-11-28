@@ -1,5 +1,6 @@
 using System.Globalization;
 using ScreenTrail.Core.Capabilities;
+using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Ipc;
 
 namespace ScreenTrail.Core.Hud;
@@ -204,7 +205,8 @@ public static class HudState
     /// is exactly the case where guessing "idle" is least defensible.
     /// </summary>
     public static bool KnownIdle(CaptureStateSnapshot? capture) =>
-        capture is not null && capture.State is CaptureStates.Idle or CaptureStates.DraftReady or CaptureStates.DraftFailed or CaptureStates.DraftPending;
+        capture is not null && capture.State is CaptureStates.Idle or CaptureStates.DraftReady or CaptureStates.DraftFailed or CaptureStates.DraftPending
+            or CaptureStates.StoreUnavailable;
 
     /// <summary>
     /// Whether the UI may tell the service that the indicator is on screen (INV-4, <c>indicator_showing</c>).
@@ -290,6 +292,9 @@ public static class HudState
 
             // The session is over and its note is on its way from the backend (ST-013).
             CaptureStates.DraftPending => new HudSegment(HudTone.Idle, HudGlyphs.Busy, "Not recording: drafting the note", "Nothing is being captured. The note is being drafted and appears in Review when it arrives."),
+
+            // The store would not open (F-10, contract v19): nothing is captured, and the tray says the way on.
+            CaptureStates.StoreUnavailable => new HudSegment(HudTone.Idle, HudGlyphs.Ring, StoreUnavailableWords.Line, StoreUnavailableWords.Why(capture.Reason)),
 
             // A state this build has never heard of: a service newer than this UI. KnownIdle already
             // says why guessing "idle" is least defensible here, and this is the same reasoning applied

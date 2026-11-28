@@ -73,6 +73,10 @@ public sealed record TrayPresence(TrayIcon Icon, string Tooltip, string StateLin
             CaptureStates.DraftPending => (TrayIcon.Idle, "Not recording: drafting the note"),
             CaptureStates.Idle => (drafts > 0 ? TrayIcon.DraftReady : TrayIcon.Idle, "Not recording"),
 
+            // The store would not open (F-10, contract v19). Nothing is captured, which is a fact, so the idle
+            // ring; the words say what is wrong, and the menu offers the two ways on.
+            CaptureStates.StoreUnavailable => (TrayIcon.Idle, StoreUnavailableWords.Line),
+
             // A state this build has never heard of, which means a service newer than this UI. Saying
             // "not capturing" is a guess, and it is the one guess INV-4 cannot afford to get wrong,
             // a newer service adding a recording-like state would show the idle ring (2026-09-19
@@ -93,6 +97,11 @@ public sealed record TrayPresence(TrayIcon Icon, string Tooltip, string StateLin
         // nothing else (INV-4, Spec §7's calm density). The menu's row always has room. The tooltip
         // carries it only when the whole of it fits in what Windows shows, never cut short.
         var resting = capture.State is CaptureStates.Idle or CaptureStates.DraftPending or CaptureStates.DraftReady or CaptureStates.DraftFailed;
+        if (capture.State == CaptureStates.StoreUnavailable)
+        {
+            return new TrayPresence(icon, $"ScreenTrail · {detail}", detail, 0) { Counts = StoreUnavailableWords.Why(capture.Reason) };
+        }
+
         if (!resting)
         {
             return new TrayPresence(icon, $"ScreenTrail · {detail}", detail, drafts);
