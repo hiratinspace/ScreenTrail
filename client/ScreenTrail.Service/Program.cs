@@ -17,8 +17,8 @@ using ScreenTrail.Shared.Settings;
 
 // ST-112: the uninstaller's own step (ADR-0007). Before anything else that could take the single-instance
 // name or wait on it: it runs while a technician's copy may still be running, stops that copy, and removes
-// what every user's ScreenTrail left outside the install folder. It refuses to run for anybody but an
-// administrator, which the installer is.
+// what every user's ScreenTrail left outside the install folder. It refuses to run for anybody but the
+// system account, which the installer is.
 //
 // Both installer steps come before the foreign-code refusal below (C-10). Windows Installer runs them with
 // the machine's environment and ignores their exit code, so a machine-wide profiler variable would have

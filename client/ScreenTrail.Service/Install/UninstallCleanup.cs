@@ -84,11 +84,12 @@ internal static class UninstallCleanup
         var started = TimeProvider.System.GetTimestamp();
 
         // For the uninstaller, which runs it as the system account: holding another user's token needs
-        // that account's privilege anyway. An ordinary user who found the flag gets a sentence and
-        // nothing removed; "delete everything" for one person is the Settings button, which asks first.
+        // that account's privilege anyway. Anybody else who found the flag, an elevated administrator
+        // included, gets a sentence and nothing removed; "delete everything" for one person is the
+        // Settings button, which asks first.
         if (!RunByTheInstaller())
         {
-            output.WriteLine("This step is run by the ScreenTrail uninstaller as an administrator. Nothing was removed.");
+            output.WriteLine("This step is run by the ScreenTrail uninstaller as the system account. Nothing was removed.");
             return 2;
         }
 
@@ -142,14 +143,16 @@ internal static class UninstallCleanup
     }
 
     /// <summary>
-    /// Whether this process is the installer's: the system account, or an administrator. Holding another
-    /// user's token needs the system account's privilege anyway; the check is what gives an ordinary user
-    /// who found a flag a sentence instead of a half-done step.
+    /// Whether this process is the installer's: the system account, which is how Windows Installer runs
+    /// both steps (deferred, not impersonated), on every route. Not an elevated administrator (C-07): for
+    /// one, asking for a signed-in user's token fails, so everybody looks signed out and every user's key
+    /// and credentials would be removed, unasked and unrecorded. The check is also what gives anybody else
+    /// who found a flag a sentence instead of a step.
     /// </summary>
     internal static bool RunByTheInstaller()
     {
         using var identity = WindowsIdentity.GetCurrent();
-        return identity.IsSystem || new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
+        return identity.IsSystem;
     }
 
     /// <summary>
@@ -481,8 +484,9 @@ internal static class UninstallCleanup
 
     /// <summary>
     /// The identity of every user with a session on this machine, keyed by their security identifier.
-    /// Asking for a session's token needs the system account's privilege; for anybody else this is
-    /// empty, and the plan then deletes nothing.
+    /// Asking for a session's token needs the system account's privilege; for anybody else this would be
+    /// empty and every user would look signed out, which the plan answers by removing their key and
+    /// credentials. That is one reason the step runs only as the system account (<see cref="RunByTheInstaller"/>).
     /// </summary>
     private static Dictionary<string, WindowsIdentity> SignedInUsers()
     {

@@ -41,10 +41,10 @@ internal static class UpgradeRelease
         var started = TimeProvider.System.GetTimestamp();
 
         // For the installer, which runs it as the system account. Ending another user's copy needs that
-        // account anyway; an ordinary user who found the flag gets a sentence and nothing done.
+        // account anyway; anybody else who found the flag gets a sentence and nothing done.
         if (!UninstallCleanup.RunByTheInstaller())
         {
-            output.WriteLine("This step is run by the ScreenTrail installer as an administrator. Nothing was done.");
+            output.WriteLine("This step is run by the ScreenTrail installer as the system account. Nothing was done.");
             return 2;
         }
 
