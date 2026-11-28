@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using ScreenTrail.Core.Audit;
 using ScreenTrail.Core.Net;
 using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
@@ -349,6 +350,17 @@ public sealed class PublishCommands(
         }
 
         await KeepingTheResultAsync("outcomes", () => SaveRecordAsync(publish.SessionId, written, ct)).ConfigureAwait(false);
+
+        // ST-045: what landed, one row per destination, its kind as the detail. Only the kinds this side
+        // names: a destination is a fixed label, never the ticket or its company (INV-10). Bookkeeping like
+        // the rest, so a store fault here cannot hide the results; it is kept and logged by its kind.
+        if (_store is IAuditLog audit)
+        {
+            foreach (var landed in answer.Value!.Where(r => r.Ok && KnownDestinations.Contains(r.Destination)).Select(r => r.Destination).Distinct(StringComparer.Ordinal))
+            {
+                await KeepingTheResultAsync("audit", () => audit.RecordAsync(AuditTypes.Published, publish.SessionId, null, AuditDetail.Require(landed), ct)).ConfigureAwait(false);
+            }
+        }
 
         // Spec v0.6.9 S4: the rail's row says the ticket and its company once the note may be on that
         // ticket, landed or unknown; a plain failure left nothing there, and a search alone keeps nothing.

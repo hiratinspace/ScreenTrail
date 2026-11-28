@@ -401,6 +401,40 @@ public static class AuditTypes
 
     /// <summary>Bytes left the machine. <c>detail</c> is the destination host, <c>count</c> the bytes.</summary>
     public const string BundleSent = "bundle_sent";
+
+    /// <summary>A session began recording. <c>detail</c> is who began it (<see cref="Audit.SessionCause"/>).</summary>
+    public const string SessionStarted = "session_started";
+
+    /// <summary>The technician paused the session. No detail.</summary>
+    public const string SessionPaused = "session_paused";
+
+    /// <summary>The technician took the session out of a pause. No detail.</summary>
+    public const string SessionResumed = "session_resumed";
+
+    /// <summary>Recording ended and the session went to be drafted. <c>detail</c> is why (<see cref="Audit.SessionCause"/>).</summary>
+    public const string SessionStopped = "session_stopped";
+
+    /// <summary>
+    /// A setting that decides what is captured, masked, kept or sent was saved with a new value. <c>detail</c>
+    /// is which, as a fixed label (<see cref="Audit.SettingChange"/>), never the value itself; <c>count</c> is
+    /// the new number where the setting is one (days kept, how many patterns or exclusions).
+    /// </summary>
+    public const string SettingsChanged = "settings_changed";
+
+    /// <summary>A tenant policy different from the one in force took effect. <c>detail</c> is its version.</summary>
+    public const string PolicyApplied = "policy_applied";
+
+    /// <summary>The technician blurred part of a screenshot in Review. <c>count</c> is 1.</summary>
+    public const string FrameBlurred = "frame_blurred";
+
+    /// <summary>A publish landed in the PSA. <c>detail</c> is the destination kind (<c>ticket_note</c>, <c>time_entry</c>, <c>kb_article</c>).</summary>
+    public const string Published = "published";
+
+    /// <summary>
+    /// The connection that reports the recording indicator changed. <c>detail</c> is a fixed label, never a
+    /// process name or path.
+    /// </summary>
+    public const string IndicatorSourceChanged = "indicator_source_changed";
 }
 
 /// <summary>The database could not be opened with the supplied key.</summary>

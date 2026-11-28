@@ -360,7 +360,12 @@ public sealed class SessionMachine : IAsyncDisposable
         }
     }
 
-    public async Task<bool> StartAsync(RemoteTool tool, bool localOnly = false, string? policyVersion = null, string? suggestedTicket = null, CancellationToken ct = default)
+    /// <summary>A start the technician asked for. The audit log says so (<see cref="SessionCause.Technician"/>).</summary>
+    public Task<bool> StartAsync(RemoteTool tool, bool localOnly = false, string? policyVersion = null, string? suggestedTicket = null, CancellationToken ct = default) =>
+        StartAsync(tool, SessionCause.Technician, localOnly, policyVersion, suggestedTicket, ct);
+
+    /// <param name="cause">Who began it, written as the detail of the session's <c>session_started</c> row.</param>
+    public async Task<bool> StartAsync(RemoteTool tool, SessionCause cause, bool localOnly = false, string? policyVersion = null, string? suggestedTicket = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(tool);
         await _transitions.WaitAsync(ct).ConfigureAwait(false);
@@ -377,7 +382,7 @@ public sealed class SessionMachine : IAsyncDisposable
             await _store.CreateSessionAsync(new NewSession(session.Id, _time.GetUtcNow(), tool, localOnly, policyVersion, suggestedTicket), ct).ConfigureAwait(false);
             _session = session;
             ClearHolds();
-            await TransitionAsync(SessionState.Recording, CaptureStateReason.User, ct).ConfigureAwait(false);
+            await TransitionAsync(SessionState.Recording, CaptureStateReason.User, (AuditTypes.SessionStarted, AuditDetail.Of(cause)), ct).ConfigureAwait(false);
             await _sources.StartAsync(this, ct).ConfigureAwait(false);
             return true;
         }
@@ -388,7 +393,7 @@ public sealed class SessionMachine : IAsyncDisposable
     }
 
     public Task<bool> PauseAsync(CancellationToken ct = default) =>
-        TransitionIfAsync(s => s is SessionState.Recording or SessionState.Suppressed, SessionState.Paused, CaptureStateReason.User, ct);
+        TransitionIfAsync(s => s is SessionState.Recording or SessionState.Suppressed, SessionState.Paused, CaptureStateReason.User, (AuditTypes.SessionPaused, null), ct);
 
     /// <summary>
     /// The technician un-pauses. Back to suppressed, not to recording, if a guard is still holding.
@@ -414,6 +419,7 @@ public sealed class SessionMachine : IAsyncDisposable
             await TransitionAsync(
                 held ? SessionState.Suppressed : SessionState.Recording,
                 held ? _holds.First() : CaptureStateReason.User,
+                (AuditTypes.SessionResumed, null),
                 ct).ConfigureAwait(false);
             return true;
         }
@@ -539,7 +545,10 @@ public sealed class SessionMachine : IAsyncDisposable
     /// → finalizes the session row → drafts → draft_ready or draft_failed. A session with nothing in it
     /// is discarded instead of drafted, and the machine goes idle (<see cref="EmptySession"/>).
     /// </summary>
-    public async Task<bool> StopAsync(CancellationToken ct = default)
+    public Task<bool> StopAsync(CancellationToken ct = default) => StopAsync(SessionCause.Technician, ct);
+
+    /// <param name="cause">Who ended it, written as the detail of the session's <c>session_stopped</c> row.</param>
+    public async Task<bool> StopAsync(SessionCause cause, CancellationToken ct = default)
     {
         await _transitions.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -553,7 +562,7 @@ public sealed class SessionMachine : IAsyncDisposable
             // failed left the session Suppressed with nothing holding it, and nothing to lift it.
             try
             {
-                await TransitionAsync(SessionState.Finalizing, CaptureStateReason.User, ct).ConfigureAwait(false);
+                await TransitionAsync(SessionState.Finalizing, CaptureStateReason.User, (AuditTypes.SessionStopped, AuditDetail.Of(cause)), ct).ConfigureAwait(false);
             }
             finally
             {
@@ -938,7 +947,7 @@ public sealed class SessionMachine : IAsyncDisposable
                 var lastMs = await _store.GetLastTimestampAsync(id, ct).ConfigureAwait(false);
                 // The recovered timeline continues from its last known moment, so the finalizing event stays in order.
                 _session = new ActiveSession(id, _time.GetTimestamp(), null, lastMs) { Partial = true };
-                await TransitionAsync(SessionState.Finalizing, CaptureStateReason.User, ct).ConfigureAwait(false);
+                await TransitionAsync(SessionState.Finalizing, CaptureStateReason.User, (AuditTypes.SessionStopped, AuditDetail.Of(SessionCause.Recovered)), ct).ConfigureAwait(false);
                 // No grace. Finalizing normally waits for the redaction worker to finish what it is
                 // holding, and at recovery there is no worker: CaptureHost recovers before it starts
                 // one, so the backlog cannot drain and the wait ends only by expiring -- twenty seconds
@@ -1240,7 +1249,7 @@ public sealed class SessionMachine : IAsyncDisposable
         }
     }
 
-    private async Task<bool> TransitionIfAsync(Func<SessionState, bool> allowed, SessionState next, CaptureStateReason reason, CancellationToken ct)
+    private async Task<bool> TransitionIfAsync(Func<SessionState, bool> allowed, SessionState next, CaptureStateReason reason, (string Type, string? Detail)? mark, CancellationToken ct)
     {
         await _transitions.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -1250,7 +1259,7 @@ public sealed class SessionMachine : IAsyncDisposable
                 return false;
             }
 
-            await TransitionAsync(next, reason, ct).ConfigureAwait(false);
+            await TransitionAsync(next, reason, mark, ct).ConfigureAwait(false);
             return true;
         }
         finally
@@ -1267,7 +1276,14 @@ public sealed class SessionMachine : IAsyncDisposable
     /// active time twice, or recorded the interval as ended at the failed attempt and never recorded its
     /// real end (2026-10-12 review, round 2).
     /// </summary>
-    private async Task TransitionAsync(SessionState next, CaptureStateReason reason, CancellationToken ct)
+    private Task TransitionAsync(SessionState next, CaptureStateReason reason, CancellationToken ct) =>
+        TransitionAsync(next, reason, null, ct);
+
+    /// <param name="mark">
+    /// The audit row the technician's or the service's own act writes (a start, a pause, a resume, a stop),
+    /// or null for a transition a guard caused, which <c>capture_suppressed</c> records instead.
+    /// </param>
+    private async Task TransitionAsync(SessionState next, CaptureStateReason reason, (string Type, string? Detail)? mark, CancellationToken ct)
     {
         var session = _session ?? throw new InvalidOperationException("No active session.");
         var from = State;
@@ -1299,6 +1315,14 @@ public sealed class SessionMachine : IAsyncDisposable
         else if (next is SessionState.Suppressed && from is not SessionState.Suppressed)
         {
             _suppressedSince = (reason, _time.GetUtcNow());
+        }
+
+        // The start, pause, resume or stop itself, after the interval it may have ended (ST-045). The
+        // timeline's capture_state events are deleted with the session at discard and by retention; the
+        // audit log keeps when the session ran, and who began and ended it.
+        if (mark is { } row && _store is IAuditLog marking)
+        {
+            await marking.RecordAsync(row.Type, session.Id, null, row.Detail, ct).ConfigureAwait(false);
         }
 
         session.Account(_time, from, next);

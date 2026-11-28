@@ -1,6 +1,8 @@
 using System.Text.Json;
+using ScreenTrail.Core.Audit;
 using ScreenTrail.Core.Net;
 using ScreenTrail.Core.Speech;
+using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Settings;
 
@@ -87,6 +89,10 @@ public static class CaptureSettingsDocument
 /// </summary>
 /// <param name="microphones">The capture devices connected now (<see cref="IMicrophone.Devices"/>), asked each time the card loads.</param>
 /// <param name="meter">The level meter, or null where there is none to offer; the meter's requests are then refused.</param>
+/// <param name="audit">
+/// Where a save that widens or narrows what is captured is recorded, as <c>settings_changed</c> with a
+/// fixed label (ST-045, INV-10). The store, in the service.
+/// </param>
 public sealed class CaptureSettingsCommands(
     CaptureSettingsStore store,
     Func<IReadOnlyList<ToolRow>> tools,
@@ -94,7 +100,8 @@ public sealed class CaptureSettingsCommands(
     Func<TenantPolicy> policy,
     Func<int> defaultGraceSeconds,
     Action<CaptureSettings> apply,
-    MicrophoneMeter? meter = null)
+    MicrophoneMeter? meter = null,
+    IAuditLog? audit = null)
 {
     private readonly CaptureSettingsStore _store = store ?? throw new ArgumentNullException(nameof(store));
 
@@ -153,12 +160,26 @@ public sealed class CaptureSettingsCommands(
                 return new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The level meter is not available in this build." };
 
             default:
-                return Save(command);
+                {
+                    var saved = Save(command, out var changed);
+
+                    // After the save took, so every row is a change that is in force (ST-045).
+                    if (audit is not null)
+                    {
+                        foreach (var (change, count) in changed)
+                        {
+                            await audit.RecordAsync(AuditTypes.SettingsChanged, null, count, AuditDetail.Of(change), ct).ConfigureAwait(false);
+                        }
+                    }
+
+                    return saved;
+                }
         }
     }
 
-    private CommandResult? Save(IpcCommand command)
+    private CommandResult? Save(IpcCommand command, out IReadOnlyList<(SettingChange Change, long? Count)> changed)
     {
+        changed = [];
         switch (command)
         {
             case SetCaptureSettingsCommand set:
@@ -179,12 +200,14 @@ public sealed class CaptureSettingsCommands(
 
                     lock (_saving)
                     {
+                        var before = _store.Load();
                         if (!_store.Save(settings))
                         {
                             return new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be written to disk." };
                         }
 
                         apply(settings);
+                        changed = SettingChanges.Between(before, settings);
                     }
 
                     return new CommandResult { RequestId = command.RequestId, Ok = true };

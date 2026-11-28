@@ -1,5 +1,6 @@
 using System.Runtime.Versioning;
 using System.Threading.Channels;
+using ScreenTrail.Core.Audit;
 using ScreenTrail.Core.Detection;
 using ScreenTrail.Core.History;
 using ScreenTrail.Core.Intel;
@@ -341,7 +342,7 @@ internal sealed partial class AutoSessionCoordinator
     private Task<bool> StartUnderPolicyAsync(RemoteTool tool, string? suggestedTicket, CancellationToken ct)
     {
         var (localOnly, policyVersion) = _sessionPolicy();
-        return _machine.StartAsync(tool, localOnly, policyVersion, suggestedTicket, ct);
+        return _machine.StartAsync(tool, SessionCause.Automatic, localOnly, policyVersion, suggestedTicket, ct);
     }
 
     /// <summary>
@@ -517,7 +518,7 @@ internal sealed partial class AutoSessionCoordinator
         LogAutoStop(_logger, stopped.Reason);
         try
         {
-            _ = await _machine.StopAsync(ct).ConfigureAwait(false);
+            _ = await _machine.StopAsync(SessionCause.Automatic, ct).ConfigureAwait(false);
         }
         finally
         {

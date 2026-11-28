@@ -207,7 +207,7 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // row it could not write by the fault's type alone (ST-045, INV-10).
         var sender = new DraftSender(draftHttp, store, () => device.CurrentToken, styleHints: style.Hints, logger: logger);
         var psa = SigningInPsaGateway.For(new PsaGateway(draftHttp, () => device.CurrentToken, audit: store, logger: logger), device);
-        var policySync = new PolicySync(draftHttp, () => device.CurrentToken, new FilePolicyCache(Path.Combine(paths.DataDirectory, "policy.json")), TimeProvider.System);
+        var policySync = new PolicySync(draftHttp, () => device.CurrentToken, new FilePolicyCache(Path.Combine(paths.DataDirectory, "policy.json")), TimeProvider.System, audit: store);
         _policySync = policySync;
 
         // ST-098: metrics ride the same queue, so an offline afternoon queues them rather than losing
@@ -397,7 +397,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
                 settingsStore,
                 () => policySync.Current,
                 settings => applySettings(settings),
-                new Core.Audit.AuditExporter(store.ReadAuditAsync, Path.Combine(paths.DataDirectory, Core.Audit.AuditExporter.DirectoryName)).ExportAsync),
+                new Core.Audit.AuditExporter(store.ReadAuditAsync, Path.Combine(paths.DataDirectory, Core.Audit.AuditExporter.DirectoryName)).ExportAsync,
+                audit: store),
             new CaptureSettingsCommands(
                 captureStore,
                 () => [.. registry.Tools.Select(t => new ToolRow(t.Id, t.DisplayName)), .. registry.BrowserPatterns.Select(b => new ToolRow(b.Id, b.DisplayName))],
@@ -410,7 +411,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
                     microphone.Recheck();
                     _ = applyCapture(capture);
                 },
-                meter),
+                meter,
+                audit: store),
             () => diagnostics() with { BackendNote = address.AdministratorNote },
             _ =>
             {

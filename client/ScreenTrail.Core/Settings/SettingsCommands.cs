@@ -16,16 +16,22 @@ namespace ScreenTrail.Core.Settings;
 /// answered: the log outgrows one pipe message within weeks (2026-10-12 review, E-2). A refusal is kept
 /// by request id between the two calls, as <c>PublishCommands</c> does, so the result says why.
 /// </summary>
+/// <param name="audit">
+/// Where a save that changed a setting is recorded, one <c>settings_changed</c> row per setting with its
+/// fixed label and never its value (ST-045, INV-10). The store, in the service.
+/// </param>
 public sealed class SettingsCommands(
     ClientSettingsStore store,
     Func<TenantPolicy> policy,
     Action<ClientSettings> apply,
-    Func<CancellationToken, Task<AuditExportResult>> exportAudit)
+    Func<CancellationToken, Task<AuditExportResult>> exportAudit,
+    IAuditLog? audit = null)
 {
     private readonly ClientSettingsStore _store = store ?? throw new ArgumentNullException(nameof(store));
     private readonly Func<TenantPolicy> _policy = policy ?? throw new ArgumentNullException(nameof(policy));
     private readonly Action<ClientSettings> _apply = apply ?? throw new ArgumentNullException(nameof(apply));
     private readonly Func<CancellationToken, Task<AuditExportResult>> _exportAudit = exportAudit ?? throw new ArgumentNullException(nameof(exportAudit));
+    private readonly IAuditLog? _audit = audit;
     private readonly ConcurrentDictionary<int, string> _refusals = new();
 
     // A save writes the file and then applies, and the service keeps what was applied in memory. Two
@@ -81,7 +87,7 @@ public sealed class SettingsCommands(
         }
     }
 
-    public Task<CommandResult?> HandleAsync(IpcCommand command, CancellationToken ct = default)
+    public async Task<CommandResult?> HandleAsync(IpcCommand command, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         switch (command)
@@ -91,35 +97,47 @@ public sealed class SettingsCommands(
                     var problems = set.Settings.Problems();
                     if (problems.Count > 0)
                     {
-                        return Task.FromResult<CommandResult?>(new CommandResult { RequestId = command.RequestId, Ok = false, Error = problems[0] });
+                        return new CommandResult { RequestId = command.RequestId, Ok = false, Error = problems[0] };
                     }
 
+                    IReadOnlyList<(SettingChange Change, long? Count)> changed;
                     lock (_saving)
                     {
+                        var before = _store.Load();
                         if (!_store.Save(set.Settings))
                         {
-                            return Task.FromResult<CommandResult?>(new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be written to disk." });
+                            return new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be written to disk." };
                         }
 
                         _apply(set.Settings);
+                        changed = SettingChanges.Between(before, set.Settings);
                     }
 
-                    return Task.FromResult<CommandResult?>(new CommandResult { RequestId = command.RequestId, Ok = true });
+                    // After the save took, so every row is a change that is in force (ST-045).
+                    if (_audit is not null)
+                    {
+                        foreach (var (change, count) in changed)
+                        {
+                            await _audit.RecordAsync(AuditTypes.SettingsChanged, null, count, AuditDetail.Of(change), ct).ConfigureAwait(false);
+                        }
+                    }
+
+                    return new CommandResult { RequestId = command.RequestId, Ok = true };
                 }
 
             case GetSettingsCommand:
-                return Task.FromResult<CommandResult?>(new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be read." });
+                return new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be read." };
 
             case ExportAuditCommand:
-                return Task.FromResult<CommandResult?>(new CommandResult
+                return new CommandResult
                 {
                     RequestId = command.RequestId,
                     Ok = false,
                     Error = _refusals.TryRemove(command.RequestId, out var reason) ? reason : "The audit log could not be exported.",
-                });
+                };
 
             default:
-                return Task.FromResult<CommandResult?>(null);
+                return null;
         }
     }
 }

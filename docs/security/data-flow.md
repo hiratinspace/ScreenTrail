@@ -488,10 +488,14 @@ holds no value of its own to show, so the panel cannot say one thing while the s
 
 ## What gets written down about what happened
 
-Every session keeps an audit log: frames captured, frames lost because they could not be redacted,
-suppressed intervals and why, redactions by kind, bytes sent and to which host, and every deletion. A
-frame turned away before it was captured, because redaction had fallen behind, is counted as lost and
-not as captured, so the lost count can be larger than the captured one.
+Every session keeps an audit log: when it started, paused, resumed and stopped, and who started and
+stopped it; frames captured, frames lost because they could not be redacted, suppressed intervals and
+why, redactions by kind, bytes sent and to which host, where a publish landed, and every deletion,
+including a screenshot blurred in Review. A change to a privacy or capture-scope setting saved in
+Settings, and each tenant policy that takes effect, is recorded too, by the setting's name and never its
+value. A frame turned away before it was captured, because redaction had fallen behind, is counted as
+lost and not as captured, so the lost count can be larger than the captured one. "Delete everything"
+removes the log along with the rest of the store.
 
 It is **hash-chained** (each row carries the hash of the one before it), so a row removed or altered
 breaks every row after it unless the chain is rewritten too. That matters most for the rows recording

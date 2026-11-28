@@ -357,20 +357,20 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
         try
         {
             await using var transaction = await _connection.BeginTransactionAsync(ct).ConfigureAwait(false);
-            var existing = await QueryInTransactionAsync(
-                "SELECT masked_regions_json FROM frames WHERE id = @id AND redaction_pending = 0",
-                async reader => await reader.ReadAsync(ct).ConfigureAwait(false) ? reader.GetString(0) : null,
+            var found = await QueryInTransactionAsync(
+                "SELECT masked_regions_json, session_id FROM frames WHERE id = @id AND redaction_pending = 0",
+                async reader => await reader.ReadAsync(ct).ConfigureAwait(false) ? (Regions: reader.GetString(0), SessionId: reader.GetString(1)) : ((string Regions, string SessionId)?)null,
                 ct,
                 ("@id", frameId)).ConfigureAwait(false);
 
-            if (existing is null)
+            if (found is not { } existing)
             {
                 // A frame still pending redaction has no readable image to blur, and one that is gone
                 // cannot be written to. Either way the caller is working from a stale strip.
                 throw new InvalidOperationException($"Frame {frameId} is not a redacted frame.");
             }
 
-            var regions = JsonSerializer.Deserialize<List<MaskedRegion>>(existing, SessionJson.Options) ?? [];
+            var regions = JsonSerializer.Deserialize<List<MaskedRegion>>(existing.Regions, SessionJson.Options) ?? [];
             regions.Add(region);
 
             // The blurred bytes replace the original in the same statement that records the region. There
@@ -385,6 +385,10 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
                 ("@id", frameId),
                 ("@image", image.ToArray()),
                 ("@regions", JsonSerializer.Serialize(regions, SessionJson.Options))).ConfigureAwait(false);
+
+            // In the same transaction as the overwrite, as a delete's row is: pixels and the frame's OCR
+            // text were destroyed, and the log says so or the blur did not happen.
+            await AuditAsync(existing.SessionId, AuditTypes.FrameBlurred, 1, ct).ConfigureAwait(false);
             await transaction.CommitAsync(ct).ConfigureAwait(false);
         }
         finally

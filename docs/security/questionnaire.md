@@ -256,10 +256,14 @@ builds fall back to requiring the peer executable to sit in the same directory.
 ## 5 · Auditing
 
 **5.1 Is there an audit log?**
-Yes, per session: frames captured, frames lost unredacted, suppressed intervals with reasons and
-durations, redactions by kind, bytes sent and to which host, and every deletion. A frame turned away
-before capture because redaction had fallen behind counts as lost and not as captured, so the lost count
-can exceed the captured one.
+Yes, per session: when it started, was paused, resumed and stopped, and whether the technician or
+ScreenTrail started and stopped it; frames captured, frames lost unredacted, suppressed intervals with
+reasons and durations, redactions by kind, bytes sent and to which host, each destination a publish
+landed in, and every deletion: a screenshot deleted or blurred in Review, a discarded session, a
+retention purge. For the device as a whole: each change to a privacy or capture-scope setting saved in
+Settings (which setting, and on or off, never its value), and each tenant policy version that took
+effect. A frame turned away before capture because redaction had fallen behind counts as lost and not as
+captured, so the lost count can exceed the captured one.
 
 **5.2 Can the audit log be tampered with?**
 Each row carries the hash of the previous row, so removing or editing one breaks every row after it.
@@ -276,7 +280,8 @@ no free-text field.
 
 **5.4 Does the audit log survive deletion of the session?**
 Yes, deliberately. Discarding a session or purging it on retention keeps the audit rows, so there is a
-record that data existed and was destroyed. *(INV-12)*
+record that data existed and was destroyed. *(INV-12)* "Delete everything" is the exception: it removes
+the store, and the audit log with it, so nothing on the device records that it happened.
 
 **5.5 Can the audit log be exported?**
 Yes, JSON or CSV, with the verification result included. The service writes the JSON export to a file in

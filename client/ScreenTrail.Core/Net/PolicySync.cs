@@ -3,6 +3,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ScreenTrail.Core.Audit;
+using ScreenTrail.Core.Store;
 using ScreenTrail.Shared.Settings;
 
 namespace ScreenTrail.Core.Net;
@@ -107,7 +109,11 @@ public static class PolicyApplication
 /// fetch goes under its own egress purpose, allowed in local-only mode, because the policy that turns
 /// local-only on has to be able to turn it off again. Nothing here is content (INV-10).
 /// </summary>
-public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCache cache, TimeProvider? time = null)
+/// <param name="audit">
+/// Where a policy that took effect is recorded, as <c>policy_applied</c> with its version (ST-045). The
+/// store, in the service.
+/// </param>
+public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCache cache, TimeProvider? time = null, IAuditLog? audit = null)
 {
     public static readonly TimeSpan Every = TimeSpan.FromHours(1);
 
@@ -195,9 +201,35 @@ public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCach
                 _unapplied = true;
                 Changed?.Invoke(policy);
                 _unapplied = false;
+                await RecordAppliedAsync(policy, ct).ConfigureAwait(false);
             }
 
             return true;
+        }
+    }
+
+    /// <summary>
+    /// The policy that just took effect, in the audit log (ST-045). Its version is the detail when it is a
+    /// label, as the backend's are; anything else is left out rather than written (INV-10).
+    ///
+    /// A store that cannot take the row does not stop the sync: the policy is already in force, and the
+    /// loop that would end here is the one that lifts and sets local-only.
+    /// </summary>
+    private async Task RecordAppliedAsync(TenantPolicy policy, CancellationToken ct)
+    {
+        if (audit is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await audit.RecordAsync(
+                AuditTypes.PolicyApplied, null, null, AuditDetail.IsValid(policy.Version) ? policy.Version : null, ct).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Kept from the loop on purpose; see above.
         }
     }
 
