@@ -19,10 +19,15 @@ namespace ScreenTrail.Core.Shell;
 /// <param name="state">The store the shell binds to: what capture is doing.</param>
 /// <param name="request">Asks the service a question whose answer is an event; null when there is nobody to ask.</param>
 /// <param name="send">Sends a command and brings back the service's result.</param>
+/// <param name="erased">
+/// Run once the service has accepted the erase: what the UI keeps outside the service's folder goes too.
+/// The shell clears ScreenTrail's toasts from Windows' notification centre here (F-09, DEC-02).
+/// </param>
 public sealed class DeleteEverything(
     ShellState state,
     Func<Func<int, IpcCommand>, CancellationToken, Task<ConfirmationIssued?>> request,
-    Func<Func<int, IpcCommand>, CancellationToken, Task<CommandResult>> send)
+    Func<Func<int, IpcCommand>, CancellationToken, Task<CommandResult>> send,
+    Action? erased = null)
 {
     /// <summary>The action the service issues the token for.</summary>
     public const string Action = "erase_everything";
@@ -34,11 +39,12 @@ public sealed class DeleteEverything(
     private readonly Func<Func<int, IpcCommand>, CancellationToken, Task<CommandResult>> _send = send ?? throw new ArgumentNullException(nameof(send));
 
     /// <summary>Over the shell's connection, as the running application has it.</summary>
-    public DeleteEverything(ShellState state, CaptureConnection connection)
+    public DeleteEverything(ShellState state, CaptureConnection connection, Action? erased = null)
         : this(
             state,
             (build, ct) => (connection ?? throw new ArgumentNullException(nameof(connection))).RequestAsync<ConfirmationIssued>(build, ct),
-            (build, ct) => connection.SendAsync(build, ct))
+            (build, ct) => connection.SendAsync(build, ct),
+            erased)
     {
     }
 
@@ -77,7 +83,17 @@ public sealed class DeleteEverything(
             token => id => new EraseAllLocalDataCommand { RequestId = id, Confirmation = token },
             _send,
             ct).ConfigureAwait(false);
-        return since is not null ? Blocked(since) : result;
+        if (since is not null)
+        {
+            return Blocked(since);
+        }
+
+        if (result.Done)
+        {
+            erased?.Invoke();
+        }
+
+        return result;
     }
 
     private static ConfirmedResult Blocked(string reason) =>

@@ -103,6 +103,9 @@ public sealed class LiveShell : IAsyncDisposable
     /// </summary>
     private readonly Notifier _notifier = new();
 
+    /// <summary>The state and session the "Draft ready" toasts were last checked against (F-09).</summary>
+    private (string? State, string? Session) _toastsLookedAt;
+
     /// <summary>Quit's wait for the Review panes of every shell window closed so far (T-169).</summary>
     private readonly ShellQuit _quit = new();
     private HudWindowHolder? _hud;
@@ -131,7 +134,7 @@ public sealed class LiveShell : IAsyncDisposable
         _connection = new CaptureConnection(_state, ct => open(version, ct));
         _discards = new SessionDiscard(_state, _connection);
         _marks = new MarkAsPublished(_state, _connection);
-        _erase = new DeleteEverything(_state, _connection);
+        _erase = new DeleteEverything(_state, _connection, WindowsToasts.ClearHistory);
 
         // Before the shell's own listener below, so a new snapshot is the clock's base by the time anything
         // draws it.
@@ -321,6 +324,15 @@ public sealed class LiveShell : IAsyncDisposable
     /// </summary>
     private void Announce(ShellSnapshot snapshot)
     {
+        // F-09, DEC-02: a "Draft ready" toast goes once its session is no longer the draft waiting. Looked
+        // at when what the service says changes state or session, not on every count.
+        var look = (snapshot.KnownCapture?.State, snapshot.KnownCapture?.SessionId);
+        if (snapshot.KnownCapture is not null && look != _toastsLookedAt)
+        {
+            _toastsLookedAt = look;
+            WindowsToasts.RemoveStale(snapshot.KnownCapture);
+        }
+
         if (_notifier.Observe(snapshot.Capture) is { } notice)
         {
             _tray.Notify(notice);

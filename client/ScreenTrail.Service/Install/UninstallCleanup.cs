@@ -6,6 +6,7 @@ using System.Security.Principal;
 using Microsoft.Win32;
 using Microsoft.Win32.SafeHandles;
 using ScreenTrail.Core.Install;
+using ScreenTrail.Core.Notifications;
 using ScreenTrail.Platform.Ipc;
 
 namespace ScreenTrail.Service.Install;
@@ -71,6 +72,11 @@ internal static class UninstallCleanup
 
         public int Unreadable { get; set; }
 
+        /// <summary>Signed-in users whose ScreenTrail toasts Windows cleared, and those it did not (F-09, DEC-02).</summary>
+        public int ToastsCleared { get; set; }
+
+        public int ToastsNotCleared { get; set; }
+
         /// <summary>Why files were left in doubt, by reason token, counted. No path or name (INV-10).</summary>
         public Dictionary<string, int> DoubtReasons { get; } = new(StringComparer.Ordinal);
     }
@@ -131,6 +137,7 @@ internal static class UninstallCleanup
         }
 
         output.WriteLine($"ScreenTrail uninstall: {valuesRemoved} Run values removed, {valuesLeft} could not be removed.");
+        output.WriteLine($"ScreenTrail uninstall: notifications cleared for {tally.ToastsCleared} signed-in users, {tally.ToastsNotCleared} could not be.");
         output.WriteLine(
             $"ScreenTrail uninstall: waited {(long)release.Waited.TotalMilliseconds} ms for other programs to close the installed files; "
             + $"{release.StillHeld} still open.");
@@ -271,12 +278,43 @@ internal static class UninstallCleanup
             {
                 RemoveData(tally, owners, name, countUnreadable: name == InstalledFootprint.DataFolderNames[0]);
             }
+
+            if (OperatingSystem.IsWindowsVersionAtLeast(10, 0, 10240))
+            {
+                ClearToasts(tally, owners);
+            }
         }
         finally
         {
             foreach (var owner in owners.Values)
             {
                 owner.Dispose();
+            }
+        }
+    }
+
+    /// <summary>
+    /// ScreenTrail's toasts, cleared from each signed-in user's notification centre under that user's own
+    /// token (F-09, DEC-02): a "Draft ready" toast names the note and the customer, and Windows keeps it in a
+    /// store of its own. Each is given <see cref="DraftToasts.LongestClear"/>. A user who is not signed in
+    /// cannot be reached; Windows removes their toasts when they expire, a day after they were shown.
+    /// </summary>
+    [SupportedOSPlatform("windows10.0.10240.0")]
+    private static void ClearToasts(Tally tally, Dictionary<string, WindowsIdentity> owners)
+    {
+        foreach (var owner in owners.Values)
+        {
+            var token = owner.AccessToken;
+            var cleared = DraftToasts.TryWithin(
+                () => WindowsIdentity.RunImpersonated(token, () => Windows.UI.Notifications.ToastNotificationManager.History.Clear(ToastContent.AppId)),
+                DraftToasts.LongestClear);
+            if (cleared)
+            {
+                tally.ToastsCleared++;
+            }
+            else
+            {
+                tally.ToastsNotCleared++;
             }
         }
     }

@@ -72,6 +72,50 @@ internal static class WindowsToasts
     }
 
     /// <summary>
+    /// Takes away every "Draft ready" toast but the one for the draft ready now (F-09, DEC-02): its text
+    /// names the note and the customer, and Windows keeps it in a store of its own. <see cref="DraftToasts"/>
+    /// decides which; this only asks Windows. Nothing is said when Windows will not: a toast left is a toast
+    /// that expires a day after it was shown.
+    /// </summary>
+    public static void RemoveStale(ScreenTrail.Shared.Ipc.CaptureStateSnapshot? known)
+    {
+        if (!Installed.Value)
+        {
+            return;
+        }
+
+        try
+        {
+            var history = ToastNotificationManager.History;
+            var shown = history.GetHistory(ToastContent.AppId)
+                .Where(toast => toast.Group == ToastContent.Group)
+                .Select(toast => toast.Tag)
+                .ToList();
+            foreach (var tag in DraftToasts.ToRemove(shown, known))
+            {
+                history.Remove(tag, ToastContent.Group, ToastContent.AppId);
+            }
+        }
+        catch (Exception ex) when (ex is COMException or ArgumentException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // Windows' notification platform is not answering; the next change of state asks again.
+        }
+    }
+
+    /// <summary>Clears ScreenTrail's toasts from the notification centre: "Delete everything" (F-09, DEC-02).</summary>
+    public static void ClearHistory()
+    {
+        try
+        {
+            ToastNotificationManager.History.Clear(ToastContent.AppId);
+        }
+        catch (Exception ex) when (ex is COMException or ArgumentException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            // No identity Windows knows (a development build, which never showed a toast), or no platform.
+        }
+    }
+
+    /// <summary>
     /// Whether the installer's Start menu shortcut, which carries the identity, is on this machine (the
     /// value Package.wxs writes beside it). Without it Windows does not know the identity, and a development
     /// build or a test run never tries a toast.
