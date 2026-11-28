@@ -41,6 +41,8 @@
     <Compile Include="..\ScreenTrail.Tests\Store\LegacyPendingFrame.cs" Link="Store\LegacyPendingFrame.cs" />
     <!-- A-02: the drawn frames and the QR code's fixed bit matrix the Mac suite masks, so both draw the same code. -->
     <Compile Include="..\ScreenTrail.Tests\Privacy\PictureCanvas.cs" Link="Privacy\PictureCanvas.cs" />
+    <!-- B-01: the time limit every wait of the pipe tests goes through; its behaviour and their use of it are held by the Mac suite. -->
+    <Compile Include="..\ScreenTrail.Tests\PipeSteps.cs" Link="Ipc\PipeSteps.cs" />
   </ItemGroup>
 
   <ItemGroup>

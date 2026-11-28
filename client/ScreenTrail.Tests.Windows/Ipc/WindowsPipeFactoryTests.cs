@@ -23,6 +23,12 @@ public sealed class WindowsPipeFactoryTests
 {
     private static readonly TimeSpan Soon = TimeSpan.FromSeconds(10);
 
+    /// <summary>For one step on a pipe that is already connected.</summary>
+    private static readonly TimeSpan Step = TimeSpan.FromSeconds(5);
+
+    /// <summary>For the probe's connect through the SMB server to give up by itself.</summary>
+    private static readonly TimeSpan Probe = TimeSpan.FromSeconds(5);
+
     public static bool OnWindows => OperatingSystem.IsWindows();
 
     [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
@@ -101,21 +107,29 @@ public sealed class WindowsPipeFactoryTests
         Exception? refused = null;
         try
         {
-            await client.ConnectAsync(Soon, TestContext.Current.CancellationToken);
+            await PipeSteps.Within(Soon + Step, "the loopback client's connect", t => client.ConnectAsync(Soon, t));
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or TimeoutException)
         {
             refused = ex;
         }
 
-        Assert.SkipWhen(refused is IOException or TimeoutException && !accepting.IsCompleted && !LoopbackSmbServes(), "the SMB server does not answer on 127.0.0.1 here");
+        // A client that got in: the server's end is given a moment to see the connection too, so that the
+        // assertion below fails with its own message.
+        if (refused is null)
+        {
+            _ = await PipeSteps.TryWithin(Step, _ => accepting);
+        }
+
+        var unanswered = refused is IOException or TimeoutException && !accepting.IsCompleted && !await LoopbackSmbServesAsync();
+        Assert.SkipWhen(unanswered, "the SMB server does not answer on 127.0.0.1 here");
         Assert.False(accepting.IsCompleted, "a client through loopback SMB was connected to the capture pipe");
 
         // The connect itself failed. Its shape depends on what refused it: the DACL's deny for NETWORK is
         // access denied, and a pipe that rejects remote clients may also be reported to the SMB client as
         // an I/O error or a pipe it cannot reach until the timeout. Any of the three, with no connection on
         // the server's side, is a refusal; a client that connected would have no exception at all.
-        Assert.NotNull(refused);
+        Assert.True(refused is not null, "a client through loopback SMB was connected to the capture pipe");
         Measurements.Record($"{nameof(TheCapturePipeRefusesAClientThroughLoopbackSmb)}: the loopback client was refused with {refused.GetType().Name} (0x{refused.HResult:X8})");
     }
 
@@ -140,15 +154,11 @@ public sealed class WindowsPipeFactoryTests
             "0.0.1-test");
         server.Start();
 
-        await using var client = await IpcClient.ConnectAsync(
-            name,
-            token,
-            "test-ui",
-            new WindowsServerVerifier(self),
-            "0.0.1",
-            Soon,
-            TestContext.Current.CancellationToken);
-        var answered = await client.SendAsync(id => new GetStateCommand { RequestId = id }, TestContext.Current.CancellationToken);
+        await using var client = await PipeSteps.Within(
+            Soon + Step,
+            "the UI's connect and handshake",
+            t => IpcClient.ConnectAsync(name, token, "test-ui", new WindowsServerVerifier(self), "0.0.1", Soon, t));
+        var answered = await PipeSteps.Within(Step, "the get_state command", t => client.SendAsync(id => new GetStateCommand { RequestId = id }, t));
 
         Assert.Equal(CaptureStates.Idle, client.State.State);
         Assert.True(answered.Ok);
@@ -233,14 +243,10 @@ public sealed class WindowsPipeFactoryTests
         await held.Task.WaitAsync(Soon, TestContext.Current.CancellationToken);
         await squatter.DisposeAsync();
 
-        await using var client = await IpcClient.ConnectAsync(
-            name,
-            token,
-            "test-ui",
-            new WindowsServerVerifier(self),
-            "0.0.1",
-            Soon,
-            TestContext.Current.CancellationToken);
+        await using var client = await PipeSteps.Within(
+            Soon + Step,
+            "the UI's connect and handshake",
+            t => IpcClient.ConnectAsync(name, token, "test-ui", new WindowsServerVerifier(self), "0.0.1", Soon, t));
         Assert.Equal(CaptureStates.Idle, client.State.State);
     }
 
@@ -284,7 +290,7 @@ public sealed class WindowsPipeFactoryTests
             }
 
             await using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
-            await client.ConnectAsync((int)Soon.TotalMilliseconds, TestContext.Current.CancellationToken);
+            await PipeSteps.Within(Soon, "the client's connect", t => client.ConnectAsync(t));
         }
         finally
         {
@@ -311,14 +317,14 @@ public sealed class WindowsPipeFactoryTests
     ];
 
     /// <summary>Whether the SMB server answers on loopback at all: an ordinary pipe of this user's, opened through it.</summary>
-    private static bool LoopbackSmbServes()
+    private static async Task<bool> LoopbackSmbServesAsync()
     {
         var name = PipeName("smb-probe");
-        using var open = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-        using var probe = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut);
+        await using var open = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        await using var probe = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         try
         {
-            probe.Connect(5_000);
+            await PipeSteps.Within(Probe + Step, "the loopback SMB probe's connect", t => probe.ConnectAsync(Probe, t));
             return true;
         }
         catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException)

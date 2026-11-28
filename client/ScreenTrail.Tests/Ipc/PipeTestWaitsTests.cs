@@ -10,7 +10,9 @@ namespace ScreenTrail.Tests.Ipc;
 /// and the tests behind it, among them the one that checks the capture pipe, never ran. So each wait in
 /// these files is held here, on any OS, to one of the forms that end: a step through <c>PipeSteps</c>, a
 /// <c>WaitAsync</c> with a time, a private helper of the same file (whose own waits are held the same way),
-/// or a task a <c>PipeSteps</c> call returned.
+/// or a task a <c>PipeSteps</c> call returned. An await inside an interpolated string is not looked into,
+/// so it is refused. <c>await using</c> is let through: disposing a pipe stream closes its handle and does
+/// not wait for the far end to read or write.
 /// </summary>
 public sealed partial class PipeTestWaitsTests
 {
@@ -40,6 +42,7 @@ public sealed partial class PipeTestWaitsTests
     [InlineData("probe.Connect();")]
     [InlineData("task.Wait();")]
     [InlineData("await PipeSteps.Within(Timeout.InfiniteTimeSpan, \"the read\", t => pipe.ReadAsync(buffer, t).AsTask());")]
+    [InlineData("Measurements.Record($\"seen: {await SeenAsync(pipe)}\");")]
     public void AWaitWithNoLimitIsFound(string statement)
     {
         Assert.Single(Unbounded(Wrapped(statement)));
@@ -79,6 +82,12 @@ public sealed partial class PipeTestWaitsTests
     /// <summary>Each await (and blocking wait) in <paramref name="source"/> that has no time limit, as it is written.</summary>
     internal static IEnumerable<string> Unbounded(string source)
     {
+        // String literals are emptied below, so an await inside an interpolation would not be seen there.
+        foreach (Match hidden in AwaitInInterpolation().Matches(source))
+        {
+            yield return $"an await inside an interpolated string: {hidden.Value}";
+        }
+
         var code = Code(source);
         var helpers = HelperMethod().Matches(code).Select(m => m.Groups["name"].Value).ToHashSet(StringComparer.Ordinal);
         var stepTasks = StepTask().Matches(code).Select(m => m.Groups["name"].Value).ToHashSet(StringComparer.Ordinal);
@@ -215,4 +224,7 @@ public sealed partial class PipeTestWaitsTests
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
+
+    [GeneratedRegex(@"\$@?""[^""\n]*\{[^}\n]*\bawait\b[^}\n]*\}")]
+    private static partial Regex AwaitInInterpolation();
 }

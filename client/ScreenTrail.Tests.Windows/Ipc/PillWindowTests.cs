@@ -18,7 +18,11 @@ namespace ScreenTrail.Tests.Windows.Ipc;
 [SupportedOSPlatform("windows")]
 public sealed class PillWindowTests
 {
+    /// <summary>For a PowerShell peer to start and reach the pipe.</summary>
     private static readonly TimeSpan Soon = TimeSpan.FromSeconds(30);
+
+    /// <summary>For one step on a pipe that is already connected, and for a check or a report.</summary>
+    private static readonly TimeSpan Step = TimeSpan.FromSeconds(5);
 
     public static bool OnWindows => OperatingSystem.IsWindows();
 
@@ -26,21 +30,16 @@ public sealed class PillWindowTests
     public async Task AVerifiedClientReportingWhereItHasNoWindowIsNotThePill()
     {
         Assert.SkipUnless(PipePeer.Available, "Windows PowerShell not found");
-        var ct = TestContext.Current.CancellationToken;
         var name = IpcPipeNames.ForUser($"test-pill-{Guid.NewGuid():N}");
         using var peer = PipePeer.Connecting(name);
         await using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-        using (var waiting = CancellationTokenSource.CreateLinkedTokenSource(ct))
-        {
-            waiting.CancelAfter(Soon);
-            await pipe.WaitForConnectionAsync(waiting.Token);
-        }
+        await PipeSteps.Within(Soon, "the PowerShell peer's connect", t => pipe.WaitForConnectionAsync(t));
 
         var connectedAt = DateTime.UtcNow;
 
         // Anchored at the peer's own executable, so the handshake's check passes it, as B-01 or B-02 would
         // have let a stranger pass.
-        var check = await ((IClientVerifier)new WindowsClientVerifier(PipePeer.Executable)).CheckAsync(pipe, connectedAt, ct);
+        var check = await PipeSteps.Within(Step, "the handshake's check", t => ((IClientVerifier)new WindowsClientVerifier(PipePeer.Executable)).CheckAsync(pipe, connectedAt, t).AsTask());
         Assert.Null(check.Refusal);
         using var verified = Assert.IsAssignableFrom<IVerifiedPeer>(check.Peer);
 
@@ -49,7 +48,7 @@ public sealed class PillWindowTests
         var connection = Guid.NewGuid();
         indicators.Opened(connection, verified);
 
-        var answer = await indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 1, X = 0, Y = 0, Width = 1, Height = 1 }, ct);
+        var answer = await PipeSteps.Within(Step, "the report", t => indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 1, X = 0, Y = 0, Width = 1, Height = 1 }, t));
 
         peer.AssertStillRunning();
         Assert.False(answer.Ok);
@@ -65,8 +64,8 @@ public sealed class PillWindowTests
         await using var server = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         await using var client = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
         var accepting = server.WaitForConnectionAsync(ct);
-        await client.ConnectAsync(Soon, ct);
-        await accepting;
+        await PipeSteps.Within(Step, "the client's connect", t => client.ConnectAsync(t));
+        await PipeSteps.Within(Step, "the server's accept", _ => accepting);
         var connectedAt = DateTime.UtcNow;
 
         using var window = DesktopWindow.CreateOrdinary("pill-window-test");
@@ -74,7 +73,7 @@ public sealed class PillWindowTests
         var (left, top, right, bottom) = window.Bounds;
 
         // This process is the client, anchored at itself, so the check passes it and holds it.
-        var check = await ((IClientVerifier)new WindowsClientVerifier(Environment.ProcessPath!)).CheckAsync(server, connectedAt, ct);
+        var check = await PipeSteps.Within(Step, "the handshake's check", t => ((IClientVerifier)new WindowsClientVerifier(Environment.ProcessPath!)).CheckAsync(server, connectedAt, t).AsTask());
         Assert.Null(check.Refusal);
         using var verified = Assert.IsAssignableFrom<IVerifiedPeer>(check.Peer);
         Assert.Contains(verified.Windows(), w => w.Bounds == new ScreenRect(left, top, right, bottom) && w.Visible && !w.Cloaked && w.OnAMonitor);
@@ -84,13 +83,13 @@ public sealed class PillWindowTests
         var connection = Guid.NewGuid();
         indicators.Opened(connection, verified);
 
-        var there = await indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 1, X = left, Y = top, Width = right - left, Height = bottom - top }, ct);
+        var there = await PipeSteps.Within(Step, "the report where its window is", t => indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 1, X = left, Y = top, Width = right - left, Height = bottom - top }, t));
         Assert.True(there.Ok);
         Assert.True(reports.PillShowing);
 
         // The same connection claiming a place it has no window is not believed, and does not replace the
         // report that was.
-        var elsewhere = await indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 2, X = left + 600, Y = top + 400, Width = right - left, Height = bottom - top }, ct);
+        var elsewhere = await PipeSteps.Within(Step, "the report where it has no window", t => indicators.ReportAsync(connection, new IndicatorShowingCommand { RequestId = 2, X = left + 600, Y = top + 400, Width = right - left, Height = bottom - top }, t));
         Assert.False(elsewhere.Ok);
     }
 }
