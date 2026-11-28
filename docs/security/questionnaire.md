@@ -123,10 +123,16 @@ device has to be activated again afterwards; its seat stays counted on the backe
 it. The same screen exports the audit log with its chain verification.
 
 **2.9 Is deleted data recoverable?**
-No. Deletion is a hard delete followed by a vacuum. A blurred region is flattened to solid colour and the
-original bytes are overwritten in the same transaction: nothing retains a pre-blur copy. The text read
-from that screenshot is deleted in the same statement, so it is not shown in Review or sent with a later
-draft either.
+Not through ScreenTrail, and not from the database file once SQLite has written the change into it.
+Deletion is a hard delete with SQLite's secure delete on, so freed pages are overwritten; the file is
+vacuumed after a retention pass that freed enough of it, not after each delete. A blurred region is
+flattened to solid colour and the original bytes are overwritten in the same transaction, and no copy is
+kept for undo. The text read from that screenshot is deleted in the same statement, so it is not shown in
+Review or sent with a later draft either. ⚠ One gap: the store writes through a write-ahead log
+(`store.db-wal`), and until that log is next folded into the database, which can be days on a quiet
+machine, the database file can still hold the deleted or pre-blur screenshot, and the log can keep the
+earlier pages after that. Both files are encrypted like the rest of the store, so reading them needs the
+technician's Windows account.
 
 **2.10 Can a technician delete an individual screenshot?**
 Yes, with a five-second undo. After that it is permanent and an audit row records it.
