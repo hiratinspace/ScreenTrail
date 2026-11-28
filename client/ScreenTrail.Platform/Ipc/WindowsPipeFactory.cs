@@ -1,14 +1,18 @@
+using System.ComponentModel;
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using Microsoft.Win32.SafeHandles;
 using ScreenTrail.Core.Ipc;
 
 namespace ScreenTrail.Platform.Ipc;
 
 /// <summary>
 /// ADR-0003 rule 1: the pipe's DACL admits only the user the service runs as, and not over the network
-/// (an explicit deny for NETWORK, security review B-01), and the pipe's name is the service's own.
+/// (security review B-01: the pipe refuses every client that comes through the SMB server, loopback
+/// included, and its DACL denies NETWORK), and the pipe's name is the service's own.
 ///
 /// The service runs as the signed-in technician (started from the Run key in their session, never as
 /// SYSTEM), and so does the UI, so both ends are always the same account.
@@ -48,8 +52,10 @@ public static class WindowsPipeFactory
         security.SetAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
 
         // And nobody over the network, this user included (security review B-01 (a)). Through the SMB
-        // server the client's process id is a number the client supplies, so a connection from there could
-        // name any process it liked to the verifier. The UI is always on this machine.
+        // server the client's process id is not one this machine recorded, and the UI is always on this
+        // machine. The deny refuses a network logon. A client through the SMB server on this machine is
+        // authenticated with a copy of its own logon, which is not a network logon, so the deny does not
+        // reach it: the pipe's mode refuses it (CapturePipeMode, PIPE_REJECT_REMOTE_CLIENTS), whoever it is.
         security.AddAccessRule(new PipeAccessRule(Network, PipeAccessRights.FullControl, AccessControlType.Deny));
 
         var gate = new object();
@@ -65,7 +71,7 @@ public static class WindowsPipeFactory
                     NamedPipeServerStream first;
                     try
                     {
-                        first = Create(pipeName, PipeOptions.Asynchronous | PipeOptions.FirstPipeInstance, security);
+                        first = Create(pipeName, firstInstance: true, security);
                     }
                     catch (UnauthorizedAccessException refused)
                     {
@@ -74,6 +80,10 @@ public static class WindowsPipeFactory
                         throw Held(refused);
                     }
 
+                    // The descriptor is read back and checked. The mode cannot be: GetNamedPipeInfo reports
+                    // which end and the pipe's type, GetNamedPipeHandleState the read and wait modes, and
+                    // neither says whether remote clients are refused. This instance was made with it by
+                    // the call above, and the Windows tests connect through loopback to see it hold.
                     descriptor = DescriptorOf(first);
                     if (descriptor is null || !DeniesNetwork(descriptor))
                     {
@@ -91,7 +101,7 @@ public static class WindowsPipeFactory
                 NamedPipeServerStream next;
                 try
                 {
-                    next = Create(pipeName, PipeOptions.Asynchronous, security);
+                    next = Create(pipeName, firstInstance: false, security);
                 }
                 catch (UnauthorizedAccessException refused)
                 {
@@ -140,16 +150,59 @@ public static class WindowsPipeFactory
         return Core.Ipc.IpcPipeNames.ForUser(sid);
     }
 
-    private static NamedPipeServerStream Create(string pipeName, PipeOptions options, PipeSecurity security) =>
-        NamedPipeServerStreamAcl.Create(
-            pipeName,
-            PipeDirection.InOut,
-            NamedPipeServerStream.MaxAllowedServerInstances,
-            PipeTransmissionMode.Byte,
-            options,
-            inBufferSize: 0,
-            outBufferSize: 0,
-            security);
+    /// <summary>
+    /// One instance, made as <c>NamedPipeServerStreamAcl.Create</c> made it (the same name, open mode,
+    /// unlimited instances, default buffers and timeout, and descriptor), with the one thing it cannot ask
+    /// for: the pipe refuses remote clients (<see cref="CapturePipeMode"/>, B-01). Fails as it failed:
+    /// <see cref="UnauthorizedAccessException"/> for ERROR_ACCESS_DENIED, an <see cref="IOException"/>
+    /// otherwise.
+    /// </summary>
+    private static NamedPipeServerStream Create(string pipeName, bool firstInstance, PipeSecurity security)
+    {
+        var descriptor = security.GetSecurityDescriptorBinaryForm();
+        var pinned = GCHandle.Alloc(descriptor, GCHandleType.Pinned);
+        try
+        {
+            var attributes = new SecurityAttributes
+            {
+                Length = Marshal.SizeOf<SecurityAttributes>(),
+                SecurityDescriptor = pinned.AddrOfPinnedObject(),
+                InheritHandle = 0,
+            };
+            var handle = CreateNamedPipe(
+                Path.GetFullPath(@"\\.\pipe\" + pipeName),
+                CapturePipeMode.OpenMode(firstInstance),
+                CapturePipeMode.PipeMode,
+                UnlimitedInstances,
+                outBufferSize: 0,
+                inBufferSize: 0,
+                defaultTimeout: 0,
+                ref attributes);
+            if (handle.IsInvalid)
+            {
+                var error = Marshal.GetLastPInvokeError();
+                handle.Dispose();
+                var message = new Win32Exception(error).Message;
+                throw error == ErrorAccessDenied
+                    ? new UnauthorizedAccessException(message)
+                    : new IOException(message, unchecked((int)0x80070000) | error);
+            }
+
+            try
+            {
+                return new NamedPipeServerStream(PipeDirection.InOut, isAsync: true, isConnected: false, handle);
+            }
+            catch
+            {
+                handle.Dispose();
+                throw;
+            }
+        }
+        finally
+        {
+            pinned.Free();
+        }
+    }
 
     /// <summary>
     /// The pipe's owner and DACL, as text, or null when Windows will not say, which is treated as not ours.
@@ -165,4 +218,28 @@ public static class WindowsPipeFactory
             return null;
         }
     }
+
+    /// <summary>PIPE_UNLIMITED_INSTANCES, what <see cref="NamedPipeServerStream.MaxAllowedServerInstances"/> becomes.</summary>
+    private const uint UnlimitedInstances = 255;
+
+    private const int ErrorAccessDenied = 5;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct SecurityAttributes
+    {
+        public int Length;
+        public IntPtr SecurityDescriptor;
+        public int InheritHandle;
+    }
+
+    [DllImport("kernel32.dll", EntryPoint = "CreateNamedPipeW", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern SafePipeHandle CreateNamedPipe(
+        string name,
+        uint openMode,
+        uint pipeMode,
+        uint maxInstances,
+        uint outBufferSize,
+        uint inBufferSize,
+        uint defaultTimeout,
+        ref SecurityAttributes securityAttributes);
 }

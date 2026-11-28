@@ -52,6 +52,17 @@ public sealed class WindowsClientVerifier : IClientVerifier
             return ValueTask.FromResult(new ClientCheck("not_a_server_pipe", null));
         }
 
+        // Before the process: a client that came through the SMB server, loopback included, has a process
+        // id this machine did not record. The service's pipe refuses such clients (CapturePipeMode); this
+        // asks again of the connection itself, and only Windows saying the client is local lets it on (B-01).
+        var computer = new char[256];
+        var named = GetNamedPipeClientComputerName(server.SafePipeHandle, computer, (uint)(computer.Length * sizeof(char)));
+        var notLocal = PipeClientOrigin.Refusal(named, named ? 0 : Marshal.GetLastPInvokeError());
+        if (notLocal is not null)
+        {
+            return ValueTask.FromResult(new ClientCheck(notLocal, null));
+        }
+
         if (!GetNamedPipeClientProcessId(server.SafePipeHandle, out var pid))
         {
             return ValueTask.FromResult(new ClientCheck("client_pid_unknown", null));
@@ -120,4 +131,8 @@ public sealed class WindowsClientVerifier : IClientVerifier
     [DllImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetNamedPipeClientProcessId(Microsoft.Win32.SafeHandles.SafePipeHandle pipe, out uint clientProcessId);
+
+    [DllImport("kernel32.dll", EntryPoint = "GetNamedPipeClientComputerNameW", SetLastError = true, CharSet = CharSet.Unicode)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetNamedPipeClientComputerName(Microsoft.Win32.SafeHandles.SafePipeHandle pipe, [Out] char[] clientComputerName, uint clientComputerNameLength);
 }
