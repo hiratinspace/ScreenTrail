@@ -31,6 +31,35 @@ public sealed class SummarizationServiceTests
     }
 
     [Fact]
+    public async Task TheDraftHandedBackHasNoCharacterThatDoesNotShow()
+    {
+        // The validator reads a draft with every format character removed, so text that steers the
+        // reader by reordering or hiding letters is checked as it looks. The draft handed back is what
+        // Review shows and the PSA stores, so it is that same text, not the model's with them still in.
+        var hidden = "\u200B\u202E\u2066\u2069\u00AD\uFEFF\u200F\u061C";
+        var node = System.Text.Json.Nodes.JsonNode.Parse(Good())!.AsObject();
+        node["problem"] = $"Nothing would{hidden[0..2]} print from the reception workstation.";
+        node["steps"]![0]!["text"] = $"Found the Print{hidden[2..4]} Spooler service stopped.";
+        node["result"] = $"Printing works{hidden[4..6]} again.";
+        node["follow_ups"] = new System.Text.Json.Nodes.JsonArray($"Watch the{hidden[6..8]} queue.");
+        node["suggested_title"] = $"Printer{hidden} offline";
+        node["kb_reason"] = $"A common fix{hidden} worth writing down.";
+        var service = Service(new FakeLlm { Reply = node.ToJsonString() });
+
+        var result = await service.DraftAsync(Tenant, Bundle(), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Ok, result.Reason);
+        var draft = result.Draft!;
+        Assert.Equal("Nothing would print from the reception workstation.", draft.Problem);
+        Assert.Equal("Found the Print Spooler service stopped.", Assert.Single(draft.Steps).Text);
+        Assert.Equal("Printing works again.", draft.Result);
+        Assert.Equal("Watch the queue.", Assert.Single(draft.FollowUps));
+        Assert.Equal("Printer offline", draft.SuggestedTitle);
+        Assert.Equal("A common fix worth writing down.", draft.KbReason);
+        Assert.Equal(["f1"], draft.Steps[0].FrameRefs);
+    }
+
+    [Fact]
     public async Task AProviderThatIsDownFallsOverToTheOtherOne()
     {
         // ST-063 AC2. A 5xx is not a reason to lose a technician's session; it is a reason to ask
