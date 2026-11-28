@@ -91,8 +91,10 @@ silent-capture mode.
 > show live state. The UI tells the service every two seconds that the pill is on screen and where, and
 > the service treats a pill it has not heard from in six seconds as absent, so a UI that has stopped
 > painting without closing does not count as an indicator. **While no indicator is reported, the service
-> suppresses capture** after a short grace for UI restarts, and writes the interval to the audit log; a
-> UI that crashed, was quit, or was never started cannot leave the service recording. Between 2026-09-15 and 2026-09-16 this
+> suppresses capture** after a short grace for UI restarts, and writes the interval to the audit log. A
+> UI that was never started cannot leave the service recording past that grace. A UI that crashed or was
+> quit leaves it recording for up to about ten seconds (its last report counts for six seconds, then the
+> grace runs), and what is captured in that time is kept like the rest of the session. Between 2026-09-15 and 2026-09-16 this
 > document said, correctly, that there was no indicator in the shipping build; an earlier version had
 > claimed one that did not exist.
 
