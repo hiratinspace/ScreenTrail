@@ -46,8 +46,8 @@ public sealed class CaptureConnection : IAsyncDisposable
     /// passed a schedule of its own, so none of them was running the wiring that shipped.
     /// </param>
     /// <param name="untrustedRetryAfter">
-    /// How long to wait after a server that failed verification before asking again. Left out, it is
-    /// <see cref="UntrustedRetryAfter"/>.
+    /// How long to wait after a server that failed verification, or a service that refused the handshake,
+    /// before asking again. Left out, it is <see cref="UntrustedRetryAfter"/>.
     /// </param>
     public CaptureConnection(
         ShellState shell,
@@ -62,8 +62,8 @@ public sealed class CaptureConnection : IAsyncDisposable
     }
 
     /// <summary>
-    /// The wait after a server that failed verification: a fixed thirty seconds, never shorter and never
-    /// longer. Slow, because whatever holds the name is not going to change its mind in a second; not
+    /// The wait after a server that failed verification, and after a refused handshake (B-09): a fixed
+    /// thirty seconds, never shorter and never longer. Slow, because whatever holds the name is not going to change its mind in a second; not
     /// for ever, because it may let go of the name and the real service take it back.
     /// </summary>
     public static readonly TimeSpan UntrustedRetryAfter = TimeSpan.FromSeconds(30);
@@ -87,10 +87,11 @@ public sealed class CaptureConnection : IAsyncDisposable
     /// <summary>
     /// Why the service refused us, when it did. Null while things are merely not working yet.
     ///
-    /// Distinct from "not connected", and deliberately: a refusal is an answer. A wrong token will not
-    /// fix itself, so the UI stops trying and says so, rather than reopening the pipe every few seconds
-    /// and writing an audit row each time. A stranger on the pipe is asked again every
-    /// <see cref="UntrustedRetryAfter"/>, and this keeps its reason until a real service answers.
+    /// Distinct from "not connected", and deliberately: a refusal is an answer. A wrong token does not fix
+    /// itself in a second, so the UI does not reopen the pipe every few seconds, writing an audit row each
+    /// time. A refused handshake and a stranger on the pipe are both asked again every
+    /// <see cref="UntrustedRetryAfter"/> (it used to stop for good after a refusal, B-09), and this keeps
+    /// the reason until a real service lets the UI in.
     /// </summary>
     public string? LastRefusal { get; private set; }
 
@@ -262,11 +263,28 @@ public sealed class CaptureConnection : IAsyncDisposable
             }
             catch (IpcRejectedException rejected)
             {
-                // An answer, not a failure. Stop: retrying a token the service has refused only writes an
-                // audit row each time.
+                // An answer, not a failure, so not tried again at once: that only writes an audit row each
+                // time. It used to stop here for good, and a window the service had refused once (a token
+                // a second copy of the service overwrote, a verification that ran out of time) had no pill
+                // and no capture until it was restarted (security review B-09). So it asks again slowly,
+                // as it does a server it does not trust, and the refusal is kept meanwhile.
                 LastRefusal = rejected.Reason;
                 _shell.Lost();
-                return;
+                if (ReferenceEquals(_retryAfter, Never))
+                {
+                    return;
+                }
+
+                try
+                {
+                    await Task.Delay(_untrustedRetryAfter, ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
+
+                continue;
             }
             catch (IpcUntrustedServerException untrusted)
             {

@@ -46,7 +46,7 @@ The honest summary is that the check raises the cost of impersonation and does n
 
 ### Reattach
 
-The service keeps all session state. A client that disconnects for any reason is forgotten; a client that connects gets the current state in `hello_ack`. The UI reconnects with backoff (100 ms, doubling to 2 s) and shows "Capture service not running: Start" (Spec, ST-070) when it can't. A server that fails the UI's verification is asked again every 30 seconds, with the same "not running" meanwhile; nothing is written to it before it is verified, so asking again gives it nothing (amended 2026-11-15; it used to be final until the UI restarted). ST-004's requirement is a reattach within 2 s; the transport achieves it in milliseconds.
+The service keeps all session state. A client that disconnects for any reason is forgotten; a client that connects gets the current state in `hello_ack`. The UI reconnects with backoff (100 ms, doubling to 2 s) and shows "Capture service not running: Start" (Spec, ST-070) when it can't. A server that fails the UI's verification is asked again every 30 seconds, with the same "not running" meanwhile; nothing is written to it before it is verified, so asking again gives it nothing (amended 2026-11-15; it used to be final until the UI restarted). A handshake the service refuses (`rejected`) is asked again the same way, every 30 seconds, after the quick retries a stale token gets (amended 2026-11-28, security fix run, B-09; it used to be final until the UI restarted). ST-004's requirement is a reattach within 2 s; the transport achieves it in milliseconds.
 
 ## Consequences
 
