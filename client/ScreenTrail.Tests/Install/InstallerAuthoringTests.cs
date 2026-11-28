@@ -62,6 +62,27 @@ public sealed class InstallerAuthoringTests
     }
 
     [Fact]
+    public void ARebuildOfTheInstalledVersionReplacesItAsAnUpgrade()
+    {
+        // C-09: every build of the package has a product code of its own, and two builds can carry one
+        // version (a local build is 0.1.0 unless told otherwise; one CI run builds an unsigned and a signed
+        // package). A second package of the installed version replaces the installed one the way a newer
+        // version does: its removal is part of an upgrade (UPGRADINGPRODUCTCODE), so the user-data step does
+        // not run, and one ScreenTrail stays registered. A downgrade is still refused.
+        var upgrade = Assert.Single(Package().Descendants(Wix + "MajorUpgrade"));
+        Assert.Equal("yes", (string?)upgrade.Attribute("AllowSameVersionUpgrades"));
+        Assert.False(string.IsNullOrWhiteSpace((string?)upgrade.Attribute("DowngradeErrorMessage")));
+
+        // The hosted installer job builds a second package of the same version from the same payload and
+        // gives it to the smoke test, which installs one over the other and counts the products.
+        var ci = File.ReadAllText(Repo.File(".github", "workflows", "ci.yml"));
+        Assert.Contains("./installer/package.ps1 -Step Msi -Version \"0.1.${{ github.run_number }}\" -MsiName ScreenTrail-rebuilt.msi", ci, StringComparison.Ordinal);
+        Assert.Contains("-RebuiltMsi artifacts/installer/packages/ScreenTrail-rebuilt.msi", ci, StringComparison.Ordinal);
+        var smoke = File.ReadAllText(Repo.File("installer", "smoke-test.ps1"));
+        Assert.Contains("[string]$RebuiltMsi", smoke, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheServiceStartsAtSignInForEveryUser()
     {
         // ADR-0003: the service is a per-user process started from a Run key, inside the signed-in
