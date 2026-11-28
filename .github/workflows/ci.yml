@@ -46,7 +46,7 @@ jobs:
       hardware: ${{ steps.areas.outputs.hardware }}
       scripts: ${{ steps.areas.outputs.scripts }}
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - id: areas
@@ -227,7 +227,7 @@ jobs:
       run:
         working-directory: client
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Both hosted images already ship a .NET 10 SDK, and global.json rolls forward to it, so
       # setup-dotnet was downloading and extracting 300 MB to arrive where the runner already was: 35 s
       # on every Windows job and about 10 s on this one, on the critical path of every pull request
@@ -371,7 +371,7 @@ jobs:
 
       - name: Upload gallery screenshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: gallery-screenshots
           path: ${{ runner.temp }}/gallery
@@ -672,7 +672,7 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # Both hosted images already ship a .NET 10 SDK, and global.json rolls forward to it, so
       # setup-dotnet was downloading and extracting 300 MB to arrive where the runner already was: 35 s
       # on every Windows job and about 10 s on this one, on the critical path of every pull request
@@ -800,8 +800,8 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -852,8 +852,8 @@ jobs:
       ASTRO_TELEMETRY_DISABLED: '1'
       WRANGLER_SEND_METRICS: 'false'
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -889,8 +889,8 @@ jobs:
       run:
         working-directory: research
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.11'
           cache: pip
@@ -910,8 +910,8 @@ jobs:
       run:
         working-directory: shared/schema
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -932,8 +932,8 @@ jobs:
       run:
         working-directory: shared/design
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
       - name: Generated WPF dictionaries and CSS match tokens.json
@@ -952,7 +952,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       # Windows PowerShell 5.1, which is what the laptop's setup script runs under, and which is not the
       # same parser as pwsh 7. It lived in spike-windows.yml until that became a manual workflow; a
@@ -1056,7 +1056,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # A duplicate key is valid YAML — the last one silently wins — but GitHub rejects the file, and a
       # bad merge resolution produces exactly that. This says which key and which line, before the push.
       # The gate in this file and the triggers in hardware-checks.yml have to describe the same set of
@@ -1294,7 +1294,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
       - env:
