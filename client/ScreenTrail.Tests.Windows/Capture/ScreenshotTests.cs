@@ -438,6 +438,111 @@ public sealed class ScreenshotTests
         Assert.NotNull(capturer.CaptureForegroundWindow(expected: first.Handle));
     }
 
+    [Fact]
+    public void NothingOfAWindowBehindIsInTheFrame()
+    {
+        // A-06. The window's rectangle reaches past what it draws by an invisible resize border, about 7 px
+        // at 100% on the left, right and bottom, and a copy of that rectangle carried a strip of whatever
+        // lay behind or beside the window: an excluded password manager snapped next to the remote tool.
+        // Magenta behind the window on every side, larger than it; none of it may be in the frame's edges.
+        Hardware.RequireScreenCapture();
+        using var aware = PhysicalPixels.OnThisThread();
+        using var behind = DesktopWindow.CreateFilled("ScreenTrail magenta behind", Magenta);
+        behind.RequireForeground();
+        using var window = DesktopWindow.Create("ScreenTrail edge target");
+        window.RequireForeground();
+
+        var bounds = window.Bounds;
+        behind.MoveTo(bounds.Left - 60, bounds.Top - 60, bounds.Right - bounds.Left + 120, bounds.Bottom - bounds.Top + 120);
+        Thread.Sleep(150);
+        Assert.True(window.IsForeground || window.TakeForeground(TimeSpan.FromSeconds(2)), "the target lost the foreground");
+
+        using var capturer = new ScreenshotCapturer();
+        var frame = capturer.CaptureForegroundWindow(expected: window.Handle);
+        Assert.NotNull(frame);
+
+        // Windows 11 rounds a window's corners, and what is behind shows in the four corner curves. That is
+        // the compositor's own drawing of the window, not its invisible border, so the corners are counted
+        // apart and only reported.
+        var corner = (int)Math.Ceiling(12 * PhysicalPixels.Scale(window.Handle));
+        var (edges, corners) = MagentaAtTheEdges(frame.Image, band: corner * 2, corner);
+        Measurements.Record(
+            $"Frame edges (A-06): rectangle {bounds.Right - bounds.Left}x{bounds.Bottom - bounds.Top}, frame {frame.SourceWidth}x{frame.SourceHeight}; "
+            + $"**{edges}** pixels of the window behind along the edges, {corners} in the rounded corners");
+        Assert.True(edges == 0, $"{edges} pixels of the window behind are in the frame's edges (rectangle {bounds.Right - bounds.Left}x{bounds.Bottom - bounds.Top}, frame {frame.SourceWidth}x{frame.SourceHeight})");
+    }
+
+    private const uint Magenta = 0x00FF00FF;
+
+    /// <summary>Magenta pixels in a band along each edge of a JPEG frame, with the corner squares counted apart.</summary>
+    private static (int Edges, int Corners) MagentaAtTheEdges(byte[] jpeg, int band, int corner)
+    {
+        using var stream = new MemoryStream(jpeg);
+        using var image = new System.Drawing.Bitmap(stream);
+        var edges = 0;
+        var corners = 0;
+        for (var y = 0; y < image.Height; y++)
+        {
+            for (var x = 0; x < image.Width; x++)
+            {
+                var inBand = x < band || y < band || x >= image.Width - band || y >= image.Height - band;
+                if (!inBand)
+                {
+                    continue;
+                }
+
+                var pixel = image.GetPixel(x, y);
+                if (pixel.R < 200 || pixel.B < 200 || pixel.G > 60)
+                {
+                    continue;
+                }
+
+                var inCorner = (x < corner || x >= image.Width - corner) && (y < corner || y >= image.Height - corner);
+                if (inCorner)
+                {
+                    corners++;
+                }
+                else
+                {
+                    edges++;
+                }
+            }
+        }
+
+        return (edges, corners);
+    }
+
+    /// <summary>
+    /// Makes the test's thread see physical pixels, as the service does for the whole process
+    /// (<c>Dpi.MakePerMonitorAware</c>): the compositor reports a window's frame in physical pixels
+    /// whatever the caller, and on a scaled display a thread that is not aware reads the rectangle and
+    /// the screen in scaled ones. Thread-wide only, and put back on dispose, so no other test is touched.
+    /// </summary>
+    private sealed class PhysicalPixels : IDisposable
+    {
+        private readonly IntPtr _previous;
+
+        private PhysicalPixels(IntPtr previous) => _previous = previous;
+
+        public static PhysicalPixels OnThisThread() => new(SetThreadDpiAwarenessContext(new IntPtr(-4)));
+
+        public static double Scale(IntPtr window) => GetDpiForWindow(window) is var dpi and > 0 ? dpi / 96.0 : 1.0;
+
+        public void Dispose()
+        {
+            if (_previous != IntPtr.Zero)
+            {
+                _ = SetThreadDpiAwarenessContext(_previous);
+            }
+        }
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        private static extern uint GetDpiForWindow(IntPtr window);
+    }
+
     /// <summary>Mean luma of the cells in a block of the grid; both ranges are end-exclusive.</summary>
     private static double Average(byte[] grid, (int From, int To) rows, (int From, int To) columns)
     {

@@ -53,6 +53,14 @@ internal sealed class DesktopWindow : IDisposable
     public static DesktopWindow CreateRemoteToolShaped(string title) => new(title, RemoteToolClass.Value, GetModuleHandle(null));
 
     /// <summary>
+    /// A window whose whole client area is one colour (<c>0x00BBGGRR</c>) and nothing else, so a test can
+    /// look for that colour in a frame of another window: magenta behind a window, say, where no pixel of
+    /// it should be captured (A-06).
+    /// </summary>
+    public static DesktopWindow CreateFilled(string title, uint colour) =>
+        new(title, FilledClasses.GetOrAdd(colour, c => Register($"ScreenTrail filled test window {c:X6}", CreateSolidBrush(c))), GetModuleHandle(null));
+
+    /// <summary>
     /// Shows large black text on white across the client area, so OCR has words to read. Calling it again
     /// replaces the text in place, which is also what a screen changing looks like to the scene sampler.
     /// </summary>
@@ -561,6 +569,9 @@ internal sealed class DesktopWindow : IDisposable
     /// <summary>A class the registry's ScreenConnect pattern (<c>^ScreenConnect</c>) matches, for <see cref="CreateRemoteToolShaped"/>.</summary>
     private static readonly Lazy<string> RemoteToolClass = new(() => Register("ScreenConnect.ScreenTrailTestWindow", COLOR_WINDOW + 1));
 
+    /// <summary>One class a colour for <see cref="CreateFilled"/>, registered the first time it is asked for.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<uint, string> FilledClasses = new();
+
     /// <summary>The same class with a black background, for the dark half of <see cref="ShowContrast"/>.</summary>
     private static readonly Lazy<string> DarkClass = new(() => Register("ScreenTrail dark test window", GetStockObject(BLACK_BRUSH)));
 
@@ -718,6 +729,9 @@ internal sealed class DesktopWindow : IDisposable
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr GetStockObject(int index);
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr CreateSolidBrush(uint colour);
 
     [DllImport("gdi32.dll", EntryPoint = "CreateFontW", CharSet = CharSet.Unicode)]
     private static extern IntPtr CreateFont(int height, int width, int escapement, int orientation, int weight, uint italic, uint underline, uint strikeOut, uint charSet, uint outPrecision, uint clipPrecision, uint quality, uint pitchAndFamily, string face);
