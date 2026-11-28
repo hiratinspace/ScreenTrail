@@ -21,6 +21,7 @@ import copy
 import pathlib
 import re
 import sys
+import tempfile
 
 import yaml
 
@@ -84,12 +85,12 @@ def self_test():
         'defaults': None,
         'jobs': {
             'hosted': {'runs-on': 'windows-latest', 'steps': [{'uses': 'actions/checkout@v7'}, {'run': 'x', 'shell': 'pwsh'}]},
+            'linux': {'runs-on': 'ubuntu-latest', 'steps': [{'uses': 'actions/checkout@v7'}, {'run': 'x'}]},
             'laptop': {
                 'runs-on': ['self-hosted', 'Windows', 'screentrail-win'],
                 'defaults': {'run': {'shell': "powershell -NoProfile -ExecutionPolicy Bypass -Command \". '{0}'\""}},
                 'steps': [
                     {'uses': good_sha + ''},
-                    {'uses': './.github/actions/local'},
                     {'run': 'x'},
                     {'run': 'y', 'shell': 'powershell -NoProfile -Command ". \'{0}\'"'},
                 ],
@@ -113,15 +114,41 @@ def self_test():
         'no shell anywhere': broken(lambda j, w: j.pop('defaults')),
         'the label alone': broken(lambda j, w: j.update({'runs-on': 'screentrail-win', 'steps': [{'uses': 'actions/checkout@v7'}]})),
         'runs-on from an expression': broken(lambda j, w: j.update({'runs-on': '${{ inputs.where }}', 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        # Any runs-on that is not one hosted label is held to the laptop rules, however it is written.
+        'the runner\'s default labels without self-hosted': broken(lambda j, w: j.update({'runs-on': ['Windows', 'X64'], 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'an unknown label': broken(lambda j, w: j.update({'runs-on': 'some-runner', 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'a hosted label beside another': broken(lambda j, w: j.update({'runs-on': ['windows-latest', 'X64'], 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'an expression inside a list': broken(lambda j, w: j.update({'runs-on': ['${{ vars.WHERE }}'], 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'an expression in the mapping form': broken(lambda j, w: j.update({'runs-on': {'labels': '${{ vars.WHERE }}'}, 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'a runner group': broken(lambda j, w: j.update({'runs-on': {'group': 'anything'}, 'steps': [{'uses': 'actions/checkout@v7'}]})),
+        'a job that calls a reusable workflow': broken(lambda j, w: w['jobs'].update({'caller': {'uses': 'owner/repo/.github/workflows/w.yml@main'}})),
+        'a local action': broken(lambda j, w: j['steps'].append({'uses': './.github/actions/local'})),
     }
     for case, sample in must_fail.items():
         if not problems_in(sample, 'sample'):
             sys.exit(f"Self-test: {case} passed, and it must fail.")
 
+    loader_test()
+
+
+def workflow_files(root):
+    return sorted((root / '.github/workflows').glob('*.yml'))
+
+
+def loader_test():
+    # The file list itself, on a made-up repository: GitHub runs a .yaml workflow as readily as a .yml one.
+    with tempfile.TemporaryDirectory() as temporary:
+        root = pathlib.Path(temporary)
+        (root / '.github/workflows').mkdir(parents=True)
+        (root / '.github/workflows/ci.yml').write_text('jobs: {}\n')
+        (root / '.github/workflows/other.yaml').write_text('jobs: {}\n')
+        if root / '.github/workflows/other.yaml' not in workflow_files(root):
+            sys.exit("Self-test: a .yaml workflow is not read, and GitHub runs it.")
+
 
 def main():
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '.')
-    files = [pathlib.Path(f) for f in sys.argv[2:]] or sorted((root / '.github/workflows').glob('*.yml'))
+    files = [pathlib.Path(f) for f in sys.argv[2:]] or workflow_files(root)
     self_test()
 
     bad, laptop_jobs = [], 0
