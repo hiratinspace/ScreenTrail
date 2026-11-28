@@ -114,11 +114,16 @@ public static class AnonymousRateLimit
     /// admin's own page (<c>same-origin</c>), an address the person typed or opened from a bookmark
     /// (<c>none</c>), and no header at all, which is a device or an older browser: never <c>same-site</c>,
     /// since a page on a sibling host is not the admin, nor a value a later browser might add.
+    ///
+    /// The same holds for every route under <c>/v1/admin</c>, counted or not (D-12): sign-out included,
+    /// so another page cannot sign the owner out, and the owner's routes, which the cookie's SameSite and
+    /// the CSRF header already guard, refuse such a page before anything reads the session.
     /// </summary>
     public static IApplicationBuilder UseCrossSiteRefusal(this IApplicationBuilder app) =>
         app.Use((context, next) =>
         {
-            if (context.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>() is not null
+            if ((context.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>() is not null
+                    || context.Request.Path.StartsWithSegments("/v1/admin", StringComparison.OrdinalIgnoreCase))
                 && !FromTheAdminsOwnPage(context.Request))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;

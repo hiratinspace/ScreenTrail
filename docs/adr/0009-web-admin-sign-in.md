@@ -91,6 +91,10 @@ comes from the session's own page (it carries the CSRF value), moves the owner's
 Every admin session carries the version it was issued with and `OwnerCheck` refuses one that no longer
 matches, so a copied cookie stops working at once, in every browser, not at its expiry. Without the CSRF
 value only the asking browser's cookie is deleted, so another site cannot sign the owner out everywhere.
+The cookie is deleted only on a request that carried it, and every route under `/v1/admin`, sign-out
+included, refuses with 403 a call whose `Sec-Fetch-Site` is anything but `same-origin` or `none` (D-12,
+2026-11-27 review): before, a page anywhere could post to sign-out without the cookie (it is
+SameSite=Strict) and still be answered with a delete, which signed the owner out of that browser.
 
 ### Devices and owners never cross
 

@@ -176,8 +176,11 @@ public static class AdminSessionEndpoint
         {
             // Deleting the cookie ends this browser's copy. A copy taken from it before now (a stolen
             // cookie, a second browser) is ended on the server: the owner's session version moves on, and
-            // every session that carries the old one is refused from the next request. Only for the
-            // session's own page, which knows its CSRF value, so another site cannot sign the owner out.
+            // every session that carries the old one is refused from the next request. That second step
+            // is only for the session's own page, which knows its CSRF value. Another site's page cannot
+            // reach this route at all (UseCrossSiteRefusal), and the cookie is deleted only on a request
+            // that carried it (D-12): a request the browser sent without it is not this browser's session
+            // ending, and answering it with a delete would let a page sign the owner out.
             if (await AdminCaller.BindAsync(http).ConfigureAwait(false) is { } owner
                 && CsrfHandler.Matches(owner.Csrf, http.Request.Headers[AdminSession.CsrfHeader].ToString()))
             {
@@ -187,7 +190,11 @@ public static class AdminSessionEndpoint
                     .ConfigureAwait(false);
             }
 
-            http.Response.Cookies.Delete(AdminSession.CookieName, AdminSession.Cookie(expires: null));
+            if (http.Request.Cookies.ContainsKey(AdminSession.CookieName))
+            {
+                http.Response.Cookies.Delete(AdminSession.CookieName, AdminSession.Cookie(expires: null));
+            }
+
             return Results.NoContent();
         })
         .WithName("AdminSignOut")

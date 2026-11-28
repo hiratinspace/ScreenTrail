@@ -367,7 +367,9 @@ public sealed class AdminSignInTests(AdminApiFixture api) : IClassFixture<AdminA
     [Fact]
     public async Task SigningOutDeletesTheCookie()
     {
-        using var client = api.CreateClient(new() { HandleCookies = false });
+        // The browser's own sign-out carries the cookie (D-12: one that does not is answered without a delete).
+        var seeded = await api.SeedOwnerAsync();
+        using var client = api.Owner(seeded);
         using var response = await client.PostAsync(new Uri("/v1/admin/session/end", UriKind.Relative), null, TestContext.Current.CancellationToken);
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"));
 
