@@ -54,7 +54,7 @@ public static class AdminSessionEndpoint
             options.SignInConfigured ? Results.Ok(nonces.Issue()) : NotConfigured)
         .WithName("AdminSignInNonce")
         .WithSummary("Issues a one-time nonce for the page to give Google before it draws the sign-in button.")
-        .RequireRateLimiting(AnonymousRateLimit.Policy);
+        .RequireRateLimiting(AnonymousRateLimit.NoncePolicy);
 
         group.MapPost("/session", async (AdminSignInRequest request, HttpContext http, GoogleIdTokenVerifier google, SignInNonces nonces, AdminOptions options, ScreenTrailContext db, TokenIssuer issuer, TimeProvider time, CancellationToken ct) =>
         {

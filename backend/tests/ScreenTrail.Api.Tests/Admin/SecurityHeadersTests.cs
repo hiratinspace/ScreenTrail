@@ -117,7 +117,7 @@ public sealed class SecurityHeadersTests(AdminApiFixture api) : IClassFixture<Ad
         await limited.InitializeAsync();
         using var client = limited.From("203.0.113.130");
         HttpResponseMessage? last = null;
-        for (var i = 0; i <= RateLimitedApiFixture.Limit; i++)
+        for (var i = 0; i <= RateLimitedApiFixture.Limit * ScreenTrail.Api.Auth.AnonymousRateLimit.NonceMultiple; i++)
         {
             last?.Dispose();
             last = await client.PostAsync(new Uri("/v1/admin/session/nonce", UriKind.Relative), content: null, TestContext.Current.CancellationToken);

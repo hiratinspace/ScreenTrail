@@ -149,18 +149,23 @@ public sealed class RateLimitTests(RateLimitedApiFixture api) : IClassFixture<Ra
     }
 
     [Fact]
-    public async Task TheNonceSignInAndSignupShareOneCount()
+    public async Task SignInAndSignupShareOneCountAndTheNonceIsNotPartOfIt()
     {
+        // D-11: sign-in and signup each check a Google token, so they share a count; the nonce has its own.
         using var client = api.From("203.0.113.50");
         using var nonce = await client.PostAsync(NonceRoute, content: null, TestContext.Current.CancellationToken);
         using var signIn = await SignInAsync(client);
         using var signup = await client.PostAsJsonAsync(Signup, new AdminSignupRequest("not-a-token", "Nobody"), TestContext.Current.CancellationToken);
-        using var refused = await client.PostAsync(NonceRoute, content: null, TestContext.Current.CancellationToken);
+        using var third = await SignInAsync(client);
+        using var refused = await client.PostAsJsonAsync(Signup, new AdminSignupRequest("not-a-token", "Nobody"), TestContext.Current.CancellationToken);
+        using var nonceAgain = await client.PostAsync(NonceRoute, content: null, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, nonce.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, signIn.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, signup.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, third.StatusCode);
         Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, nonceAgain.StatusCode);
     }
 
     [Fact]
@@ -295,10 +300,13 @@ public sealed class RateLimitTests(RateLimitedApiFixture api) : IClassFixture<Ra
             Assert.Empty(await refused.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken));
         }
 
-        // None of those was counted: the page's own calls (same-origin, same-site, a typed address) get the
-        // whole allowance of three, and the next call, a device's with no header, is the one past it.
-        foreach (var site in new[] { "same-origin", "same-site", "none", null })
+        // None of those was counted: the page's own calls (same-origin, a typed address, no header) get
+        // the whole allowance, and the call past it is refused. The nonce's allowance is six times the
+        // limit (D-11); a same-site page is not the admin's own and is refused like a cross-site one.
+        var allowance = RateLimitedApiFixture.Limit * AnonymousRateLimit.NonceMultiple;
+        for (var i = 0; i <= allowance; i++)
         {
+            var site = (i % 3) switch { 0 => "same-origin", 1 => "none", _ => null };
             using var request = new HttpRequestMessage(HttpMethod.Post, NonceRoute);
             if (site is not null)
             {
@@ -306,7 +314,7 @@ public sealed class RateLimitTests(RateLimitedApiFixture api) : IClassFixture<Ra
             }
 
             using var answered = await client.SendAsync(request, TestContext.Current.CancellationToken);
-            Assert.Equal(site == null ? HttpStatusCode.TooManyRequests : HttpStatusCode.OK, answered.StatusCode);
+            Assert.Equal(i == allowance ? HttpStatusCode.TooManyRequests : HttpStatusCode.OK, answered.StatusCode);
         }
     }
 
@@ -322,7 +330,7 @@ public sealed class RateLimitTests(RateLimitedApiFixture api) : IClassFixture<Ra
             .Where(e => e.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>() is not null
                 || !e.Metadata.GetOrderedMetadata<Microsoft.AspNetCore.Authorization.IAuthorizeData>().Any())
             .SelectMany(e => (e.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.IHttpMethodMetadata>()?.HttpMethods ?? ["*"])
-                .Select(m => (Route: $"{m} {e.RoutePattern.RawText}", Limited: e.Metadata.GetMetadata<Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute>()?.PolicyName == AnonymousRateLimit.Policy)))
+                .Select(m => (Route: $"{m} {e.RoutePattern.RawText}", Limited: AnonymousRateLimit.Policies.Contains(e.Metadata.GetMetadata<Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute>()?.PolicyName))))
             .ToList();
 
         Assert.Equal(

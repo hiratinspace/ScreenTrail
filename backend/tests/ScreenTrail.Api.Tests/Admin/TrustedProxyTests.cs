@@ -66,7 +66,7 @@ public sealed class ForwardedHeadersEnabledTests(ForwardedHeadersEnabledFixture 
     [Fact]
     public async Task WithTheVariableSetAndNoProxyListedAForgedHeaderStillDoesNotChooseThePartition()
     {
-        for (var i = 0; i < RateLimitedApiFixture.Limit; i++)
+        for (var i = 0; i < RateLimitedApiFixture.Limit * ScreenTrail.Api.Auth.AnonymousRateLimit.NonceMultiple; i++)
         {
             Assert.Equal(200, await Peer.AskForNonceAsync(api, "203.0.113.120", $"198.51.100.{i}"));
         }
@@ -153,7 +153,7 @@ public sealed class TrustedProxyTests(ProxiedApiFixture api) : IClassFixture<Pro
     [InlineData("::ffff:10.0.0.1", "198.51.100.72", "198.51.100.73")]
     public async Task AnIpv6OrIpv4MappedProxyPeerIsTrustedLikeTheAddressItIs(string peer, string spent, string fresh)
     {
-        for (var i = 0; i < RateLimitedApiFixture.Limit; i++)
+        for (var i = 0; i < RateLimitedApiFixture.Limit * ScreenTrail.Api.Auth.AnonymousRateLimit.NonceMultiple; i++)
         {
             Assert.Equal(200, await Peer.AskForNonceAsync(api, peer, spent));
         }

@@ -125,18 +125,22 @@ seed a second tenant beside every read and write and prove none of it is returne
 ### Hardening (built 2026-11-01)
 
 **1. A rate limit on the anonymous routes** (`AnonymousRateLimit`, ASP.NET Core's own rate limiter).
-The sign-in nonce, sign-in, signup and a device's activation with an invite code share one fixed-window
-count per client address: **10 calls a minute** by default (`RateLimit:PermitLimit`,
-`RateLimit:Window`, checked at startup). The call past it is refused with **429, a `Retry-After` in
+Three fixed-window counts per client address, each its own (D-11, 2026-11-28): sign-in and signup share
+**10 calls a minute** by default (`RateLimit:PermitLimit`, `RateLimit:Window`, checked at startup); a
+device's activation with an invite code has its own 10; the sign-in nonce, which costs one signature and
+writes nothing, has its own **60** (six times the limit), so a neighbour behind the office's address who
+spends one count locks nobody out of the others. The call past it is refused with **429, a `Retry-After` in
 seconds and no body**, by middleware that runs before authentication and before the endpoint, so a
 refused call never reaches Google's keys or the token verifier. An IPv6 caller is counted by its /64.
 **Sign-out is not counted**: it acts only with the session and its CSRF value, and ending a stolen
 session must never wait for a window. The device token exchange is not counted either (its secret is
 256 bits and every device behind the MSP's one address renews hourly). A reflective test
 (`EveryAnonymousRouteIsCountedButTheOnesExemptOnPurpose`) fails if an anonymous route appears without the
-limit. **A call another site's page started is refused before it is counted**: a limited route answers
-`Sec-Fetch-Site: cross-site` with 403 and no body, so a page anywhere cannot spend an office's allowance
-from its visitors' browsers. The admin's page is same-origin, and a device sends no such header.
+limit. **A call a page other than the admin's own started is refused before it is counted**: a limited route
+answers 403 with no body unless `Sec-Fetch-Site` is `same-origin` (the admin's page), `none` (an
+address typed or opened from a bookmark) or absent (a device, or an older browser). `same-site` is
+refused too (G-02 in the 2026-11-27 review): a page on a sibling host, such as the marketing site, is
+not the admin and cannot spend an office's allowance from its visitors' browsers.
 
 The client address is the connection's. **No forwarded header is read unless the operator lists the
 proxy** (`ForwardedHeaders:KnownProxies:0`, `ForwardedHeaders:KnownNetworks:0` in CIDR form, both empty
@@ -421,9 +425,9 @@ it, as Google's does.
 Open for the owner (raised in review, 2026-11-01; the build keeps the conservative choice and decides
 none of these):
 
-17. **One budget or two for an office behind one address.** The nonce, sign-in, signup and device
-    activation share the 10 a minute. An MSP activating many technicians at once from the office could
-    use it up and lock the owner out of sign-in for a minute; activation could get a budget of its own.
+17. **One budget or two for an office behind one address.** Decided by the 2026-11-27 security review
+    (D-11): three counts, as section 1 says. An MSP activating many technicians at once from the office
+    can still use up activation's 10 a minute, and then waits a minute, without touching sign-in.
 18. **How wide an IPv6 caller is.** Counted by its /64 today. Some providers hand a subscriber a /56 or
     a /48, which lets one subscriber count as up to 256 or 65,536 callers.
 19. **Binding the nonce to the browser** with a cookie as defence in depth (see 2 above).

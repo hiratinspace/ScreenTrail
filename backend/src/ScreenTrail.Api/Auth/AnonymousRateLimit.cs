@@ -51,7 +51,27 @@ public sealed class RateLimitOptions
 /// </summary>
 public static class AnonymousRateLimit
 {
+    /// <summary>Sign-in and signup, which share one count: each checks a Google token and may write a session or a tenant.</summary>
     public const string Policy = "anonymous-per-client";
+
+    /// <summary>
+    /// The sign-in nonce, counted on its own and <see cref="NonceMultiple"/> times as generously (D-11): it
+    /// costs one signature and writes nothing, and a neighbour who spends it must not lock the office out
+    /// of signing in.
+    /// </summary>
+    public const string NoncePolicy = "anonymous-nonce";
+
+    /// <summary>A device's activation with an invite code, counted on its own (D-11), so a sign-in flood does not stop a PC being set up, nor the reverse.</summary>
+    public const string ActivationPolicy = "anonymous-activation";
+
+    /// <summary>Every anonymous count, for the routes and tests that check a route is counted by one of them.</summary>
+    public static readonly IReadOnlyList<string> Policies = [Policy, NoncePolicy, ActivationPolicy];
+
+    /// <summary>
+    /// How many times the sign-in limit the nonce allows: sixty a minute at the default ten. The page asks
+    /// for one each time it draws the sign-in button, so a person reloading the page uses a few.
+    /// </summary>
+    public const int NonceMultiple = 6;
 
     public static IServiceCollection AddAnonymousRateLimit(this IServiceCollection services, RateLimitOptions limits)
     {
@@ -60,15 +80,21 @@ public static class AnonymousRateLimit
         return services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy(Policy, context => RateLimitPartition.GetFixedWindowLimiter(
-                PartitionKey(context.Connection.RemoteIpAddress),
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = limits.PermitLimit,
-                    Window = limits.Window,
-                    QueueLimit = 0,
-                    AutoReplenishment = true,
-                }));
+
+            // Three counts per client address, each its own window (D-11): one route's callers cannot
+            // spend another's.
+            foreach (var (policy, permits) in new[] { (Policy, limits.PermitLimit), (NoncePolicy, limits.PermitLimit * NonceMultiple), (ActivationPolicy, limits.PermitLimit) })
+            {
+                options.AddPolicy(policy, context => RateLimitPartition.GetFixedWindowLimiter(
+                    PartitionKey(context.Connection.RemoteIpAddress),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = permits,
+                        Window = limits.Window,
+                        QueueLimit = 0,
+                        AutoReplenishment = true,
+                    }));
+            }
 
             // No body: which limit, how many are left and whose partition this is help only somebody
             // tuning a script. Retry-After is all a person's browser needs.
@@ -82,16 +108,18 @@ public static class AnonymousRateLimit
     }
 
     /// <summary>
-    /// Refuses, with 403 and before it is counted, a call to a limited route that a browser says another
-    /// site started (<c>Sec-Fetch-Site: cross-site</c>). Without this a page anywhere could spend an
-    /// office's allowance from its visitors' browsers, which share the office's address. The admin's own
-    /// page is same-origin, and a device is not a browser and sends no such header.
+    /// Refuses, with 403 and before it is counted, a call to a limited route that a browser says a page
+    /// other than the admin's own started (D-11 with G-02). Without this a page could spend an office's
+    /// allowance from its visitors' browsers, which share the office's address. Accepted are only the
+    /// admin's own page (<c>same-origin</c>), an address the person typed or opened from a bookmark
+    /// (<c>none</c>), and no header at all, which is a device or an older browser: never <c>same-site</c>,
+    /// since a page on a sibling host is not the admin, nor a value a later browser might add.
     /// </summary>
     public static IApplicationBuilder UseCrossSiteRefusal(this IApplicationBuilder app) =>
         app.Use((context, next) =>
         {
             if (context.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>() is not null
-                && string.Equals(context.Request.Headers["Sec-Fetch-Site"].ToString(), "cross-site", StringComparison.OrdinalIgnoreCase))
+                && !FromTheAdminsOwnPage(context.Request))
             {
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return Task.CompletedTask;
@@ -99,6 +127,14 @@ public static class AnonymousRateLimit
 
             return next(context);
         });
+
+    /// <summary>True when the request carries no <c>Sec-Fetch-Site</c>, or says <c>same-origin</c> or <c>none</c>.</summary>
+    internal static bool FromTheAdminsOwnPage(HttpRequest request)
+    {
+        var site = request.Headers["Sec-Fetch-Site"];
+        return site.Count == 0
+            || (site.Count == 1 && (string.Equals(site[0], "same-origin", StringComparison.OrdinalIgnoreCase) || string.Equals(site[0], "none", StringComparison.OrdinalIgnoreCase)));
+    }
 
     /// <summary>
     /// The partition for a client address: IPv4 as it is, IPv4 carried in IPv6 as the IPv4 it is, IPv6

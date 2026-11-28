@@ -168,7 +168,7 @@ public static class DevicesEndpoint
 
         // Counted per client address with the admin's sign-in (ADR-0009): a guess at a 99-bit code is
         // hopeless, but each still costs a lookup. The token exchange is not, as its secret is 256 bits.
-        .RequireRateLimiting(AnonymousRateLimit.Policy)
+        .RequireRateLimiting(AnonymousRateLimit.ActivationPolicy)
         .WithSummary("Activates this device with an invite's code and binds it to the tenant.");
 
         group.MapPost("/token", async (RefreshRequest request, ScreenTrailContext db, TokenIssuer issuer, TimeProvider time, CancellationToken ct) =>
