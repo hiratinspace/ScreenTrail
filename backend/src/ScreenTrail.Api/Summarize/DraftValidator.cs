@@ -156,6 +156,14 @@ public static class DraftValidator
             return broken;
         }
 
+        // Within the schema's numbers before any text is read. Neither provider holds a model to them
+        // (Claude reads them as description text, Gemini is sent none), and the client stores and shows
+        // what is returned: a 5,000-character title, 500 steps, or minutes no time entry can hold.
+        if (OutOfBounds(draft) is { Count: > 0 } oversized)
+        {
+            return oversized;
+        }
+
         var reasons = new List<string>();
         var frames = bundle.Frames.ToDictionary(frame => frame.Id, StringComparer.Ordinal);
         var segments = bundle.Transcript.ToDictionary(segment => segment.Id, StringComparer.Ordinal);
@@ -223,8 +231,9 @@ public static class DraftValidator
         }
 
         // The client applies the tenant's rounding, so the model's number is unrounded active time. One
-        // longer than the session is a made-up number about something a customer is charged for.
-        if (bundle.DurationMs is { } durationMs && durationMs > 0)
+        // longer than the session is a made-up number about something a customer is charged for. A
+        // session of zero length is a known length, as checks.py reads it: at most a minute.
+        if (bundle.DurationMs is { } durationMs && durationMs >= 0)
         {
             var sessionMinutes = durationMs / 60_000d;
             if (draft.SuggestedTimeMinutes > sessionMinutes + 1)
@@ -325,6 +334,112 @@ public static class DraftValidator
         }
 
         return broken;
+    }
+
+    /// <summary>
+    /// The numbers <c>research/prompts/schema.json</c> puts on a draft, which <c>DraftBoundsTests</c> holds
+    /// to the file. Lengths count characters (Unicode code points), as JSON Schema and the Python checks do.
+    /// </summary>
+    public static class Bounds
+    {
+        public const int Problem = 600;
+        public const int Result = 600;
+        public const int Title = 70;
+        public const int KbReason = 400;
+        public const int FollowUps = 10;
+        public const int FollowUp = 400;
+        public const int Steps = 30;
+        public const int StepText = 400;
+        public const int FrameRefs = 10;
+        public const int TranscriptRefs = 10;
+        public const int MinutesAtLeast = 0;
+        public const int MinutesAtMost = 1440;
+    }
+
+    /// <summary>
+    /// Where a whole draft is past one of <see cref="Bounds"/>. Each reason names the field and the bound,
+    /// never the value, which came from a model that read a customer's screen.
+    /// </summary>
+    private static List<string> OutOfBounds(DraftJson draft)
+    {
+        var broken = new List<string>();
+
+        foreach (var (field, value, most) in new[]
+        {
+            ("problem", draft.Problem, Bounds.Problem),
+            ("result", draft.Result, Bounds.Result),
+            ("suggested_title", draft.SuggestedTitle, Bounds.Title),
+            ("kb_reason", draft.KbReason, Bounds.KbReason),
+        })
+        {
+            if (Longer(value, most))
+            {
+                broken.Add($"{field} is longer than {most} characters.");
+            }
+        }
+
+        if (draft.FollowUps.Count > Bounds.FollowUps)
+        {
+            broken.Add($"follow_ups holds more than {Bounds.FollowUps} items.");
+        }
+
+        if (draft.FollowUps.Any(followUp => Longer(followUp, Bounds.FollowUp)))
+        {
+            broken.Add($"follow_ups holds an item longer than {Bounds.FollowUp} characters.");
+        }
+
+        if (draft.Steps.Count > Bounds.Steps)
+        {
+            broken.Add($"steps holds more than {Bounds.Steps} items.");
+        }
+
+        // Only the first steps are looked at one by one, so a list far past its bound costs nothing.
+        for (var i = 0; i < Math.Min(draft.Steps.Count, Bounds.Steps + 1); i++)
+        {
+            var step = draft.Steps[i];
+            if (Longer(step.Text, Bounds.StepText))
+            {
+                broken.Add($"steps[{i}].text is longer than {Bounds.StepText} characters.");
+            }
+
+            if (step.FrameRefs.Count > Bounds.FrameRefs)
+            {
+                broken.Add($"steps[{i}].frame_refs holds more than {Bounds.FrameRefs} items.");
+            }
+
+            if (step.TranscriptRefs.Count > Bounds.TranscriptRefs)
+            {
+                broken.Add($"steps[{i}].transcript_refs holds more than {Bounds.TranscriptRefs} items.");
+            }
+        }
+
+        if (draft.SuggestedTimeMinutes is < Bounds.MinutesAtLeast or > Bounds.MinutesAtMost)
+        {
+            broken.Add($"suggested_time_minutes must be between {Bounds.MinutesAtLeast} and {Bounds.MinutesAtMost}.");
+        }
+
+        return broken;
+    }
+
+    /// <summary>Whether a text has more than <paramref name="most"/> characters, counted as code points.</summary>
+    private static bool Longer(string text, int most)
+    {
+        // A UTF-16 length is never smaller than the count of code points, so most texts need no count.
+        if (text.Length <= most)
+        {
+            return false;
+        }
+
+        var count = 0;
+        foreach (var _ in text.EnumerateRunes())
+        {
+            if (++count > most)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

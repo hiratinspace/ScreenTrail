@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using ScreenTrail.Api.Summarize;
 
 namespace ScreenTrail.Api.Tests.Summarize;
@@ -88,6 +89,31 @@ public sealed class DraftBoundsTests
         Assert.Empty(DraftValidator.Check(draft, Bundle() with { DurationMs = null }));
         Assert.Empty(DraftValidator.Check(draft with { SuggestedTimeMinutes = 0 }, Bundle()));
         Assert.Empty(DraftValidator.Check(draft with { SuggestedTimeMinutes = 21 }, Bundle()));
+    }
+
+    [Fact]
+    public void TheBoundsAreTheSchemasOwn()
+    {
+        // The validator's numbers and the schema's are one set. If the schema changes, this fails until
+        // DraftValidator.Bounds follows it.
+        using var stream = typeof(DraftValidator).Assembly.GetManifestResourceStream("ScreenTrail.Api.Prompts.schema.json")
+            ?? throw new InvalidOperationException("schema.json is not embedded in the API.");
+        var schema = JsonNode.Parse(stream)!;
+        var properties = schema["properties"]!;
+        var step = schema["$defs"]!["Step"]!["properties"]!;
+
+        Assert.Equal(DraftValidator.Bounds.Problem, (int)properties["problem"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.Result, (int)properties["result"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.Title, (int)properties["suggested_title"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.KbReason, (int)properties["kb_reason"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.FollowUps, (int)properties["follow_ups"]!["maxItems"]!);
+        Assert.Equal(DraftValidator.Bounds.FollowUp, (int)properties["follow_ups"]!["items"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.Steps, (int)properties["steps"]!["maxItems"]!);
+        Assert.Equal(DraftValidator.Bounds.StepText, (int)step["text"]!["maxLength"]!);
+        Assert.Equal(DraftValidator.Bounds.FrameRefs, (int)step["frame_refs"]!["maxItems"]!);
+        Assert.Equal(DraftValidator.Bounds.TranscriptRefs, (int)step["transcript_refs"]!["maxItems"]!);
+        Assert.Equal(DraftValidator.Bounds.MinutesAtLeast, (int)properties["suggested_time_minutes"]!["minimum"]!);
+        Assert.Equal(DraftValidator.Bounds.MinutesAtMost, (int)properties["suggested_time_minutes"]!["maximum"]!);
     }
 
     /// <summary>Ordinary words, exactly <paramref name="length"/> characters, that no rule refuses.</summary>

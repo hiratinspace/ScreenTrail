@@ -304,7 +304,7 @@ public sealed class PublishPanel
         Integrations = integrations;
 
         var draft = session.Draft;
-        Minutes = draft is null ? 0 : TimeEntryCalculator.SuggestMinutes(TimeSpan.FromMinutes(draft.SuggestedTimeMinutes), _rounding);
+        Minutes = draft is null ? 0 : TimeEntryCalculator.SuggestMinutes(TimeSpan.FromMinutes(DraftMinutes(draft)), _rounding);
         KbArticle = draft?.KbCandidate ?? false;
         KbReason = draft?.KbReason;
         OfferEarlier(earlierOutcomes);
@@ -587,7 +587,7 @@ public sealed class PublishPanel
                 return RoundingNote;
             }
 
-            var captured = draft.SuggestedTimeMinutes;
+            var captured = DraftMinutes(draft);
             var suggested = TimeEntryCalculator.SuggestMinutes(TimeSpan.FromMinutes(captured), _rounding);
             return suggested == captured ? $"{captured} min"
                 : suggested > captured ? $"Rounded up from {captured} min"
@@ -1024,4 +1024,13 @@ public sealed class PublishPanel
     };
 
     private static string Capitalise(string text) => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
+
+    /// <summary>The longest time a draft may suggest: a day, as the note schema and the backend's publish limit say.</summary>
+    private const long MostDraftMinutes = 24 * 60;
+
+    /// <summary>
+    /// The draft's minutes, held between nothing and a day. A draft stored by an older backend may carry
+    /// any number, and one past what a <see cref="TimeSpan"/> holds would keep its Review from opening.
+    /// </summary>
+    private static long DraftMinutes(DraftNote draft) => Math.Clamp(draft.SuggestedTimeMinutes, 0, MostDraftMinutes);
 }

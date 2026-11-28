@@ -55,8 +55,12 @@ namespace ScreenTrail.Api.Tests.Summarize;
 /// </summary>
 public sealed class ReadingBoundTests
 {
-    /// <summary>More than the model's output cap could carry: 8,192 tokens of one character each, four times over.</summary>
-    private const int DraftChars = 32_768;
+    /// <summary>
+    /// The longest result the validator reads: the schema's bound. A longer one is refused by its length
+    /// before anything reads it (E-06), so it costs nothing to check; until that bound was held, this was
+    /// 32,768 characters, more than the model's output cap could carry.
+    /// </summary>
+    private const int DraftChars = DraftValidator.Bounds.Result;
 
     private const long CheckAllocationBudget = 16L * 1024 * 1024;
 
@@ -308,7 +312,7 @@ public sealed class ReadingBoundTests
         {
             _ = Interlocked.Increment(ref _calls);
             var draft = JsonSerializer.SerializeToNode(Draft("\uFDFA"))!;
-            draft["result"] = Filled("\uFDFA", 8_192);
+            draft["result"] = Filled("\uFDFA", DraftChars);
             return Task.FromResult(ProviderResult.Success(new LlmDraft(draft.ToJsonString(), 0.01m)));
         }
     }
