@@ -19,8 +19,8 @@ public static class StoreUnavailableWords
     public static string Why(string? reason) => reason switch
     {
         StoreUnavailableReasons.KeyRefused =>
-            "Windows would not open ScreenTrail's key for this account, as after a password reset or a move to another PC. Try again once the password is back, or delete everything in Settings, Privacy to start afresh.",
+            "Windows would not open ScreenTrail's key for this account, as after a password reset or a move to another PC. Try again once the password is back, or use Delete everything on the Privacy page to start afresh.",
         _ =>
-            "ScreenTrail's saved sessions would not open with its key. Try again, or delete everything in Settings, Privacy to start afresh.",
+            "ScreenTrail's saved sessions would not open with its key. Try again, or use Delete everything on the Privacy page to start afresh.",
     };
 }
