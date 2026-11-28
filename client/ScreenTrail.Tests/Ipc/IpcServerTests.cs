@@ -1205,6 +1205,58 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task AVerificationThatOutlastsTheHandshakeDeadlineStillAdmitsTheUi()
+    {
+        // Security review B-08: the handshake's deadline also covered verifying the peer's signature, so
+        // a signed UI's first connection after boot (cold files, full WinVerifyTrust checks) was closed
+        // with nothing said and nothing recorded. The deadline is for saying hello with the right token;
+        // verification has a bound of its own.
+        var slow = new SlowVerifier(TimeSpan.FromSeconds(1.5));
+        await StartServerAsync(verifier: slow, handshakeTimeout: TimeSpan.FromMilliseconds(500));
+
+        await using var ui = await IpcClient.ConnectAsync(_pipeName, _token, "test-ui", serverVerifier: null, "0.0.1", Patient);
+
+        Assert.True(ui.IsConnected);
+        Assert.Empty(_audit.Types);
+    }
+
+    [Fact]
+    public async Task AVerificationThatNeverEndsIsRefusedAsSlowAndRecorded()
+    {
+        var slow = new SlowVerifier(TimeSpan.FromMinutes(5));
+        _server = new IpcServer(IpcServer.DefaultPipeFactory(_pipeName), _token, slow, _controller, _audit, "0.0.1-test")
+        {
+            VerificationTimeout = TimeSpan.FromMilliseconds(300),
+        };
+        _server.Start();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = IpcContract.Version, Token = IpcToken.Encode(_token), ClientName = "ui" });
+        await WaitUntilAsync(() => _audit.Types.Contains("ipc_rejected_" + RejectReasons.Slow));
+
+        Assert.Equal(RejectReasons.Slow, Assert.IsType<Rejected>(reply).Reason);
+        Assert.Equal(0, _server.ConnectedClients);
+    }
+
+    [Fact]
+    public async Task APeerThatSaysNothingIsDroppedAtTheDeadlineWithOneRow()
+    {
+        // Still dropped with nothing sent (it is not listening, and a write to it would wait), and now
+        // recorded: one row, however many there are in the minute.
+        await StartServerAsync(handshakeTimeout: TimeSpan.FromMilliseconds(300));
+
+        for (var i = 0; i < 3; i++)
+        {
+            await using var silent = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+            await silent.ConnectAsync((int)Soon.TotalMilliseconds);
+            var read = await silent.ReadAsync(new byte[1]).AsTask().WaitAsync(TimeSpan.FromSeconds(15));
+            Assert.Equal(0, read);
+        }
+
+        await WaitUntilAsync(() => _audit.Types.Contains("ipc_rejected_" + RejectReasons.Slow));
+        Assert.Equal(["ipc_rejected_" + RejectReasons.Slow], _audit.Types);
+    }
+
+    [Fact]
     public async Task ARejectedPeerCannotWriteToTheStoreAsFastAsItCanConnect()
     {
         // Every rejection used to INSERT a row, which gave an unauthenticated local peer an unbounded
