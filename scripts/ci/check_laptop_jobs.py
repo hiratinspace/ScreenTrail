@@ -27,6 +27,10 @@ holds, so that a later edit cannot quietly widen it:
   - the first step is CLEAN, which empties the work folder, so nothing an earlier job left there is
     read by this one.
 
+Every action every job uses, hosted ones included, is pinned to a full commit too (H-4, 2026-11-28):
+a hosted job's checkout runs where the build that is shipped is made, so a moved tag matters there as
+much as on the laptop. A hosted job may use a local action, which is this repository's own file.
+
 A job is hosted only when its runs-on is exactly one hosted label (HOSTED_LABELS). Every other job,
 whatever its runs-on says or however it is written (other labels, a list, a mapping, a runner group, an
 expression anywhere, or no runs-on at all), could reach the laptop and is held to these rules. Both
@@ -66,6 +70,7 @@ CLEAN = {
         "New-Item -ItemType Directory -Path $workspace | Out-Null",
     ]),
 }
+IMAGE = re.compile(r'^docker://[^@\s]+@sha256:[0-9a-f]{64}$')
 EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 SECRET = re.compile(r'\bsecrets\b|\bgithub\s*(\.\s*token\b|\[\s*[\'"]token[\'"]\s*\])', re.IGNORECASE)
 
@@ -142,10 +147,27 @@ def trust_problems(workflow, name, job, where):
     return bad
 
 
+def hosted_problems(name, job, where):
+    # H-4: a hosted job's actions are pinned by commit as well; its own local actions are allowed.
+    bad = []
+    if 'uses' in job and not str(job['uses']).startswith('./') and not PINNED.match(str(job['uses'])):
+        bad.append(f"{where}: job {name!r} calls {job['uses']!r}, not pinned to a 40-character commit.")
+    for index, step in enumerate(job.get('steps') or []):
+        uses = step.get('uses') if isinstance(step, dict) else None
+        if uses is None or str(uses).startswith('./'):
+            continue
+        if not (PINNED.match(str(uses)) or IMAGE.match(str(uses))):
+            label = step.get('name') or uses
+            bad.append(f"{where}: job {name!r}, {label!r}: {uses!r} is not pinned to a 40-character commit.")
+    return bad
+
+
 def problems_in(workflow, where):
     bad = []
     workflow_shell = default_shell(workflow)
     for name, job in (workflow.get('jobs') or {}).items():
+        if isinstance(job, dict) and not is_laptop(job):
+            bad += hosted_problems(name, job, where)
         if not isinstance(job, dict) or not is_laptop(job):
             continue
         if 'uses' in job:
@@ -180,8 +202,8 @@ def self_test():
         'env': {'DOTNET_NOLOGO': '1'},
         'defaults': None,
         'jobs': {
-            'hosted': {'runs-on': 'windows-latest', 'steps': [{'uses': 'actions/checkout@v7'}, {'run': 'x', 'shell': 'pwsh'}]},
-            'linux': {'runs-on': 'ubuntu-latest', 'steps': [{'uses': 'actions/checkout@v7'}, {'run': 'x'}]},
+            'hosted': {'runs-on': 'windows-latest', 'steps': [{'uses': good_sha}, {'run': 'x', 'shell': 'pwsh'}, {'uses': './.github/actions/own'}]},
+            'linux': {'runs-on': 'ubuntu-latest', 'steps': [{'uses': good_sha}, {'run': 'x'}, {'uses': 'docker://alpine@sha256:' + 'b' * 64}]},
             'laptop': {
                 'if': CONDITION,
                 'runs-on': ['self-hosted', 'Windows', 'screentrail-win'],
@@ -222,6 +244,12 @@ def self_test():
         'a runner group': broken(lambda j, w: j.update({'runs-on': {'group': 'anything'}, 'steps': [{'uses': 'actions/checkout@v7'}]})),
         'a job that calls a reusable workflow': broken(lambda j, w: w['jobs'].update({'caller': {'uses': 'owner/repo/.github/workflows/w.yml@main'}})),
         'a local action': broken(lambda j, w: j['steps'].append({'uses': './.github/actions/local'})),
+        # H-4: hosted jobs pin their actions too.
+        'a hosted action by tag': broken(lambda j, w: w['jobs']['hosted']['steps'].append({'uses': 'actions/setup-dotnet@v6'})),
+        'a hosted action by branch': broken(lambda j, w: w['jobs']['linux']['steps'].append({'uses': 'actions/setup-node@main'})),
+        'a hosted action by a short commit': broken(lambda j, w: w['jobs']['linux']['steps'].append({'uses': 'actions/setup-python@6d4fd22'})),
+        'a hosted image by tag': broken(lambda j, w: w['jobs']['linux']['steps'].append({'uses': 'docker://alpine:3'})),
+        'a hosted reusable workflow by tag': broken(lambda j, w: w['jobs'].update({'call': {'uses': 'owner/repo/.github/workflows/w.yml@v1'}})),
         # H-1: what may start a laptop job (only the three triggers).
         'a pull_request_target trigger': broken(lambda j, w: w['on'].update({'pull_request_target': None})),
         'a workflow_run trigger': broken(lambda j, w: w['on'].update({'workflow_run': {'workflows': ['ci']}})),
