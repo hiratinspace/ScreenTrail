@@ -242,6 +242,62 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ANameHeldByAnotherPipeIsSaidOnceAfterAFewTries()
+    {
+        // Security review B-06: another account can hold the capture pipe's name, and the service only
+        // logged it while nothing was captured. Past a few refusals in a row the server says so, once, for
+        // the host to put where somebody will see it; and it goes on trying, and serves once it is free.
+        var calls = 0;
+        var notices = 0;
+        var held = IpcServer.NameHeldNoticeAfter + 3;
+        var real = IpcServer.DefaultPipeFactory(_pipeName);
+        _server = new IpcServer(() => ++calls <= held ? throw new PipeNameHeldException() : real(), _token, new FakeVerifier(null), _controller, _audit, "0.0.1-test")
+        {
+            FactoryRetry = TimeSpan.FromMilliseconds(20),
+        };
+        _server.NameHeld += () => Interlocked.Increment(ref notices);
+        _server.Start();
+
+        await using var ui = await IpcClient.ConnectAsync(_pipeName, _token, "test-ui", serverVerifier: null, "0.0.1", Patient);
+
+        Assert.True(ui.IsConnected);
+        Assert.True(calls > held, $"the factory was called {calls} time(s)");
+        Assert.Equal(1, Volatile.Read(ref notices));
+    }
+
+    [Fact]
+    public async Task AFewRefusalsOrOtherPipeFailuresSayNothing()
+    {
+        // A name held for a moment (the service's own previous run, a UI letting go) and handle pressure
+        // are not another account holding the name.
+        var calls = 0;
+        var notices = 0;
+        var real = IpcServer.DefaultPipeFactory(_pipeName);
+        _server = new IpcServer(
+            () => ++calls switch
+            {
+                <= 4 => throw new PipeNameHeldException(),
+                <= 10 => throw new IOException("out of handles"),
+                _ => real(),
+            },
+            _token,
+            new FakeVerifier(null),
+            _controller,
+            _audit,
+            "0.0.1-test")
+        {
+            FactoryRetry = TimeSpan.FromMilliseconds(20),
+        };
+        _server.NameHeld += () => Interlocked.Increment(ref notices);
+        _server.Start();
+
+        await using var ui = await IpcClient.ConnectAsync(_pipeName, _token, "test-ui", serverVerifier: null, "0.0.1", Patient);
+
+        Assert.True(ui.IsConnected);
+        Assert.Equal(0, Volatile.Read(ref notices));
+    }
+
+    [Fact]
     public async Task AClientThatStopsReadingDoesNotHoldUpTheOthers()
     {
         // T-72. A broadcast goes to every client at once, each with its own deadline. One at a time, a
