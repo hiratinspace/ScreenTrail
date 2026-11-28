@@ -15,7 +15,10 @@ says it does:
     skipped job as a passed one). Its remedy names the usual cause, a hardware-checks run made while
     HW_RUNNER was off, and the no-evidence remedy does not lead into it: it says to re-run the laptop's
     jobs, not only the gate, which would find the old skipped ones;
-  - a laptop job failed or was cancelled: a failure.
+  - a laptop job failed or was cancelled: a failure;
+  - the label refused, as it is for a fork's pull request, whose token is read-only whatever the
+    workflow asks for: the gate does not say it labelled the pull request, and does not pass, so a
+    branch with no evidence never shows green with nothing on the pull request to say so.
 
 Usage: check_hardware_gate.py [repo root] [path to ci.yml, default .github/workflows/ci.yml]
 """
@@ -39,6 +42,10 @@ SHA = 'a' * 40
 FAKE_GH = """#!/usr/bin/env bash
 # Stands in for the GitHub CLI: records every call, answers the check-runs query from a file.
 printf '%s\\n' "$*" >> "$FAKE_GH_LOG"
+if [ "$1" = "pr" ] && [ "$2" = "edit" ] && [ "${FAKE_GH_EDIT_FAILS:-}" = "1" ]; then
+  echo "HTTP 403: Resource not accessible by integration" >&2
+  exit 1
+fi
 if [ "$1" = "api" ]; then
   cat "$FAKE_GH_RUNS"
 fi
@@ -57,7 +64,7 @@ def gate_script(ci_path):
     return steps[0]['run']
 
 
-def run(script, work, *, hw_runner, head_repo, runs):
+def run(script, work, *, hw_runner, head_repo, runs, edit_fails=False):
     runs_file = work / 'runs.tsv'
     runs_file.write_text(''.join(f"{name}\t{status}\t{conclusion}\n" for name, status, conclusion in runs))
     log = work / 'gh.log'
@@ -76,6 +83,7 @@ def run(script, work, *, hw_runner, head_repo, runs):
         'GITHUB_STEP_SUMMARY': str(summary),
         'FAKE_GH_LOG': str(log),
         'FAKE_GH_RUNS': str(runs_file),
+        'FAKE_GH_EDIT_FAILS': '1' if edit_fails else '',
     }
     # Every case here ends on the gate's first look, so a gate that waits instead has already failed.
     try:
@@ -107,6 +115,15 @@ CASES = [
     ('input job cancelled', 'true', REPO, both('success', 'cancelled'), 1, [], False),
 ]
 
+# The same answers with the label call refused. (name, HW_RUNNER, head repo, check runs, texts the summary
+# must hold.) Each one must fail and must not say the pull request was labelled.
+REFUSED = [
+    ('pull request from a fork, label refused', 'true', 'someone/fork', both('skipped', 'skipped'), NONE),
+    ('pull request from a deleted fork, label refused', 'true', '', both('skipped', 'skipped'), NONE),
+    ('laptop off on purpose, label refused', 'false', REPO, [], OFF),
+    ('input job skipped, label refused', 'true', REPO, both('success', 'skipped'), NOT_RUN),
+]
+
 
 def main():
     root = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else '.')
@@ -136,9 +153,23 @@ def main():
                 tail = ' | '.join(line for line in output.splitlines()[-4:] if line.strip())
                 bad.append(f"{name}: {'; '.join(problems)}. Gate said: {tail}")
 
+        for name, hw_runner, head_repo, runs, says in REFUSED:
+            got, summary, log, output = run(script, work, hw_runner=hw_runner, head_repo=head_repo, runs=runs, edit_fails=True)
+            problems = []
+            if got is None or got == 0:
+                problems.append(f"exit code {got}, expected a failure")
+            for text in says:
+                if text not in summary:
+                    problems.append(f"the summary does not say '{text}'")
+            if 'labelled needs-hardware-evidence' in output:
+                problems.append("the gate says it labelled the pull request")
+            if problems:
+                tail = ' | '.join(line for line in output.splitlines()[-4:] if line.strip())
+                bad.append(f"{name}: {'; '.join(problems)}. Gate said: {tail}")
+
     for line in bad:
         print(f"::error file=.github/workflows/ci.yml::{line}")
-    print("\n".join(bad) if bad else f"the hardware gate answered all {len(CASES)} cases as documented")
+    print("\n".join(bad) if bad else f"the hardware gate answered all {len(CASES) + len(REFUSED)} cases as documented")
     sys.exit(1 if bad else 0)
 
 
