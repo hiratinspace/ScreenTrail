@@ -1312,10 +1312,13 @@ public sealed class SqliteSessionStore : ISessionStore, IAuditLog, IOutboxStore,
                     return new AuditVerification(false, _checked, _unchained, _last);
                 }
 
-                if (_previous is not null && end.Hash.Length > 0 && _previous != end.Hash)
+                if (end.Hash.Length > 0 && _previous != end.Hash)
                 {
                     // As many rows as there should be, ending somewhere else. A row replaced wholesale at
-                    // the end, or a chain rebuilt from a different point.
+                    // the end, or a chain rebuilt from a different point. Also a log in which no row is
+                    // hashed under a head that names a last hash: a hashed row was written, so these rows
+                    // are not from before the chain. The head of a store whose rows all predate the chain
+                    // is empty (schema 7 seeds it from the last row's hash, which they do not have).
                     return new AuditVerification(false, _checked, _unchained, _last);
                 }
             }
