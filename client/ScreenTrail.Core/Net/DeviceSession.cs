@@ -406,7 +406,11 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
                 return "The backend answered something this version does not understand.";
             }
 
-            if (!Keep(credential with { LastContactAt = _time.GetUtcNow() }, answer.AccessToken, answer.ExpiresAt))
+            // A backend that replaces the refresh token at each exchange sends the new one here. It is
+            // saved before the access token is used: one that cannot be written is not acted on, and the
+            // device presents the token it still has next time (security review D-03).
+            var renewed = string.IsNullOrEmpty(answer.RefreshToken) ? credential : credential with { RefreshToken = answer.RefreshToken };
+            if (!Keep(renewed with { LastContactAt = _time.GetUtcNow() }, answer.AccessToken, answer.ExpiresAt, saveFirst: renewed != credential))
             {
                 return ErasedSignIn;
             }
@@ -461,8 +465,12 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
         }
     }
 
-    /// <summary>Holds the access token and saves the credential, unless everything was erased meanwhile.</summary>
-    private bool Keep(DeviceCredential credential, string access, DateTimeOffset expires)
+    /// <summary>
+    /// Holds the access token and saves the credential, unless everything was erased meanwhile. With
+    /// <paramref name="saveFirst"/> (a new refresh token) the save comes first, and the access token is
+    /// held only once the new refresh token is on disk.
+    /// </summary>
+    private bool Keep(DeviceCredential credential, string access, DateTimeOffset expires, bool saveFirst = false)
     {
         lock (_gate)
         {
@@ -471,11 +479,20 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
                 return false;
             }
 
-            // The token first, as a renewal always did: a save that throws (antivirus holding the file)
-            // still fails the call, but does not cost the token the backend has just issued.
+            if (saveFirst)
+            {
+                _credentials.Save(credential);
+            }
+
+            // Otherwise the token first, as a renewal always did: a save that throws (antivirus holding the
+            // file) still fails the call, but does not cost the token the backend has just issued.
             _access = access;
             _accessExpires = expires;
-            _credentials.Save(credential);
+            if (!saveFirst)
+            {
+                _credentials.Save(credential);
+            }
+
             return true;
         }
     }
@@ -523,7 +540,8 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
 
     private sealed record ActivatedAnswer(string? TenantName, Guid DeviceId, string? RefreshToken, string? AccessToken, DateTimeOffset ExpiresAt);
 
-    private sealed record TokenAnswer(string? AccessToken, DateTimeOffset ExpiresAt);
+    /// <param name="RefreshToken">Present only when the backend replaced the refresh token at this exchange.</param>
+    private sealed record TokenAnswer(string? AccessToken, DateTimeOffset ExpiresAt, string? RefreshToken = null);
 
     private sealed record Problem(string? Error, string? Message);
 }
