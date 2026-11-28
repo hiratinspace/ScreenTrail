@@ -22,6 +22,10 @@ And for site-deploy.yml itself:
     `site/package-lock.json` at the same version, address and integrity, so the deploy job installs
     nothing the reviewed site lockfile does not already hold.
 
+The pilot form's addresses (G-07) reach the deploy job as environment secrets, `SITE_PILOT_FROM`
+and `SITE_PILOT_TO`, which the runner masks in the log; Wrangler prints the mail binding's addresses
+when it deploys. No workflow reads either from `vars`, which GitHub prints as they are.
+
 The checks are tried first on made-up samples that must pass and must fail.
 
 Usage: check_site_deploy.py [repo root]
@@ -42,6 +46,9 @@ EXPRESSION = re.compile(r'\$\{\{(.*?)\}\}', re.DOTALL)
 SECRET = re.compile(r'\bsecrets\b|\bgithub\s*(\.\s*token\b|\[\s*[\'"]token[\'"]\s*\])', re.IGNORECASE)
 WRANGLER = './deploy/node_modules/.bin/wrangler deploy --config wrangler.deploy.json'
 ARTIFACT = 'site-dist'
+PILOT = {'PILOT_FROM': '${{ secrets.SITE_PILOT_FROM }}', 'PILOT_TO': '${{ secrets.SITE_PILOT_TO }}'}
+PILOT_VARIABLE = re.compile(r'\bvars\s*(\.\s*|\[\s*[\'"])SITE_PILOT_(FROM|TO)\b', re.IGNORECASE)
+CONFIG_STEP = 'Write the deploy configuration (the real domain and the pilot form\'s addresses)'
 
 
 def texts(node):
@@ -125,6 +132,9 @@ def site_problems(workflow, files):
     download = [s for s in deploy.get('steps') or [] if str(s.get('uses', '')).startswith('actions/download-artifact@')]
     if len(download) != 1 or (download[0].get('with') or {}).get('name') != ARTIFACT or (download[0].get('with') or {}).get('path') != 'site/dist':
         bad.append(f"{where}: the deploy job must download {ARTIFACT!r} into site/dist, once.")
+    config = step_named(deploy, CONFIG_STEP)
+    if config is None or any((config.get('env') or {}).get(key) != value for key, value in PILOT.items()):
+        bad.append(f"{where}: the step {CONFIG_STEP!r} must take the pilot addresses from the environment secrets {sorted(PILOT.values())}, which the log masks.")
     bad += deploy_package_problems(files)
     return bad
 
@@ -160,6 +170,9 @@ def check(workflows, files):
     bad = []
     for where, workflow in workflows.items():
         bad += environment_problems(workflow, where)
+        for text in texts(workflow):
+            if PILOT_VARIABLE.search(text):
+                bad.append(f"{where}: reads a pilot address from a variable, which the log prints as it is: {text.strip()!r}.")
     if 'site-deploy.yml' in workflows:
         bad += site_problems(workflows['site-deploy.yml'], files)
     else:
@@ -207,7 +220,7 @@ def sample():
                     {'uses': 'actions/setup-node@' + pin, 'with': {'node-version-file': '.nvmrc'}},
                     {'name': 'Install Wrangler', 'working-directory': 'site/deploy', 'run': 'npm ci --ignore-scripts'},
                     {'uses': 'actions/download-artifact@' + pin, 'with': {'name': ARTIFACT, 'path': 'site/dist'}},
-                    {'name': 'Write the deploy configuration', 'run': 'node scripts/deploy-config.mjs > wrangler.deploy.json'},
+                    {'name': CONFIG_STEP, 'env': dict(PILOT, SITE_URL='${{ vars.SITE_URL }}'), 'run': 'node scripts/deploy-config.mjs > wrangler.deploy.json'},
                     {'name': 'Deploy', 'env': {'CLOUDFLARE_API_TOKEN': '${{ secrets.CLOUDFLARE_API_TOKEN }}'}, 'run': WRANGLER},
                 ],
             },
@@ -275,6 +288,13 @@ MUST_FAIL = {
     'another address': edit_json('site/deploy/package-lock.json', lambda d: d['packages']['node_modules/esbuild'].update({'resolved': 'https://example.com/esbuild.tgz'})),
     'a lockfile for another package': edit_json('site/deploy/package-lock.json', lambda d: d['packages'][''].update({'dependencies': {'wrangler': '3.0.0'}})),
     'no deploy lockfile': lambda w, f: f.pop('site/deploy/package-lock.json'),
+    # G-07: the pilot addresses never come from a variable.
+    'the pilot inbox from a variable': edit('site-deploy.yml', lambda w, f: w['jobs']['deploy']['steps'][4]['env'].update({'PILOT_TO': '${{ vars.SITE_PILOT_TO }}'})),
+    'the pilot sender from a variable': edit('site-deploy.yml', lambda w, f: w['jobs']['deploy']['steps'][4]['env'].update({'PILOT_FROM': '${{ vars.SITE_PILOT_FROM }}'})),
+    'the pilot inbox by index': edit('site-deploy.yml', lambda w, f: w['jobs']['deploy']['steps'][4]['env'].update({'PILOT_TO': "${{ vars['SITE_PILOT_TO'] }}"})),
+    'the pilot inbox from a variable elsewhere': edit('ci.yml', lambda w, f: w['jobs']['site']['steps'].append({'run': 'echo ${{ vars.SITE_PILOT_TO }}'})),
+    'the pilot addresses missing': edit('site-deploy.yml', lambda w, f: w['jobs']['deploy']['steps'][4].pop('env')),
+    'the pilot inbox from another secret': edit('site-deploy.yml', lambda w, f: w['jobs']['deploy']['steps'][4]['env'].update({'PILOT_TO': '${{ secrets.OTHER }}'})),
 }
 
 
