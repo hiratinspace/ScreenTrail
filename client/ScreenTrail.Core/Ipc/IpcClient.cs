@@ -192,6 +192,26 @@ public sealed class IpcClient : ICaptureChannel
         _closing.Dispose();
     }
 
+    /// <summary>
+    /// Tells the subscribers of a state change. False when one of them threw, whatever it threw: the
+    /// fault is the subscriber's, and it is not thrown back into the read loop, where it would end the
+    /// connection without saying so, or into <see cref="DisposeAsync"/>.
+    /// </summary>
+    private bool Tell(CaptureStateSnapshot state)
+    {
+        try
+        {
+            StateChanged?.Invoke(state);
+            return true;
+        }
+#pragma warning disable CA1031 // Any exception: a subscriber's fault ends the connection, never the loop unmarked.
+        catch (Exception)
+#pragma warning restore CA1031
+        {
+            return false;
+        }
+    }
+
     private async Task ReadLoopAsync()
     {
         try
@@ -210,7 +230,15 @@ public sealed class IpcClient : ICaptureChannel
                 if (ipcEvent is StateChanged changed)
                 {
                     State = changed.State;
-                    StateChanged?.Invoke(changed.State);
+                    if (!Tell(changed.State))
+                    {
+                        // A subscriber failed. This connection can no longer be trusted to show what the
+                        // service says, so it is over, from both ends, and said to be (security review
+                        // B-10): the read loop used to end here unmarked, nothing reconnected, requests
+                        // waited for ever, and the service's next write to the unread pipe blocked.
+                        _pipe.Dispose();
+                        break;
+                    }
                 }
                 else if (ipcEvent.RequestId is { } id && _pending.TryGetValue(id, out var completion))
                 {

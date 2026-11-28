@@ -733,11 +733,12 @@ public sealed class IpcServerTests : IAsyncDisposable
         await Assert.ThrowsAsync<IOException>(() => pending.WaitAsync(Soon, ct));
         Assert.False(ui.IsConnected);
 
-        // Closed from our side as well, so the service is not left writing to a pipe nobody reads, and
-        // disposing it afterwards does not throw the handler's fault back.
+        // Closed from our side as well, so the service is not left writing to a pipe nobody reads (once
+        // the held command is let go, the service's serve loop for it ends), and disposing it afterwards
+        // does not throw the handler's fault back.
+        _controller.Release.TrySetResult();
         await WaitUntilAsync(() => _server.ConnectedClients == 0);
         await ui.DisposeAsync();
-        _controller.Release.TrySetResult();
     }
 
     [Fact]
