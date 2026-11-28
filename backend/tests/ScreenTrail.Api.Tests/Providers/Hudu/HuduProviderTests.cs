@@ -236,6 +236,51 @@ public sealed class HuduProviderTests : IDisposable
         }
     }
 
+    [Theory]
+    [InlineData("https://login.attacker.example/hudu")]
+    [InlineData("https://acme.huducloud.com.attacker.example/a/printer-offline-5101")]
+    [InlineData("https://acme.huducloud.com:8443/a/printer-offline-5101")]
+    [InlineData("http://acme.huducloud.com/a/printer-offline-5101")]
+    [InlineData("https://someone@acme.huducloud.com/a/printer-offline-5101")]
+    [InlineData("//login.attacker.example/hudu")]
+    [InlineData("file:///a/printer-offline-5101")]
+    public async Task AnArticleLinkToAnotherSiteIsNotPassedOn(string url)
+    {
+        // The receipt's "Open in Hudu" opens what this answer names. Only a link to the Hudu site the
+        // owner connected is kept; the article itself still landed, and says so.
+        var cache = new HuduCompanyCache(_time);
+        _ = await Provider(cache).ListCompaniesAsync(TestContext.Current.CancellationToken);
+        _api.Scripted.Enqueue(new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = JsonContent.Create(new { article = new { id = 5101, name = "Printer offline", url, draft = true, company_id = 7 } }),
+        });
+
+        var result = await Provider(cache).PublishArticleAsync(new KbArticle("7", "Printer offline", "Body", []), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Ok, result.Error?.ToString());
+        Assert.Equal("5101", result.Value!.Id);
+        Assert.Null(result.Value.Url);
+    }
+
+    [Theory]
+    [InlineData("https://acme.huducloud.com/a/printer-offline-5101")]
+    [InlineData("https://ACME.huducloud.com/a/printer-offline-5101")]
+    [InlineData("/a/printer-offline-5101")]
+    public async Task AnArticleLinkToTheConnectedSiteIsKept(string url)
+    {
+        var cache = new HuduCompanyCache(_time);
+        _ = await Provider(cache).ListCompaniesAsync(TestContext.Current.CancellationToken);
+        _api.Scripted.Enqueue(new HttpResponseMessage(HttpStatusCode.Created)
+        {
+            Content = JsonContent.Create(new { article = new { id = 5101, name = "Printer offline", url, draft = true, company_id = 7 } }),
+        });
+
+        var result = await Provider(cache).PublishArticleAsync(new KbArticle("7", "Printer offline", "Body", []), TestContext.Current.CancellationToken);
+
+        Assert.True(result.Ok, result.Error?.ToString());
+        Assert.Equal(new Uri("https://acme.huducloud.com/a/printer-offline-5101"), result.Value!.Url);
+    }
+
     private static HttpResponseMessage Refusal(HttpStatusCode status, string body) =>
         new(status) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
 
