@@ -1252,6 +1252,11 @@ jobs:
       - name: Jobs with an environment run no package's code
         run: python3 scripts/ci/check_site_deploy.py .
 
+      # H-9: every image a production Dockerfile starts from, and any build front end it names, is
+      # pinned by digest, so a moved tag cannot change what a rebuild runs.
+      - name: Production images are pinned by digest
+        run: python3 scripts/ci/check_images.py .
+
       - name: No duplicate keys, every job has steps
         run: |
           python3 - <<'EOF'
