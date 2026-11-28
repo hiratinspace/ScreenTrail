@@ -83,6 +83,18 @@ public sealed class IpcServer : IAsyncDisposable
     private int _heldInARow;
 
     /// <summary>
+    /// Called once, with this server's token, as soon as its first pipe instance has claimed the name and
+    /// before any connection is accepted: where the host writes the token file (security review B-07). A
+    /// copy of the service that cannot claim the name (the same account's second Windows session, say)
+    /// used to write its token over the running one's first, and every UI after that offered the running
+    /// service a token it never issued. The token must not be kept. An I/O failure in it is retried with the
+    /// next instance, and nothing is accepted until it has succeeded.
+    /// </summary>
+    public Action<byte[]>? Claimed { get; init; }
+
+    private bool _claimed;
+
+    /// <summary>
     /// How long a peer has to complete the handshake. A real client writes <c>hello</c> in the same
     /// breath as connecting; two seconds is generous for a local pipe and short enough that holding one
     /// open costs an attacker something.
@@ -208,6 +220,20 @@ public sealed class IpcServer : IAsyncDisposable
                 // usually the handle pressure that this loop's own connections created.
                 pipe = _pipeFactory();
                 _heldInARow = 0;
+                if (!_claimed)
+                {
+                    try
+                    {
+                        Claimed?.Invoke(_token);
+                    }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+                    {
+                        pipe.Dispose();
+                        throw;
+                    }
+
+                    _claimed = true;
+                }
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {

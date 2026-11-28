@@ -303,8 +303,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             LogDiscardUnfinished(logger, finishFault.FirstFault, finishFault.Sessions);
         }
 
+        // Written by the server once its pipe has claimed the name (B-07), below.
         var token = IpcToken.Generate();
-        IpcTokenFile.Write(paths.IpcTokenFile, token);
 
         var verifier = new WindowsClientVerifier(serviceExecutable);
         var pipeName = paths.PipeName;
@@ -469,7 +469,13 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             verifier,
             controller,
             store,
-            version);
+            version)
+        {
+            // The token file, written only once this service's pipe holds the name and before any
+            // connection is accepted (security review B-07): a copy of the service that cannot claim it
+            // (this account's second Windows session, say) leaves the running one's token alone.
+            Claimed = claimedToken => IpcTokenFile.Write(paths.IpcTokenFile, claimedToken),
+        };
         Array.Clear(token);
 
         // Every transition, and every count that moved without one, to every connected UI (ST-072).
