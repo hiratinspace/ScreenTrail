@@ -47,17 +47,70 @@ public sealed class WindowsPipeFactoryTests
                 .Cast<PipeAccessRule>()
                 .ToList();
 
-            // Named one by one so a failure says which door was opened.
+            // Named one by one so a failure says which door was opened. Deny rules open no door: the one
+            // for NETWORK (B-01) is pinned by TheCapturePipeDeniesTheNetwork.
+            var allows = rules.Where(rule => rule.AccessControlType == AccessControlType.Allow).ToList();
             foreach (var outsider in Outsiders)
             {
-                Assert.DoesNotContain(rules, rule => rule.IdentityReference.Equals(new SecurityIdentifier(outsider, null)));
+                Assert.DoesNotContain(allows, rule => rule.IdentityReference.Equals(new SecurityIdentifier(outsider, null)));
             }
 
-            var only = Assert.Single(rules);
+            var only = Assert.Single(allows);
             Assert.Equal(me, only.IdentityReference);
             Assert.Equal(AccessControlType.Allow, only.AccessControlType);
             Assert.False(only.IsInherited);
         }
+    }
+
+    [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
+    public async Task TheCapturePipeDeniesTheNetwork()
+    {
+        // Security review B-01 (a): over loopback SMB the "client process id" is a number the client
+        // writes itself, so a pipe that admits NETWORK lets anything name the real UI. The deny is read
+        // back off every instance, and the descriptor the factory compares later instances with holds it.
+        var network = new SecurityIdentifier(WellKnownSidType.NetworkSid, null);
+        var create = WindowsPipeFactory.ForCurrentUser(PipeName("network"));
+        await using var first = create();
+        await using var second = create();
+
+        foreach (var pipe in new[] { first, second })
+        {
+            var rules = pipe.GetAccessControl()
+                .GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier))
+                .Cast<PipeAccessRule>()
+                .ToList();
+
+            var deny = Assert.Single(rules, rule => rule.AccessControlType == AccessControlType.Deny);
+            Assert.Equal(network, deny.IdentityReference);
+            Assert.Equal(PipeAccessRights.FullControl, deny.PipeAccessRights & PipeAccessRights.FullControl);
+            Assert.True(WindowsPipeFactory.DeniesNetwork(pipe.GetAccessControl().GetSecurityDescriptorSddlForm(AccessControlSections.Access)));
+        }
+    }
+
+    [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
+    public async Task TheCapturePipeRefusesAClientThroughLoopbackSmb()
+    {
+        // B-01 (a), end to end: the pipe opened as \\127.0.0.1\pipe\<name> comes in through the SMB
+        // server, as NETWORK, and is refused. Needs the Server service (LanmanServer) running.
+        var name = PipeName("smb");
+        var create = WindowsPipeFactory.ForCurrentUser(name);
+        await using var pipe = create();
+        var accepting = pipe.WaitForConnectionAsync(TestContext.Current.CancellationToken);
+
+        await using var client = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+        Exception? refused = null;
+        try
+        {
+            await client.ConnectAsync(Soon, TestContext.Current.CancellationToken);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or TimeoutException)
+        {
+            refused = ex;
+        }
+
+        Assert.SkipWhen(refused is IOException or TimeoutException && !accepting.IsCompleted && !LoopbackSmbServes(), "the SMB server does not answer on 127.0.0.1 here");
+        Assert.False(accepting.IsCompleted, "a client through loopback SMB was connected to the capture pipe");
+        Assert.IsType<UnauthorizedAccessException>(refused);
     }
 
     [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
@@ -250,6 +303,23 @@ public sealed class WindowsPipeFactoryTests
         WellKnownSidType.InteractiveSid,
         WellKnownSidType.NetworkSid,
     ];
+
+    /// <summary>Whether the SMB server answers on loopback at all: an ordinary pipe of this user's, opened through it.</summary>
+    private static bool LoopbackSmbServes()
+    {
+        var name = PipeName("smb-probe");
+        using var open = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        using var probe = new NamedPipeClientStream("127.0.0.1", name, PipeDirection.InOut);
+        try
+        {
+            probe.Connect(5_000);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or TimeoutException or UnauthorizedAccessException)
+        {
+            return ex is UnauthorizedAccessException;
+        }
+    }
 
     /// <summary>Never the service's own name: the laptop that runs these may have the real service running.</summary>
     private static string PipeName(string purpose) => IpcPipeNames.ForUser($"test-{purpose}-{Guid.NewGuid():N}");

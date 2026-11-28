@@ -72,6 +72,54 @@ public sealed class WindowsVerifierPipeTests
     }
 
     [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
+    public async Task TheServiceRefusesAClientStartedAfterTheConnection()
+    {
+        // Security review B-01 (b): the id the pipe recorded can name a process started after the
+        // connection, once the one that connected has exited. Here the real peer is asked about as if the
+        // connection had been made an hour before it started; the start time alone refuses it.
+        Assert.SkipUnless(PipePeer.Available, "Windows PowerShell not found");
+        var name = PipeName();
+        using var peer = PipePeer.Connecting(name);
+        await using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+        using (var waiting = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken))
+        {
+            waiting.CancelAfter(Soon);
+            await pipe.WaitForConnectionAsync(waiting.Token);
+        }
+
+        Restrict(peer, nameof(TheServiceRefusesAClientStartedAfterTheConnection));
+        IClientVerifier verifier = new WindowsClientVerifier(PipePeer.Executable);
+
+        var earlier = await verifier.CheckAsync(pipe, DateTime.UtcNow.AddHours(-1), TestContext.Current.CancellationToken);
+        var now = await verifier.CheckAsync(pipe, DateTime.UtcNow, TestContext.Current.CancellationToken);
+        now.Peer?.Dispose();
+
+        peer.AssertStillRunning();
+        Assert.Equal(PeerStart.ClientStartedAfterConnect, earlier.Refusal);
+        Assert.Null(earlier.Peer);
+        Assert.Null(now.Refusal);
+    }
+
+    [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
+    public async Task TheUiRefusesAServerStartedAfterTheConnection()
+    {
+        Assert.SkipUnless(PipePeer.Available, "Windows PowerShell not found");
+        var name = PipeName();
+        using var peer = PipePeer.Serving(name);
+        await using var pipe = new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await pipe.ConnectAsync(Soon, TestContext.Current.CancellationToken);
+        Restrict(peer, nameof(TheUiRefusesAServerStartedAfterTheConnection));
+        IServerVerifier verifier = new WindowsServerVerifier(PipePeer.Executable);
+
+        var earlier = await verifier.VerifyAsync(pipe, DateTime.UtcNow.AddHours(-1), TestContext.Current.CancellationToken);
+        var now = await verifier.VerifyAsync(pipe, DateTime.UtcNow, TestContext.Current.CancellationToken);
+
+        peer.AssertStillRunning();
+        Assert.Equal(PeerStart.ServerStartedAfterConnect, earlier);
+        Assert.Null(now);
+    }
+
+    [Fact(SkipUnless = nameof(OnWindows), Skip = "Needs Windows")]
     public async Task EachVerifierRefusesThePipeEndItDoesNotHold()
     {
         // The service's verifier handed a client stream, or the UI's a server stream, is being asked the
