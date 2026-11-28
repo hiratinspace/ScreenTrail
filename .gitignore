@@ -101,3 +101,10 @@ graphify-out/
 # Playwright (ST-099 browser tests): results and report, kept only on failure
 web/e2e-results/
 web/e2e-report/
+
+# Security review working files (local only, never published).
+security-review/
+
+# Design tool working files and the internal product brief (local only, never published).
+.impeccable/
+PRODUCT.md
