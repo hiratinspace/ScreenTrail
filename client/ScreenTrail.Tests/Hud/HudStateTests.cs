@@ -303,6 +303,7 @@ public sealed class HudStateTests
     [InlineData(CaptureStates.Idle, null, HudGlyphs.Ring)]
     [InlineData(CaptureStates.DraftReady, null, HudGlyphs.Ring)]
     [InlineData(CaptureStates.DraftFailed, null, HudGlyphs.Ring)]
+    [InlineData(CaptureStates.StoreUnavailable, StoreUnavailableReasons.KeyRefused, HudGlyphs.Ring)]
     [InlineData("a_state_from_a_newer_service", null, HudGlyphs.Unknown)]
     public void EachStateHasAVectorOrIconMarkAndNoTextSymbol(string state, string? reason, string glyph)
     {
@@ -332,7 +333,7 @@ public sealed class HudStateTests
     {
         // The control for the theory above: a contract with its constants renamed would give it nothing
         // to check and it would pass vacuously.
-        Assert.Equal(8, EveryStateTheServiceSends.Count);
+        Assert.Equal(9, EveryStateTheServiceSends.Count);
     }
 
     [Theory]

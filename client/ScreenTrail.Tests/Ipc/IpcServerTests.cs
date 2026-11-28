@@ -966,7 +966,21 @@ public sealed class IpcServerTests : IAsyncDisposable
 
         var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 17, Token = IpcToken.Encode(_token), ClientName = "v17-ui" });
 
-        Assert.Equal(18, IpcContract.Version);
+        Assert.True(IpcContract.Version >= 18);
+        Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
+    }
+
+    [Fact]
+    public async Task AVersionEighteenUiIsTurnedAwayByAVersionNineteenService()
+    {
+        // Contract v19 (security review F-10): a service whose store will not open serves the pipe in the
+        // store_unavailable state and takes retry_store. A v18 UI would show the state as unknown and could
+        // not ask to retry, so it is refused at the handshake.
+        await StartServerAsync();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 18, Token = IpcToken.Encode(_token), ClientName = "v18-ui" });
+
+        Assert.Equal(19, IpcContract.Version);
         Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
     }
 
