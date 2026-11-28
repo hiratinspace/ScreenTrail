@@ -14,8 +14,9 @@ namespace ScreenTrail.Api.Providers.Llm;
 /// constraints are removed here and written into the field's description instead, which is what
 /// Anthropic's own SDK helpers do. The model still reads every one of them, and everything else in the
 /// schema (the fields, their types, the enums, the constant prompt version, no extra properties) is
-/// enforced by the API's constrained decoding. That is more than the Gemini request gets, which asks
-/// only for JSON; <see cref="Summarize.DraftValidator"/> checks both the same way afterwards.
+/// enforced by the API's constrained decoding. The Gemini request carries the same file in Gemini's own
+/// subset (<see cref="GeminiSchema"/>); <see cref="Summarize.DraftValidator"/> checks both the same way
+/// afterwards, lengths and counts included.
 /// </summary>
 public static class ClaudeSchema
 {

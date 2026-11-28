@@ -475,18 +475,24 @@ public sealed class GeminiProvider(HttpClient http, SummarizationOptions options
     /// <summary>
     /// The request body: the prompt, the session, and the images.
     ///
+    /// The prompt and the technician's style are the system instruction; the user turn carries only the
+    /// repair and the session, which is what a customer's screen put there. In one turn, text on screen
+    /// written in the prompt's own voice had the same standing as the prompt (E-03), as it already did
+    /// not in the Claude request.
+    ///
     /// Images go as inline data rather than as an upload. They are already redacted and already small
     /// after downscaling, and an upload would mean a customer's screenshot sitting in someone else's
     /// object store with its own retention.
     /// </summary>
     private byte[] Body(SummarizeBundle bundle, string? repair)
     {
-        var parts = new List<object> { new { text = prompt } };
+        var system = new List<object> { new { text = prompt } };
         if (StyleHints.Paragraph(bundle.StyleHints) is { } style)
         {
-            parts.Add(new { text = style });
+            system.Add(new { text = style });
         }
 
+        var parts = new List<object>();
 
         if (repair is not null)
         {
@@ -543,6 +549,9 @@ public sealed class GeminiProvider(HttpClient http, SummarizationOptions options
             // session was reserved for. The ceiling is generous enough that a truncated note means
             // something went wrong rather than that the session was long (2026-09-20 review).
             ["maxOutputTokens"] = options.MaxOutputTokens,
+
+            // The note's own shape, from the schema the Claude request carries (E-03).
+            ["responseSchema"] = GeminiSchema.Wire(),
         };
 
         // Omitted when blank, so an operator can hand the choice back to the provider without a release.
@@ -556,6 +565,7 @@ public sealed class GeminiProvider(HttpClient http, SummarizationOptions options
         return JsonSerializer.SerializeToUtf8Bytes(
             new
             {
+                systemInstruction = new { parts = system },
                 contents = new[] { new { role = "user", parts } },
                 generationConfig = generation,
             },
