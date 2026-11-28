@@ -26,6 +26,7 @@ public sealed class SigningKeyTests(ApiFixture api) : IClassFixture<ApiFixture>
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("sixteen-chars-!!")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
     public void TheHostWillNotServeWithoutASigningKey(string key)
     {
         using var host = api.WithWebHostBuilder(builder => builder.UseSetting("Jwt:SigningKey", key));

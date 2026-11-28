@@ -1,3 +1,7 @@
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using ScreenTrail.Api.Auth;
 using ScreenTrail.Api.Summarize;
@@ -29,6 +33,109 @@ public sealed class StartupTests
         // Sixteen characters signs HS256 tokens without complaint and is guessable.
         Assert.Throws<InvalidOperationException>(
             () => TokenIssuer.Validation(new JwtOptions { SigningKey = "sixteen-chars-!!" }));
+    }
+
+    [Theory]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("abababababababababababababababababababababababababababababababab")]
+    [InlineData("the quick brown fox jumps over the lazy dog")]
+    [InlineData("our-company-name-and-the-year-2026")]
+    public void AKeyThatIsLongEnoughButNotRandomIsRefused(string key)
+    {
+        // Security review D-08: a key is the bytes of its text, so length alone let a memorable phrase or
+        // one letter repeated through. A key must look made by a generator: base64 or hex of at least 32
+        // bytes, with the spread of characters random output has.
+        var thrown = Assert.Throws<InvalidOperationException>(() => TokenIssuer.Validation(new JwtOptions { SigningKey = key }));
+
+        Assert.Contains("Jwt:SigningKey", thrown.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(key, thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AGeneratedKeyIsAcceptedInEveryWayTheGuidesMakeOne()
+    {
+        // openssl rand -base64 48 (make-secrets.sh, the README, web-admin.md), [Convert]::ToBase64String
+        // (the Windows guides), openssl rand -hex 32, and base64url.
+        string[] keys =
+        [
+            Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)),
+            Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
+            Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32)),
+            Convert.ToHexString(RandomNumberGenerator.GetBytes(48)),
+            Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_'),
+        ];
+
+        foreach (var key in keys)
+        {
+            _ = TokenIssuer.Validation(new JwtOptions { SigningKey = key });
+        }
+    }
+
+    [Fact]
+    public async Task AKeyIsStillTheBytesOfItsTextSoTokensIssuedBeforeStayValid()
+    {
+        // Decoding the base64 would change the key and sign every owner and device out at the deploy.
+        var key = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var token = SignedWith(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), "screentrail-api");
+
+        var result = await new JsonWebTokenHandler().ValidateTokenAsync(token, TokenIssuer.Validation(new JwtOptions { SigningKey = key }));
+
+        Assert.True(result.IsValid, result.Exception?.Message);
+    }
+
+    [Fact]
+    public async Task ATokenSignedUnderThePreviousKeyValidatesWhileThatKeyIsConfigured()
+    {
+        // A rotation: the new key signs from now on, and the one before it is still accepted for checking
+        // until every token it signed has run out. Read from configuration, as a deployment sets it.
+        var before = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var after = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var old = new JwtOptions { SigningKey = before };
+        var device = new TokenIssuer(old).ForDevice(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()).Token;
+        var owner = new TokenIssuer(old).ForOwner(Guid.NewGuid(), Guid.NewGuid(), 0, AdminSession.NewCsrf(), TimeSpan.FromHours(1)).Token;
+        var rotating = Configured(("Jwt:SigningKey", after), ("Jwt:PreviousSigningKey", before));
+        var rotated = Configured(("Jwt:SigningKey", after));
+        var handler = new JsonWebTokenHandler();
+
+        Assert.True((await handler.ValidateTokenAsync(device, TokenIssuer.Validation(rotating))).IsValid);
+        Assert.True((await handler.ValidateTokenAsync(owner, TokenIssuer.AdminValidation(rotating))).IsValid);
+        Assert.False((await handler.ValidateTokenAsync(device, TokenIssuer.Validation(rotated))).IsValid);
+        Assert.False((await handler.ValidateTokenAsync(owner, TokenIssuer.AdminValidation(rotated))).IsValid);
+
+        // The previous key checks; it never signs, and the two schemes still cannot read each other's tokens.
+        var fresh = new TokenIssuer(rotating).ForDevice(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()).Token;
+        Assert.True((await handler.ValidateTokenAsync(fresh, TokenIssuer.Validation(rotated))).IsValid);
+        Assert.False((await handler.ValidateTokenAsync(device, TokenIssuer.AdminValidation(rotating))).IsValid);
+        Assert.False((await handler.ValidateTokenAsync(owner, TokenIssuer.Validation(rotating))).IsValid);
+    }
+
+    [Fact]
+    public void APreviousKeyIsHeldToTheSameRuleAsTheKey()
+    {
+        var options = Configured(
+            ("Jwt:SigningKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))),
+            ("Jwt:PreviousSigningKey", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => TokenIssuer.Validation(options));
+
+        Assert.Contains("Jwt:PreviousSigningKey", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("365.00:00:00")]
+    [InlineData("1.00:00:01")]
+    [InlineData("00:00:00")]
+    [InlineData("00:01:00")]
+    [InlineData("-01:00:00")]
+    public void AnAccessTokenLifetimeOutsideItsRangeIsRefused(string lifetime)
+    {
+        // A year typed by mistake would make every access token a year-long bearer credential.
+        var options = Configured(("Jwt:SigningKey", Convert.ToBase64String(RandomNumberGenerator.GetBytes(48))), ("Jwt:AccessTokenLifetime", lifetime));
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => TokenIssuer.Validation(options));
+
+        Assert.Contains("Jwt:AccessTokenLifetime", thrown.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -104,6 +211,22 @@ public sealed class StartupTests
         Assert.Contains("AddRequestTimeouts", source, StringComparison.Ordinal);
         Assert.Contains("UseRequestTimeouts", source, StringComparison.Ordinal);
     }
+
+    private static JwtOptions Configured(params (string Key, string Value)[] settings) =>
+        new ConfigurationBuilder()
+            .AddInMemoryCollection(settings.Select(s => new KeyValuePair<string, string?>(s.Key, s.Value)))
+            .Build()
+            .GetSection(JwtOptions.Section)
+            .Get<JwtOptions>()!;
+
+    private static string SignedWith(SecurityKey key, string audience) =>
+        new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = new JwtOptions().Issuer,
+            Audience = audience,
+            Expires = DateTime.UtcNow.AddHours(1),
+            SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256),
+        });
 
     /// <summary>
     /// Program.cs, found by walking up from the test binary.
