@@ -81,7 +81,8 @@ prove nothing unredacted is ever there. *(INV-1)*
 **2.4 What if redaction fails on a frame?**
 The frame is deleted and counted. The same happens to a frame captured while the redaction queue is full.
 The count reaches the drafted note, which then says it did not see everything rather than pretending it
-did. An unreadable frame retained is an unredacted frame.
+did. An unreadable frame retained is an unredacted frame. A frame the OCR engine read only in part is not
+treated as a failure: it is kept, and the text the engine did not read on it is not masked (2.5).
 
 **2.5 What is redacted?**
 Card numbers (Luhn-checked), United States social security numbers, API keys and tokens, private key
@@ -95,6 +96,10 @@ words wholly left of the cue stay, and only when the secret is right of it. Ever
 touches, however the OCR engine split it. A value wrapped onto the next row by its window's edge is
 joined to each line that may continue it (up to four, on the three rows below) and masked on both rows;
 this masks more than a page needs where unrelated rows happen to complete a pattern between them.
+Masking covers only text the on-device OCR engine read. Small or scaled-down text, as in a remote viewer
+shrunk to fit, is read less well: on test pages shown through a resizing viewer, the secrets not masked
+whole were mostly at 0.6 and 0.7 of their size (the data-flow document gives the figures). Pictures are
+not read, so a QR code is never masked.
 
 **2.6 Does redaction run locally or in the cloud?**
 Locally, always. OCR uses the Windows on-device engine.

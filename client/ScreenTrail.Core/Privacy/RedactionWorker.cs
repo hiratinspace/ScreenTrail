@@ -24,8 +24,12 @@ public sealed record RedactionOptions
     public TimeSpan ReportEvery { get; init; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    /// Below this, a frame is treated as unreadable rather than as clean. A page of text the recogniser
-    /// could not make out is the one place a secret is most likely to be hiding.
+    /// Below this mean confidence, a frame is treated as unreadable rather than as clean. A page of text
+    /// the recogniser could not make out is the one place a secret is most likely to be hiding.
+    ///
+    /// Only a recogniser that reports a confidence can trip it. The Windows engine reports none and
+    /// returns <c>1.0</c> for every frame, so on Windows this gate discards nothing: a frame the engine read
+    /// only in part is kept, and what it did not read is not masked (docs/security/data-flow.md).
     /// </summary>
     public double MinimumConfidence { get; init; } = 0.3;
 }

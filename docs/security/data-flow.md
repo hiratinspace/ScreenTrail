@@ -121,6 +121,12 @@ for example), inside a web address, or under a label in another language. A labe
 own row or the row under it, so in a table with a Password column only the first row is masked. Review's
 blur and exclude are the control for these, for what is published.
 
+Masking works on the text the OCR engine read. A frame it could not read at all is deleted, but one it
+read only in part is kept, and text it did not read (small or scaled-down text in a remote viewer, low
+contrast, a script the installed language does not cover, handwriting) is not masked. Pictures are not
+read: a QR code, such as one an authenticator app is set up from, is never masked. How much is read
+through a remote viewer is measured below.
+
 The OCR engine is given each frame at twice its captured size (2026-11-11), because it reads small
 text badly and long random strings worst: on the hosted runner's probe, of 1,200 secrets drawn at 9
 and 11 pt at 100% to 150% display scale, it masked 879 read as captured and 1,053 read at twice the
