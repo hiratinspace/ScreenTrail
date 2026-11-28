@@ -58,9 +58,9 @@ public static class InstalledFootprint
 
     /// <summary>
     /// The data folder's names under local app data: today's first, then the name before the product was
-    /// renamed (ScreenTail, until 2026-11-17). The service and the window move the old folder across at
-    /// their first start (LegacyDataFolder), so the old one is normally gone; one is still there for a user
-    /// who never signed in after the upgrade, and an uninstall removes it as it removes today's.
+    /// renamed (ScreenTail, until 2026-11-17). Nothing brings the old folder across any more (F-11, DEC-12):
+    /// only machines that ran a build from before the rename have one, and an uninstall removes it as it
+    /// removes today's.
     /// </summary>
     public static IReadOnlyList<string> DataFolderNames { get; } = ["ScreenTrail", "ScreenTail"];
 
