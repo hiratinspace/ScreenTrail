@@ -726,7 +726,21 @@ public sealed class IpcServerTests : IAsyncDisposable
 
         var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 16, Token = IpcToken.Encode(_token), ClientName = "v16-ui" });
 
-        Assert.Equal(17, IpcContract.Version);
+        Assert.True(IpcContract.Version >= 17);
+        Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
+    }
+
+    [Fact]
+    public async Task AVersionSeventeenUiIsTurnedAwayByAVersionEighteenService()
+    {
+        // Contract v18 (security review B-03): indicator_showing's rectangle is in device pixels and the
+        // service checks it against the verified process's windows. A v17 UI sends the same members in
+        // another unit, which would be misread, so it is refused at the handshake.
+        await StartServerAsync();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 17, Token = IpcToken.Encode(_token), ClientName = "v17-ui" });
+
+        Assert.Equal(18, IpcContract.Version);
         Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
     }
 

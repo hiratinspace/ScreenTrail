@@ -24,6 +24,18 @@ internal static class Placement
         window.SizeChanged += CentreOnce;
     }
 
+    /// <summary>
+    /// Where Windows has the window, in device pixels on the virtual screen: what the service compares an
+    /// <c>indicator_showing</c> report with (contract v18, security review B-03). Null when it has no handle
+    /// yet or Windows will not say.
+    /// </summary>
+    public static (int Left, int Top, int Right, int Bottom)? DeviceBounds(Window window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        var handle = new WindowInteropHelper(window).Handle;
+        return handle != IntPtr.Zero && GetWindowRect(handle, out var rect) ? (rect.Left, rect.Top, rect.Right, rect.Bottom) : null;
+    }
+
     private static void CentreOnce(object sender, SizeChangedEventArgs e)
     {
         var window = (Window)sender;

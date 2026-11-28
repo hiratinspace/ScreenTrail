@@ -36,14 +36,21 @@ public sealed class ProcessImage : IDisposable
 
     private readonly SafeProcessHandle _handle;
 
-    private ProcessImage(SafeProcessHandle handle, string path)
+    private ProcessImage(SafeProcessHandle handle, uint processId, string path)
     {
         _handle = handle;
+        ProcessId = processId;
         Path = path;
     }
 
     /// <summary>The full path of the file the process was started from.</summary>
     public string Path { get; }
+
+    /// <summary>The process's id, which names this process and nothing else while the handle is held.</summary>
+    public uint ProcessId { get; }
+
+    /// <summary>The open handle, for a further question asked of the same process. Owned by this object.</summary>
+    internal SafeProcessHandle Handle => _handle;
 
     /// <summary>
     /// Opens the process and reads its image path, keeping it open until this is disposed.
@@ -70,7 +77,7 @@ public sealed class ProcessImage : IDisposable
             return null;
         }
 
-        return new ProcessImage(handle, new string(buffer, 0, length));
+        return new ProcessImage(handle, processId, new string(buffer, 0, length));
     }
 
     /// <summary>

@@ -145,9 +145,11 @@ public sealed record DiscardSessionsCommand : IpcCommand
 /// painting without closing: the socket stays open and the pill goes stale. The service expires a
 /// report it has not heard repeated.
 ///
-/// The rectangle is the pill's own, in virtual-screen coordinates. It is there so the claim is a
-/// specific one a person could check against a screenshot rather than a bare assertion, and because the
-/// UI has to compute it anyway to know whether the pill is on a screen at all.
+/// The rectangle is the pill window's own as Windows has it, in device pixels on the virtual screen
+/// (contract v18). The service checks it: a pill is believed only where the process the connection was
+/// verified as has a visible window at that rectangle, and only from the connection reporting the
+/// indicator (security review B-03). A report it does not believe is answered with <c>ok</c> false and
+/// does not count.
 ///
 /// A zero width and height means the technician chose tray-only between sessions; the pill returns as a
 /// session starts. Once a session runs a zero-size report does not count, and the indicator guard

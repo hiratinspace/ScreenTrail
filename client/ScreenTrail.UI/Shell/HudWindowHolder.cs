@@ -155,14 +155,24 @@ internal sealed class HudWindowHolder
 
         // The pill put away is the tray icon alone, and is said as an empty rectangle rather than as the
         // hidden window's old one: the rectangle is a claim about where the pill is, and it is nowhere.
-        var pill = _hud.Visible;
+        //
+        // The pill's rectangle is its window's as Windows has it, in device pixels (contract v18): the
+        // service believes it only where this process has that window on screen (security review B-03).
+        // A pill whose window Windows will not describe is not reported as a pill at all.
+        var bounds = _hud.Visible ? Theme.Placement.DeviceBounds(_window) : null;
+        if (_hud.Visible && bounds is null)
+        {
+            return;
+        }
+
+        var (left, top, right, bottom) = bounds ?? (0, 0, 0, 0);
         _ = _connection.SendAsync(id => new IndicatorShowingCommand
         {
             RequestId = id,
-            X = pill ? _window.Left : 0,
-            Y = pill ? _window.Top : 0,
-            Width = pill ? _window.ActualWidth : 0,
-            Height = pill ? _window.ActualHeight : 0,
+            X = left,
+            Y = top,
+            Width = right - left,
+            Height = bottom - top,
         });
     }
 

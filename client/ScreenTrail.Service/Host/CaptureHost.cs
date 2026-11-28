@@ -442,7 +442,11 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             updateCommands,
             trayStart: (start, ct) => startFromTray(start, ct),
             // ST-079: the coverage banner's counts, the misses kept as long as raw data (INV-12).
-            coverage: new Core.History.CoverageCommands(store, () => retentionOptions.Retention));
+            coverage: new Core.History.CoverageCommands(store, () => retentionOptions.Retention),
+            // B-03: a pill is believed only where the process its connection was verified as has that
+            // window, and only from the connection reporting the indicator; a change of connection is audited.
+            indicatorWindowRequired: true,
+            audit: store);
         await using var server = new IpcServer(
             // A pipe name another pipe already holds is logged, a warning at first (it may be this
             // service's previous run, still open in a UI) and an error if it stays held. The UI, which

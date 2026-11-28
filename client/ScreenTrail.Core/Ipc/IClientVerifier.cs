@@ -12,6 +12,15 @@ public interface IClientVerifier
 {
     /// <returns>null when the client is acceptable; otherwise a short reason with no content in it.</returns>
     ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default);
+
+    /// <summary>
+    /// The same check, keeping hold of the process it passed for the life of the connection (security
+    /// review B-01, B-03). The server asks this one. A verifier that cannot hold a process answers with
+    /// no peer, which is what every test double does.
+    /// </summary>
+    /// <param name="connectedAt">When the server accepted the connection, in UTC.</param>
+    async ValueTask<ClientCheck> CheckAsync(PipeStream connection, DateTime connectedAt, CancellationToken ct = default) =>
+        new(await VerifyAsync(connection, ct).ConfigureAwait(false), null);
 }
 
 /// <summary>What the service does with commands once a client is authenticated. ST-020 supplies the real one.</summary>
@@ -39,6 +48,20 @@ public interface IIpcCommandHandler
     /// growing a case per reply type.
     /// </summary>
     Task<IpcEvent?> ReplyToAsync(IpcCommand command, Guid caller, CancellationToken ct = default) => Task.FromResult<IpcEvent?>(null);
+
+    /// <summary>
+    /// A connection passed the handshake, before its first command is read. <paramref name="peer"/> is the
+    /// process its check passed, or null when the verifier holds none; the server disposes it when the
+    /// connection ends, so it must not be used after that.
+    /// </summary>
+    void Opened(Guid caller, IVerifiedPeer? peer)
+    {
+    }
+
+    /// <summary>A connection that was opened has ended, for whatever reason. Its peer is disposed straight after.</summary>
+    void Closed(Guid caller)
+    {
+    }
 }
 
 /// <summary>

@@ -47,6 +47,11 @@ namespace ScreenTrail.Service.Host;
 /// The coverage banner's counts (<c>get_coverage</c>, contract v14, ST-079). Null answers nothing, and the
 /// UI then shows no banner.
 /// </param>
+/// <param name="indicatorWindowRequired">
+/// Whether a reported pill is believed only where the process its connection was verified as has a window
+/// (security review B-03). The service sets it; a test that verifies nothing leaves it off.
+/// </param>
+/// <param name="audit">Where a change of the connection reporting the indicator is recorded (B-03).</param>
 internal sealed class CaptureController(
     SessionMachine machine,
     ICapabilityProbe capabilities,
@@ -62,9 +67,14 @@ internal sealed class CaptureController(
     Func<(bool LocalOnly, string? PolicyVersion)> sessionPolicy,
     Core.Update.UpdateCommands? updates = null,
     Func<StartCommand, CancellationToken, Task<CommandResult>>? trayStart = null,
-    CoverageCommands? coverage = null) : IIpcCommandHandler
+    CoverageCommands? coverage = null,
+    bool indicatorWindowRequired = false,
+    Core.Audit.IAuditLog? audit = null) : IIpcCommandHandler
 {
     private readonly ManualStart _start = new(machine, () => indicators.Showing, sessionPolicy);
+
+    /// <summary>What is believed of a connection's indicator report (B-03): one connection, and its own window.</summary>
+    private readonly IndicatorCommands _indicators = new(indicators, indicatorWindowRequired, audit, () => machine.SessionId);
 
     public CaptureStateSnapshot CurrentState => machine.Snapshot;
 
@@ -95,13 +105,6 @@ internal sealed class CaptureController(
         // token for it would be a token for something the service cannot name.
         _ => null,
     };
-
-    /// <summary>Records that this window says it is showing the indicator. Always accepted.</summary>
-    private bool Report(Guid caller, IndicatorShowingCommand showing)
-    {
-        indicators.Report(caller, showing.Width, showing.Height);
-        return true;
-    }
 
     private ConfirmationIssued Issued(DestructiveAction action, string phrase, Guid caller) =>
         new() { Token = _confirmations.Issue(action, caller), Phrase = phrase };
@@ -135,9 +138,21 @@ internal sealed class CaptureController(
         };
     }
 
+    public void Opened(Guid caller, IVerifiedPeer? peer) => _indicators.Opened(caller, peer);
+
+    public void Closed(Guid caller) => _indicators.Closed(caller);
+
     public async Task<CommandResult> HandleAsync(IpcCommand command, Guid caller, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(command);
+
+        // The UI saying the pill is on screen, and where. Believed from the connection that is reporting the
+        // indicator, where the process it was verified as has that window, and expiring on its own, so a UI
+        // that stops painting stops counting (INV-4, B-03).
+        if (command is IndicatorShowingCommand showing)
+        {
+            return await _indicators.ReportAsync(caller, showing, ct).ConfigureAwait(false);
+        }
 
         // Review's edits, and its reasons when a question had no answer. Chained first because these are
         // about a stored session, not the machine's state, and the message below would be wrong for them.
@@ -209,10 +224,6 @@ internal sealed class CaptureController(
                 && await machine.DiscardAsync(ct).ConfigureAwait(false),
 
             MarkMomentCommand => await machine.MarkMomentAsync(ct).ConfigureAwait(false),
-
-            // The UI saying the pill is on screen. Accepted from whichever connection sent it and
-            // expiring on its own, so a UI that stops painting stops counting (INV-4).
-            IndicatorShowingCommand showing => Report(caller, showing),
 
             // Not while a session is running. Erasing mid-recording destroys work the technician is in
             // the middle of and gives them nothing to look at afterwards; stopping first is one click and

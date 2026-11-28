@@ -229,12 +229,15 @@ public sealed class IpcServer : IAsyncDisposable
             // dropped to make room, which is the one least likely to be a real client: a real client
             // writes hello in the same breath as connecting, and is never the one that has been sitting
             // there longest saying nothing.
+            // As soon as the connection is in hand: a process that started after this cannot be the one that
+            // connected (B-01).
+            var connectedAt = DateTime.UtcNow;
             var id = Interlocked.Increment(ref _nextHandshake);
             var handshake = new Handshake(_stopping.Token);
             _handshakes[id] = handshake;
             EvictOldestSilent();
 
-            _ = HandleConnectionAsync(pipe, id, handshake);
+            _ = HandleConnectionAsync(pipe, id, handshake, connectedAt);
         }
     }
 
@@ -276,10 +279,11 @@ public sealed class IpcServer : IAsyncDisposable
     /// </summary>
     internal TimeSpan BroadcastTimeout { get; init; } = DefaultBroadcastTimeout;
 
-    private async Task HandleConnectionAsync(NamedPipeServerStream pipe, long id, Handshake handshake)
+    private async Task HandleConnectionAsync(NamedPipeServerStream pipe, long id, Handshake handshake, DateTime connectedAt)
     {
         var connection = new Connection(pipe);
         var counted = true;
+        var opened = false;
         try
         {
             // A handshake has to arrive promptly. Without a deadline, a peer that connects and sends
@@ -296,6 +300,7 @@ public sealed class IpcServer : IAsyncDisposable
                         _ = _handshakes.TryRemove(id, out _);
                         counted = false;
                     },
+                    connectedAt,
                     handshake.Token).ConfigureAwait(false);
                 if (reason is null)
                 {
@@ -328,6 +333,10 @@ public sealed class IpcServer : IAsyncDisposable
                 return;
             }
 
+            // Before the first command is read, so the handler knows which process every command of this
+            // connection comes from.
+            _handler.Opened(connection.Id, connection.Peer);
+            opened = true;
             await ServeAsync(connection, _stopping.Token).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or IpcProtocolException or OperationCanceledException or ObjectDisposedException)
@@ -343,7 +352,17 @@ public sealed class IpcServer : IAsyncDisposable
 
             handshake.Dispose();
             _clients.TryRemove(connection.Id, out _);
-            await connection.DisposeAsync().ConfigureAwait(false);
+            try
+            {
+                if (opened)
+                {
+                    _handler.Closed(connection.Id);
+                }
+            }
+            finally
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -390,7 +409,7 @@ public sealed class IpcServer : IAsyncDisposable
     /// "silent" during its own verification and could be evicted by a peer opening connections in a
     /// loop, which is the lockout this table exists to prevent (2026-09-19 review).
     /// </param>
-    private async Task<string?> HandshakeAsync(Connection connection, Action spoke, CancellationToken ct)
+    private async Task<string?> HandshakeAsync(Connection connection, Action spoke, DateTime connectedAt, CancellationToken ct)
     {
         IpcCommand? first;
         try
@@ -420,11 +439,16 @@ public sealed class IpcServer : IAsyncDisposable
             return RejectReasons.BadToken;
         }
 
-        if (await _verifier.VerifyAsync(connection.Pipe, ct).ConfigureAwait(false) is not null)
+        var check = await _verifier.CheckAsync(connection.Pipe, connectedAt, ct).ConfigureAwait(false);
+        if (check.Refusal is not null)
         {
+            check.Peer?.Dispose();
             return RejectReasons.UnverifiedClient;
         }
 
+        // Held for the life of the connection and disposed with it (B-01 (c)): later questions about this
+        // connection, such as where its pill is (B-03), are asked of the process that passed.
+        connection.Peer = check.Peer;
         return null;
     }
 
@@ -657,6 +681,9 @@ public sealed class IpcServer : IAsyncDisposable
 
         public NamedPipeServerStream Pipe => pipe;
 
+        /// <summary>The process the handshake's check passed, when the verifier holds one. Disposed with the connection.</summary>
+        public IVerifiedPeer? Peer { get; set; }
+
         public Task<IpcCommand?> ReadAsync(CancellationToken ct) => IpcFraming.ReadAsync<IpcCommand>(pipe, ct);
 
         public Task SendAsync(IpcEvent ipcEvent, CancellationToken ct) => SendAsync(() => ipcEvent, ct);
@@ -688,6 +715,8 @@ public sealed class IpcServer : IAsyncDisposable
         {
             await pipe.DisposeAsync().ConfigureAwait(false);
             _writeLock.Dispose();
+            Peer?.Dispose();
+            Peer = null;
         }
     }
 }

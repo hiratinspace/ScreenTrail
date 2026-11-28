@@ -32,26 +32,50 @@ public sealed class WindowsClientVerifier : IClientVerifier
     /// <summary>The path clients are compared against, for the Windows tests.</summary>
     internal string Anchor => _serviceExecutable;
 
-    public ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default)
+    public async ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default)
+    {
+        var check = await CheckAsync(connection, DateTime.UtcNow, ct).ConfigureAwait(false);
+        check.Peer?.Dispose();
+        return check.Refusal;
+    }
+
+    /// <summary>
+    /// The check, keeping the process it passed open for the life of the connection (security review B-01
+    /// (c)), so what is later asked about the connection, such as where its pill is (B-03), is asked of the
+    /// process that passed.
+    /// </summary>
+    public ValueTask<ClientCheck> CheckAsync(PipeStream connection, DateTime connectedAt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         if (connection is not NamedPipeServerStream server)
         {
-            return ValueTask.FromResult<string?>("not_a_server_pipe");
+            return ValueTask.FromResult(new ClientCheck("not_a_server_pipe", null));
         }
 
         if (!GetNamedPipeClientProcessId(server.SafePipeHandle, out var pid))
         {
-            return ValueTask.FromResult<string?>("client_pid_unknown");
+            return ValueTask.FromResult(new ClientCheck("client_pid_unknown", null));
         }
 
         // Asked of the kernel, and held open while the answer is used. Process.MainModule reads the
         // target's own loader data, which a same-user process can rewrite to name the real signed
         // executable, so the check would go and verify a genuine file on disk while talking to an
-        // impostor. And a process id is reused the moment its process exits, so the handle is what makes
-        // the file we verify and the peer we are talking to the same thing (2026-09-19 review).
-        using var image = ProcessImage.Of(pid);
-        return ValueTask.FromResult(image is null ? "client_process_unreadable" : Verify(image.Path));
+        // impostor. The handle keeps the process object, and so its id, from being handed to anything
+        // new while it is held (2026-09-19 review).
+        var image = ProcessImage.Of(pid);
+        if (image is null)
+        {
+            return ValueTask.FromResult(new ClientCheck("client_process_unreadable", null));
+        }
+
+        var refusal = Verify(image.Path);
+        if (refusal is not null)
+        {
+            image.Dispose();
+            return ValueTask.FromResult(new ClientCheck(refusal, null));
+        }
+
+        return ValueTask.FromResult(new ClientCheck(null, new WindowsVerifiedPeer(image)));
     }
 
     /// <summary>The rule itself, separated from the pipe so it can be tested with plain paths.</summary>

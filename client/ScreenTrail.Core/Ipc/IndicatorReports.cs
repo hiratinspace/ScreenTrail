@@ -22,10 +22,11 @@ namespace ScreenTrail.Core.Ipc;
 /// being reported still counts until its report expires, so for a pill lost during a session the bound is
 /// still one report's lifetime plus the grace.
 ///
-/// <b>What this is not.</b> The service cannot verify the claim, and a process that would lie about it
-/// is a process that could just as well connect and say nothing, which is exactly what used to be
-/// enough. This is not a defence against a hostile client and nothing here should be read as one. It is
-/// a defence against the accidents: a crash, a freeze, a monitor unplugged, an icon nobody can see.
+/// <b>What this is not.</b> This class keeps what was reported and lets it expire; it does not judge a
+/// claim. The service checks a claim before it reaches here (<see cref="IndicatorCommands"/>, security
+/// review B-03): a pill is believed only from the connection that is reporting, and only where the process
+/// that connection was verified as has a visible window at the reported place. That does not stop code
+/// running inside the real UI, which can draw what it likes.
 /// </summary>
 public sealed class IndicatorReports(TimeProvider? time = null)
 {
@@ -40,7 +41,7 @@ public sealed class IndicatorReports(TimeProvider? time = null)
 
     private readonly TimeProvider _time = time ?? TimeProvider.System;
     private readonly Lock _gate = new();
-    private readonly Dictionary<Guid, (DateTimeOffset At, bool Pill)> _reports = [];
+    private readonly Dictionary<Guid, (DateTimeOffset At, bool Pill, ReportedRectangle Rectangle)> _reports = [];
 
     /// <summary>Whether anything is currently claiming to show the indicator.</summary>
     public bool Showing
@@ -90,12 +91,35 @@ public sealed class IndicatorReports(TimeProvider? time = null)
     /// as the pill put away, which is the reading that stops counting once a session runs. A window's
     /// latest report replaces its last, so a pill followed by a zero-size report is the pill gone.
     /// </summary>
-    public void Report(Guid window, double width, double height)
+    public void Report(Guid window, double width, double height) => Report(window, 0, 0, width, height);
+
+    /// <summary>One window's report with where the pill is, as <c>indicator_showing</c> carries it.</summary>
+    public void Report(Guid window, double x, double y, double width, double height)
     {
         lock (_gate)
         {
             Forget();
-            _reports[window] = (_time.GetUtcNow(), width > 0 && height > 0);
+            _reports[window] = (_time.GetUtcNow(), width > 0 && height > 0, new ReportedRectangle(x, y, width, height));
+        }
+    }
+
+    /// <summary>The rectangle a window last reported, while that report is current; null otherwise.</summary>
+    public ReportedRectangle? LastReported(Guid window)
+    {
+        lock (_gate)
+        {
+            Forget();
+            return _reports.TryGetValue(window, out var report) ? report.Rectangle : null;
+        }
+    }
+
+    /// <summary>Whether a window has a report that has not expired, the pill or the pill put away.</summary>
+    public bool Current(Guid window)
+    {
+        lock (_gate)
+        {
+            Forget();
+            return _reports.ContainsKey(window);
         }
     }
 
@@ -135,3 +159,6 @@ public sealed class IndicatorReports(TimeProvider? time = null)
         }
     }
 }
+
+/// <summary>The rectangle an <c>indicator_showing</c> report carried, as it was sent.</summary>
+public readonly record struct ReportedRectangle(double X, double Y, double Width, double Height);

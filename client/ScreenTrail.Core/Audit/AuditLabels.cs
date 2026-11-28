@@ -52,6 +52,19 @@ public enum SettingChange
     AllWindowsOff,
 }
 
+/// <summary>
+/// Why the connection reporting the recording indicator changed, as the detail of
+/// <c>indicator_source_changed</c> (security review B-03). A label only: never a process, an id or a path.
+/// </summary>
+public enum IndicatorSourceChange
+{
+    /// <summary>The connection that reported before has closed, as a UI that restarted leaves it.</summary>
+    AfterTheLastClosed,
+
+    /// <summary>The connection that reported before is still open and has stopped reporting.</summary>
+    AfterTheLastLapsed,
+}
+
 /// <summary>What a settings save changed, for the audit log: one entry per setting whose value is new.</summary>
 public static class SettingChanges
 {

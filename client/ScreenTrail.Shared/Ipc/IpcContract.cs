@@ -90,8 +90,15 @@ namespace ScreenTrail.Shared.Ipc;
 /// takes a pattern, an excluded app or local-only away, or turns all windows on without one. The
 /// <c>settings</c> reply gains <c>built_in_rules_locked</c>. New members on a command and a reply both sides
 /// exchange, which a v16 peer would refuse or fail on, so the version moves.
+///
+/// Version 18 (security review B-03): <c>indicator_showing</c>'s rectangle is the pill window's as Windows
+/// has it, in device pixels on the virtual screen (it was WPF's device-independent units), and the service
+/// believes a pill only where the process the connection was verified as has a visible window at that
+/// rectangle, from one connection at a time; a report it does not believe is answered with <c>ok</c> false.
+/// The members are the same, but a v17 UI's rectangle would be read in the wrong unit and its pill not
+/// found on any display that is not at 100 percent, so the handshake turns such a pair away instead.
 /// </summary>
 public static class IpcContract
 {
-    public const int Version = 17;
+    public const int Version = 18;
 }

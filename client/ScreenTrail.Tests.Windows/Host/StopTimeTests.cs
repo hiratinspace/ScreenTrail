@@ -762,6 +762,7 @@ public sealed class StopTimeTests : IAsyncDisposable
         private readonly ScrubbingLoggerProvider _windowLog;
         private Task _reports = Task.CompletedTask;
         private IpcClient? _pipe;
+        private DesktopWindow? _pill;
 
         private RunningService(CaptureHostPaths paths)
         {
@@ -886,9 +887,17 @@ public sealed class StopTimeTests : IAsyncDisposable
             Assert.Fail($"no connection to the service's pipe in 60 s ({last?.GetType().Name})\n{Log}");
         }
 
-        /// <summary>Says the pill is on screen once a second, as the UI does while it shows it (INV-4).</summary>
+        /// <summary>
+        /// Shows a pill-sized window of this process and says it is on screen once a second, as the UI does
+        /// while it shows the pill (INV-4). The service believes a pill only where the connection's process has
+        /// a window (security review B-03), and this process is the connection's, so it is that window's
+        /// rectangle that is reported. Clear of the remote-tool window, which starts at (60, 60).
+        /// </summary>
         public void ReportThePill()
         {
+            _pill ??= DesktopWindow.Create("Stop time test pill");
+            _pill.MoveTo(4, 4, 220, 40);
+            var (left, top, right, bottom) = _pill.Bounds;
             var stop = _reporting.Token;
             _reports = Task.Run(
                 async () =>
@@ -897,7 +906,7 @@ public sealed class StopTimeTests : IAsyncDisposable
                     {
                         try
                         {
-                            _ = await Pipe.SendAsync(id => new IndicatorShowingCommand { RequestId = id, X = 8, Y = 8, Width = 220, Height = 40 }, stop);
+                            _ = await Pipe.SendAsync(id => new IndicatorShowingCommand { RequestId = id, X = left, Y = top, Width = right - left, Height = bottom - top }, stop);
                             await Task.Delay(1000, stop);
                         }
                         catch (Exception ex) when (ex is OperationCanceledException or IOException or ObjectDisposedException or IpcProtocolException)
@@ -977,6 +986,7 @@ public sealed class StopTimeTests : IAsyncDisposable
             }
 
             Window.Dispose();
+            _pill?.Dispose();
             _windowLog.Dispose();
             _reporting.Dispose();
         }
