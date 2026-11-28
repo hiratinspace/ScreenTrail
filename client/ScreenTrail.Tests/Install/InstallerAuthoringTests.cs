@@ -103,6 +103,29 @@ public sealed class InstallerAuthoringTests
     }
 
     /// <summary>
+    /// Security review A-08: both programs are Windows Error Reporting's excluded applications for every
+    /// user, as WerAddExcludedApplication would list them, in a component the product's feature installs.
+    /// </summary>
+    [Fact]
+    public void BothProgramsAreExcludedFromWindowsErrorReporting()
+    {
+        var package = Package();
+        var excluded = package.Descendants(Wix + "RegistryValue")
+            .Where(v => (string?)v.Attribute("Key") == @"Software\Microsoft\Windows\Windows Error Reporting\ExcludedApplications")
+            .ToList();
+
+        Assert.Equal(["ScreenTrail.Service.exe", "ScreenTrail.UI.exe"], excluded.Select(v => (string?)v.Attribute("Name")).Order(StringComparer.Ordinal));
+        Assert.All(excluded, v =>
+        {
+            Assert.Equal("HKLM", (string?)v.Attribute("Root"));
+            Assert.Equal("integer", (string?)v.Attribute("Type"));
+            Assert.Equal("1", (string?)v.Attribute("Value"));
+        });
+        var component = (string?)excluded[0].Parent!.Attribute("Id");
+        Assert.Contains(package.Descendants(Wix + "ComponentRef"), r => (string?)r.Attribute("Id") == component);
+    }
+
+    /// <summary>
     /// Review finding C-I7, owner decision 4 (on): the UI starts at sign-in for every user from the
     /// machine's Run key, in the background and saying it is the machine's start, so a silent deployment
     /// shows the tray icon and setup. The two Run values are the only ones, and both are installed.
