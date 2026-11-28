@@ -35,7 +35,7 @@ internal sealed class WindowsForegroundWatcher : IForegroundWatcher
     private uint _pumpThreadId;
     private ForegroundNameHook? _names;
     private IntPtr _settleTimer;
-    private (uint ProcessId, string? Name, bool Elevated) _lastProcess;
+    private readonly ForegroundProcessCache _processes = new(OpenForReading, ReadProcess, handle => _ = CloseHandle(handle));
     private volatile bool _hookInstalled;
     private ForegroundWindowInfo _current;
 
@@ -218,6 +218,9 @@ internal sealed class WindowsForegroundWatcher : IForegroundWatcher
 
             _names?.Dispose();
 
+            // The kept process's handle, held so its id cannot pass to another process, goes with the pump.
+            _processes.Forget();
+
             if (foregroundHook != IntPtr.Zero)
             {
                 _ = UnhookWinEvent(foregroundHook);
@@ -327,6 +330,8 @@ internal sealed class WindowsForegroundWatcher : IForegroundWatcher
         var at = _time.GetUtcNow();
         if (window == IntPtr.Zero)
         {
+            // The process that was in front may be gone, and its id free for the next one to start.
+            _processes.Forget();
             return ForegroundWindowInfo.None(at);
         }
 
@@ -335,14 +340,9 @@ internal sealed class WindowsForegroundWatcher : IForegroundWatcher
         var className = ReadClassName(window);
 
         // Opening the process and resolving its image name is by far the most expensive part of this, and
-        // the poll asks the same question four times a second about the same window. Ask once per process.
-        if (_lastProcess.ProcessId != processId)
-        {
-            var resolved = ReadProcess(processId);
-            _lastProcess = (processId, resolved.Name, resolved.Elevated);
-        }
-
-        var (_, processName, elevated) = _lastProcess;
+        // the poll asks the same question four times a second about the same window. Ask once per process,
+        // and keep the answer only while a handle holds the process, so it cannot outlive it (I-02).
+        var (processName, elevated) = _processes.Lookup(processId);
 
         return new ForegroundWindowInfo(
             window,
@@ -387,34 +387,50 @@ internal sealed class WindowsForegroundWatcher : IForegroundWatcher
     /// </summary>
     internal static (string? Name, bool Elevated) ReadProcess(uint processId)
     {
+        var handle = OpenForReading(processId);
+        try
+        {
+            return ReadProcess(processId, handle);
+        }
+        finally
+        {
+            if (handle != IntPtr.Zero)
+            {
+                _ = CloseHandle(handle);
+            }
+        }
+    }
+
+    /// <summary>The process opened for reading its name and token, or zero when it cannot be (or the id is 0).</summary>
+    private static nint OpenForReading(uint processId) =>
+        processId == 0 ? IntPtr.Zero : OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
+
+    /// <summary>
+    /// <see cref="ReadProcess(uint)"/> through a handle the caller opened and will close, or zero for a
+    /// process that could not be opened, which is read as elevated.
+    /// </summary>
+    private static (string? Name, bool Elevated) ReadProcess(uint processId, nint handle)
+    {
         if (processId == 0)
         {
             return (null, false);
         }
 
         var isOwn = processId == (uint)Environment.ProcessId;
-        var handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, processId);
         if (handle == IntPtr.Zero)
         {
             return (NameWithoutOpening(processId), ProcessElevation.IsElevated(null, OwnIntegrity.Value, isOwn));
         }
 
-        try
+        var elevated = ProcessElevation.IsElevated(IntegrityOf(handle), OwnIntegrity.Value, isOwn);
+        var capacity = 1024;
+        var buffer = new char[capacity];
+        if (QueryFullProcessImageName(handle, 0, buffer, ref capacity))
         {
-            var elevated = ProcessElevation.IsElevated(IntegrityOf(handle), OwnIntegrity.Value, isOwn);
-            var capacity = 1024;
-            var buffer = new char[capacity];
-            if (QueryFullProcessImageName(handle, 0, buffer, ref capacity))
-            {
-                return (ProcessNameFor(new string(buffer, 0, capacity)), elevated);
-            }
+            return (ProcessNameFor(new string(buffer, 0, capacity)), elevated);
+        }
 
-            return (NameWithoutOpening(processId), elevated);
-        }
-        finally
-        {
-            _ = CloseHandle(handle);
-        }
+        return (NameWithoutOpening(processId), elevated);
     }
 
     /// <summary>The name a process is reported under, from the path of its image. WSLg's msrdc is "wslg".</summary>
