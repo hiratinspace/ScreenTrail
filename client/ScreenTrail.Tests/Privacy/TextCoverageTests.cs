@@ -71,10 +71,127 @@ public sealed class TextCoverageTests : IAsyncDisposable
         var below = canvas.Ink(0, ReadBand, Width, Height - ReadBand);
         var left = canvas.InkLeft(regions, 0, ReadBand, Width, Height - ReadBand);
         Assert.True(below > 0, "no text was drawn below the read band, so the frame proves nothing");
-        Assert.True(left == 0, $"{left} of {below} ink pixels below the read band are not masked ({look}); the stored regions are [{string.Join("; ", regions.Select(r => $"{r.Kind} {r.X},{r.Y} {r.Width}x{r.Height}"))}]");
+        Assert.True(left == 0, $"{left} of {below} ink pixels below the read band are not masked ({look}), within {canvas.WhereInkIsLeft(regions, 0, ReadBand, Width, Height - ReadBand)}; the stored regions are [{string.Join("; ", regions.Select(r => $"{r.Kind} {r.X},{r.Y} {r.Width}x{r.Height}"))}]");
 
         // What the engine read stays readable: it is in the stored text, and nothing covers it.
         Assert.Equal(canvas.Ink(heading.X, heading.Y, heading.Width, heading.Height), canvas.InkLeft(regions, heading.X, heading.Y, heading.Width, heading.Height));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task APageReadWholeHasNothingMoreMasked(int scale)
+    {
+        // The frame a technician screenshots most: every line read. Nothing is covered beyond the text's
+        // own matches, so a frame read well looks as it did before.
+        var canvas = new PictureCanvas(Width, Height);
+        var words = new List<OcrWord>();
+        for (var row = 0; row * 14 * scale < Height - 40; row++)
+        {
+            var line = canvas.DrawText(40 + (row % 3 * 150), 20 + (row * 14 * scale), "printer cleared on the third floor", scale);
+            words.Add(new OcrWord("printer cleared on the third floor", line.X, line.Y, line.Width, line.Height));
+        }
+
+        var regions = await RedactAsync(canvas, words);
+
+        Assert.DoesNotContain(regions, r => r.Kind == MaskKind.SensitiveContext);
+    }
+
+    [Fact]
+    public async Task ALineReadInPartIsMaskedWhereItWasNotRead()
+    {
+        var canvas = new PictureCanvas(Width, Height);
+        var read = canvas.DrawText(40, 200, "user: svc_backup", scale: 1);
+        var unread = canvas.DrawText(read.X + read.Width + 6, 200, "pwd: mnr0ckl1ght winter2026", scale: 1);
+        var heading = canvas.DrawText(40, 20, "session", scale: 3);
+
+        var regions = await RedactAsync(canvas, [new OcrWord("session", heading.X, heading.Y, heading.Width, heading.Height), new OcrWord("user: svc_backup", read.X, read.Y, read.Width, read.Height)]);
+
+        Assert.Equal(0, canvas.InkLeft(regions, unread.X, unread.Y, unread.Width, unread.Height));
+        Assert.Equal(canvas.Ink(heading.X, heading.Y, heading.Width, heading.Height), canvas.InkLeft(regions, heading.X, heading.Y, heading.Width, heading.Height));
+    }
+
+    [Fact]
+    public async Task PicturesPanelsRulesAndIconsAreNotTakenForText()
+    {
+        // What is on a screen beside text: a photograph (noise, and the same softened), a gradient, panels
+        // and their borders, a table's rules, and icons alone on a toolbar. None of it is text.
+        var canvas = new PictureCanvas(Width, Height, paper: 243);
+        var heading = canvas.DrawText(40, 20, "remote desktop", scale: 3);
+        var random = new Random(4417);
+        for (var y = 100; y < 400; y++)
+        {
+            for (var x = 40; x < 440; x++)
+            {
+                canvas.Pixels[(y * Width) + x] = (byte)random.Next(256);
+            }
+        }
+
+        for (var y = 100; y < 400; y++)
+        {
+            for (var x = 480; x < 880; x++)
+            {
+                canvas.Pixels[(y * Width) + x] = (byte)(40 + ((x - 480) * 180 / 400) + random.Next(-6, 7));
+            }
+        }
+
+        canvas.Soften(40, 250, 400, 150);
+        canvas.Fill(920, 100, 320, 300, 255);
+        canvas.Fill(920, 100, 320, 1, 120);
+        canvas.Fill(920, 399, 320, 1, 120);
+        canvas.Fill(920, 100, 1, 300, 120);
+        canvas.Fill(1239, 100, 1, 300, 120);
+        for (var y = 130; y < 400; y += 24)
+        {
+            canvas.Fill(920, y, 320, 1, 200);
+        }
+
+        for (var x = 1000; x < 1240; x += 80)
+        {
+            canvas.Fill(x, 100, 1, 300, 200);
+        }
+
+        for (var x = 60; x < 1200; x += 120)
+        {
+            canvas.Fill(x, 460, 12, 12, 60);
+            canvas.Fill(x + 3, 463, 6, 6, 243);
+        }
+
+        var regions = await RedactAsync(canvas, [new OcrWord("remote desktop", heading.X, heading.Y, heading.Width, heading.Height)]);
+
+        Assert.True(
+            !regions.Any(r => r.Kind == MaskKind.SensitiveContext),
+            $"masked as text: [{string.Join("; ", regions.Select(r => $"{r.X},{r.Y} {r.Width}x{r.Height}"))}]");
+    }
+
+    [Fact]
+    public void LookingAtAFullHdFrameStaysWithinItsBudget()
+    {
+        // The cost every frame now pays on top of OCR (ST-041 budgets 700 ms for the whole frame): the QR
+        // search and the coverage check over a full HD frame dense with text the engine read none of.
+        var canvas = new PictureCanvas(1920, 1080);
+        for (var row = 0; row * 12 < 1060; row++)
+        {
+            for (var column = 0; column < 4; column++)
+            {
+                canvas.DrawText(10 + (column * 480), 10 + (row * 12), Unread[(row + column) % Unread.Length][..Math.Min(36, Unread[(row + column) % Unread.Length].Length)]);
+            }
+        }
+
+        var brightness = canvas.Brightness();
+        var times = new List<double>();
+        for (var run = 0; run < 5; run++)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var codes = QrCodeFinder.Find(brightness);
+            var unread = TextCoverage.Unread(brightness, [], codes.Codes);
+            times.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            Assert.True(codes.Complete);
+            Assert.NotEmpty(unread);
+        }
+
+        times.Sort();
+        Assert.True(times[2] < 150, $"looking at a full HD frame took a median of {times[2]:F0} ms");
     }
 
     public async ValueTask DisposeAsync()

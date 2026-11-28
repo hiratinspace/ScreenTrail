@@ -28,8 +28,9 @@ public sealed record RedactionOptions
     /// the recogniser could not make out is the one place a secret is most likely to be hiding.
     ///
     /// Only a recogniser that reports a confidence can trip it. The Windows engine reports none and
-    /// returns <c>1.0</c> for every frame, so on Windows this gate discards nothing: a frame the engine read
-    /// only in part is kept, and what it did not read is not masked (docs/security/data-flow.md).
+    /// returns <c>1.0</c> for every frame, so on Windows this gate discards nothing. What it was for is done
+    /// there by looking at the picture (<see cref="TextCoverage"/>): a frame the engine read only in part is
+    /// kept, with the areas that look like text where no word was read masked (docs/security/data-flow.md).
     /// </summary>
     public double MinimumConfidence { get; init; } = 0.3;
 }
@@ -409,14 +410,15 @@ public sealed class RedactionWorker(
         var regions = redaction.Regions.ToList();
 
         // What the recogniser cannot report is looked for in the picture itself (A-02): a QR code is never
-        // text. Found in the decoded pixels before the masker paints them, and painted with the text's
-        // masks; the stored text is unchanged, since none of it was text. A check that fails, or stops at
+        // text, and text it read no word of is not in the words. Found in the decoded pixels before the
+        // masker paints them, and painted with the text's masks; the stored text is unchanged, since none
+        // of it was read. A check that fails, or stops at
         // its bound with part of the picture not searched, leaves the picture unchecked, so the frame goes,
         // as for a masker that fails or a pattern scan that did not finish.
         IReadOnlyList<MaskedRegion>? picture;
         try
         {
-            picture = PictureRegions(decoded);
+            picture = PictureRegions(decoded, text.Words, regions);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -495,11 +497,12 @@ public sealed class RedactionWorker(
     }
 
     /// <summary>
-    /// The masks the picture itself needs (A-02): the square of every QR code on it. None from a frame
-    /// the platform gives no brightness for; on Windows every decoded frame gives it. Null when the
-    /// search did not cover the whole picture. The brightness is cleared as soon as it has been looked at.
+    /// The masks the picture itself needs (A-02): the square of every QR code on it, and every block that
+    /// looks like text where no word was read and nothing is masked yet. None from a frame the platform
+    /// gives no brightness for; on Windows every decoded frame gives it. Null when the QR search did not
+    /// cover the whole picture. The brightness is cleared as soon as it has been looked at.
     /// </summary>
-    private static IReadOnlyList<MaskedRegion>? PictureRegions(DecodedFrame? decoded)
+    private static IReadOnlyList<MaskedRegion>? PictureRegions(DecodedFrame? decoded, IReadOnlyList<OcrWord> words, IReadOnlyList<MaskedRegion> found)
     {
         var brightness = decoded?.ReadBrightness();
         if (brightness is null)
@@ -510,7 +513,12 @@ public sealed class RedactionWorker(
         try
         {
             var codes = QrCodeFinder.Find(brightness);
-            return codes.Complete ? codes.Codes : null;
+            if (!codes.Complete)
+            {
+                return null;
+            }
+
+            return [.. codes.Codes, .. TextCoverage.Unread(brightness, words, [.. found, .. codes.Codes])];
         }
         finally
         {

@@ -213,6 +213,24 @@ internal sealed class PictureCanvas
         return left;
     }
 
+    /// <summary>Where the ink not under any region lies: the box round it, for a failure message.</summary>
+    public string WhereInkIsLeft(IReadOnlyList<MaskedRegion> regions, int x, int y, int width, int height)
+    {
+        int left = int.MaxValue, top = int.MaxValue, right = -1, bottom = -1;
+        for (var row = Math.Max(0, y); row < Math.Min(Height, y + height); row++)
+        {
+            for (var column = Math.Max(0, x); column < Math.Min(Width, x + width); column++)
+            {
+                if (_ink[(row * Width) + column] && !regions.Any(r => column >= r.X && column < r.X + r.Width && row >= r.Y && row < r.Y + r.Height))
+                {
+                    (left, top, right, bottom) = (Math.Min(left, column), Math.Min(top, row), Math.Max(right, column), Math.Max(bottom, row));
+                }
+            }
+        }
+
+        return right < 0 ? "none" : $"{left},{top} to {right},{bottom}";
+    }
+
     /// <summary>How many drawn ink pixels the box given holds.</summary>
     public int Ink(int x, int y, int width, int height) => InkLeft([], x, y, width, height);
 }

@@ -85,8 +85,9 @@ prove nothing unredacted is ever there. *(INV-1)*
 **2.4 What if redaction fails on a frame?**
 The frame is deleted and counted. The same happens to a frame captured while the redaction queue is full.
 The count reaches the drafted note, which then says it did not see everything rather than pretending it
-did. An unreadable frame retained is an unredacted frame. A frame the OCR engine read only in part is not
-treated as a failure: it is kept, and the text the engine did not read on it is not masked (2.5).
+did. An unreadable frame retained is an unredacted frame. A frame the OCR engine read only in part is
+kept, and on its screenshot the areas that look like text where the engine read no word are masked
+(2.5 says what this can miss). A frame whose picture cannot be checked for that is deleted and counted like any other.
 
 **2.5 What is redacted?**
 The rules are written for the United States. Card numbers (Luhn-checked), United States social security
@@ -111,9 +112,13 @@ words wholly left of the cue stay, and only when the secret is right of it. Ever
 touches, however the OCR engine split it. A value wrapped onto the next row by its window's edge is
 joined to each line that may continue it (up to four, on the three rows below) and masked on both rows;
 this masks more than a page needs where unrelated rows happen to complete a pattern between them.
-Masking covers only text the on-device OCR engine read. Small or scaled-down text, as in a remote viewer
-shrunk to fit, is read less well: on test pages shown through a resizing viewer, the secrets not masked
-whole were mostly at 0.6 and 0.7 of their size (the data-flow document gives the figures). Pictures are
+Pattern masking covers only text the on-device OCR engine read. Small or scaled-down text, as in a
+remote viewer shrunk to fit, is read less well: on test pages shown through a resizing viewer, the
+secrets not masked whole were mostly at 0.6 and 0.7 of their size (the data-flow document gives the
+figures). So the screenshot is also checked for areas that look like text (many sharp edges on a flat
+background) where the engine read no word, and those areas are masked whole. Text the engine did not
+read can still be missed there when it is very faint, stands alone in a small patch, or is drawn over a
+photograph, and the masked text is not in the stored text either way. Pictures are
 not read as text. A QR code is found by the three squares in its corners and masked whole on the
 screenshot; one turned at an angle other than a right angle, drawn so small that a module is under a
 pixel, or with a corner square covered or cut off by the window's edge, is not found and stays readable.

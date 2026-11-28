@@ -146,9 +146,19 @@ hexadecimal keys with no label, MFA backup codes and Windows product keys; a car
 and anything that is a picture rather than text (below). Review's blur and exclude are the control for
 these, for what is published.
 
-Masking works on the text the OCR engine read. A frame it could not read at all is deleted, but one it
-read only in part is kept, and text it did not read (small or scaled-down text in a remote viewer, low
-contrast, a script the installed language does not cover, handwriting) is not masked. Pictures are not
+Pattern masking works on the text the OCR engine read. A frame it could not read at all is deleted, but
+one it read only in part is kept, and text it did not read (small or scaled-down text in a remote viewer,
+low contrast, a script the installed language does not cover, handwriting) is not in the words the
+patterns see. So the worker also looks at the screenshot itself (2026-11-28): it cuts the frame into
+16-pixel cells and, on the pixels no word box covers, takes a cell for text when several of its rows
+cross many sharp edges, it has edges up and down as well, much of it is one flat shade, and a good share
+of its edges have that shade on one side. Cells like that beside one another, grown along the row to a
+line's ends, are masked as blocks, and the frame is kept: what was read stays readable. What this still
+misses: very faint text, text alone in one small patch, and text
+drawn over a photograph, where no shade is the paper; and it masks some things that are not text, such
+as dense icons or a sharp picture on a flat background, where no word was read. A frame whose picture
+cannot be checked is deleted and counted, like one the engine could not read. How much this masks on
+real screens, and what it costs, is measured on the Windows laptop. Pictures are not
 read as text, with one exception: a QR code, such as one an authenticator app is set up from, is found
 by the three squares in its corners (each a dark ring, a light ring and a dark centre, checked across,
 down and at the ring's corners, dark on light and light on dark) and its square is masked on the

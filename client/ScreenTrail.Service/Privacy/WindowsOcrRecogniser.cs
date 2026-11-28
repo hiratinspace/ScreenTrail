@@ -31,7 +31,8 @@ namespace ScreenTrail.Service.Privacy;
 ///
 /// One thing it does not give us: a confidence score. Tesseract reports per-word confidence and the
 /// worker uses it to throw away frames it could not read; this engine reports none, so that gate is inert
-/// here and says so rather than pretending to a number it does not have.
+/// here and says so rather than pretending to a number it does not have. What the engine did not read is
+/// found in the picture instead: the worker masks the areas that look like text where no word came back.
 /// </summary>
 [SupportedOSPlatform("windows10.0.19041.0")]
 internal sealed class WindowsOcrRecogniser : IFrameTextRecogniser
