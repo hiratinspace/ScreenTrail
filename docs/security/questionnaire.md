@@ -123,7 +123,12 @@ Yes, with a five-second undo. After that it is permanent and an audit row record
 ## 3 · Data leaving the device
 
 **3.1 What leaves the device?**
-Only a redacted bundle sent to produce the draft note, and only what the technician publishes.
+Only a redacted bundle sent to produce the draft note, and only what the technician publishes. The bundle is
+sent by itself when the session ends, about 30 seconds after it and before the technician opens Review; in
+local-only mode (3.3) it is not sent. Review governs what is published to the ticket, not what the drafting
+model saw: a screenshot the technician excludes or blurs in Review may already have been sent for drafting, in
+its redacted form. ⚠ A tenant setting to hold the draft until the screenshots have been reviewed is planned and
+not built.
 
 **3.2 Can the product publish automatically?**
 No. There is no automatic publishing path. *(INV-3)*
@@ -261,7 +266,8 @@ everything".
 ## 6 · Product behaviour a reviewer should know
 
 **6.1 What does the technician see before anything is published?**
-The drafted note, every screenshot with include/exclude control, the transcript, and the timeline. Steps
+The drafted note, every screenshot with include/exclude control, the transcript, and the timeline. The
+drafting request has already gone by then (3.1). Steps
 the model inferred rather than observed are marked, and the marker clears only when the technician edits
 or confirms them. A screenshot that looked like a sign-in screen, or was taken while capture was paused or
 suppressed, is shown marked "withheld": it stays on the device and is never attached or sent, whatever

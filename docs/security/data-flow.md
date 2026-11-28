@@ -6,33 +6,38 @@ document that gets forwarded and never checked.
 
 Everything here is enforced in code and named against the invariant that enforces it. Where something is
 not yet built, it says so. **Revised 2026-09-28** against `main` after #168; not yet reviewed by a security
-lead.
+lead. **Corrected 2026-11-27** where it said more than the code does.
 
 ---
 
 ## The short version
 
-ScreenTrail watches a remote-support session on the **technician's** machine, turns it into a draft ticket
-note, and shows that note to the technician before anything leaves the device. It never publishes on its
-own.
+ScreenTrail watches a remote-support session on the **technician's** machine and turns it into a draft ticket
+note. To write the draft, the redacted screenshots, the masked text read from them and the masked transcript
+are sent to the drafting model when the session ends, about 30 seconds after it and before the technician
+opens Review (in local-only mode none of it is sent and the draft is written on the device). The technician then
+reviews the note and the screenshots, and nothing reaches the ticket until they press Publish: it never
+publishes on its own. Review governs what is published, not what the drafting model saw.
 
 ```
   Technician's machine                                          Your PSA
   ┌─────────────────────────────────────────────────┐          ┌──────────┐
   │                                                 │          │          │
-  │  screenshot ──► encrypted store ──► redaction   │          │ ticket   │
-  │  (on click or   (unreadable       (masks what   │          │ note     │
-  │   scene change)  until redacted)    it finds)   │          │          │
-  │                                        │        │          └──────────┘
-  │  microphone ───► transcript ───────────┤        │               ▲
-  │  (technician only)                     │        │               │
-  │                                        ▼        │               │
-  │                                  draft request ─┼──► model ─────┘
-  │                                        │        │    (or on-device)
-  │                                        ▼        │         ▲
-  │                                   YOU REVIEW ───┼─────────┘
-  │                                   AND PUBLISH   │    nothing goes further
-  │                                                 │    without this step
+  │  screenshot ──► redaction ──► encrypted store   │          │ ticket   │
+  │  (on click or   (masks what   (redacted         │          │ note     │
+  │   scene change)  it finds,     frames only)     │          │          │
+  │                  in memory)        │            │          └──────────┘
+  │  microphone ───► transcript ───────┤            │               ▲
+  │  (technician only)                 │            │               │
+  │                                    ▼            │               │
+  │                  draft request, sent when the   │               │
+  │                  session ends (redacted) ───────┼──► model      │
+  │                  (on the device in local-only)  │      │        │
+  │                                    ┌────────────┼──────┘        │
+  │                                    ▼            │               │
+  │                       YOU REVIEW AND PUBLISH ───┼───────────────┘
+  │                                                 │   nothing reaches the ticket
+  │                                                 │   without this step
   └─────────────────────────────────────────────────┘
 ```
 
@@ -349,8 +354,9 @@ verification beside it.
 
 ## What leaves the device
 
-**Only when the technician presses Publish** (INV-3). There is no automatic publishing path in v1: not
-a scheduled one, not a "publish when confident" one. One press is one request: a refused publish is not
+**Two things carrying a session's content leave it: the drafting request, sent by itself when the session
+ends, and what the technician publishes.** Publishing happens only when the technician presses Publish (INV-3). There is no automatic
+publishing path in v1: not a scheduled one, not a "publish when confident" one. One press is one request: a refused publish is not
 sent again to learn why it was refused, and once anything has landed Publish is refused, so Retry (which
 sends only what failed) is the one way on.
 
@@ -365,7 +371,11 @@ For drafting, the note can be produced two ways:
 - **On the device.** Local-only mode means **zero egress**, enforced by an allowlist that defaults closed
   and takes the destination's purpose from the calling code rather than guessing it from the URL (INV-8).
   A tenant can lock this on for every machine.
-- **By a hosted model.** A redacted bundle is sent for one request. **The backend never writes frames to
+- **By a hosted model.** A redacted bundle is sent for one request, when the session ends: the draft is
+  queued as the session finishes and sent within about 30 seconds, before the technician opens Review. It
+  carries up to 25 of the session's screenshots. So a screenshot the technician excludes or blurs in
+  Review may already have gone to the drafting model in its redacted form; Review governs what is published to the ticket, not what the model saw. Holding the
+  draft until Review is not built yet (below). **The backend never writes frames to
   storage** (INV-7): they are held in memory for the duration of the request and are not persisted, and
   the backend's tests assert that its storage does not grow. The model is the one the deployment's
   `Summarization:Provider` names, and no other: Anthropic's Claude (`api.anthropic.com`, under the
@@ -476,8 +486,10 @@ trust:
   the screen being captured. Worth saying aloud, since watching one is the product's entire premise.
 - **A technician who opens the wrong window.** Scope defaults and suppression reduce this; they do not
   eliminate it. The review step exists partly for this reason: the technician sees every screenshot
-  before it goes anywhere, and can exclude or blur any of them. A blur deletes the text read from that
-  screenshot as well as the pixels.
+  before anything is published to the ticket, and can exclude or blur any of them. A blur deletes the
+  text read from that screenshot as well as the pixels. Review comes after the drafting request,
+  though: the redacted screenshots have already been sent to the drafting model by then, unless the
+  device is in local-only mode.
 
 The full threat model, with mitigations mapped to tickets, is in [threat-model.md](threat-model.md).
 
@@ -545,6 +557,11 @@ This document describes what is enforced today. These are named here rather than
 - **The on-device model is not built** (ST-065). A local-only session is drafted on the device from
   its transcript and screenshots instead (a plainer note, marked local), so nothing leaves and
   nothing is lost.
+- **Drafting does not wait for Review.** A session's redacted screenshots, text and transcript go to the
+  drafting model when it ends, before the technician opens Review. A tenant setting to hold the draft
+  until the technician has reviewed the screenshots, and a note in Review on a screenshot excluded or
+  blurred after it was sent for drafting, are planned and not built. Local-only mode is the way to keep
+  a session's screenshots on the device today.
 - **Binaries are not signed** (ST-112). The peer check falls back to the same-directory rule on
   development builds, and the spare laptop's Application Control policy has blocked fresh service
   builds more than once.

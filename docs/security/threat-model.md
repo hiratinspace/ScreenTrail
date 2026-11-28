@@ -60,7 +60,9 @@ copy of our own binaries, and the network.
   itself (PrintWindow or Windows.Graphics.Capture).
 - **Screen content a technician is entitled to see but a customer would not want captured.** This is a
   policy and consent question, handled by scope defaults (INV-5), suppression (INV-6) and the review step
-  (INV-3), not by anything in this table.
+  (INV-3), not by anything in this table. The review step governs what is published to the ticket; the
+  redacted screenshots have already been sent to the drafting model when the session ended, unless the
+  device is in local-only mode ([data-flow.md](data-flow.md)).
 
 ## What is wired, and what is not yet
 
