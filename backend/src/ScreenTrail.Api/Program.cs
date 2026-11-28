@@ -236,6 +236,7 @@ var hudu = builder.Configuration.GetSection(HuduOptions.Section).Get<HuduOptions
 builder.Services.AddSingleton(hudu);
 builder.Services.AddSingleton<HuduCompanyCache>();
 builder.Services.AddSingleton<MappingChangeLimit>();
+builder.Services.AddSingleton<CallerLimits>();
 builder.Services.AddHttpClient(nameof(HuduProvider), ProviderHttp.Configure)
     .ConfigurePrimaryHttpMessageHandler(() => PublicNetwork.Handler(providerNetwork.AllowPrivateAddresses));
 builder.Services.AddScoped<IDocProviderFactory, HuduProviderFactory>();
@@ -480,6 +481,7 @@ app.UseCrossSiteRefusal();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+_ = CallerLimits.Use(app);
 app.UseDraftingConcurrency();
 app.UsePublishConcurrency();
 
@@ -515,7 +517,7 @@ _ = app.MapGroup("/v1/admin").AllowAnonymous().WithMetadata(new RequestSizeLimit
 // (D-01). Without it a route was left on the server's 30 MB default.
 _ = app.MapGroup("/v1/admin").RequireAuthorization(OwnerPolicy.Name).WithMetadata(new RequestSizeLimitAttribute(BodyLimits.Default)).MapAdmin().MapAdminIntegrations();
 
-var v1 = app.MapGroup("/v1").RequireAuthorization(CallerPolicy.Name).WithMetadata(new RequestSizeLimitAttribute(BodyLimits.Default));
+var v1 = app.MapGroup("/v1").RequireAuthorization(CallerPolicy.Name).WithMetadata(new RequestSizeLimitAttribute(BodyLimits.Default), new CallerLimits.Spends(CallerLimits.Requests));
 _ = v1.MapMe();
 _ = v1.MapSummarize();
 _ = v1.MapIntegrations();

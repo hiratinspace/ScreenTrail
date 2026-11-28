@@ -113,6 +113,7 @@ public static class IntegrationsEndpoint
 
         group.MapPost("/integrations/{provider}/check", (string provider, Caller who, ScreenTrailContext db, IPsaProviderFactory psa, IDocProviderFactory docs, TimeProvider time, CancellationToken ct) =>
             CheckAsync(who.TenantId, provider, forOwner: false, db, psa, docs, time, ct))
+        .WithMetadata(CallerLimits.DeviceProviderRoute, new CallerLimits.Spends(CallerLimits.Checks), CallerLimits.CallsProvider)
         .WithName("CheckIntegration")
         .WithSummary("Tests the tenant's stored credential for a provider and records when and how it went.");
 
@@ -174,6 +175,7 @@ public static class IntegrationsEndpoint
 
         group.MapPost("/integrations/{provider}/check", (string provider, AdminCaller owner, ScreenTrailContext db, IPsaProviderFactory psa, IDocProviderFactory docs, TimeProvider time, CancellationToken ct) =>
             CheckAsync(owner.TenantId, provider, forOwner: true, db, psa, docs, time, ct))
+        .WithMetadata(new CallerLimits.Spends(CallerLimits.Checks, CallerLimits.TenantProviderCalls), CallerLimits.CallsProvider)
         .WithName("AdminCheckIntegration")
         .WithSummary("Tests the tenant's stored credential for ConnectWise or Hudu and records when and how it went.");
 

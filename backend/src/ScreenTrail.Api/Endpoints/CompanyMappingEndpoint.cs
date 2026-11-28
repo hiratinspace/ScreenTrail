@@ -52,6 +52,7 @@ public static class CompanyMappingEndpoint
                 [.. companies.Value!.Select(c => new DocCompanyRow(c.Id, c.Name))],
                 [.. mappings.Select(m => new CompanyMappingRow(m.PsaCompany, m.DocCompanyId, m.DocCompanyName, m.Confidence))]));
         })
+        .WithMetadata(CallerLimits.DeviceProviderRoute, CallerLimits.CallsProvider)
         .WithName("ListCompanyMappings")
         .WithSummary("The documentation platform's companies and what this tenant has mapped to them.");
 
@@ -135,6 +136,7 @@ public static class CompanyMappingEndpoint
             return Results.NoContent();
         })
         .WithMetadata(new RequestSizeLimitAttribute(IntegrationsEndpoint.BodyLimit))
+        .WithMetadata(CallerLimits.DeviceProviderRoute, CallerLimits.CallsProvider)
         .WithName("MapCompany")
         .WithSummary("Maps a PSA company to a documentation-platform company, by hand.");
 

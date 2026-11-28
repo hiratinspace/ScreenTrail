@@ -15,6 +15,12 @@ public sealed record TicketSearchResponse(IReadOnlyList<TicketSearchRow> Tickets
 /// </summary>
 public static class PsaEndpoint
 {
+    /// <summary>
+    /// The longest search sent to the PSA (D-06). A ticket summary is a line, and the picker searches what
+    /// is typed into one box; a hundred characters is several sentences.
+    /// </summary>
+    public const int MaxQueryLength = 100;
+
     public static RouteGroupBuilder MapPsa(this RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -27,6 +33,11 @@ public static class PsaEndpoint
             if (query.Length > 0 && query.Length < 3 && !query.All(char.IsAsciiDigit))
             {
                 return Results.BadRequest(new { error = "query_too_short", message = "Type at least three characters, or a ticket number." });
+            }
+
+            if (query.Length > MaxQueryLength)
+            {
+                return Results.BadRequest(new { error = "query_too_long", message = "Search with fewer words: at most 100 characters." });
             }
 
             var psa = await providers.ForTenantAsync(who.TenantId, ct).ConfigureAwait(false);
@@ -45,6 +56,7 @@ public static class PsaEndpoint
 
             return Results.Ok(new TicketSearchResponse([.. result.Value!.Select(t => new TicketSearchRow(t.Id, t.Summary, t.Company, t.Status))]));
         })
+        .WithMetadata(CallerLimits.DeviceProviderRoute, CallerLimits.CallsProvider)
         .WithName("SearchTickets")
         .WithSummary("Searches the tenant's PSA for tickets: three characters or a ticket number. With no query, the open tickets most recently touched.");
 
