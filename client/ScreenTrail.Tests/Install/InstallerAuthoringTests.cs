@@ -393,6 +393,23 @@ public sealed class InstallerAuthoringTests
     }
 
     [Fact]
+    public void TheSmokeTestHoldsEveryRepairGivenAnotherAddressToTheAddressOnTheMachine()
+    {
+        // C-02, after the first hosted run. A repair given another address passes when the package's check
+        // refuses it, or when it runs and BACKENDURL never reached Windows Installer's service (msiexec /f
+        // hands none of its command line's properties on): the smoke test reads that from the service's
+        // command line in the verbose log, so a repair that runs with BACKENDURL there fails, and an exit
+        // code alone decides nothing. Both repair forms are tried, msiexec /f and an msiexec /i of the
+        // installed product with REINSTALL, which does hand its properties on.
+        var smoke = File.ReadAllText(Repo.File("installer", "smoke-test.ps1"));
+        Assert.Contains("function Test-RepairKeepsAddress(", smoke, StringComparison.Ordinal);
+        Assert.Contains("'^MSI \\(s\\) .*: Command Line: '", smoke, StringComparison.Ordinal);
+        Assert.Contains("($code -eq 0 -and $server -and -not $carried)", smoke, StringComparison.Ordinal);
+        Assert.Contains("Test-RepairKeepsAddress '/fm' 'repair-address-administrator.log' \"BACKENDURL=$otherBackend\"", smoke, StringComparison.Ordinal);
+        Assert.Contains("Test-RepairKeepsAddress '/i' 'repair-address-administrator-reinstall.log' \"REINSTALL=ALL REINSTALLMODE=m BACKENDURL=$otherBackend\"", smoke, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheSetupProgramPassesTheBackendAddressOnToThePackage()
     {
         // Follow-up to the 2026-11-16 security run: ScreenTrail-Setup.exe BACKENDURL=https://... (with /quiet,
