@@ -325,6 +325,33 @@ public sealed class EgressGuardTests
         Assert.Equal(1, far.Requests);
     }
 
+    [Theory]
+    [InlineData("PUT", HttpStatusCode.Found)]
+    [InlineData("PUT", HttpStatusCode.SeeOther)]
+    [InlineData("PUT", HttpStatusCode.MovedPermanently)]
+    [InlineData("DELETE", HttpStatusCode.Found)]
+    [InlineData("DELETE", HttpStatusCode.SeeOther)]
+    [InlineData("POST", HttpStatusCode.Found)]
+    [InlineData("PATCH", HttpStatusCode.SeeOther)]
+    public async Task AWriteThatIsRedirectedAnyWayIsHandedBackNotTurnedIntoARead(string method, HttpStatusCode status)
+    {
+        // A write answered with a redirect to a page on the same host was followed as a GET, and the
+        // page's 200 read as the write's answer: a company mapping reported saved that nothing saved. A
+        // write is handed back unfollowed whatever the redirect, so the caller sees it was not done.
+        var far = new RecordingHandler(new Uri("https://acme.connectwise.example/"))
+        {
+            Status = status,
+        };
+        using var client = Client(Tenant(localOnly: true), far);
+
+        using var response = await client.SendAsync(
+            EgressRequest.For(new HttpMethod(method), Psa, EgressPurpose.Publish),
+            TestContext.Current.CancellationToken);
+
+        Assert.Equal(status, response.StatusCode);
+        Assert.Equal(1, far.Requests);
+    }
+
     [Fact]
     public async Task AGetThatIsRedirectedWithA307IsStillFollowed()
     {
