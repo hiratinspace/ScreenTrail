@@ -88,14 +88,26 @@ public static partial class BundleLimits
             return "A session id is required.";
         }
 
+        // JSON null binds as null, so a list left null, or a null inside it, is refused in words like the
+        // frames and transcript below, not thrown on.
+        if (bundle.StyleHints is null)
+        {
+            return "The style hints must be a list, even when empty.";
+        }
+
         if (bundle.StyleHints.Count > StyleHints.Max)
         {
             return $"At most {StyleHints.Max} style hints.";
         }
 
+        if (bundle.StyleHints.Any(id => id is null))
+        {
+            return "A style hint may not be null.";
+        }
+
         if (bundle.StyleHints.FirstOrDefault(id => !StyleHints.IsKnown(id)) is { } unknown)
         {
-            return $"\"{unknown}\" is not a style hint this backend knows.";
+            return $"\"{DraftValidator.Echoed(unknown)}\" is not a style hint this backend knows.";
         }
 
         if (bundle.SessionId.Length > MaxSessionIdLength)
