@@ -57,11 +57,16 @@ public sealed class IndicatorCommands(IndicatorReports reports, bool windowRequi
         }
     }
 
-    /// <summary>A connection ended. Its peer is let go of by the server straight after this.</summary>
+    /// <summary>
+    /// A connection ended. What it reported is withdrawn at once (security review A-09): its pill and tray
+    /// icon went with it, and the report used to be believed until it expired, so the guard's grace only
+    /// began six seconds later. Its peer is let go of by the server straight after this.
+    /// </summary>
     public void Closed(Guid connection)
     {
         lock (_gate)
         {
+            _reports.Forget(connection);
             _ = _peers.Remove(connection);
             if (_source == connection)
             {

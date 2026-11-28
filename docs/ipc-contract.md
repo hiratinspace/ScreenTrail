@@ -299,9 +299,11 @@ session that starts on the pill put away therefore runs without a pill for at mo
 report that arrives later in a session, from a UI that missed the state change, is not the pill either,
 and since the grace from the start is long over, capture is suppressed at once until a real report comes.
 A width or height that is not above zero reads as zero. A pill that is up but on no monitor is not
-reported at all. A pill that was reported and then stops being reported (the UI froze or crashed, or its
-monitor went) is noticed as before, when its last report expires, so the outer bound for any pill lost
-during a session is still one report's lifetime (six seconds) plus the grace. Tray-only left the wire
+reported at all. A pill that was reported and then stops being reported (the UI froze, or its monitor
+went) is noticed as before, when its last report expires, so the outer bound for any pill lost during a
+session is still one report's lifetime (six seconds) plus the grace. A connection that closes (the UI
+crashed or was quit) has its report withdrawn at once, so only the grace is left (since 2026-11-28,
+security review A-09). Tray-only left the wire
 format unchanged and did not bump the version.
 
 The service checks the claim (v18, security review B-03). One connection reports the indicator at a
