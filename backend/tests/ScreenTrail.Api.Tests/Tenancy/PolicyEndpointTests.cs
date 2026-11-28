@@ -74,6 +74,77 @@ public sealed class PolicyEndpointTests(ApiFixture api) : IClassFixture<ApiFixtu
         }
     }
 
+    [Fact]
+    public async Task SettingOneFieldKeepsTheRestOfTheLatestPolicy()
+    {
+        // Security review D-02: the operator's flag sets what it names and nothing else. Retention on a
+        // tenant whose policy locks local-only on must not lift the lock.
+        var (tenantId, _, _) = await SeedAsync();
+        var now = DateTimeOffset.UtcNow;
+        _ = await api.UseAsync(db => Policies.SetAsync(db, tenantId, retentionDays: 7, localOnly: true, localOnlyLocked: true, captureAllWindows: false, new Policies.UpdateSettings("pilot", ChannelLocked: true, CheckHours: 6, UnderLocalOnly: true), new At(now.AddMinutes(-1))));
+
+        var set = await api.UseAsync(db => PolicyArguments.SetAsync(db, tenantId, ["retention=30"], new At(now), TestContext.Current.CancellationToken));
+
+        var policy = Assert.IsType<Policy>(set.Policy);
+        Assert.Equal(30, policy.RetentionDays);
+        Assert.True(policy.LocalOnly);
+        Assert.True(policy.LocalOnlyLocked);
+        Assert.Equal("pilot", policy.UpdateChannel);
+        Assert.True(policy.UpdateChannelLocked);
+        Assert.Equal(6, policy.UpdateCheckHours);
+        Assert.True(policy.UpdateChecksUnderLocalOnly);
+        Assert.Equal([new PolicyArguments.Change("retention", "7", "30")], set.Changes);
+    }
+
+    [Theory]
+    [InlineData("locked=false")]
+    [InlineData("local-only=false")]
+    public async Task LiftingALockedLocalOnlyNeedsTheOperatorToSaySo(string argument)
+    {
+        var (tenantId, _, _) = await SeedAsync();
+        var now = DateTimeOffset.UtcNow;
+        var before = await api.UseAsync(db => Policies.SetAsync(db, tenantId, retentionDays: 7, localOnly: true, localOnlyLocked: true, captureAllWindows: false, new At(now.AddMinutes(-2))));
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => api.UseAsync(db => PolicyArguments.SetAsync(db, tenantId, [argument], new At(now.AddMinutes(-1)), TestContext.Current.CancellationToken)));
+        Assert.Equal(before.Version, (await api.UseAsync(db => Policies.LatestAsync(db, tenantId)))!.Version);
+
+        var lifted = await api.UseAsync(db => PolicyArguments.SetAsync(db, tenantId, [argument, "--confirm-unlock"], new At(now), TestContext.Current.CancellationToken));
+        Assert.False(argument == "locked=false" ? lifted.Policy!.LocalOnlyLocked : lifted.Policy!.LocalOnly);
+    }
+
+    [Theory]
+    [InlineData("retention-days=30")]
+    [InlineData("retention=thirty")]
+    [InlineData("locked=yes")]
+    [InlineData("update-hours=")]
+    [InlineData("retention")]
+    [InlineData("retention=3", "retention=4")]
+    public async Task AnArgumentTheFlagDoesNotKnowIsRefusedAndNothingIsWritten(params string[] arguments)
+    {
+        var (tenantId, _, _) = await SeedAsync();
+
+        _ = await Assert.ThrowsAsync<ArgumentException>(() => api.UseAsync(db => PolicyArguments.SetAsync(db, tenantId, arguments, TimeProvider.System, TestContext.Current.CancellationToken)));
+        Assert.Null(await api.UseAsync(db => Policies.LatestAsync(db, tenantId)));
+    }
+
+    [Fact]
+    public async Task AFirstPolicyStartsFromTheDefaults()
+    {
+        // Keep working: on a tenant with no policy the documented example sets what it names, and the
+        // rest are the defaults a device already has.
+        var (tenantId, _, _) = await SeedAsync();
+
+        var set = await api.UseAsync(db => PolicyArguments.SetAsync(db, tenantId, ["retention=3", "local-only=true", "locked=true"], TimeProvider.System, TestContext.Current.CancellationToken));
+
+        var policy = Assert.IsType<Policy>(set.Policy);
+        Assert.Equal(3, policy.RetentionDays);
+        Assert.True(policy.LocalOnly);
+        Assert.True(policy.LocalOnlyLocked);
+        Assert.False(policy.CaptureAllWindows);
+        Assert.Equal("stable", policy.UpdateChannel);
+        Assert.Equal(24, policy.UpdateCheckHours);
+    }
+
     private static string Contract(string property)
     {
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ScreenTrail.Api.Tests.tenant-policy.v1.json")!;
