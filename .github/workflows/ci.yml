@@ -1473,14 +1473,17 @@ jobs:
               # HW_RUNNER is true now, so the laptop was meant to run, and this is not a fork's pull
               # request. A skip here comes from a hardware-checks run made while HW_RUNNER was off (the
               # usual one: the variable was turned on afterwards and only this job was re-run), from
-              # HW_RUNNER turned off after this job read it, or from a job condition that no longer holds
-              # (an edit to hardware-checks.yml). Not counted as a pass, and not quietly let through.
+              # HW_RUNNER turned off after this job read it, from a pull request without the owner's
+              # run-on-laptop label (H-1), or from a job condition that no longer holds (an edit to
+              # hardware-checks.yml). Not counted as a pass, and not quietly let through.
               say_no_evidence "not run" \
                 "$skipped of the spare laptop's jobs were skipped on $SHA, so they checked nothing. A skipped" \
                 "job is not a pass." \
                 "" \
                 "If the hardware-checks run for this commit was made while \`HW_RUNNER\` was off, re-run its jobs" \
                 "now that it is on: when they pass, this job is asked again by itself (hardware-evidence-rerun.yml)." \
+                "If this pull request has no \`run-on-laptop\` label, the laptop skipped it on purpose: once you have" \
+                "read the change, add the label, then close and reopen the pull request (or push to it)." \
                 "If the laptop is meant to be off, set \`HW_RUNNER\` to anything but \`true\` and re-run this job:" \
                 "it then reports no evidence and labels the pull request. Otherwise the jobs' \`if:\` in" \
                 "hardware-checks.yml no longer matches this pull request; fix it there." || true
