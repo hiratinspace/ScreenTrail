@@ -272,6 +272,85 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task AServiceThatCannotClaimThePipeLeavesTheTokenFileAlone()
+    {
+        // Security review B-07: a second copy of the service (the same account signed in to a second
+        // Windows session) wrote its token over the running one's and only then found the name held, so
+        // every UI from then on offered the running service a token it had never issued.
+        var file = Path.Combine(Path.GetTempPath(), $"st-token-{Guid.NewGuid():N}");
+        var running = IpcToken.Generate();
+        IpcTokenFile.Write(file, running);
+        var before = await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken);
+        var calls = 0;
+        try
+        {
+            _server = new IpcServer(() => { Interlocked.Increment(ref calls); throw new PipeNameHeldException(); }, _token, new FakeVerifier(null), _controller, _audit, "0.0.1-test")
+            {
+                FactoryRetry = TimeSpan.FromMilliseconds(10),
+                Claimed = token => IpcTokenFile.Write(file, token),
+            };
+            _server.Start();
+            await WaitUntilAsync(() => Volatile.Read(ref calls) >= 5);
+
+            Assert.Equal(before, await File.ReadAllBytesAsync(file, TestContext.Current.CancellationToken));
+            Assert.Equal(running, IpcTokenFile.Read(file));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public async Task TheTokenIsWrittenOnceTheNameIsClaimedAndBeforeAnyoneIsServed()
+    {
+        var file = Path.Combine(Path.GetTempPath(), $"st-token-{Guid.NewGuid():N}");
+        var calls = 0;
+        var real = IpcServer.DefaultPipeFactory(_pipeName);
+        var writes = 0;
+        try
+        {
+            _server = new IpcServer(() => ++calls <= 3 ? throw new PipeNameHeldException() : real(), _token, new FakeVerifier(null), _controller, _audit, "0.0.1-test")
+            {
+                FactoryRetry = TimeSpan.FromMilliseconds(10),
+                Claimed = token =>
+                {
+                    Interlocked.Increment(ref writes);
+                    IpcTokenFile.Write(file, token);
+                },
+            };
+            _server.Start();
+
+            // The UI's way: wait for the file, read it, connect with what it says.
+            await WaitUntilAsync(() => File.Exists(file));
+            await using var ui = await IpcClient.ConnectAsync(_pipeName, IpcTokenFile.Read(file), "test-ui", serverVerifier: null, "0.0.1", Patient);
+            await using var second = await IpcClient.ConnectAsync(_pipeName, IpcTokenFile.Read(file), "test-ui-2", serverVerifier: null, "0.0.1", Patient);
+
+            Assert.True(ui.IsConnected);
+            Assert.True(second.IsConnected);
+            Assert.Equal(_token, IpcTokenFile.Read(file));
+            Assert.Equal(1, Volatile.Read(ref writes));
+        }
+        finally
+        {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
+    public void TheHostWritesTheTokenOnlyOnceThePipeIsClaimed()
+    {
+        // The host side of B-07: the one write of the token file is the server's Claimed callback, not a
+        // line before the server is made.
+        var host = File.ReadAllText(Path.Combine(Repository(), "client", "ScreenTrail.Service", "Host", "CaptureHost.cs"));
+
+        var write = Assert.Single(System.Text.RegularExpressions.Regex.Matches(host, @"IpcTokenFile\.Write\(").Cast<System.Text.RegularExpressions.Match>());
+        var claimed = host.IndexOf("Claimed = ", StringComparison.Ordinal);
+        Assert.True(claimed >= 0, "the host sets no Claimed callback");
+        Assert.True(write.Index > claimed && write.Index - claimed < 200, "the token file is written outside the Claimed callback");
+    }
+
+    [Fact]
     public async Task ANameHeldByAnotherPipeIsSaidOnceAfterAFewTries()
     {
         // Security review B-06: another account can hold the capture pipe's name, and the service only
@@ -1546,6 +1625,17 @@ public sealed class IpcServerTests : IAsyncDisposable
         await pipe.ConnectAsync((int)Soon.TotalMilliseconds);
         await IpcFraming.WriteAsync(pipe, first);
         return await IpcFraming.ReadAsync<IpcEvent>(pipe);
+    }
+
+    private static string Repository()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "client", "ScreenTrail.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        return directory?.FullName ?? throw new InvalidOperationException("Not inside the repository.");
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition)
