@@ -208,20 +208,26 @@ public sealed class CaptureConnectionTests
     }
 
     [Fact]
-    public async Task ATokenThatKeepsBeingWrongStopsBeingRetried()
+    public async Task ATokenThatKeepsBeingWrongStopsBeingRetriedQuickly()
     {
+        // StaleTokenAttempts goes round at once, for a service that restarted between the read and the
+        // connect; past that the refusal is said, and the next try waits the slow interval (B-09). The
+        // interval here is an hour, so nothing after the quick ones arrives within the test.
         var shell = new ShellState();
         var attempts = 0;
-        await using var connection = Connect(
+        await using var connection = new CaptureConnection(
             shell,
-            () =>
+            _ =>
             {
                 attempts++;
                 throw new IpcRejectedException(RejectReasons.BadToken);
-            });
+            },
+            retryAfter: _ => TimeSpan.FromMilliseconds(5),
+            untrustedRetryAfter: TimeSpan.FromHours(1));
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await WaitFor(() => connection.LastRefusal is not null);
+        await Task.Delay(60, TestContext.Current.CancellationToken);
 
         Assert.Equal(CaptureConnection.StaleTokenAttempts, attempts);
     }
@@ -230,16 +236,19 @@ public sealed class CaptureConnectionTests
     public async Task ARefusedHandshakeIsNotRetriedIntoTheGround()
     {
         // Being told "you are not who you say you are" is not a transient failure, and hammering the
-        // pipe with a token the service has rejected writes an audit row every time.
+        // pipe with a token the service has rejected writes an audit row every time. So after the quick
+        // tries it waits the slow interval (an hour here) before the next (B-09: it used to stop for good).
         var shell = new ShellState();
         var attempts = 0;
-        await using var connection = Connect(
+        await using var connection = new CaptureConnection(
             shell,
-            () =>
+            _ =>
             {
                 attempts++;
                 throw new IpcRejectedException(RejectReasons.BadToken);
-            });
+            },
+            retryAfter: _ => TimeSpan.FromMilliseconds(5),
+            untrustedRetryAfter: TimeSpan.FromHours(1));
 
         await connection.StartAsync(TestContext.Current.CancellationToken);
         await WaitFor(() => connection.LastRefusal is not null);
@@ -250,6 +259,35 @@ public sealed class CaptureConnectionTests
         await Task.Delay(60, TestContext.Current.CancellationToken);
         Assert.Equal(settled, attempts);
     }
+
+    [Fact]
+    public async Task AWindowThatWasRefusedKeepsAskingAndConnectsOnceItIsLetIn()
+    {
+        // Security review B-09: one rejection ended the reconnect loop for the life of the window, so a
+        // service that refused it once (a token overwritten by a second copy of the service, a slow
+        // verification) left the technician with no pill and no capture until they restarted ScreenTrail.
+        var shell = new ShellState();
+        var attempts = 0;
+        var reasons = new[] { RejectReasons.UnverifiedClient, RejectReasons.Slow, RejectReasons.ContractMismatch, RejectReasons.Protocol };
+        await using var connection = new CaptureConnection(
+            shell,
+            _ => ++attempts <= reasons.Length
+                ? throw new IpcRejectedException(reasons[attempts - 1])
+                : Task.FromResult<ICaptureChannel>(new FakeChannel(Recording)),
+            retryAfter: _ => TimeSpan.FromHours(1),
+            untrustedRetryAfter: TimeSpan.FromMilliseconds(20));
+
+        await connection.StartAsync(TestContext.Current.CancellationToken);
+
+        await WaitFor(() => shell.Snapshot.Connection == ServiceConnection.Connected);
+        Assert.Equal(reasons.Length + 1, attempts);
+        Assert.Null(connection.LastRefusal);
+        Assert.Equal(CaptureStates.Recording, shell.Snapshot.Capture!.State);
+    }
+
+    [Fact]
+    public void ARefusedWindowAsksAgainEveryThirtySeconds() =>
+        Assert.Equal(TimeSpan.FromSeconds(30), CaptureConnection.UntrustedRetryAfter);
 
     [Fact]
     public async Task AnImpostorOnThePipeIsRefusedAndSaidSo()
