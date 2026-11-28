@@ -120,6 +120,24 @@ public sealed class AuditCoverageTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task APolicyVersionThatIsNotALabelIsLeftOutOfItsRow()
+    {
+        // The version is the backend's text, not an enum: the row is still written, without it.
+        var store = await OpenAsync();
+        var body = new { version = "p20260925\n", retentionDays = 3, localOnly = true, localOnlyLocked = true, captureAllWindows = false };
+        var sync = new PolicySync(
+            new HttpClient(new Replies(body)) { BaseAddress = new Uri("https://api.screentrail.example/") },
+            () => "token",
+            new FilePolicyCache(Path.Combine(_dir, "policy.json")),
+            audit: store);
+
+        Assert.True(await sync.FetchAsync(Ct));
+
+        var row = Assert.Single(await store.GetAuditRecordsAsync(ct: Ct), r => r.Type == "policy_applied");
+        Assert.Null(row.Detail);
+    }
+
+    [Fact]
     public async Task ABlurInReviewIsRecordedAgainstItsSession()
     {
         var store = await OpenAsync();
