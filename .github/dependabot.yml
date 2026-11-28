@@ -1,6 +1,11 @@
-# Dependency updates for the public site only (docs/dev/site.md, "Dependencies"). Not the workflows:
-# an update to hardware-checks.yml would put a bot's branch on the laptop runner. Weekly and grouped,
-# so a review is one pull request, which the Site job builds and tests like any other.
+# Dependency updates for every manifest the product is built from (H-2, 2026-11-28): the site and its
+# deploy tooling, the web admin, the shared schema, the client and the backend packages, and the
+# images the backend and the web proxy start from. Not the workflows: an update to hardware-checks.yml
+# would put a bot's branch on the laptop runner. A Dependabot pull request that touches a hardware
+# path reaches the laptop only once the owner adds the run-on-laptop label (hardware-checks.yml).
+# Weekly; minor and patch updates are grouped per folder, so a review is one pull request that CI
+# builds and tests like any other, and a major update comes on its own. scripts/ci/check_dependabot.py
+# holds this list.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -23,3 +28,99 @@ updates:
         patterns: ['*']
     commit-message:
       prefix: 'chore(site)'
+
+  - package-ecosystem: npm
+    directory: /site/deploy
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      site-deploy:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(site)'
+
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      web:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(web)'
+
+  - package-ecosystem: npm
+    directory: /shared/schema
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      schema:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(schema)'
+
+  - package-ecosystem: nuget
+    directory: /client
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      client:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(client)'
+
+  - package-ecosystem: nuget
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      backend:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(backend)'
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      backend-image:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(backend)'
+
+  - package-ecosystem: docker
+    directory: /deploy/web
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      web-image:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(deploy)'
+
+  - package-ecosystem: docker-compose
+    directory: /deploy
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      compose:
+        update-types: ['minor', 'patch']
+    commit-message:
+      prefix: 'chore(deploy)'

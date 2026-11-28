@@ -93,7 +93,9 @@ Do these once, in order. Nothing deploys until step 6.
 ## Dependencies
 
 Dependabot opens one grouped pull request a week for `site/`'s npm packages, which the Site job builds
-and tests. It does not update GitHub Actions: those updates would edit the laptop runner's workflows.
+and tests, and one for `site/deploy/` (Wrangler alone, see above). It does not update GitHub Actions:
+those updates would edit the laptop runner's workflows. `.github/dependabot.yml` lists the other
+folders it watches.
 
 ## What the site does not do yet
 
