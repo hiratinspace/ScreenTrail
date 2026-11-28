@@ -33,6 +33,8 @@ public static class DevicesEndpoint
 
     public const string ExpiredCodeMessage = "That code has expired. Ask your ScreenTrail owner for a new invite.";
 
+    public const string DisabledTechnicianMessage = "Your ScreenTrail owner has switched off your access. Ask them about it.";
+
     public static RouteGroupBuilder MapDevices(this RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -133,6 +135,14 @@ public static class DevicesEndpoint
 
             var user = await db.Users.SingleOrDefaultAsync(u => u.TenantId == tenant.Id && u.Email == invite.Email, ct).ConfigureAwait(false)
                 ?? new User { Id = Guid.NewGuid(), TenantId = tenant.Id, Email = invite.Email, DisplayName = invite.DisplayName, CreatedAt = now };
+
+            // A technician the owner switched off takes no seat and gets no token (their tokens would be
+            // refused at the first request anyway). The claim rolls back with the rest.
+            if (user.DisabledAt is not null)
+            {
+                await transaction.RollbackAsync(ct).ConfigureAwait(false);
+                return Results.Json(new { error = "technician_disabled", message = DisabledTechnicianMessage }, statusCode: StatusCodes.Status403Forbidden);
+            }
             if (db.Entry(user).State == EntityState.Detached)
             {
                 db.Users.Add(user);

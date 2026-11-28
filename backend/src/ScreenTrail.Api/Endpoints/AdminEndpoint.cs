@@ -51,6 +51,9 @@ public static class AdminEndpoint
     public const int RetentionMax = 365;
     public const int UpdateHoursMax = 168;
 
+    /// <summary>What the owner is told when inviting a technician they switched off.</summary>
+    public const string DisabledTechnicianMessage = "That technician is switched off in your organisation, so they cannot be invited again.";
+
     public static RouteGroupBuilder MapAdmin(this RouteGroupBuilder group)
     {
         ArgumentNullException.ThrowIfNull(group);
@@ -103,6 +106,12 @@ public static class AdminEndpoint
                 return Results.BadRequest(new { error = "bad_display_name", message = "The name can be up to 200 characters." });
             }
 
+            // A code for a technician the owner switched off would only be refused at activation.
+            if (await db.Users.AnyAsync(u => u.TenantId == owner.TenantId && u.Email == email && u.DisabledAt != null, ct).ConfigureAwait(false))
+            {
+                return Results.Json(new { error = "technician_disabled", message = DisabledTechnicianMessage }, statusCode: StatusCodes.Status409Conflict);
+            }
+
             // The same code, hash and 72 hours as the operator's --invite. No mail provider yet, so the
             // code goes back to the owner, once, to hand on (ADR-0009).
             var issued = await Invites.CreateAsync(db, owner.TenantId, email, name, time, ct).ConfigureAwait(false);
@@ -110,6 +119,63 @@ public static class AdminEndpoint
         })
         .WithName("AdminCreateInvite")
         .WithSummary("Issues a 72-hour, one-device invite code for a technician, returned once.");
+
+        group.MapDelete("/invites/{id:guid}", async (Guid id, AdminCaller owner, ScreenTrailContext db, CancellationToken ct) =>
+        {
+            // Only while nobody has used it: the row goes, so its code is one nobody issued. The tenant is
+            // in the predicate, so another tenant's invite is the same as no invite.
+            var withdrawn = await db.Invites
+                .Where(i => i.Id == id && i.TenantId == owner.TenantId && i.AcceptedAt == null)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            if (withdrawn > 0)
+            {
+                return Results.NoContent();
+            }
+
+            return await db.Invites.AnyAsync(i => i.Id == id && i.TenantId == owner.TenantId, ct).ConfigureAwait(false)
+                ? Results.Json(new { error = "invite_used", message = "That invite has been used. Revoke the device it activated instead." }, statusCode: StatusCodes.Status409Conflict)
+                : Results.NotFound(new { error = "invite_unknown", message = "There is no such invite in your organisation." });
+        })
+        .WithName("AdminWithdrawInvite")
+        .WithSummary("Withdraws an invite nobody has used yet. Its code stops working at once.");
+
+        group.MapPost("/technicians/{id:guid}/disable", async (Guid id, AdminCaller owner, ScreenTrailContext db, TimeProvider time, CancellationToken ct) =>
+        {
+            // One transaction, after the tenant's row lock (TenantLock, as activation takes it), so an
+            // activation of this technician either finishes first and its device is revoked here, or
+            // starts after and finds them switched off.
+            await using var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false);
+            _ = await TenantLock.TakeAsync(db, owner.TenantId, ct).ConfigureAwait(false);
+            var user = await db.Users
+                .Where(u => u.Id == id && u.TenantId == owner.TenantId)
+                .Select(u => new { u.Email })
+                .SingleOrDefaultAsync(ct)
+                .ConfigureAwait(false);
+            if (user is null)
+            {
+                await transaction.RollbackAsync(ct).ConfigureAwait(false);
+                return Results.NotFound(new { error = "technician_unknown", message = "There is no such technician in your organisation." });
+            }
+
+            var now = time.GetUtcNow();
+            _ = await db.Users
+                .Where(u => u.Id == id && u.TenantId == owner.TenantId && u.DisabledAt == null)
+                .ExecuteUpdateAsync(set => set.SetProperty(u => u.DisabledAt, now), ct)
+                .ConfigureAwait(false);
+            _ = await db.Devices
+                .Where(d => d.UserId == id && d.TenantId == owner.TenantId && d.RevokedAt == null)
+                .ExecuteUpdateAsync(set => set.SetProperty(d => d.RevokedAt, now), ct)
+                .ConfigureAwait(false);
+            _ = await db.Invites
+                .Where(i => i.TenantId == owner.TenantId && i.Email == user.Email && i.AcceptedAt == null)
+                .ExecuteDeleteAsync(ct)
+                .ConfigureAwait(false);
+            await transaction.CommitAsync(CancellationToken.None).ConfigureAwait(false);
+            return Results.NoContent();
+        })
+        .WithName("AdminDisableTechnician")
+        .WithSummary("Switches a technician off: their devices are revoked and their unused invites withdrawn.");
 
         group.MapPost("/devices/{id:guid}/revoke", async (Guid id, AdminCaller owner, ScreenTrailContext db, TimeProvider time, CancellationToken ct) =>
         {

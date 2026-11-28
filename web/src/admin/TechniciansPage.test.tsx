@@ -68,6 +68,55 @@ describe('TechniciansPage', () => {
     expect(await screen.findByText('TECH-LAPTOP is revoked. Its seat is free.')).toBeDefined();
   });
 
+  it('withdraws a pending invite only after a second, explicit click, then reads the list again', async () => {
+    const api = fakeApi();
+    render(<TechniciansPage api={api} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Withdraw the invite for new@acme.example' }));
+    expect(api.withdrawInvite).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm withdraw' }));
+
+    await waitFor(() => expect(api.withdrawInvite).toHaveBeenCalledWith('i-1'));
+    await waitFor(() => expect(api.technicians).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('The invite for new@acme.example is withdrawn. Its code no longer works.')).toBeDefined();
+  });
+
+  it('switches a technician off only after a second, explicit click, then reads the list again', async () => {
+    const api = fakeApi();
+    render(<TechniciansPage api={api} />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Switch off Tomas Ortiz' }));
+    expect(api.disableTechnician).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm switch off Tomas Ortiz' }));
+
+    await waitFor(() => expect(api.disableTechnician).toHaveBeenCalledWith('u-1'));
+    await waitFor(() => expect(api.technicians).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByText('Tomas Ortiz is switched off. Their devices are revoked and their unused invites withdrawn.'),
+    ).toBeDefined();
+  });
+
+  it('shows a technician who is switched off and offers nothing to withdraw on an invite that was used', async () => {
+    const off = new Date(Date.now() - 60_000).toISOString();
+    const api = fakeApi({
+      technicians: async () => ({
+        ...technicians,
+        technicians: technicians.technicians.map((t) => ({
+          ...t,
+          disabledAt: off,
+          devices: t.devices.map((d) => ({ ...d, revokedAt: off })),
+        })),
+        invites: technicians.invites.map((i) => ({ ...i, status: 'accepted', acceptedAt: off })),
+      }),
+    });
+    render(<TechniciansPage api={api} />);
+
+    const devices = await screen.findByRole('table', { name: 'Technicians and devices' });
+    expect(within(devices).getByText('Switched off')).toBeDefined();
+    expect(screen.queryByRole('button', { name: /Switch off/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Withdraw/ })).toBeNull();
+  });
+
   it('shows a device that activated since the page opened, on Refresh', async () => {
     const api = fakeApi({ technicians: async () => ({ ...technicians, seats: { used: 0, total: 3 }, technicians: [] }) });
     render(<TechniciansPage api={api} />);

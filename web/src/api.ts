@@ -197,6 +197,10 @@ export interface AdminApi {
   technicians(): Promise<Technicians>;
   invite(email: string, displayName: string): Promise<CreatedInvite>;
   revokeDevice(id: string): Promise<void>;
+  /** Withdraws an invite nobody has used: its code stops working. */
+  withdrawInvite(id: string): Promise<void>;
+  /** Switches a technician off: their devices are revoked and their unused invites withdrawn. */
+  disableTechnician(id: string): Promise<void>;
   policy(): Promise<Policy>;
   setPolicy(change: PolicyChange): Promise<Policy>;
   integrations(): Promise<Integrations>;
@@ -297,6 +301,8 @@ export function httpApi(base = ''): AdminApi {
     technicians: () => call<Technicians>('GET', '/v1/admin/technicians'),
     invite: (email, displayName) => call<CreatedInvite>('POST', '/v1/admin/invites', { email, displayName }),
     revokeDevice: (id) => call<void>('POST', `/v1/admin/devices/${encodeURIComponent(id)}/revoke`),
+    withdrawInvite: (id) => call<void>('DELETE', `/v1/admin/invites/${encodeURIComponent(id)}`),
+    disableTechnician: (id) => call<void>('POST', `/v1/admin/technicians/${encodeURIComponent(id)}/disable`),
     policy: () => call<Policy>('GET', '/v1/admin/policy'),
     setPolicy: (change) => call<Policy>('PUT', '/v1/admin/policy', change),
     integrations: async () => {

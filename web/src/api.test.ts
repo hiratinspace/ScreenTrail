@@ -143,6 +143,26 @@ describe('httpApi', () => {
     expect((refused as ApiError).message).toBe('What you entered is too long to save. Check it and try again.');
   });
 
+  it('withdraws an invite and switches a technician off as changes, with the CSRF value', async () => {
+    const sent = backend([
+      { status: 200, body: { status: 'signed_in', csrf: 'the-csrf', expiresAt: 'x', owner: {}, tenant: {} } },
+      { status: 204 },
+      { status: 204 },
+    ]);
+    const api = httpApi();
+    await api.signIn('t');
+
+    await api.withdrawInvite('i/1');
+    await api.disableTechnician('u-1');
+
+    expect(sent[1]!.url).toBe('/v1/admin/invites/i%2F1');
+    expect(sent[1]!.init.method).toBe('DELETE');
+    expect(header(sent[1]!, 'X-ScreenTrail-CSRF')).toBe('the-csrf');
+    expect(sent[2]!.url).toBe('/v1/admin/technicians/u-1/disable');
+    expect(sent[2]!.init.method).toBe('POST');
+    expect(header(sent[2]!, 'X-ScreenTrail-CSRF')).toBe('the-csrf');
+  });
+
   it('forgets the CSRF value on sign-out', async () => {
     const sent = backend([
       { status: 200, body: { status: 'signed_in', csrf: 'the-csrf', expiresAt: 'x', owner: {}, tenant: {} } },

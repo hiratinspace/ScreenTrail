@@ -251,7 +251,7 @@ public sealed class AdminEndpointsTests(AdminApiFixture api) : IClassFixture<Adm
         Assert.NotNull(gone.DisabledAt);
         Assert.NotNull(Assert.Single(gone.Devices).RevokedAt);
         Assert.Equal(0, after.Seats.Used);
-        Assert.Equal([someoneElse.Id, first.Id], after.Invites.Select(i => i.Id).Order());
+        Assert.Equal(new[] { someoneElse.Id, first.Id }.Order(), after.Invites.Select(i => i.Id).Order());
         Assert.Contains(after.Invites, i => i.Id == someoneElse.Id && i.Status == "pending");
 
         // The other tenant's technician is untouched.

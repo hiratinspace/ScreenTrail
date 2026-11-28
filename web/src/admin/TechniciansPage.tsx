@@ -10,7 +10,10 @@ interface Props {
   api: AdminApi;
 }
 
-/** Technicians and seats (Spec §5 S9): invite with a code shown once, seats used of total, device status, revoke. */
+/**
+ * Technicians and seats (Spec §5 S9): invite with a code shown once, seats used of total, device status,
+ * revoke, withdraw an unused invite, switch a technician off.
+ */
 export function TechniciansPage({ api }: Props) {
   const [data, setData] = useState<Technicians>();
   const [error, setError] = useState<string>();
@@ -77,7 +80,7 @@ export function TechniciansPage({ api }: Props) {
         <h2 id="invites-title" className="section-title">
           Invites
         </h2>
-        {data && <InviteTable data={data} />}
+        {data && <InviteTable data={data} api={api} onChanged={load} onStatus={setStatus} onError={setError} />}
       </section>
     </>
   );
@@ -227,6 +230,7 @@ function DeviceTable({
   onError: (s: string | undefined) => void;
 }) {
   const [confirming, setConfirming] = useState<string>();
+  const [switchingOff, setSwitchingOff] = useState<string>();
   const [busy, setBusy] = useState(false);
 
   if (data.technicians.length === 0) {
@@ -246,6 +250,42 @@ function DeviceTable({
     } finally {
       setBusy(false);
     }
+  }
+
+  async function switchOff(id: string, name: string) {
+    setBusy(true);
+    try {
+      await api.disableTechnician(id);
+      onStatus(`${name} is switched off. Their devices are revoked and their unused invites withdrawn.`);
+      onError(undefined);
+      setSwitchingOff(undefined);
+      await onChanged();
+    } catch (e) {
+      onError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** On the technician's first row only: switching off is about the person, not one device. */
+  function switchOffControl(tech: Technicians['technicians'][number]) {
+    if (tech.disabledAt) {
+      return null;
+    }
+    return switchingOff === tech.id ? (
+      <>
+        <button type="button" className="button danger" disabled={busy} onClick={() => void switchOff(tech.id, tech.displayName)}>
+          Confirm switch off {tech.displayName}
+        </button>
+        <button type="button" className="button ghost" onClick={() => setSwitchingOff(undefined)}>
+          Cancel
+        </button>
+      </>
+    ) : (
+      <button type="button" className="button secondary" onClick={() => setSwitchingOff(tech.id)}>
+        Switch off {tech.displayName}
+      </button>
+    );
   }
 
   return (
@@ -268,17 +308,18 @@ function DeviceTable({
             ? [
                 <tr key={tech.id}>
                   <th scope="row">
-                    <Person name={tech.displayName} email={tech.email} />
+                    <Person name={tech.displayName} email={tech.email} off={!!tech.disabledAt} />
                   </th>
-                  <td colSpan={5} className="muted">
+                  <td colSpan={4} className="muted">
                     No device
                   </td>
+                  <td className="row-actions">{switchOffControl(tech)}</td>
                 </tr>,
               ]
-            : tech.devices.map((device) => (
+            : tech.devices.map((device, index) => (
                 <tr key={device.id}>
                   <th scope="row">
-                    <Person name={tech.displayName} email={tech.email} />
+                    <Person name={tech.displayName} email={tech.email} off={!!tech.disabledAt} />
                   </th>
                   <td>{device.name}</td>
                   <td>
@@ -324,6 +365,7 @@ function DeviceTable({
                           Revoke
                         </button>
                       ))}
+                    {index === 0 && switchOffControl(tech)}
                   </td>
                 </tr>
               )),
@@ -333,21 +375,53 @@ function DeviceTable({
   );
 }
 
-function Person({ name, email }: { name: string; email: string }) {
+function Person({ name, email, off = false }: { name: string; email: string; off?: boolean }) {
   return (
     <span className="person">
       <span>{name}</span>
       {name !== email && <span className="muted small">{email}</span>}
+      {off && <span className="muted small">Switched off</span>}
     </span>
   );
 }
 
 const inviteState: Record<string, string> = { pending: 'Waiting for activation', accepted: 'Activated', expired: 'Expired' };
 
-function InviteTable({ data }: { data: Technicians }) {
+function InviteTable({
+  data,
+  api,
+  onChanged,
+  onStatus,
+  onError,
+}: {
+  data: Technicians;
+  api: AdminApi;
+  onChanged: () => Promise<void>;
+  onStatus: (s: string) => void;
+  onError: (s: string | undefined) => void;
+}) {
+  const [confirming, setConfirming] = useState<string>();
+  const [busy, setBusy] = useState(false);
+
   if (data.invites.length === 0) {
     return <p className="empty">No invites yet. Create one above for each technician.</p>;
   }
+
+  async function withdraw(id: string, email: string) {
+    setBusy(true);
+    try {
+      await api.withdrawInvite(id);
+      onStatus(`The invite for ${email} is withdrawn. Its code no longer works.`);
+      onError(undefined);
+      setConfirming(undefined);
+      await onChanged();
+    } catch (e) {
+      onError(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <table className="table" aria-labelledby="invites-title">
       <thead>
@@ -357,6 +431,9 @@ function InviteTable({ data }: { data: Technicians }) {
           <th scope="col">Created</th>
           <th scope="col">Expires</th>
           <th scope="col">Status</th>
+          <th scope="col">
+            <span className="visually-hidden">Actions</span>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -376,6 +453,33 @@ function InviteTable({ data }: { data: Technicians }) {
                 />
                 {inviteState[invite.status]}
               </span>
+            </td>
+            <td className="row-actions">
+              {invite.status === 'pending' &&
+                (confirming === invite.id ? (
+                  <>
+                    <button
+                      type="button"
+                      className="button danger"
+                      disabled={busy}
+                      onClick={() => void withdraw(invite.id, invite.email)}
+                    >
+                      Confirm withdraw
+                    </button>
+                    <button type="button" className="button ghost" onClick={() => setConfirming(undefined)}>
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="button secondary"
+                    aria-label={`Withdraw the invite for ${invite.email}`}
+                    onClick={() => setConfirming(invite.id)}
+                  >
+                    Withdraw
+                  </button>
+                ))}
             </td>
           </tr>
         ))}
