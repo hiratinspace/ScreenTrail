@@ -321,6 +321,49 @@ public sealed class AdminSignInTests(AdminApiFixture api) : IClassFixture<AdminA
         Assert.Equal(HttpStatusCode.OK, after.StatusCode);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("none")]
+    [InlineData("same-origin")]
+    public async Task ASignOutThatCarriedNoAdminCookieSetsNoCookie(string? site)
+    {
+        // D-12: the admin cookie is SameSite=Strict, so a sign-out another site's page starts arrives
+        // without it. Only a request that carried the cookie is answered with one that deletes it.
+        using var client = api.CreateClient(new() { HandleCookies = false });
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/v1/admin/session/end", UriKind.Relative));
+        if (site is not null)
+        {
+            request.Headers.Add("Sec-Fetch-Site", site);
+        }
+
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+    }
+
+    [Theory]
+    [InlineData("cross-site", "POST", "/v1/admin/session/end")]
+    [InlineData("same-site", "POST", "/v1/admin/session/end")]
+    [InlineData("cross-site", "GET", "/v1/admin/technicians")]
+    [InlineData("same-site", "GET", "/v1/admin/technicians")]
+    public async Task AnAdminCallFromAPageThatIsNotTheAdminsOwnIsRefusedAndChangesNothing(string site, string method, string path)
+    {
+        // D-12 with G-02: every route under /v1/admin answers only the admin's own page (or a client
+        // that is not a browser), so another page cannot sign the owner out or read on their behalf.
+        var seeded = await api.SeedOwnerAsync();
+        using var owner = api.Owner(seeded);
+        using var request = new HttpRequestMessage(new HttpMethod(method), new Uri(path, UriKind.Relative));
+        request.Headers.Add("Sec-Fetch-Site", site);
+
+        using var response = await owner.SendAsync(request, TestContext.Current.CancellationToken);
+        using var after = await owner.GetAsync(new Uri("/v1/admin/technicians", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.False(response.Headers.Contains("Set-Cookie"));
+        Assert.Equal(HttpStatusCode.OK, after.StatusCode);
+    }
+
     [Fact]
     public async Task SigningOutDeletesTheCookie()
     {
