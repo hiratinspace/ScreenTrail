@@ -433,10 +433,14 @@ Another fails if a second log sink is added beside the scrubbing one in either e
 is `SCREENTRAIL_LOG_LEVEL` on the client (`Logging:LogLevel:Default` on the backend) and Information
 unless said otherwise.
 
-**A crash leaves a stack trace and nothing else.** With `SCREENTRAIL_CRASH_REPORTS=1` a crash writes the
-exception types and frames (never the message, which is where a path or a title ends up) to
-`%LOCALAPPDATA%\ScreenTrail\crashes\`. Nothing reads that folder yet; sending is ST-098's. Without the
-opt-in nothing is written.
+**ScreenTrail's own crash report is a stack trace and nothing else.** With `SCREENTRAIL_CRASH_REPORTS=1` a
+crash writes the exception types and frames (never the message, which is where a path or a title ends up)
+to `%LOCALAPPDATA%\ScreenTrail\crashes\`. Nothing reads that folder yet; sending is ST-098's. Without the
+opt-in ScreenTrail writes nothing. Windows can record more of the same crash, and ScreenTrail does not yet
+stop it: the .NET runtime writes an entry to the Application event log with the error's message and stack
+(other users of the machine can read that log by default, and an MSP's log forwarder may collect it), and
+where an administrator has turned crash dumps on for the machine, Windows Error Reporting writes a copy of
+the process's memory, which can hold what ScreenTrail was working on at that moment.
 
 **A local-only session is drafted on the device** (ST-065 AC3). When the egress guard would refuse the
 drafting request (local-only mode, or no backend at all), nothing is queued and the note is written
