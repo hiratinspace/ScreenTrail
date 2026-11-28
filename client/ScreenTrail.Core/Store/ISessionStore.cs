@@ -435,6 +435,12 @@ public static class AuditTypes
     /// process name or path.
     /// </summary>
     public const string IndicatorSourceChanged = "indicator_source_changed";
+
+    /// <summary>
+    /// This PC was activated with an invite's code (security review B-05). No detail: never the code, the
+    /// device name or the tenant.
+    /// </summary>
+    public const string DeviceActivated = "device_activated";
 }
 
 /// <summary>The database could not be opened with the supplied key.</summary>

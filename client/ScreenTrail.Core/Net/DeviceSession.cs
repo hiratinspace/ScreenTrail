@@ -97,6 +97,9 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
 
     public bool Revoked { get; private set; }
 
+    /// <summary>Where an activation is recorded (<c>device_activated</c>, security review B-05); null records nothing.</summary>
+    public Audit.IAuditLog? Audit { get; init; }
+
     /// <summary>The bearer token for the next backend call, or null when there is none to send.</summary>
     public string? CurrentToken
     {
@@ -168,6 +171,15 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
             return GatewayAnswer.Refused<ActivatedDeviceRow>(ErasedRefusal);
         }
 
+        // An activated PC is not moved to another tenant by a code (security review B-05): that would put
+        // the next sessions, drafts and publishes in the new tenant with nothing said. Moving goes through
+        // Delete everything, which takes the old tenant's sessions with it. A revoked one may be activated
+        // again: the backend has already said its token is no good.
+        if (!Revoked && _credentials.Load() is { } held)
+        {
+            return GatewayAnswer.Refused<ActivatedDeviceRow>($"This PC is already activated with {held.TenantName}. Delete everything in Settings, Privacy to move it.");
+        }
+
         // The technician typed the code and pressed Activate: a sign-in they asked for, which local-only
         // lets out the way it lets out the publish it is for (INV-8).
         using var request = EgressRequest.For(HttpMethod.Post, new Uri("v1/devices/activate", UriKind.Relative), EgressPurpose.DeviceAuth)
@@ -216,6 +228,11 @@ public sealed class DeviceSession(HttpClient http, IDeviceCredentials credential
             }
 
             Revoked = false;
+            if (Audit is not null)
+            {
+                await Audit.RecordAsync(Store.AuditTypes.DeviceActivated, ct: ct).ConfigureAwait(false);
+            }
+
             return GatewayAnswer.Of(new ActivatedDeviceRow(answer.TenantName ?? string.Empty, answer.DeviceId));
         }
     }

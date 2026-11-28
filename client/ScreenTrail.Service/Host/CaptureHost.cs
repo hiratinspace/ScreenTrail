@@ -195,6 +195,9 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             // card and when an activation is refused, rather than a bare "no backend".
             NoBackendNote = address.AdministratorNote,
             Stopping = stoppingToken,
+
+            // B-05: each activation is a row of its own, with no code, name or tenant in it.
+            Audit = store,
         };
         // The policy fetch waits for a token to fetch with, and the outbox waits for the policy: see
         // StartupOrder. Both are set once and never reset. Under local-only the renewal does not run on
