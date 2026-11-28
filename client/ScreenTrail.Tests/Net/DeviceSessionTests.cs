@@ -37,6 +37,60 @@ public sealed class DeviceSessionTests
     }
 
     [Fact]
+    public async Task AnActivatedPcIsNotActivatedAgainWithAnotherCode()
+    {
+        // Security review B-05: a second activation used to post the code and save the new tenant's token
+        // over the old one, with nothing said or recorded. Moving a PC goes through Delete everything.
+        var backend = new ScriptedBackend();
+        var device = Guid.NewGuid();
+        var credentials = new InMemoryCredentials(new DeviceCredential("refresh-1", "Acme IT", device, T0));
+        var session = new DeviceSession(Client(backend), credentials, time: new ManualTime(T0));
+        backend.Reply(Json(new { tenantName = "Other Tenant", deviceId = "0d9f3c6e-1111-4c1e-9a1e-000000000002", refreshToken = "refresh-2", accessToken = "access-2", expiresAt = T0.AddHours(1) }));
+
+        var answer = await session.ActivateAsync("kx7pm-4r2wq", "TECH-LAPTOP", TestContext.Current.CancellationToken);
+
+        Assert.False(answer.Ok);
+        Assert.Equal("This PC is already activated with Acme IT. Delete everything in Settings, Privacy to move it.", answer.Refusal);
+        Assert.Empty(backend.Requests);
+        Assert.Equal(new DeviceCredential("refresh-1", "Acme IT", device, T0), credentials.Load());
+    }
+
+    [Fact]
+    public async Task ARevokedPcCanBeActivatedAgain()
+    {
+        // The backend said the device's token is no good (revoked or deleted in the web admin): the
+        // credential still sits on disk, and the technician's way back is a new code.
+        var backend = new ScriptedBackend();
+        var credentials = new InMemoryCredentials(new DeviceCredential("refresh-1", "Acme IT", Guid.NewGuid(), T0));
+        var session = new DeviceSession(Client(backend), credentials, time: new ManualTime(T0));
+        backend.Reply(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+        Assert.False(await session.RefreshAsync(TestContext.Current.CancellationToken));
+        Assert.True(session.Revoked);
+        backend.Reply(Json(new { tenantName = "Acme IT", deviceId = "0d9f3c6e-1111-4c1e-9a1e-000000000003", refreshToken = "refresh-3", accessToken = "access-3", expiresAt = T0.AddHours(1) }));
+
+        var answer = await session.ActivateAsync("kx7pm-4r2wq", "TECH-LAPTOP", TestContext.Current.CancellationToken);
+
+        Assert.True(answer.Ok, answer.Refusal);
+        Assert.Equal("refresh-3", credentials.Load()!.RefreshToken);
+    }
+
+    [Fact]
+    public async Task AnActivationIsRecordedInTheAuditLogWithoutTheCodeOrTheName()
+    {
+        var backend = new ScriptedBackend();
+        backend.Reply(Json(new { tenantName = "Acme IT", deviceId = "0d9f3c6e-1111-4c1e-9a1e-000000000001", refreshToken = "refresh-1", accessToken = "access-1", expiresAt = T0.AddHours(1) }));
+        var audit = new ScreenTrail.Tests.Net.PsaGatewayTests.RecordingAudit();
+        var session = new DeviceSession(Client(backend), new InMemoryCredentials(), time: new ManualTime(T0)) { Audit = audit };
+
+        Assert.True((await session.ActivateAsync("kx7pm-4r2wq", "TECH-LAPTOP", TestContext.Current.CancellationToken)).Ok);
+
+        var row = Assert.Single(audit.Rows);
+        Assert.Equal(ScreenTrail.Core.Store.AuditTypes.DeviceActivated, row.Type);
+        Assert.Null(row.Detail);
+        Assert.Null(row.Count);
+    }
+
+    [Fact]
     public async Task ARefusedCodeIsTheBackendsSentence()
     {
         var backend = new ScriptedBackend();
