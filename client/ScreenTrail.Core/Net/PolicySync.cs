@@ -84,7 +84,8 @@ public sealed record AppliedPolicy(string Version, TimeSpan Retention, bool Loca
 /// <summary>
 /// What a policy means for this client, next to what the technician chose (INV-11). With an admin
 /// policy in force retention is the admin's; local-only is the admin's only when locked. With no policy
-/// beyond the defaults, both are the technician's own settings (ST-081).
+/// beyond the defaults, both are the technician's own settings (ST-081), retention inside the technician's
+/// 1 to 30 days wherever the document came from.
 /// </summary>
 public static class PolicyApplication
 {
@@ -93,10 +94,12 @@ public static class PolicyApplication
         ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(user);
         var adminSet = policy.Version != TenantPolicy.Default.Version;
-        var days = adminSet ? policy.RetentionDays : user.RetentionDays;
+        var days = adminSet
+            ? Math.Clamp(policy.RetentionDays, 1, 365)
+            : Math.Clamp(user.RetentionDays, ClientSettings.MinRetentionDays, ClientSettings.MaxRetentionDays);
         return new AppliedPolicy(
             policy.Version,
-            TimeSpan.FromDays(Math.Clamp(days, 1, 365)),
+            TimeSpan.FromDays(days),
             policy.LocalOnlyLocked ? policy.LocalOnly : user.LocalOnly,
             policy.LocalOnlyLocked,
             policy.CaptureAllWindows,

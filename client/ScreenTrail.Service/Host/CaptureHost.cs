@@ -155,13 +155,16 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         var retentionOptions = new RetentionOptions();
 
         // ST-081: the technician's own settings, on disk beside the store; the admin's policy sits on top.
+        // A file that breaks the pipe's rules or cannot be read is taken at its strictest (DEC-06). In an
+        // installed build the four built-in redaction rules stay on until the tenant's policy can set a
+        // floor (DEC-06), whatever the file or a save says.
         var settingsStore = new ClientSettingsStore(Path.Combine(paths.DataDirectory, "settings.json"));
         Action<ClientSettings> applySettings = _ => { };
 
         // ST-080: the capture settings, the same way. The scene sampler and the session trigger are built
         // here so the settings can change them in place; the hotkeys are re-registered when they change.
         var captureStore = new CaptureSettingsStore(Path.Combine(paths.DataDirectory, "capture.json"));
-        var captureSettings = captureStore.Load();
+        var (captureSettings, captureRefused) = captureStore.Read();
         var sampler = new SceneSampler(options: captureSettings.ToSceneOptions());
         Func<CaptureSettings, Task> applyCapture = _ => Task.CompletedTask;
 
@@ -398,7 +401,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
                 () => policySync.Current,
                 settings => applySettings(settings),
                 new Core.Audit.AuditExporter(store.ReadAuditAsync, Path.Combine(paths.DataDirectory, Core.Audit.AuditExporter.DirectoryName)).ExportAsync,
-                audit: store),
+                audit: store,
+                builtInRulesLocked: installed),
             new CaptureSettingsCommands(
                 captureStore,
                 () => [.. registry.Tools.Select(t => new ToolRow(t.Id, t.DisplayName)), .. registry.BrowserPatterns.Select(b => new ToolRow(b.Id, b.DisplayName))],
@@ -525,7 +529,13 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // brings a new policy (ST-047) or the technician saves (ST-081, ST-080). The policy decides
         // local-only and retention where it is set; the settings decide the rest. Core, so the Mac suite
         // runs it (PolicyApplierTests).
-        var applier = new PolicyApplier(policySync, settingsStore.Load(), captureSettings, egressPolicy, retentionOptions, policy, trigger, sampler, redactionEngine);
+        var settingsRead = settingsStore.Read();
+        if (settingsRead.Refused || captureRefused)
+        {
+            LogSettingsRefused(logger, settingsRead.Refused, captureRefused);
+        }
+
+        var applier = new PolicyApplier(policySync, settingsRead.Settings, captureSettings, egressPolicy, retentionOptions, policy, trigger, sampler, redactionEngine, builtInRulesLocked: installed);
         applier.Applied += applied => LogPolicy(logger, applied.Version, (int)applied.Retention.TotalDays, applied.LocalOnly, applied.Enforced, applied.CaptureAllWindows);
         applySettings = settings => applier.Apply(settings);
         appliedPolicy = () => applier.ForNewSession();
@@ -535,6 +545,13 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             return Task.CompletedTask;
         };
         _ = applier.Apply();
+
+        // A-03 (c): a change made to either file while the service was not running is in the audit log
+        // before anything is captured under it. A row that cannot be written does not stop the start.
+        if (!await SettingsAtStart.RecordAsync(store, settingsStore, settingsRead.Settings, captureStore, captureSettings, stoppingToken).ConfigureAwait(false))
+        {
+            LogLoopFailed(logger, "settings audit at start", "AuditWriteFailed");
+        }
 
         // The pipe opens only now. The applier keeps saved settings in memory, so a save that reached a
         // no-op apply before this point would be on disk but never in force, local-only and scope included,
@@ -918,6 +935,9 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Retention removed raw data from {Count} session(s)")]
     private static partial void LogRetention(ILogger logger, int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "A settings file broke the rules or could not be read and is applied at its strictest: settings {Settings}, capture {Capture}")]
+    private static partial void LogSettingsRefused(ILogger logger, bool settings, bool capture);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Backend address: installed build {Installed}, from {Origin}, environment variables ignored {Ignored}")]
     private static partial void LogAddress(ILogger logger, bool installed, AddressOrigin origin, bool ignored);

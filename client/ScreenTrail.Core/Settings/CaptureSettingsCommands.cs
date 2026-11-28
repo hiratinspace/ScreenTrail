@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ScreenTrail.Core.Audit;
+using ScreenTrail.Core.Ipc;
 using ScreenTrail.Core.Net;
 using ScreenTrail.Core.Speech;
 using ScreenTrail.Core.Store;
@@ -8,32 +9,84 @@ using ScreenTrail.Shared.Settings;
 
 namespace ScreenTrail.Core.Settings;
 
-/// <summary>The capture settings on disk beside the store (ST-080). Not a secret; a bad file is the defaults.</summary>
+/// <summary>
+/// The capture settings on disk beside the store (ST-080). Not a secret. A file that fails the pipe's rules,
+/// or that cannot be read, is taken at its strictest (DEC-06): never all windows, and each member that
+/// breaks a rule at its shipped default. As for <see cref="ClientSettingsStore"/>, <see cref="AppliedPath"/>
+/// keeps the document last saved or applied, for the strict reading and for the start's comparison.
+/// </summary>
 public sealed class CaptureSettingsStore(string path)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
-    public CaptureSettings Load()
+    public string Path => path;
+
+    /// <summary>The copy of the document the service last saved or applied.</summary>
+    public string AppliedPath => path + ".applied";
+
+    public CaptureSettings Load() => Read().Settings;
+
+    /// <summary>The document to use, and whether the file was refused for it. No file and no earlier copy is the defaults, as before.</summary>
+    public (CaptureSettings Settings, bool Refused) Read()
     {
-        try
+        if (!File.Exists(path))
         {
-            return File.Exists(path) ? (JsonSerializer.Deserialize<CaptureSettings>(File.ReadAllText(path), Json) ?? new CaptureSettings()).WithDefaultsForNulls() : new CaptureSettings();
+            return LoadApplied() is { } earlier ? (CaptureSettingsDocument.Strictest(null, earlier), true) : (new CaptureSettings(), false);
         }
-        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+
+        var found = Parse(path);
+        if (found is not null && found.Problems().Count == 0)
         {
-            return new CaptureSettings();
+            return (found, false);
         }
+
+        return (CaptureSettingsDocument.Strictest(found, LoadApplied()), true);
     }
 
+    /// <summary>The copy last saved or applied, or null when there is none that passes the rules.</summary>
+    public CaptureSettings? LoadApplied() =>
+        File.Exists(AppliedPath) && Parse(AppliedPath) is { } applied && applied.Problems().Count == 0 ? applied : null;
+
+    /// <summary>Writes the file and the copy beside it. True when the file itself was written.</summary>
     public bool Save(CaptureSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
+        if (!Write(path, settings))
+        {
+            return false;
+        }
+
+        _ = Write(AppliedPath, settings);
+        return true;
+    }
+
+    /// <summary>Records what the service applied at start, for the next start to compare against.</summary>
+    public bool RecordApplied(CaptureSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return Write(AppliedPath, settings);
+    }
+
+    private static CaptureSettings? Parse(string file)
+    {
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-            var temporary = path + ".tmp";
+            return JsonSerializer.Deserialize<CaptureSettings>(File.ReadAllText(file), Json)?.WithDefaultsForNulls();
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private static bool Write(string file, CaptureSettings settings)
+    {
+        try
+        {
+            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(file))!);
+            var temporary = file + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(settings, Json));
-            File.Move(temporary, path, overwrite: true);
+            File.Move(temporary, file, overwrite: true);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -80,12 +133,38 @@ public static class CaptureSettingsDocument
             MicrophoneId = string.IsNullOrWhiteSpace(settings.MicrophoneId) ? null : settings.MicrophoneId.Trim(),
         };
     }
+
+    /// <summary>
+    /// The strictest reading of a capture settings file that failed the rules or could not be read (DEC-06):
+    /// what was found, or failing that the copy last applied, with all windows off and each member that
+    /// breaks a rule at its shipped default. The result passes <see cref="CaptureSettingsRules.Problems"/>.
+    /// </summary>
+    public static CaptureSettings Strictest(CaptureSettings? found, CaptureSettings? lastApplied)
+    {
+        var defaults = new CaptureSettings();
+        var start = (found ?? lastApplied ?? defaults).WithDefaultsForNulls();
+        var strict = start with
+        {
+            CaptureAllWindows = false,
+            GraceSeconds = start.GraceSeconds is >= CaptureSettings.MinGraceSeconds and <= CaptureSettings.MaxGraceSeconds ? start.GraceSeconds : null,
+            Sensitivity = CaptureSettingsRules.Sensitivities.Contains(start.Sensitivity, StringComparer.OrdinalIgnoreCase) ? start.Sensitivity : defaults.Sensitivity,
+            SpeechModel = start.SpeechModel is { } model && SpeechModels.All.Any(m => string.Equals(m.Name, model, StringComparison.OrdinalIgnoreCase)) ? model : null,
+            MicrophoneId = start.MicrophoneId is { } microphone && microphone.Length <= CaptureSettingsRules.MaxMicrophoneIdLength && !microphone.Any(char.IsControl) ? microphone : null,
+        };
+
+        // Hotkeys that do not parse or that clash are the shipped chords, all of them.
+        return strict.Problems().Count == 0 ? strict : strict with { Hotkeys = defaults.Hotkeys };
+    }
 }
 
 /// <summary>
 /// The service's side of Settings → Capture (ST-080): the document with the registry's tools, the
 /// devices connected and what the policy forces beside it; save, validate and apply in place; and the
 /// microphone's live level while the card is on screen (AC3).
+///
+/// A save that turns all windows on carries a token this class issued a moment ago to the same connection
+/// (<see cref="ConfirmAction"/>), as a discard does (INV-5, A-03 (d)): the screen's tick is the UI's, and a
+/// single crafted message on the pipe no longer widens capture. Turning it off needs none.
 /// </summary>
 /// <param name="microphones">The capture devices connected now (<see cref="IMicrophone.Devices"/>), asked each time the card loads.</param>
 /// <param name="meter">The level meter, or null where there is none to offer; the meter's requests are then refused.</param>
@@ -103,6 +182,14 @@ public sealed class CaptureSettingsCommands(
     MicrophoneMeter? meter = null,
     IAuditLog? audit = null)
 {
+    /// <summary>The <c>request_confirmation</c> action whose token a capture save carries (contract v17).</summary>
+    public const string ConfirmAction = "change_capture_settings";
+
+    /// <summary>What a save that needed a token and had none, or a spent one, is told.</summary>
+    public const string UnconfirmedLine = "Capturing every window was not confirmed, so nothing was saved. Save again from Settings.";
+
+    private readonly Confirmations _confirmations = new();
+
     private readonly CaptureSettingsStore _store = store ?? throw new ArgumentNullException(nameof(store));
 
     // Save and apply as one step, for the reason SettingsCommands gives: the file and the scope in force
@@ -142,7 +229,22 @@ public sealed class CaptureSettingsCommands(
         }
     }
 
-    public async Task<CommandResult?> HandleAsync(IpcCommand command, CancellationToken ct = default)
+    /// <summary>
+    /// A token for the next save from this connection, or null when the request is for another action. Good
+    /// once, for 30 seconds, only on <paramref name="caller"/>'s connection.
+    /// </summary>
+    public ConfirmationIssued? Confirm(RequestConfirmationCommand request, Guid caller)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return request is { Action: ConfirmAction, SessionIds: null }
+            ? new ConfirmationIssued { Token = _confirmations.Issue(DestructiveAction.ChangeCaptureSettings, caller), Phrase = "SAVE" }
+            : null;
+    }
+
+    /// <summary>As <see cref="HandleAsync(IpcCommand, Guid, CancellationToken)"/> from a connection with no token of its own.</summary>
+    public Task<CommandResult?> HandleAsync(IpcCommand command, CancellationToken ct = default) => HandleAsync(command, Guid.Empty, ct);
+
+    public async Task<CommandResult?> HandleAsync(IpcCommand command, Guid caller, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         switch (command)
@@ -161,7 +263,7 @@ public sealed class CaptureSettingsCommands(
 
             default:
                 {
-                    var saved = Save(command, out var changed);
+                    var saved = Save(command, caller, out var changed);
 
                     // After the save took, so every row is a change that is in force (ST-045).
                     if (audit is not null)
@@ -177,7 +279,7 @@ public sealed class CaptureSettingsCommands(
         }
     }
 
-    private CommandResult? Save(IpcCommand command, out IReadOnlyList<(SettingChange Change, long? Count)> changed)
+    private CommandResult? Save(IpcCommand command, Guid caller, out IReadOnlyList<(SettingChange Change, long? Count)> changed)
     {
         changed = [];
         switch (command)
@@ -201,6 +303,14 @@ public sealed class CaptureSettingsCommands(
                     lock (_saving)
                     {
                         var before = _store.Load();
+
+                        // A presented token is spent whether or not it was needed: single use.
+                        var confirmed = _confirmations.Spend(set.Confirmation, DestructiveAction.ChangeCaptureSettings, caller);
+                        if (settings.CaptureAllWindows && !before.CaptureAllWindows && !confirmed)
+                        {
+                            return new CommandResult { RequestId = command.RequestId, Ok = false, Error = UnconfirmedLine };
+                        }
+
                         if (!_store.Save(settings))
                         {
                             return new CommandResult { RequestId = command.RequestId, Ok = false, Error = "The settings could not be written to disk." };

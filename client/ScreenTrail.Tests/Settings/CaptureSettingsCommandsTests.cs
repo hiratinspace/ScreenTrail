@@ -95,7 +95,10 @@ public sealed class CaptureSettingsCommandsTests : IDisposable
             inForce = settings;
         });
 
-        var first = await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 6, Settings = new CaptureSettings { CaptureAllWindows = true } }, TestContext.Current.CancellationToken);
+        // All windows on carries the connection's token since contract v17 (INV-5); off needs none.
+        var window = Guid.NewGuid();
+        var token = commands.Confirm(new RequestConfirmationCommand { RequestId = 5, Action = CaptureSettingsCommands.ConfirmAction }, window)!.Token;
+        var first = await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 6, Settings = new CaptureSettings { CaptureAllWindows = true }, Confirmation = token }, window, TestContext.Current.CancellationToken);
         Assert.NotNull(second);
         var then = await second;
 

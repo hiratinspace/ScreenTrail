@@ -68,7 +68,11 @@ public sealed class AuditCoverageTests : IAsyncDisposable
             audit: store);
 
         var saved = new ClientSettings { Passwords = false, CustomPatterns = ["acme-ticket-\\d{6}"] };
-        Assert.True((await commands.HandleAsync(new SetSettingsCommand { RequestId = 1, Settings = saved }, Ct))!.Ok);
+
+        // A switch going off needs the connection's token since DEC-06.
+        var window = Guid.NewGuid();
+        var token = commands.Confirm(new RequestConfirmationCommand { RequestId = 0, Action = SettingsCommands.ConfirmAction }, window)!.Token;
+        Assert.True((await commands.HandleAsync(new SetSettingsCommand { RequestId = 1, Settings = saved, Confirmation = token }, window, Ct))!.Ok);
 
         var rows = (await store.GetAuditRecordsAsync(ct: Ct)).Where(r => r.Type == "settings_changed").ToList();
         Assert.Equal(["CustomPatterns", "PasswordsOff"], rows.Select(r => r.Detail).Order(StringComparer.Ordinal));
@@ -140,7 +144,11 @@ public sealed class AuditCoverageTests : IAsyncDisposable
             audit: store);
 
         var saved = new CaptureSettings { CaptureAllWindows = true };
-        Assert.True((await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 1, Settings = saved }, Ct))!.Ok);
+
+        // All windows on needs the connection's token since contract v17 (INV-5).
+        var window = Guid.NewGuid();
+        var token = commands.Confirm(new RequestConfirmationCommand { RequestId = 0, Action = CaptureSettingsCommands.ConfirmAction }, window)!.Token;
+        Assert.True((await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 1, Settings = saved, Confirmation = token }, window, Ct))!.Ok);
 
         var row = Assert.Single(await store.GetAuditRecordsAsync(ct: Ct), r => r.Type == "settings_changed");
         Assert.Equal("AllWindowsOn", row.Detail);

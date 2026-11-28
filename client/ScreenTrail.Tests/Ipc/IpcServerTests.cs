@@ -712,7 +712,21 @@ public sealed class IpcServerTests : IAsyncDisposable
 
         var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 15, Token = IpcToken.Encode(_token), ClientName = "v15-ui" });
 
-        Assert.Equal(16, IpcContract.Version);
+        Assert.True(IpcContract.Version >= 16);
+        Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
+    }
+
+    [Fact]
+    public async Task AVersionSixteenUiIsTurnedAwayByAVersionSeventeenService()
+    {
+        // Contract v17 (security review A-03, DEC-06): set_settings and set_capture_settings carry a
+        // confirmation token and the settings reply says whether the built-in rules are locked. A v16 peer
+        // would refuse or fail on the new members, so it is refused at the handshake.
+        await StartServerAsync();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = 16, Token = IpcToken.Encode(_token), ClientName = "v16-ui" });
+
+        Assert.Equal(17, IpcContract.Version);
         Assert.Equal(RejectReasons.ContractMismatch, Assert.IsType<Rejected>(reply).Reason);
     }
 

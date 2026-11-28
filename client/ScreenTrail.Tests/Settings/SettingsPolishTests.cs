@@ -171,7 +171,8 @@ public sealed class SettingsPolishTests
         Assert.Equal("{DynamicResource Brush.text.secondary}", (string?)glyph.Attribute("Foreground"));
         Assert.Equal("{StaticResource Text.Caption}", (string?)locked.Descendants(Wpf + "TextBlock").Single().Attribute("Style"));
 
-        var uses = new[] { ("Settings/Privacy", "PrivacyPane.xaml", 2), ("Settings/Capture", "CapturePane.xaml", 1), ("Update", "UpdatesPane.xaml", 1) };
+        // Privacy has three since DEC-06: local-only, retention, and the built-in rules in an installed build.
+        var uses = new[] { ("Settings/Privacy", "PrivacyPane.xaml", 3), ("Settings/Capture", "CapturePane.xaml", 1), ("Update", "UpdatesPane.xaml", 1) };
         foreach (var (folder, file, count) in uses)
         {
             var view = EmptyStateTests.View(folder, file);

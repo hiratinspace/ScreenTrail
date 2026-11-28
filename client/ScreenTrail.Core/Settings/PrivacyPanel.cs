@@ -13,12 +13,13 @@ namespace ScreenTrail.Core.Settings;
 /// <param name="RetentionLocked">The admin's policy set retention.</param>
 /// <param name="EffectiveLocalOnly">Local-only as it is in force; shown in place of the technician's own when locked.</param>
 /// <param name="EffectiveRetentionDays">Retention as it is in force; shown in place of the technician's own when locked.</param>
-public sealed record SettingsSnapshot(ClientSettings Settings, bool LocalOnlyLocked, bool RetentionLocked, string PolicyVersion, bool EffectiveLocalOnly, int EffectiveRetentionDays)
+/// <param name="BuiltInRulesLocked">An installed build: the four built-in rules stay on (DEC-06), shown on and read-only.</param>
+public sealed record SettingsSnapshot(ClientSettings Settings, bool LocalOnlyLocked, bool RetentionLocked, string PolicyVersion, bool EffectiveLocalOnly, int EffectiveRetentionDays, bool BuiltInRulesLocked = false)
 {
     public static SettingsSnapshot From(SettingsReported reported)
     {
         ArgumentNullException.ThrowIfNull(reported);
-        return new(reported.Settings, reported.LocalOnlyLocked, reported.RetentionLocked, reported.PolicyVersion, reported.EffectiveLocalOnly, reported.EffectiveRetentionDays);
+        return new(reported.Settings, reported.LocalOnlyLocked, reported.RetentionLocked, reported.PolicyVersion, reported.EffectiveLocalOnly, reported.EffectiveRetentionDays, reported.BuiltInRulesLocked);
     }
 }
 
@@ -125,6 +126,16 @@ public sealed class PrivacyPanel(IPrivacyGateway gateway)
 
     public bool RetentionLocked { get; private set; }
 
+    /// <summary>
+    /// An installed build (DEC-06): social security numbers, cards, API keys and passwords are masked
+    /// whatever the switches say, and the service refuses a save that turns one off. They show on, a write
+    /// that would turn one off is ignored, and a save sends them on.
+    /// </summary>
+    public bool BuiltInRulesLocked { get; private set; }
+
+    /// <summary>Under the four switches when <see cref="BuiltInRulesLocked"/>.</summary>
+    public static string BuiltInRulesLockedLine => ClientSettingsRules.BuiltInRulesLockedLine;
+
     /// <summary>The slider's top: the technician's 30 days, or more when the admin's locked retention is longer.</summary>
     public int RetentionMaximum => Math.Max(ClientSettings.MaxRetentionDays, RetentionDays);
 
@@ -138,13 +149,29 @@ public sealed class PrivacyPanel(IPrivacyGateway gateway)
 
     public bool Telemetry { get; set; }
 
-    public bool Ssn { get; set; } = true;
+    public bool Ssn
+    {
+        get;
+        set => field = value || BuiltInRulesLocked;
+    } = true;
 
-    public bool Cards { get; set; } = true;
+    public bool Cards
+    {
+        get;
+        set => field = value || BuiltInRulesLocked;
+    } = true;
 
-    public bool ApiKeys { get; set; } = true;
+    public bool ApiKeys
+    {
+        get;
+        set => field = value || BuiltInRulesLocked;
+    } = true;
 
-    public bool Passwords { get; set; } = true;
+    public bool Passwords
+    {
+        get;
+        set => field = value || BuiltInRulesLocked;
+    } = true;
 
     public bool Emails { get; set; }
 
@@ -263,6 +290,7 @@ public sealed class PrivacyPanel(IPrivacyGateway gateway)
         _localOnly = LocalOnlyLocked ? snapshot.EffectiveLocalOnly : _loaded.LocalOnly;
         RetentionLocked = snapshot.RetentionLocked;
         _retentionDays = RetentionLocked ? snapshot.EffectiveRetentionDays : _loaded.RetentionDays;
+        BuiltInRulesLocked = snapshot.BuiltInRulesLocked;
         PolicyVersion = snapshot.PolicyVersion;
         Telemetry = _loaded.Telemetry;
         Ssn = _loaded.Ssn;
@@ -356,9 +384,15 @@ public sealed class PipePrivacy(CaptureConnection connection, string? exports = 
         return reported is null ? null : SettingsSnapshot.From(reported);
     }
 
+    /// <summary>
+    /// Asks for a token first and carries it on the save (contract v17, DEC-06): the service refuses a save
+    /// that changes what is masked without one from this connection. Asked on every save, so the screen does
+    /// not have to know which changes need it; the Save button is the technician's act.
+    /// </summary>
     public async Task<string?> SaveAsync(ClientSettings settings, CancellationToken ct = default)
     {
-        var result = await _connection.SendAsync(id => new SetSettingsCommand { RequestId = id, Settings = settings }, ct).ConfigureAwait(false);
+        var issued = await _connection.RequestAsync<ConfirmationIssued>(id => new RequestConfirmationCommand { RequestId = id, Action = SettingsCommands.ConfirmAction }, ct).ConfigureAwait(false);
+        var result = await _connection.SendAsync(id => new SetSettingsCommand { RequestId = id, Settings = settings, Confirmation = issued?.Token }, ct).ConfigureAwait(false);
         return result.Ok ? null : result.Error ?? "The capture service refused the settings.";
     }
 

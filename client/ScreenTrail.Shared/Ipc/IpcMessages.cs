@@ -234,7 +234,11 @@ public sealed record EraseAllLocalDataCommand : IpcCommand
 /// </summary>
 public sealed record RequestConfirmationCommand : IpcCommand
 {
-    /// <summary><c>discard_session</c>, <c>discard_sessions</c> or <c>erase_everything</c>. A token is good for one of them.</summary>
+    /// <summary>
+    /// <c>discard_session</c>, <c>discard_sessions</c> or <c>erase_everything</c>; or, since contract v17,
+    /// <c>change_settings</c> and <c>change_capture_settings</c>, whose token a settings save carries (DEC-06).
+    /// A token is good for one of them.
+    /// </summary>
     [JsonPropertyName("action")]
     public required string Action { get; init; }
 
@@ -613,6 +617,14 @@ public sealed record SettingsReported : IpcEvent
     /// <summary>Retention in days as it is in force: the admin's under a policy (up to 365), otherwise the technician's own.</summary>
     [JsonPropertyName("effective_retention_days")]
     public required int EffectiveRetentionDays { get; init; }
+
+    /// <summary>
+    /// An installed build (contract v17, DEC-06): the four built-in rules (social security numbers, cards,
+    /// API keys, passwords) stay on until the tenant's policy can set a floor, and a save that switches one
+    /// off is refused. <see cref="Settings"/> stays the technician's own, as for the other locks.
+    /// </summary>
+    [JsonPropertyName("built_in_rules_locked")]
+    public bool BuiltInRulesLocked { get; init; }
 }
 
 /// <summary>The whole document, every time. Refused with the first problem as a failed <c>result</c>.</summary>
@@ -620,6 +632,15 @@ public sealed record SetSettingsCommand : IpcCommand
 {
     [JsonPropertyName("settings")]
     public required ScreenTrail.Shared.Settings.ClientSettings Settings { get; init; }
+
+    /// <summary>
+    /// A token from <c>request_confirmation</c> with the action <c>change_settings</c>, issued moments ago on
+    /// this connection (contract v17). Without it the service refuses a save that changes a redaction switch
+    /// or takes a custom pattern, an excluded app or local-only away (DEC-06).
+    /// </summary>
+    [JsonPropertyName("confirmation")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Confirmation { get; init; }
 }
 
 /// <summary>
@@ -685,6 +706,14 @@ public sealed record SetCaptureSettingsCommand : IpcCommand
 {
     [JsonPropertyName("settings")]
     public required ScreenTrail.Shared.Settings.CaptureSettings Settings { get; init; }
+
+    /// <summary>
+    /// A token from <c>request_confirmation</c> with the action <c>change_capture_settings</c>, issued moments
+    /// ago on this connection (contract v17). Without it the service refuses a save that turns all windows on (INV-5).
+    /// </summary>
+    [JsonPropertyName("confirmation")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Confirmation { get; init; }
 }
 
 /// <param name="Id">Windows' endpoint id, the value <c>microphone_id</c> keeps.</param>

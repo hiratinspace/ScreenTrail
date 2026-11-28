@@ -51,7 +51,7 @@ public sealed class ClientSettingsTests : IDisposable
     }
 
     [Fact]
-    public void TheDocumentRoundTripsThroughTheStoreAndABadFileIsTheDefaults()
+    public void TheDocumentRoundTripsThroughTheStoreAndABadFileIsTheStrictestReading()
     {
         var store = new ClientSettingsStore(Path.Combine(_dir, "settings.json"));
         Assert.Equal(new ClientSettings(), store.Load());
@@ -60,8 +60,13 @@ public sealed class ClientSettingsTests : IDisposable
         Assert.Equal(14, store.Load().RetentionDays);
         Assert.Equal(["keepass"], store.Load().ExcludedProcesses);
 
+        // DEC-06: not the defaults, which would lift the local-only and the exclusion saved above.
         File.WriteAllText(Path.Combine(_dir, "settings.json"), "{ not json");
-        Assert.Equal(new ClientSettings(), store.Load());
+        var strict = store.Load();
+        Assert.True(strict.LocalOnly);
+        Assert.True(strict.Emails);
+        Assert.Equal(14, strict.RetentionDays);
+        Assert.Equal(["keepass"], strict.ExcludedProcesses);
     }
 
     [Theory]

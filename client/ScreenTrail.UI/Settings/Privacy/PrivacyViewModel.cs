@@ -55,6 +55,16 @@ public sealed partial class PrivacyViewModel : ObservableObject
     [ObservableProperty]
     public partial bool RetentionEditable { get; set; } = true;
 
+    /// <summary>False in an installed build, where the four built-in rules stay on (DEC-06).</summary>
+    [ObservableProperty]
+    public partial bool BuiltInRulesEditable { get; set; } = true;
+
+    [ObservableProperty]
+    public partial Visibility BuiltInRulesLockVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>Why the four switches cannot be turned off, under them when they are locked.</summary>
+    public string BuiltInRulesLockedLine { get; } = PrivacyPanel.BuiltInRulesLockedLine;
+
     /// <summary>The slider's top, so an admin's retention beyond 30 days is shown whole rather than clamped.</summary>
     [ObservableProperty]
     public partial int RetentionMaximum { get; set; } = Shared.Settings.ClientSettings.MaxRetentionDays;
@@ -308,6 +318,8 @@ public sealed partial class PrivacyViewModel : ObservableObject
         RetentionDays = days;
         RetentionMaximum = maximum;
         RetentionEditable = !_panel.RetentionLocked;
+        BuiltInRulesEditable = !_panel.BuiltInRulesLocked;
+        BuiltInRulesLockVisibility = _panel.BuiltInRulesLocked ? Visibility.Visible : Visibility.Collapsed;
         RetentionLabel = PrivacyPanel.RetentionLine(days);
         LockedBecause = _panel.LockedBecause;
         LockedDetail = _panel.LockedDetail;

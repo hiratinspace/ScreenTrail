@@ -83,8 +83,15 @@ namespace ScreenTrail.Shared.Ipc;
 /// Version 16 (review finding E-10, spec v0.7.18): the <c>session</c> reply gains <c>draft_failure</c>,
 /// optional, the reason a failed draft recorded, so Review says why. A new member on a reply, which a v15
 /// UI would fail on, so the version moves.
+///
+/// Version 17 (security review A-03, DEC-06): <c>set_settings</c> and <c>set_capture_settings</c> gain
+/// <c>confirmation</c>, optional, a token from <c>request_confirmation</c> with the new actions
+/// <c>change_settings</c> and <c>change_capture_settings</c>; the service refuses a save that changes masking,
+/// takes a pattern, an excluded app or local-only away, or turns all windows on without one. The
+/// <c>settings</c> reply gains <c>built_in_rules_locked</c>. New members on a command and a reply both sides
+/// exchange, which a v16 peer would refuse or fail on, so the version moves.
 /// </summary>
 public static class IpcContract
 {
-    public const int Version = 16;
+    public const int Version = 17;
 }

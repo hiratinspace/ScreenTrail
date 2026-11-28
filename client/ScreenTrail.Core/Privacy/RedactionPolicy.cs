@@ -4,8 +4,9 @@ using ScreenTrail.Shared.Schema;
 namespace ScreenTrail.Core.Privacy;
 
 /// <summary>
-/// Which patterns the engine looks for (Spec S6 toggles), plus the tenant's own. Synced by policy (ST-047);
-/// a technician can turn patterns on but not off when the tenant locks them (INV-11, enforced in Settings).
+/// Which patterns the engine looks for (Spec S6 toggles), plus the technician's own. The tenant's policy has
+/// no redaction fields yet; until it does, an installed build keeps the four built-in rules on whatever the
+/// settings say (DEC-06, <c>PolicyApplier</c>), and a save over the pipe that changes a switch needs a token.
 /// </summary>
 public sealed record RedactionPolicy
 {
@@ -23,7 +24,7 @@ public sealed record RedactionPolicy
     /// <summary>Off by default: an email address is usually the ticket's own contact, not a secret.</summary>
     public bool Emails { get; init; }
 
-    /// <summary>Tenant-supplied regexes, already validated by <see cref="ValidateCustomPattern"/>.</summary>
+    /// <summary>The technician's own regexes from Settings, already validated by <see cref="ValidateCustomPattern"/>.</summary>
     public IReadOnlyList<string> CustomPatterns { get; init; } = [];
 
     public static RedactionPolicy Default { get; } = new();

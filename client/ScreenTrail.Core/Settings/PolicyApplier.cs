@@ -38,6 +38,7 @@ public sealed class PolicyApplier
     private readonly SceneSampler _sampler;
     private readonly RedactionEngine _redaction;
     private readonly ExclusionList? _exclusions;
+    private readonly bool _builtInRulesLocked;
     private ClientSettings _settings;
     private CaptureSettings _capture;
     private AppliedPolicy? _last;
@@ -49,6 +50,10 @@ public sealed class PolicyApplier
     /// Built with the shipped exclusions. They are kept through every apply: a list that a settings save
     /// could drop would stop excluding password managers until the next restart (INV-6).
     /// </param>
+    /// <param name="builtInRulesLocked">
+    /// An installed build (DEC-06): the four built-in rules reach the engine on, whatever the settings say,
+    /// until the tenant's policy carries a floor that only a tenant admin can lower.
+    /// </param>
     public PolicyApplier(
         PolicySync policy,
         ClientSettings settings,
@@ -58,7 +63,8 @@ public sealed class PolicyApplier
         ScopePolicy scope,
         SessionTrigger trigger,
         SceneSampler sampler,
-        RedactionEngine redaction)
+        RedactionEngine redaction,
+        bool builtInRulesLocked = false)
     {
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -70,6 +76,7 @@ public sealed class PolicyApplier
         _sampler = sampler ?? throw new ArgumentNullException(nameof(sampler));
         _redaction = redaction ?? throw new ArgumentNullException(nameof(redaction));
         _exclusions = scope.Options.Exclusions;
+        _builtInRulesLocked = builtInRulesLocked;
 
         // The argument is ignored on purpose: Current is already the new policy when this is raised, and
         // reading it under the lock is what keeps two applies in order.
@@ -137,7 +144,7 @@ public sealed class PolicyApplier
             });
             _trigger.Apply(_capture.GraceSeconds is { } seconds ? TimeSpan.FromSeconds(seconds) : _scope.Registry.Grace);
             _sampler.Apply(_capture.ToSceneOptions());
-            _redaction.Apply(_settings.ToRedactionPolicy());
+            _redaction.Apply((_builtInRulesLocked ? _settings.WithBuiltInRulesOn() : _settings).ToRedactionPolicy());
 
             // Inside the lock, so reports come out in the order the applies took effect and the last line
             // the host logs is what the guard enforces. The one subscriber writes a log line.

@@ -442,9 +442,14 @@ public sealed class PipeCapture(CaptureConnection connection) : ICaptureGateway,
                 reported.DefaultGraceSeconds);
     }
 
+    /// <summary>
+    /// Asks for a token first and carries it on the save (contract v17): the service refuses all windows
+    /// turned on without one from this connection (INV-5). The screen's own confirmation comes before this.
+    /// </summary>
     public async Task<string?> SaveAsync(CaptureSettings settings, CancellationToken ct = default)
     {
-        var result = await _connection.SendAsync(id => new SetCaptureSettingsCommand { RequestId = id, Settings = settings }, ct).ConfigureAwait(false);
+        var issued = await _connection.RequestAsync<ConfirmationIssued>(id => new RequestConfirmationCommand { RequestId = id, Action = CaptureSettingsCommands.ConfirmAction }, ct).ConfigureAwait(false);
+        var result = await _connection.SendAsync(id => new SetCaptureSettingsCommand { RequestId = id, Settings = settings, Confirmation = issued?.Token }, ct).ConfigureAwait(false);
         if (result.Ok)
         {
             HotkeyText.Use(settings.ToBindings());

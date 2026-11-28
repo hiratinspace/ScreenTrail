@@ -119,7 +119,10 @@ internal sealed class CaptureController(
 
             // Named sessions are Review's and History's; none named is the tray's or erase's, as before.
             RequestConfirmationCommand { SessionIds: not null } named => _discards.Confirm(named, caller),
-            RequestConfirmationCommand request => Confirm(request, caller),
+            // The settings saves' tokens (contract v17) are theirs: each class spends only what it issued.
+            RequestConfirmationCommand request => Confirm(request, caller)
+                ?? settings.Confirm(request, caller)
+                ?? captureSettings.Confirm(request, caller),
 
             // Review's questions: the session, a frame, a blur (ST-085 remainder); and publishing's
             // (ST-093): what is connected, a ticket search, the publish itself.
@@ -153,12 +156,12 @@ internal sealed class CaptureController(
             return notActivated;
         }
 
-        if (await settings.HandleAsync(command, ct).ConfigureAwait(false) is { } saved)
+        if (await settings.HandleAsync(command, caller, ct).ConfigureAwait(false) is { } saved)
         {
             return saved;
         }
 
-        if (await captureSettings.HandleAsync(command, ct).ConfigureAwait(false) is { } savedCapture)
+        if (await captureSettings.HandleAsync(command, caller, ct).ConfigureAwait(false) is { } savedCapture)
         {
             return savedCapture;
         }

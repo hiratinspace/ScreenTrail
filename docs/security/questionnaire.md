@@ -90,7 +90,10 @@ treated as a failure: it is kept, and the text the engine did not read on it is 
 
 **2.5 What is redacted?**
 Card numbers (Luhn-checked), United States social security numbers, API keys and tokens, private key
-blocks, password fields, and tenant-defined patterns. Not yet recognised: other countries' national ID
+blocks, password fields, and any patterns the technician adds in Settings (the tenant's policy does not
+carry patterns yet). In an installed copy the first four (cards, social security numbers, API keys,
+passwords) cannot be switched off; until the tenant's policy can set which rules are required, that is
+the rule for every installed device. Not yet recognised: other countries' national ID
 numbers (a UK National Insurance number, for one), IBANs, dates of birth, recovery keys written as digit
 groups, and a password with no English password label beside it (on a command line, in a web address, or
 under a label in another language); in a table with a Password column only the first row is masked. Such a
@@ -177,6 +180,13 @@ of the technician's reach, but it does not by itself stop the fetch being interc
 *(2026-11-15.)* The operator sets a policy with
 `--set-policy` until the web admin exists (ST-099).
 
+⚠ The policy has no redaction fields yet: it cannot require a rule on or add a pattern. In the meantime an
+installed copy keeps the four built-in rules on whatever its settings say; a change to any redaction
+switch, or one that takes a pattern, an excluded app or local-only away, is refused by the service
+unless it comes with a one-use confirmation from the same window; and a settings file that breaks the
+rules or cannot be read is applied at its strictest (local-only on, every rule on), never as the defaults.
+*(Security review A-03, DEC-06, 2026-11-28.)*
+
 **3.5 ⚠ Does the backend store screenshots?**
 No. There is no table that could hold a frame, a transcript or a note; a bundle is held in memory for one
 request and let go, and the backend's tests count every row in every table before and after a draft.
@@ -261,8 +271,8 @@ ScreenTrail started and stopped it; frames captured, frames lost unredacted, sup
 reasons and durations, redactions by kind, bytes sent and to which host, each destination a publish
 landed in, and every deletion: a screenshot deleted or blurred in Review, a discarded session, a
 retention purge. For the device as a whole: each change to a privacy or capture-scope setting saved in
-Settings (which setting, and on or off, never its value), and each tenant policy version that took
-effect. A frame turned away before capture because redaction had fallen behind counts as lost and not as
+Settings, or made to the settings files while the service was not running and found at its next start
+(which setting, and on or off, never its value), and each tenant policy version that took effect. A frame turned away before capture because redaction had fallen behind counts as lost and not as
 captured, so the lost count can exceed the captured one.
 
 **5.2 Can the audit log be tampered with?**

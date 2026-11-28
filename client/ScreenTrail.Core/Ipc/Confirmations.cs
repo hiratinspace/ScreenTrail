@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace ScreenTrail.Core.Ipc;
 
-/// <summary>What a confirmation is for. A token issued for one is no use for the other.</summary>
+/// <summary>What a confirmation is for. A token issued for one is no use for another.</summary>
 public enum DestructiveAction
 {
     /// <summary>Throw away the session being recorded, and everything captured in it.</summary>
@@ -16,6 +16,15 @@ public enum DestructiveAction
     /// this is bound to the ids it was issued for, and is no use for any others.
     /// </summary>
     DiscardSessions,
+
+    /// <summary>
+    /// Save Settings → Privacy with a change to masking, or one that takes a pattern, an excluded app or
+    /// local-only away (DEC-06, contract v17). Not irreversible, but it decides what leaves the PC unmasked.
+    /// </summary>
+    ChangeSettings,
+
+    /// <summary>Save Settings → Capture with all windows turned on (INV-5, contract v17).</summary>
+    ChangeCaptureSettings,
 }
 
 /// <summary>

@@ -1543,8 +1543,8 @@ Invoke-Section 'Capture settings and hotkeys' {
     $capture = Read-JsonFile (Join-Path $dataDir 'capture.json')
     $settings = Read-JsonFile (Join-Path $dataDir 'settings.json')
     $policy = Read-JsonFile (Join-Path $dataDir 'policy.json')
-    if ($capture -eq 'unreadable') { Add-Fact 'capture.json' 'unreadable (the service uses the defaults)'; $capture = $null }
-    if ($settings -eq 'unreadable') { Add-Fact 'settings.json' 'unreadable (the service uses the defaults)'; $settings = $null }
+    if ($capture -eq 'unreadable') { Add-Fact 'capture.json' 'unreadable (the service applies it at its strictest: all windows off)'; $capture = $null }
+    if ($settings -eq 'unreadable') { Add-Fact 'settings.json' 'unreadable (the service applies it at its strictest: local-only and every masking rule on)'; $settings = $null }
     if ($policy -eq 'unreadable') { Add-Fact 'policy.json' 'unreadable'; $policy = $null }
 
     $allMine = [bool]($capture -and $capture.capture_all_windows)

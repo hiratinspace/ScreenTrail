@@ -163,10 +163,14 @@ internal sealed class Loop(Steps steps, Uri backend, string secret, bool injectC
     {
         var reported = await Pipe.RequestAsync<CaptureSettingsReported>(id => new GetCaptureSettingsCommand { RequestId = id }).ConfigureAwait(false);
         _original = reported.Settings;
+
+        // All windows on needs a token from this connection (contract v17), as the UI's save asks for one.
+        var issued = await Pipe.RequestAsync<ConfirmationIssued>(id => new RequestConfirmationCommand { RequestId = id, Action = Core.Settings.CaptureSettingsCommands.ConfirmAction }).ConfigureAwait(false);
         var saved = await Pipe.SendAsync(id => new SetCaptureSettingsCommand
         {
             RequestId = id,
             Settings = reported.Settings with { CaptureAllWindows = true },
+            Confirmation = issued.Token,
         }).ConfigureAwait(false);
         if (!saved.Ok)
         {

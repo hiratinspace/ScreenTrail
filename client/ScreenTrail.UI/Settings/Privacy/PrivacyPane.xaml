@@ -125,10 +125,12 @@
                     <TextBlock Style="{StaticResource Text.TileHeading}" Text="Redaction patterns" />
                     <ContentControl Margin="8,0,0,0" VerticalAlignment="Center" Style="{StaticResource Badge.Changed}" Content="Changed" Visibility="{Binding Changed[RedactionPatterns]}" />
                 </StackPanel>
-                <CheckBox Margin="0,8,0,0" Content="Social security numbers" IsChecked="{Binding Ssn}" />
-                <CheckBox Margin="0,4,0,0" Content="Card numbers" IsChecked="{Binding Cards}" />
-                <CheckBox Margin="0,4,0,0" Content="API keys, tokens and private keys" IsChecked="{Binding ApiKeys}" />
-                <CheckBox Margin="0,4,0,0" Content="Passwords, when said or typed after a cue" IsChecked="{Binding Passwords}" />
+                <CheckBox Margin="0,8,0,0" Content="Social security numbers" IsChecked="{Binding Ssn}" IsEnabled="{Binding BuiltInRulesEditable}" />
+                <CheckBox Margin="0,4,0,0" Content="Card numbers" IsChecked="{Binding Cards}" IsEnabled="{Binding BuiltInRulesEditable}" />
+                <CheckBox Margin="0,4,0,0" Content="API keys, tokens and private keys" IsChecked="{Binding ApiKeys}" IsEnabled="{Binding BuiltInRulesEditable}" />
+                <CheckBox Margin="0,4,0,0" Content="Passwords, when said or typed after a cue" IsChecked="{Binding Passwords}" IsEnabled="{Binding BuiltInRulesEditable}" />
+                <!-- DEC-06: in an installed build the four above stay on until the tenant's policy can set a floor. -->
+                <ContentControl Style="{StaticResource Settings.Locked}" Content="{Binding BuiltInRulesLockedLine}" Visibility="{Binding BuiltInRulesLockVisibility}" />
                 <CheckBox Margin="0,4,0,0" Content="Email addresses" IsChecked="{Binding Emails}" />
 
                 <TextBlock Margin="0,16,0,8" Style="{StaticResource Text.Label}" Text="Custom patterns (regular expressions)" />
