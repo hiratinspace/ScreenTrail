@@ -216,6 +216,44 @@
             </Grid>
         </Border>
 
+        <!-- E-01: the sentences that need a look, whatever the note type, each as plain text with where it
+             is and why. A Discussion note waits for the box; Internal, or the tick, is the way through. -->
+        <ContentControl Style="{StaticResource Banner}"
+                theme:Banner.Tone="Warning"
+                theme:Banner.Glyph="{StaticResource Icon.Unknown}"
+                theme:Banner.Title="Needs a look"
+                Margin="0,8,0,0"
+                Visibility="{Binding NeedsALookVisibility}"
+                AutomationProperties.Name="{Binding NeedsALookSummary}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Text.Body}"
+                           TextWrapping="Wrap"
+                           Text="{Binding NeedsALookPrompt}"
+                           controls:LiveRegion.Setting="Polite" />
+                <controls:Repeater Margin="0,8,0,0"
+                                   ItemsSource="{Binding NeedsALookMarks}"
+                                   Focusable="False"
+                                   AutomationProperties.Name="{Binding NeedsALookSummary}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,8">
+                                <TextBlock Style="{StaticResource Text.Muted}" TextWrapping="Wrap">
+                                    <Run Text="{Binding Where, Mode=OneWay}" /><Run Text=": " /><Run Text="{Binding Reason, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{Binding Sentence, Mode=OneWay}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </controls:Repeater>
+                <CheckBox Margin="0,4,0,0"
+                          IsChecked="{Binding NeedsALookChecked}"
+                          Visibility="{Binding NeedsALookTickVisibility}"
+                          AutomationProperties.Name="{x:Static core:PublishPanel.NeedsALookLabel}">
+                    <TextBlock Style="{StaticResource Text.Body}" TextWrapping="Wrap" Text="{x:Static core:PublishPanel.NeedsALookLabel}" />
+                </CheckBox>
+            </StackPanel>
+        </ContentControl>
+
         <!-- A publish that threw before any destination answered: said here, since there is no receipt. -->
         <TextBlock Margin="0,8,0,0"
                    Style="{StaticResource Text.Error}"

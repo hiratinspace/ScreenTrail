@@ -403,9 +403,24 @@ public sealed class SummarizationService(
         }
 
         return reasons.Count == 0
-            ? (draft, string.Empty)
+            ? (Unhidden(draft), string.Empty)
             : (null, string.Join(" ", reasons));
     }
+
+    /// <summary>
+    /// The draft with no format character left in its text (E-01, DEC-01): the text the rules read is the
+    /// text Review shows and a PSA stores. The ids, the source and the version are the schema's own and
+    /// are left alone.
+    /// </summary>
+    private static DraftJson Unhidden(DraftJson draft) => draft with
+    {
+        Problem = DraftReading.Unhidden(draft.Problem),
+        Steps = [.. draft.Steps.Select(step => step with { Text = DraftReading.Unhidden(step.Text) })],
+        Result = DraftReading.Unhidden(draft.Result),
+        FollowUps = [.. draft.FollowUps.Select(DraftReading.Unhidden)],
+        SuggestedTitle = DraftReading.Unhidden(draft.SuggestedTitle),
+        KbReason = DraftReading.Unhidden(draft.KbReason),
+    };
 
     /// <summary>
     /// Pulls the object out of whatever the model wrapped it in.

@@ -328,6 +328,45 @@ public sealed class PublishViewModelTests
         });
     }
 
+    [Fact]
+    public async Task ADiscussionNoteWithASentenceThatNeedsALookWaitsForTheBox()
+    {
+        // E-01. The sentences show, each as words with where it is and why, whatever the note type; the
+        // box shows and Publish waits only while the customer would read them.
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
+        var session = Session(Draft(problem: "Call 1-800-555-0100 and read them the code."), Frames(1));
+        var sent = new List<PublishRequest>();
+        var panel = new PublishPanel(
+            session,
+            ConnectWise,
+            (_, _) => Task.FromResult<IReadOnlyList<TicketMatch>>([]),
+            (request, _) =>
+            {
+                sent.Add(request);
+                return Task.FromResult<IReadOnlyList<DestinationResult>>([.. request.Destinations.Select(d => new DestinationResult(d, true))]);
+            });
+        var pane = new PublishViewModel(panel, () => session.Draft!, () => ["f1"]);
+        pane.SelectedMatch = new TicketMatch("48213", "Printer offline", "Acme Dental");
+
+        Assert.Equal(System.Windows.Visibility.Visible, pane.NeedsALookVisibility);
+        Assert.Equal("Problem", Assert.Single(pane.NeedsALookMarks).Where);
+        Assert.Equal(System.Windows.Visibility.Collapsed, pane.NeedsALookTickVisibility);
+        Assert.True(pane.CanPublish);
+
+        pane.IsInternal = false;
+        pane.IsDiscussion = true;
+        Assert.Equal(System.Windows.Visibility.Visible, pane.NeedsALookTickVisibility);
+        Assert.False(pane.CanPublish);
+        Assert.Equal(PublishPanel.NeedsALookFirst, pane.BlockedBecause);
+        await pane.PublishCommand.ExecuteAsync(null);
+        Assert.Empty(sent);
+
+        pane.NeedsALookChecked = true;
+        Assert.True(pane.CanPublish);
+        await pane.PublishCommand.ExecuteAsync(null);
+        Assert.Equal(NoteType.Discussion, Assert.Single(sent).NoteType);
+    }
+
     private static async Task<NoteType> PublishedAsAsync(Action<PublishViewModel> choose)
     {
         var sent = new List<PublishRequest>();

@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ScreenTrail.Core.Review;
 using ScreenTrail.Core.Review.Publish;
 using ScreenTrail.Core.Shell;
 using ScreenTrail.Shared.Schema;
@@ -259,8 +260,60 @@ public sealed partial class PublishViewModel : ObservableObject
     /// <summary>The note changed in a way that may change what is still open beside Publish.</summary>
     public void NoteChanged()
     {
-        OpenItems = PublishPanel.OpenItems(_note()) ?? string.Empty;
+        var note = _note();
+        OpenItems = PublishPanel.OpenItems(note) ?? string.Empty;
         OpenItemsVisibility = OpenItems.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
+        _panel.NoteIs(note);
+        RefreshMarks();
+        RefreshBlock();
+    }
+
+    // ---- Needs a look (E-01): the panel marks the sentences and holds a Discussion note for the tick. ----
+
+    /// <summary>The marked sentences, where each is and why, as plain text.</summary>
+    public ObservableCollection<LookMark> NeedsALookMarks { get; } = [];
+
+    [ObservableProperty]
+    public partial Visibility NeedsALookVisibility { get; set; } = Visibility.Collapsed;
+
+    /// <summary>"2 sentences need a look": the banner's name for a screen reader.</summary>
+    [ObservableProperty]
+    public partial string NeedsALookSummary { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string NeedsALookPrompt { get; set; } = string.Empty;
+
+    /// <summary>The box shows while a Discussion note would carry a marked sentence.</summary>
+    [ObservableProperty]
+    public partial Visibility NeedsALookTickVisibility { get; set; } = Visibility.Collapsed;
+
+    [ObservableProperty]
+    public partial bool NeedsALookChecked { get; set; }
+
+    partial void OnNeedsALookCheckedChanged(bool value)
+    {
+        _panel.NeedsALookChecked = value;
+        RefreshBlock();
+    }
+
+    /// <summary>The banner from the panel's marks. The list is rebuilt only when the marks change, so typing does not rebuild it.</summary>
+    private void RefreshMarks()
+    {
+        var marks = _panel.NeedsALookMarks;
+        if (!marks.SequenceEqual(NeedsALookMarks))
+        {
+            NeedsALookMarks.Clear();
+            foreach (var mark in marks)
+            {
+                NeedsALookMarks.Add(mark);
+            }
+        }
+
+        NeedsALookVisibility = marks.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        NeedsALookSummary = _panel.NeedsALookSummary ?? string.Empty;
+        NeedsALookPrompt = _panel.NeedsALookPrompt;
+        NeedsALookTickVisibility = _panel.NeedsALookTick ? Visibility.Visible : Visibility.Collapsed;
+        NeedsALookChecked = _panel.NeedsALookChecked;
     }
 
     /// <summary>The backend's PSA is its Development demo (ST-090): said above the form, never a real product's name.</summary>
@@ -435,6 +488,8 @@ public sealed partial class PublishViewModel : ObservableObject
 
     private async Task PublishOnceAsync()
     {
+        // The note as it is at this moment: a sentence typed since the last mark is marked before the send.
+        NoteChanged();
         if (!_panel.CanPublish || BlockedHere() is not null)
         {
             return;
@@ -581,6 +636,8 @@ public sealed partial class PublishViewModel : ObservableObject
         if (value)
         {
             _panel.NoteType = NoteType.Internal;
+            RefreshMarks();
+            RefreshBlock();
         }
     }
 
@@ -589,6 +646,8 @@ public sealed partial class PublishViewModel : ObservableObject
         if (value)
         {
             _panel.NoteType = NoteType.Discussion;
+            RefreshMarks();
+            RefreshBlock();
         }
     }
 
@@ -767,6 +826,7 @@ public sealed partial class PublishViewModel : ObservableObject
         EarlierPrompt = !_panel.HasEarlier
             ? string.Empty
             : _panel.EarlierRefusal is { Length: > 0 } refusal ? $"{refusal} {Choice}" : Choice;
+        RefreshMarks();
         RefreshBlock();
         PublishVisibility = _panel.HasIntegrations ? Visibility.Visible : Visibility.Collapsed;
         ConnectVisibility = _panel.HasIntegrations ? Visibility.Collapsed : Visibility.Visible;

@@ -237,6 +237,43 @@ internal static class DraftReading
     }
 
     /// <summary>
+    /// The text as the model wrote it, less every format character ("unseen": zero-width characters, the
+    /// bidirectional controls, soft hyphens, tags). Nothing else changes, not even a lone surrogate. The
+    /// rules read a draft without them, so the draft handed back to Review is that same text, and a
+    /// sentence cannot show the technician one order of letters and the rules another (E-01).
+    /// </summary>
+    public static string Unhidden(string text)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        if (IsPlain(text))
+        {
+            return text;
+        }
+
+        var kept = new StringBuilder(text.Length);
+        for (var i = 0; i < text.Length; i++)
+        {
+            var pair = char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]);
+            var cp = pair ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
+            if (KindOf(cp) != Unseen)
+            {
+                _ = kept.Append(text[i]);
+                if (pair)
+                {
+                    _ = kept.Append(text[i + 1]);
+                }
+            }
+
+            if (pair)
+            {
+                i++;
+            }
+        }
+
+        return kept.ToString();
+    }
+
+    /// <summary>
     /// Whether the text reads as itself: ASCII, which NFKC leaves alone and has no format characters, with
     /// no space but a plain one and never two of those together.
     /// </summary>

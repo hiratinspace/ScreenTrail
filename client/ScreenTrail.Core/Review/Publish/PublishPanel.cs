@@ -264,6 +264,12 @@ public sealed class PublishPanel
     private DraftNote? _sentNote;
     private IReadOnlyList<string> _sentFrames = [];
 
+    /// <summary>The note's sentences that need a look, as last shown (E-01).</summary>
+    private IReadOnlyList<LookMark> _marks = [];
+
+    /// <summary>The marks the technician ticked for. A sentence marked since was not looked at.</summary>
+    private HashSet<LookMark>? _lookedAt;
+
     /// <param name="integrations">The tenant's connected providers, by name. Empty means nothing can be published.</param>
     /// <param name="search">The PSA's ticket search (ST-092). Asked for nothing, it answers the recent tickets.</param>
     /// <param name="publish">Sends the chosen destinations and says how each one went (ST-093, ST-094, ST-096).</param>
@@ -307,6 +313,7 @@ public sealed class PublishPanel
         Minutes = draft is null ? 0 : TimeEntryCalculator.SuggestMinutes(TimeSpan.FromMinutes(DraftMinutes(draft)), _rounding);
         KbArticle = draft?.KbCandidate ?? false;
         KbReason = draft?.KbReason;
+        _marks = NeedsALook.Find(draft);
         OfferEarlier(earlierOutcomes);
     }
 
@@ -538,11 +545,57 @@ public sealed class PublishPanel
                 return reason;
             }
 
+            if (NeedsALookTick && !NeedsALookChecked)
+            {
+                return NeedsALookFirst;
+            }
+
             return ChosenDestinations().Count == 0 ? "Choose at least one destination" : null;
         }
     }
 
     public bool CanPublish => BlockedBecause is null && !IsPublishing;
+
+    // ---- Needs a look (E-01, DEC-01): what the customer would read that a person should read first. ----
+
+    /// <summary>Why a Discussion note waits, said above Publish. The way through is the tick, or an Internal note.</summary>
+    public const string NeedsALookFirst = "The customer will read this note. Read the sentences marked as needing a look, then tick the box below, or publish it as an Internal note.";
+
+    /// <summary>Said over the marked sentences when nothing waits for them: an Internal note, or no ticket note.</summary>
+    public const string NeedsALookNote = "These sentences tell the reader to do something, or hold an address, a number to call or a command. Worth a read before the note goes out.";
+
+    /// <summary>What is said over the marked sentences: why Publish waits, while it does.</summary>
+    public string NeedsALookPrompt => NeedsALookTick ? NeedsALookFirst : NeedsALookNote;
+
+    /// <summary>The tick's words.</summary>
+    public const string NeedsALookLabel = "I read the marked sentences and they are right for the customer to see";
+
+    /// <summary>The sentences that need a look, where each is and why. Shown whatever the note type.</summary>
+    public IReadOnlyList<LookMark> NeedsALookMarks => _marks;
+
+    /// <summary>"2 sentences need a look", or null when none do.</summary>
+    public string? NeedsALookSummary => _marks.Count switch
+    {
+        0 => null,
+        1 => "1 sentence needs a look",
+        _ => string.Create(CultureInfo.InvariantCulture, $"{_marks.Count} sentences need a look"),
+    };
+
+    /// <summary>The note goes to the customer and holds a marked sentence, so Publish waits for the tick.</summary>
+    public bool NeedsALookTick => NoteType == NoteType.Discussion && TicketNote && _marks.Count > 0;
+
+    /// <summary>
+    /// The technician's tick: they read the marked sentences. It holds for the sentences it was given for;
+    /// one marked after it was not looked at, so the box is clear again.
+    /// </summary>
+    public bool NeedsALookChecked
+    {
+        get => _lookedAt is not null && _marks.All(_lookedAt.Contains);
+        set => _lookedAt = value ? [.. _marks] : null;
+    }
+
+    /// <summary>The note as it is now, edited, so the marks are of what would be published.</summary>
+    public void NoteIs(DraftNote? note) => _marks = NeedsALook.Find(note);
 
     /// <summary>The service's refusal that sent the pane back to the choice, said once the choice is open (m-g). Null otherwise.</summary>
     public string? EarlierRefusal { get; private set; }
@@ -892,6 +945,16 @@ public sealed class PublishPanel
         if (IsPublishing)
         {
             throw new InvalidOperationException("A publish is already in flight.");
+        }
+
+        // The note sent is the one asked for at this moment, which may be newer than the one the marks
+        // were worked out from, so it is marked again here. A Discussion note goes to the customer only
+        // when every sentence that needs a look is one the tick was given for (E-01).
+        if (NoteType == NoteType.Discussion && destinations.Any(d => d == Destination.TicketNote)
+            && NeedsALook.Find(note) is { Count: > 0 } marks && (_lookedAt is null || !marks.All(_lookedAt.Contains)))
+        {
+            _marks = marks;
+            throw new InvalidOperationException(NeedsALookFirst);
         }
 
         // Only the technician's "I checked the ticket" says a resend is meant. The service checks each
