@@ -56,6 +56,27 @@ public sealed record PublisherIdentity(string Subject, IReadOnlySet<string> Vali
     }
 
     /// <summary>
+    /// Whether <paramref name="other"/> was signed by the same publisher as <paramref name="running"/>: the
+    /// same subject and, where <paramref name="running"/> carries identity-validation usages, exactly the
+    /// same ones, or otherwise the same public key. Never the leaf, which Artifact Signing replaces every
+    /// few days. Shared by the update check (<see cref="Mismatch"/>) and both ends of the pipe, so a
+    /// service and a UI signed on different days by one publisher accept each other.
+    /// </summary>
+    public static bool SamePublisher(PublisherIdentity running, PublisherIdentity other)
+    {
+        ArgumentNullException.ThrowIfNull(running);
+        ArgumentNullException.ThrowIfNull(other);
+
+        // Where the running build carries an identity-validation OID, the other must carry exactly the
+        // same ones, so a same-named organisation validated separately is someone else. Where it carries
+        // none, the subject alone would be a text match, so the key must be the same too.
+        return string.Equals(running.Subject, other.Subject, StringComparison.Ordinal)
+            && (running.ValidationOids.Count > 0
+                ? running.ValidationOids.SetEquals(other.ValidationOids)
+                : string.Equals(running.PublicKeySha256, other.PublicKeySha256, StringComparison.Ordinal));
+    }
+
+    /// <summary>
     /// Null when <paramref name="package"/> was signed by the publisher of <paramref name="running"/>;
     /// otherwise why not, in a sentence for the technician and the log.
     /// </summary>
@@ -79,14 +100,8 @@ public sealed record PublisherIdentity(string Subject, IReadOnlySet<string> Vali
         }
 
         // The identity, never the leaf: a new certificate from the same validated publisher is the same
-        // publisher. Where the running build carries an identity-validation OID, the package must carry
-        // exactly the same ones, so a same-named organisation validated separately is someone else. Where
-        // it carries none, the subject alone would be a text match, so the key must be the same too.
-        var samePublisher = string.Equals(running.Subject, package.Subject, StringComparison.Ordinal)
-            && (running.ValidationOids.Count > 0
-                ? running.ValidationOids.SetEquals(package.ValidationOids)
-                : string.Equals(running.PublicKeySha256, package.PublicKeySha256, StringComparison.Ordinal));
-        return samePublisher
+        // publisher.
+        return SamePublisher(running, package)
             ? null
             : "The downloaded package was signed by someone other than this installation's publisher, so it was not installed.";
     }

@@ -136,6 +136,37 @@ function Test-ValidationUsage($Certificate) {
     return $false
 }
 
+function Get-ValidationUsages($Certificate) {
+    # The certificate's extended key usages under Artifact Signing's identity-validation arc, sorted.
+    $found = New-Object System.Collections.Generic.List[string]
+    foreach ($extension in $Certificate.Extensions) {
+        if ($extension -is [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]) {
+            foreach ($usage in $extension.EnhancedKeyUsages) {
+                if ([string]$usage.Value -like '1.3.6.1.4.1.311.97.*') {
+                    $found.Add([string]$usage.Value)
+                }
+            }
+        }
+    }
+    return @($found | Sort-Object -Unique)
+}
+
+function Test-SamePublisher($First, $Second) {
+    # The peer checks' and the updater's "same publisher" (PublisherIdentity.SamePublisher): the same
+    # subject and the same identity-validation usages, or, for a certificate with none, the same key.
+    # Never the leaf, which Artifact Signing replaces every few days.
+    if ($First.Subject -cne $Second.Subject) {
+        return $false
+    }
+    $usages = @(Get-ValidationUsages $First)
+    if ($usages.Count -gt 0) {
+        return (($usages -join ',') -ceq (@(Get-ValidationUsages $Second) -join ','))
+    }
+    $firstKey = $First.PublicKey.Oid.Value + ':' + [Convert]::ToBase64String($First.PublicKey.EncodedKeyValue.RawData)
+    $secondKey = $Second.PublicKey.Oid.Value + ':' + [Convert]::ToBase64String($Second.PublicKey.EncodedKeyValue.RawData)
+    return ($firstKey -ceq $secondKey)
+}
+
 function Test-Build([string[]]$Files) {
     # The finished build, checked as a whole: what the peer checks and Windows will see.
     $mine = @('ScreenTrail.Service.exe', 'ScreenTrail.UI.exe')
@@ -163,9 +194,8 @@ function Test-Build([string[]]$Files) {
     if ($exes.Count -ne 2) {
         throw 'Verifying a build needs both ScreenTrail.Service.exe and ScreenTrail.UI.exe among the files.'
     }
-    $thumbprints = @($exes | ForEach-Object { $signatures[$_].SignerCertificate.Thumbprint } | Sort-Object -Unique)
-    if ($thumbprints.Count -ne 1) {
-        throw 'The two executables were signed with different certificates. The peer checks accept only the same one.'
+    if (-not (Test-SamePublisher $signatures[$exes[0]].SignerCertificate $signatures[$exes[1]].SignerCertificate)) {
+        throw 'The two executables were signed by different publishers. The peer checks accept only the same publisher.'
     }
     $publisher = $signatures[$exes[0]].SignerCertificate.Subject
     $ours = 0

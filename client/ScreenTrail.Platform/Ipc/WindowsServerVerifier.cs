@@ -1,8 +1,8 @@
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Security.Cryptography;
 using ScreenTrail.Core.Ipc;
+using ScreenTrail.Core.Update;
 
 namespace ScreenTrail.Platform.Ipc;
 
@@ -24,16 +24,16 @@ namespace ScreenTrail.Platform.Ipc;
 public sealed class WindowsServerVerifier : IServerVerifier
 {
     private readonly string _uiExecutable;
-    private readonly string? _publisherThumbprint;
+    private readonly PublisherIdentity? _publisher;
 
     /// <param name="uiExecutable">This process's own image. The dev-build fallback compares against it.</param>
     public WindowsServerVerifier(string uiExecutable)
     {
         _uiExecutable = PeerDirectory.Anchor(uiExecutable);
-        _publisherThumbprint = Authenticode.VerifiedSignerThumbprint(_uiExecutable);
+        _publisher = Authenticode.Publisher(_uiExecutable);
     }
 
-    public bool UiIsSigned => _publisherThumbprint is not null;
+    public bool UiIsSigned => _publisher is not null;
 
     /// <summary>The path servers are compared against, for the Windows tests.</summary>
     internal string Anchor => _uiExecutable;
@@ -68,12 +68,14 @@ public sealed class WindowsServerVerifier : IServerVerifier
         ArgumentException.ThrowIfNullOrWhiteSpace(serverExecutable);
         var server = Path.GetFullPath(serverExecutable);
 
-        if (_publisherThumbprint is not null)
+        if (_publisher is not null)
         {
-            var serverThumbprint = Authenticode.VerifiedSignerThumbprint(server);
-            if (serverThumbprint is null || !CryptographicOperations.FixedTimeEquals(
-                Convert.FromHexString(serverThumbprint),
-                Convert.FromHexString(_publisherThumbprint)))
+            // The publisher, as Windows walked the chain, compared as the updater compares it: not the
+            // leaf, which Artifact Signing replaces every few days, so a service and a UI signed on
+            // different days by one publisher (one replaced by an update while the other still runs)
+            // accept each other (B-11).
+            var peer = Authenticode.Publisher(server);
+            if (peer is null || !PublisherIdentity.SamePublisher(_publisher, peer))
             {
                 return "unsigned_or_other_publisher";
             }

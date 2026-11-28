@@ -14,9 +14,9 @@ namespace ScreenTrail.Platform.Ipc;
 /// came with no longer covers the contents. The one attack the check existed to stop (a tampered binary
 /// driving capture) was the attack it let through.
 ///
-/// <c>WinVerifyTrust</c> is the API that actually hashes the file and walks the chain. The thumbprint is
-/// still read afterwards, to pin the publisher: a validly signed binary from somebody else is a validly
-/// signed binary from somebody else.
+/// <c>WinVerifyTrust</c> is the API that actually hashes the file and walks the chain. The signer is
+/// still read afterwards (<see cref="Publisher"/>), to pin the publisher: a validly signed binary from
+/// somebody else is a validly signed binary from somebody else.
 /// </summary>
 [SupportedOSPlatform("windows")]
 internal static class Authenticode

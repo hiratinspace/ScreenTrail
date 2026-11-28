@@ -1,8 +1,8 @@
 using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Security.Cryptography;
 using ScreenTrail.Core.Ipc;
+using ScreenTrail.Core.Update;
 
 namespace ScreenTrail.Platform.Ipc;
 
@@ -19,15 +19,15 @@ namespace ScreenTrail.Platform.Ipc;
 public sealed class WindowsClientVerifier : IClientVerifier
 {
     private readonly string _serviceExecutable;
-    private readonly string? _publisherThumbprint;
+    private readonly PublisherIdentity? _publisher;
 
     public WindowsClientVerifier(string serviceExecutable)
     {
         _serviceExecutable = PeerDirectory.Anchor(serviceExecutable);
-        _publisherThumbprint = Authenticode.VerifiedSignerThumbprint(_serviceExecutable);
+        _publisher = Authenticode.Publisher(_serviceExecutable);
     }
 
-    public bool ServiceIsSigned => _publisherThumbprint is not null;
+    public bool ServiceIsSigned => _publisher is not null;
 
     /// <summary>The path clients are compared against, for the Windows tests.</summary>
     internal string Anchor => _serviceExecutable;
@@ -60,12 +60,14 @@ public sealed class WindowsClientVerifier : IClientVerifier
         ArgumentException.ThrowIfNullOrWhiteSpace(clientExecutable);
         var client = Path.GetFullPath(clientExecutable);
 
-        if (_publisherThumbprint is not null)
+        if (_publisher is not null)
         {
-            var clientThumbprint = Authenticode.VerifiedSignerThumbprint(client);
-            if (clientThumbprint is null || !CryptographicOperations.FixedTimeEquals(
-                Convert.FromHexString(clientThumbprint),
-                Convert.FromHexString(_publisherThumbprint)))
+            // The publisher, as Windows walked the chain, compared as the updater compares it: not the
+            // leaf, which Artifact Signing replaces every few days, so a service and a UI signed on
+            // different days by one publisher (one replaced by an update while the other still runs)
+            // accept each other (B-11).
+            var peer = Authenticode.Publisher(client);
+            if (peer is null || !PublisherIdentity.SamePublisher(_publisher, peer))
             {
                 return "unsigned_or_other_publisher";
             }

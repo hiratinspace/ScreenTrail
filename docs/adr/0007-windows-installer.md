@@ -288,6 +288,10 @@ install or upgrade; the service starts at the next sign-in, which is what the ti
   `signtool` call, and `sign.ps1` fails unless every file in a call has the same signer, so the peer
   checks' leaf-thumbprint comparison holds for an installed pair. Anything that compares builds made
   at different times must compare the publisher's identity instead (next section).
+  *(Amended 2026-11-28, security fix run, B-11: the peer checks now compare the publisher's identity as
+  the update check does (`PublisherIdentity.SamePublisher`), not the leaf, so a service and a UI from
+  builds signed on different days accept each other; `sign.ps1`'s check of the finished build holds the
+  two executables to one publisher by the same rule, no longer to one leaf.)*
 
 ### The seam for ST-113 (auto-update)
 
