@@ -410,14 +410,20 @@ public sealed class RedactionWorker(
 
         // What the recogniser cannot report is looked for in the picture itself (A-02): a QR code is never
         // text. Found in the decoded pixels before the masker paints them, and painted with the text's
-        // masks; the stored text is unchanged, since none of it was text. A check that fails leaves the
-        // picture unchecked, so the frame goes, as for a masker that fails.
-        IReadOnlyList<MaskedRegion> picture;
+        // masks; the stored text is unchanged, since none of it was text. A check that fails, or stops at
+        // its bound with part of the picture not searched, leaves the picture unchecked, so the frame goes,
+        // as for a masker that fails or a pattern scan that did not finish.
+        IReadOnlyList<MaskedRegion>? picture;
         try
         {
             picture = PictureRegions(decoded);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            picture = null;
+        }
+
+        if (picture is null)
         {
             await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
             return;
@@ -490,10 +496,10 @@ public sealed class RedactionWorker(
 
     /// <summary>
     /// The masks the picture itself needs (A-02): the square of every QR code on it. None from a frame
-    /// the platform gives no brightness for; on Windows every decoded frame gives it. The brightness is
-    /// cleared as soon as it has been looked at.
+    /// the platform gives no brightness for; on Windows every decoded frame gives it. Null when the
+    /// search did not cover the whole picture. The brightness is cleared as soon as it has been looked at.
     /// </summary>
-    private static IReadOnlyList<MaskedRegion> PictureRegions(DecodedFrame? decoded)
+    private static IReadOnlyList<MaskedRegion>? PictureRegions(DecodedFrame? decoded)
     {
         var brightness = decoded?.ReadBrightness();
         if (brightness is null)
@@ -503,7 +509,8 @@ public sealed class RedactionWorker(
 
         try
         {
-            return QrCodeFinder.Find(brightness);
+            var codes = QrCodeFinder.Find(brightness);
+            return codes.Complete ? codes.Codes : null;
         }
         finally
         {

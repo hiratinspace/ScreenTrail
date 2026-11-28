@@ -18,7 +18,15 @@ namespace ScreenTrail.Core.Privacy;
 ///
 /// What it does not find: a code turned on its side by other than a right angle, a code drawn so small
 /// a module is under a pixel, and a code with a finder pattern covered or cut off by the frame's edge.
+///
+/// The search is bounded, so a frame of patterns cannot make it run without end, and a search that
+/// reached its bound says so (<see cref="QrSearch.Complete"/>): a code past the bound was never looked
+/// for, and the worker does not store a frame whose picture was not wholly searched.
 /// </summary>
+/// <param name="Codes">The square of every QR code found, in frame pixels.</param>
+/// <param name="Complete">False when the search stopped at its bound with part of the frame not searched.</param>
+internal sealed record QrSearch(IReadOnlyList<MaskedRegion> Codes, bool Complete);
+
 internal static class QrCodeFinder
 {
     /// <summary>The side of the square a pixel's dark or light is judged against: 3 by 3 of these.</summary>
@@ -27,28 +35,33 @@ internal static class QrCodeFinder
     /// <summary>Below this much contrast near a point, the area is one shade and has no edges to read.</summary>
     private const int MinimumContrast = 48;
 
-    /// <summary>Candidates kept from one frame, so a frame of noise cannot make the search grow without end.</summary>
-    private const int MaxCandidates = 256;
-
-    /// <summary>Finder patterns paired into codes, at most: the strongest first.</summary>
-    private const int MaxFinders = 48;
+    /// <summary>
+    /// Finder patterns kept from one frame, so a frame of them cannot make the search grow without end.
+    /// Every one kept is paired with every other; a frame with more is not wholly searched.
+    /// </summary>
+    internal const int MaxCandidates = 256;
 
     /// <summary>How far past a finder's centre, in modules, the code's square and its margin reach.</summary>
     private const double Reach = 4.5;
 
-    /// <summary>The squares of every QR code found, in frame pixels.</summary>
-    public static IReadOnlyList<MaskedRegion> Find(FrameBrightness frame)
+    /// <summary>The squares of every QR code found, and whether the whole frame was searched.</summary>
+    public static QrSearch Find(FrameBrightness frame)
     {
         ArgumentNullException.ThrowIfNull(frame);
         var dark = Binarise(frame);
         var found = new List<MaskedRegion>();
         foreach (var ink in new[] { true, false })
         {
-            var finders = Finders(dark, frame.Width, frame.Height, ink);
+            var (finders, complete) = Finders(dark, frame.Width, frame.Height, ink);
+            if (!complete)
+            {
+                return new QrSearch(found, Complete: false);
+            }
+
             found.AddRange(Codes(finders, frame.Width, frame.Height));
         }
 
-        return found;
+        return new QrSearch(found, Complete: true);
     }
 
     /// <summary>Each pixel dark (true) or light, against the contrast of the 3 by 3 tiles round it.</summary>
@@ -200,12 +213,15 @@ internal static class QrCodeFinder
         return px >= 0 && py >= 0 && px < width && py < height && dark[(py * width) + px] == ink;
     }
 
-    /// <summary>Every finder pattern of the colour given, seen on at least two rows.</summary>
-    private static List<Finder> Finders(bool[] dark, int width, int height, bool ink)
+    /// <summary>
+    /// Every finder pattern of the colour given, seen on at least two rows; not complete when more were
+    /// seen than <see cref="MaxCandidates"/>, and the rest of the frame was not searched.
+    /// </summary>
+    private static (List<Finder> Finders, bool Complete) Finders(bool[] dark, int width, int height, bool ink)
     {
         var candidates = new List<Finder>();
         var starts = new int[width + 1];
-        for (var y = 0; y < height && candidates.Count < MaxCandidates; y++)
+        for (var y = 0; y < height; y++)
         {
             // The row as runs: where each starts, alternating colour from the first pixel's.
             var row = y * width;
@@ -231,18 +247,14 @@ internal static class QrCodeFinder
 
                 var across = starts[i + 5] - starts[i];
                 var centreX = starts[i + 2] + (Length(i + 2) / 2);
-                if (Confirm(dark, width, height, ink, centreX, y, across) is { } found)
+                if (Confirm(dark, width, height, ink, centreX, y, across) is { } found && !Merge(candidates, found))
                 {
-                    Merge(candidates, found);
-                    if (candidates.Count >= MaxCandidates)
-                    {
-                        break;
-                    }
+                    return (candidates, false);
                 }
             }
         }
 
-        return [.. candidates.Where(c => c.Hits >= 2).OrderByDescending(c => c.Hits).Take(MaxFinders)];
+        return ([.. candidates.Where(c => c.Hits >= 2)], true);
     }
 
     /// <summary>
@@ -295,8 +307,11 @@ internal static class QrCodeFinder
         return new Finder(x + horizontal.Middle, cy + vertical.Middle, (horizontal.Total + vertical.Total) / 14.0, 1);
     }
 
-    /// <summary>The same finder seen from another row is one finder seen twice.</summary>
-    private static void Merge(List<Finder> candidates, Finder found)
+    /// <summary>
+    /// The same finder seen from another row is one finder seen twice. False when a new one would pass
+    /// <see cref="MaxCandidates"/>.
+    /// </summary>
+    private static bool Merge(List<Finder> candidates, Finder found)
     {
         for (var i = 0; i < candidates.Count; i++)
         {
@@ -311,11 +326,17 @@ internal static class QrCodeFinder
                     ((known.Y * known.Hits) + found.Y) / hits,
                     ((known.Module * known.Hits) + found.Module) / hits,
                     hits);
-                return;
+                return true;
             }
         }
 
+        if (candidates.Count >= MaxCandidates)
+        {
+            return false;
+        }
+
         candidates.Add(found);
+        return true;
     }
 
     /// <summary>
@@ -341,8 +362,8 @@ internal static class QrCodeFinder
 
     private static MaskedRegion? Square(Finder a, Finder b, Finder c, int width, int height)
     {
-        var modules = new[] { a.Module, b.Module, c.Module };
-        if (modules.Max() > 1.5 * modules.Min())
+        var (smallest, largest) = (Math.Min(a.Module, Math.Min(b.Module, c.Module)), Math.Max(a.Module, Math.Max(b.Module, c.Module)));
+        if (largest > 1.5 * smallest)
         {
             return null;
         }
@@ -352,7 +373,7 @@ internal static class QrCodeFinder
         var (ab, ac, bc) = (Distance(a, b), Distance(a, c), Distance(b, c));
         var (corner, one, two) = bc >= ab && bc >= ac ? (a, b, c) : ac >= ab ? (b, a, c) : (c, a, b);
         var (leg1, leg2) = (Distance(corner, one), Distance(corner, two));
-        var module = modules.Average();
+        var module = (a.Module + b.Module + c.Module) / 3;
         var cosine = (((one.X - corner.X) * (two.X - corner.X)) + ((one.Y - corner.Y) * (two.Y - corner.Y))) / (leg1 * leg2);
         if (Math.Abs(leg1 - leg2) > 0.15 * Math.Max(leg1, leg2) || Math.Abs(cosine) > 0.15
             || Math.Min(leg1, leg2) / module < 12 || Math.Max(leg1, leg2) / module > 175)

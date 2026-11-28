@@ -87,7 +87,9 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
             }
         }
 
-        Assert.Empty(QrCodeFinder.Find(canvas.Brightness()));
+        var search = QrCodeFinder.Find(canvas.Brightness());
+        Assert.True(search.Complete);
+        Assert.Empty(search.Codes);
     }
 
     [Fact]
@@ -109,7 +111,9 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
             canvas.Fill(700, y, 560, 1, 0);
         }
 
-        Assert.Empty(QrCodeFinder.Find(canvas.Brightness()));
+        var search = QrCodeFinder.Find(canvas.Brightness());
+        Assert.True(search.Complete);
+        Assert.Empty(search.Codes);
     }
 
     [Fact]
@@ -169,6 +173,57 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
             var left = canvas.InkLeft(regions, x, y, size, size);
             Assert.True(left == 0, $"{left} of the QR code's {canvas.Ink(x, y, size, size)} dark pixels are not masked below {patterns} finder patterns of {module} px modules, and the frame was stored");
         }
+    }
+
+    [Fact]
+    public void ASearchThatReachesItsBoundSaysSoAndOneUnderItPairsEveryFinder()
+    {
+        // Past the bound: the rest of the frame was not searched, and the search says it is not complete.
+        var over = new PictureCanvas(Width, Height);
+        for (var i = 0; i < QrCodeFinder.MaxCandidates + 20; i++)
+        {
+            FinderPattern(over, 20 + (i % 60 * 20), 90 + (i / 60 * 20), 2);
+        }
+
+        over.DrawQr(560, 420, 2);
+        Assert.False(QrCodeFinder.Find(over.Brightness()).Complete);
+
+        // Under it, with more finders than any code needs: every one is paired, so the code below is found.
+        var under = new PictureCanvas(Width, Height);
+        for (var i = 0; i < 100; i++)
+        {
+            FinderPattern(under, 20 + (i % 44 * 28), 90 + (i / 44 * 28), 3);
+        }
+
+        var (x, y, size) = under.DrawQr(560, 420, 2);
+        var search = QrCodeFinder.Find(under.Brightness());
+        Assert.True(search.Complete);
+        Assert.Equal(0, under.InkLeft(search.Codes, x, y, size, size));
+    }
+
+    [Fact]
+    public void PairingTheMostFindersOneSearchKeepsStaysWithinTheFrameBudget()
+    {
+        // The bound's worst case: a full HD frame holding as many finders as are kept, all one size, so
+        // none is ruled out before the geometry. Every three of them are tried.
+        var canvas = new PictureCanvas(1920, 1080);
+        for (var i = 0; i < QrCodeFinder.MaxCandidates; i++)
+        {
+            FinderPattern(canvas, 20 + (i % 90 * 21), 20 + (i / 90 * 21), 2);
+        }
+
+        var brightness = canvas.Brightness();
+        Assert.True(QrCodeFinder.Find(brightness).Complete);
+        var times = new List<double>();
+        for (var run = 0; run < 5; run++)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            _ = QrCodeFinder.Find(brightness);
+            times.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+
+        times.Sort();
+        Assert.True(times[2] < 250, $"pairing {QrCodeFinder.MaxCandidates} finders took a median of {times[2]:F0} ms");
     }
 
     /// <summary>The frame through the real worker and store; the regions the store kept for it.</summary>
