@@ -248,7 +248,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         //
         // With no backend configured the queue behaves exactly as it did: the work is kept, and the
         // reason a technician sees names the thing that is missing.
-        var draftHttp = new HttpClient(egress) { BaseAddress = backend };
+        // No answer is read whole past 8 MiB (I-01); the egress guard still decides every request.
+        var draftHttp = BackendHttp.Create(egress, backend);
 
         // ST-010: the device's standing with the backend. Activated once with an invite's code (the
         // refresh token under DPAPI), then an access token an hour at a time. A development build falls
