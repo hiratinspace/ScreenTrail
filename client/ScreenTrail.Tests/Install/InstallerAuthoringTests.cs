@@ -335,12 +335,52 @@ public sealed class InstallerAuthoringTests
         foreach (var id in new[] { "BACKENDURL", "BACKENDURLKEPT", "BACKENDURLLEGACY" })
         {
             var property = package.Descendants(Wix + "Property").Single(p => (string?)p.Attribute("Id") == id);
-            Assert.Equal("yes", (string?)property.Attribute("Secure"));
 
             // Windows Installer's log names the property and shows asterisks for it, as the service never
             // logs the address. (A verbose log's record of the registry write still has the value; the
             // smoke test allows that one line and no other.)
             Assert.Equal("yes", (string?)property.Attribute("Hidden"));
+        }
+    }
+
+    /// <summary>The condition of a refusal both sequences run once the address properties are worked out.</summary>
+    private const string AnAddressChangedByARepair =
+        "REINSTALL AND BACKENDURL AND BACKENDURL <> BACKENDURLKEPT AND BACKENDURL <> BACKENDURLLEGACY";
+
+    private const string ANewAddressOfTheWrongShape =
+        "BACKENDURL AND NOT (REMOVE~=\"ALL\") AND BACKENDURL <> BACKENDURLKEPT AND BACKENDURL <> BACKENDURLLEGACY AND "
+        + "(NOT (BACKENDURL ~<< \"https://\") OR BACKENDURL ~= \"https://\" OR BACKENDURL ~<< \"https:///\" OR BACKENDURL >< \"@\" OR BACKENDURL >< \"?\")";
+
+    [Fact]
+    public void TheBackendAddressIsSetOnlyByAnAdministratorAndOnlyByAnInstallOrAnUpgrade()
+    {
+        // C-02. A public property crosses from a command line that is not elevated to the elevated half of
+        // an install only when it is Secure. None of the address properties is, so only an administrator's
+        // or the system account's command line sets the address. The kept values do not need to cross:
+        // AppSearch, which finds them, and the two steps that fall back to them run in the elevated half too.
+        var package = Package();
+        var properties = package.Descendants(Wix + "Property").Where(p => ((string?)p.Attribute("Id"))?.StartsWith("BACKENDURL", StringComparison.Ordinal) == true).ToList();
+        Assert.Equal(["BACKENDURL", "BACKENDURLKEPT", "BACKENDURLLEGACY"], properties.Select(p => (string)p.Attribute("Id")!).Order(StringComparer.Ordinal));
+        Assert.All(properties, p => Assert.Null(p.Attribute("Secure")));
+        Assert.Equal("both", (string?)package.Descendants(Wix + "SetProperty").Single(p => (string?)p.Attribute("Id") == "BACKENDURL" && p.Attribute("Action") is null).Attribute("Sequence"));
+        Assert.Equal("both", (string?)package.Descendants(Wix + "SetProperty").Single(p => (string?)p.Attribute("Action") == "SetBACKENDURLFromLegacy").Attribute("Sequence"));
+
+        // A repair keeps the address on the machine: one given on its command line that differs from it is
+        // refused, before anything is changed. An install and an upgrade still take a new one.
+        // And a new address is an https address with a host and no user name, password or query, or the
+        // install is refused; an address already on the machine is never refused, so an upgrade or a repair
+        // that keeps it goes through, and an uninstall is never refused.
+        foreach (var (id, condition) in new[] { ("RefuseBackendUrlChange", AnAddressChangedByARepair), ("RefuseBackendUrl", ANewAddressOfTheWrongShape) })
+        {
+            var refusal = package.Descendants(Wix + "CustomAction").Single(a => (string?)a.Attribute("Id") == id);
+            Assert.Equal(["Error", "Id"], refusal.Attributes().Select(a => a.Name.LocalName).Order(StringComparer.Ordinal));
+            Assert.Contains("BACKENDURL", (string?)refusal.Attribute("Error"), StringComparison.Ordinal);
+            foreach (var sequence in new[] { "InstallUISequence", "InstallExecuteSequence" })
+            {
+                var scheduled = package.Descendants(Wix + sequence).Elements(Wix + "Custom").Single(c => (string?)c.Attribute("Action") == id);
+                Assert.Equal("SetBACKENDURLFromLegacy", (string?)scheduled.Attribute("After"));
+                Assert.Equal(condition, (string?)scheduled.Attribute("Condition"));
+            }
         }
     }
 
