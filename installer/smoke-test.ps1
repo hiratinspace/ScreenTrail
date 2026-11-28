@@ -976,6 +976,108 @@ if ($RebuiltMsi) {
     }
 }
 
+# --- The backend address: given by an administrator, on an install or an upgrade ------------------------
+# C-02: the address properties are not Secure, so Windows Installer takes BACKENDURL only from a command line
+# that is already elevated, and drops it from anyone else's. A repair keeps the address on the machine,
+# whoever starts it: an administrator's repair given another one is refused, and a standard user's has it
+# dropped. A new address that is not https with a host name, or that carries a user name, a password or a
+# query, is refused before anything is installed.
+$otherBackend = 'https://screentrail-smoke-other.invalid'
+Write-Step 'A new backend address that is not https with a host name, or that carries a user name or a query, is refused'
+$n = 0
+foreach ($bad in @('http://screentrail-smoke.invalid', 'https://', 'https://smoke:smoke@screentrail-smoke.invalid', 'https://screentrail-smoke.invalid/?next=1')) {
+    $n++
+    $log = "install-bad-address-$n.log"
+    $code = Invoke-Msi '/i' $Msi $log "BACKENDURL=$bad"
+    $refused = @(Get-Content (Join-Path $Logs $log) -ErrorAction SilentlyContinue | Where-Object { $_ -match 'RefuseBackendUrl\. Return value 3' }).Count -ge 1
+    Check "msiexec /i BACKENDURL=$bad is refused by the address check" ($code -eq 1603 -and $refused) "exit $code"
+    Check 'and registers nothing' (@(Get-ArpEntries).Count -eq 0)
+}
+Check 'and no backend address was written' ($null -eq (Get-BackendUrl))
+
+Write-Step 'A repair keeps the backend address on the machine'
+$code = Invoke-Msi '/i' $Msi 'install-address.log' "BACKENDURL=$smokeBackend"
+Check 'msiexec /i BACKENDURL=... /qn exits 0 (for the repair checks)' ($code -eq 0) "exit $code"
+$address = Get-BackendUrl
+Check 'msiexec wrote BACKENDURL to HKLM\SOFTWARE\ScreenTrail\BackendUrl (before the repairs)' ($address -eq $smokeBackend) "value: $address"
+$productCode = $null
+try {
+    $productCode = Get-MsiProperty $Msi 'ProductCode'
+} catch {
+    Write-Host "  Reading the package's product code failed: $($_.Exception.Message)"
+}
+Check 'the package''s product code was read' ([bool]$productCode) "$productCode"
+if ($productCode) {
+    $code = Invoke-Msi '/fm' $productCode 'repair-address-administrator.log' "BACKENDURL=$otherBackend"
+    $refused = @(Get-Content (Join-Path $Logs 'repair-address-administrator.log') -ErrorAction SilentlyContinue | Where-Object { $_ -match 'RefuseBackendUrlChange\. Return value 3' }).Count -ge 1
+    Check "an administrator's repair given another address is refused by the address check" ($code -eq 1603 -and $refused) "exit $code"
+    $address = Get-BackendUrl
+    Check 'and the address on the machine is unchanged' ($address -eq $smokeBackend) "value: $address"
+
+    # A standard user's repair, as a second account on the machine would start it. Windows may want an
+    # administrator first for a repair started without elevation, which a /qn run cannot ask for: then the
+    # repair does not run at all, and the address must still be unchanged.
+    $plainName = 'stplain' + (Get-Random -Minimum 1000 -Maximum 9999)
+    $plainPassword = [guid]::NewGuid().ToString('N') + 'Aa1!'
+    $plainFolder = Join-Path $env:SystemDrive 'ScreenTrailSmokeRepair'
+    $plainLog = Join-Path $plainFolder 'repair-address-standard-user.log'
+    $plainCode = $null
+    $plainCreated = $false
+    try {
+        New-LocalUser -Name $plainName -Password (ConvertTo-SecureString $plainPassword -AsPlainText -Force) -Description 'ScreenTrail installer smoke test' | Out-Null
+        $plainCreated = $true
+        New-Item -ItemType Directory -Force -Path $plainFolder | Out-Null
+        $null = & icacls.exe $plainFolder /grant "${plainName}:(OI)(CI)M"
+        $credential = New-Object System.Management.Automation.PSCredential($plainName, (ConvertTo-SecureString $plainPassword -AsPlainText -Force))
+        $msiexec = Join-Path $env:SystemRoot 'System32\msiexec.exe'
+        $process = Start-Process -FilePath $msiexec -ArgumentList "/fm `"$productCode`" /qn /norestart /l*v `"$plainLog`" BACKENDURL=$otherBackend" -Credential $credential -WorkingDirectory $plainFolder -PassThru
+        $null = $process.Handle
+        if ($process.WaitForExit(180000)) {
+            $plainCode = $process.ExitCode
+        } else {
+            $process.Kill()
+            $plainCode = -1
+        }
+    } catch {
+        Note 'a standard user''s repair could not be started here' $_.Exception.Message
+    }
+    if (Test-Path $plainLog) {
+        Copy-Item -LiteralPath $plainLog -Destination $Logs -Force
+    }
+    $plainLines = @(Get-Content -LiteralPath $plainLog -ErrorAction SilentlyContinue)
+    $address = Get-BackendUrl
+    Check "a standard user's repair given another address leaves the address on the machine unchanged" ($address -eq $smokeBackend) "exit $plainCode, value: $address"
+    if ($plainCode -eq 0) {
+        $dropped = @($plainLines | Where-Object { $_ -match 'Ignoring disallowed property BACKENDURL' }).Count
+        Note "the standard user's repair ran" "Windows Installer's log has 'Ignoring disallowed property BACKENDURL' $dropped times"
+    } elseif ($null -ne $plainCode) {
+        Note "the standard user's repair did not run here" "exit $plainCode; the address check above holds either way"
+    }
+    if ($plainCreated) {
+        $plainSid = $null
+        try { $plainSid = (New-Object Security.Principal.NTAccount($plainName)).Translate([Security.Principal.SecurityIdentifier]).Value } catch { $plainSid = $null }
+        if ($plainSid) {
+            Get-CimInstance Win32_UserProfile | Where-Object { $_.SID -eq $plainSid } | Remove-CimInstance -ErrorAction SilentlyContinue
+        }
+        Remove-LocalUser -Name $plainName -ErrorAction SilentlyContinue
+    }
+    Remove-Item $plainFolder -Recurse -Force -ErrorAction SilentlyContinue
+
+    $code = Invoke-Msi '/fm' $productCode 'repair-address.log'
+    $address = Get-BackendUrl
+    Check 'a repair without BACKENDURL exits 0 and keeps the address' ($code -eq 0 -and $address -eq $smokeBackend) "exit $code, value: $address"
+}
+
+Write-Step 'Silent uninstall after the repairs'
+$since = Get-Date
+$code = Invoke-Msi '/x' $Msi 'uninstall-address.log'
+Check 'msiexec /x /qn exits 0, with no restart needed (after the repairs)' ($code -eq 0) "exit $code"
+Test-Removed
+Test-ReleaseWait (Get-UninstallReport $Logs $since)
+if (Test-Path $dataDir) {
+    Remove-Item $dataDir -Recurse -Force
+}
+
 # Anything of ScreenTrail's still running here would be a failure above; ended now, so it cannot hold the
 # job's output open past the end of the script.
 $left = @(Get-Process -Name 'ScreenTrail.Service', 'ScreenTrail.UI' -ErrorAction SilentlyContinue)

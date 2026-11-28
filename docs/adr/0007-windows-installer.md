@@ -339,6 +339,11 @@ install or upgrade; the service starts at the next sign-in, which is what the ti
   holds: read on install or upgrade, kept when not given. Both installers hide the value in their logs,
   except Windows Installer's verbose record of the registry write, which `MsiHiddenProperties` does not
   cover; the address is not a secret, and the deploy guide says not to put credentials in it.)*
+  *(Amended 2026-11-28, security fix run, C-02: the address properties are not Secure, so only a command
+  line that is already elevated, or the system account's, sets the address; the setup program elevates
+  itself. A repair given a different address is refused, and so is a new address that is not `https://`
+  with a host name, or that carries a user name, password or query. An address already on the machine is
+  never refused.)*
 
 ## Alternatives considered
 

@@ -340,8 +340,14 @@ Left out, nothing is written (see below).
   ```
   `BACKENDURL` writes it, on the `msiexec` line or on the setup program's, which passes it on to the
   package. Write the name in capitals, as above; the setup program also takes it in any case. It is read
-  only when the package is installed or upgraded: an upgrade or a repair without it keeps the value
-  already there, and a new `BACKENDURL` replaces it. The logs name `BACKENDURL` and show asterisks for
+  only when the package is installed or upgraded, and only from a command line that already runs
+  elevated: a prompt opened with *Run as administrator*, or the system account, as Intune and RMM tools
+  run it (the setup program elevates itself, so its command line always counts). From a prompt that is
+  not elevated, Windows Installer leaves `msiexec`'s `BACKENDURL` out even when the UAC prompt is approved,
+  and the machine keeps the address it had. An upgrade or a repair without it keeps the value already
+  there, and a new `BACKENDURL` on an install or an upgrade replaces it; a repair given a different one is
+  refused (exit `1603`, the reason in the log). The address must be the backend's `https://` address, with
+  a host name and no user name, password or query, or the install is refused the same way. The logs name `BACKENDURL` and show asterisks for
   its value (the setup program's log, and Windows Installer's command line and property lines), as the
   service never logs the address. One line is the exception: a verbose Windows Installer log (`/l*v`,
   and the package log the setup program writes beside its own) records the registry write with its

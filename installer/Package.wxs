@@ -101,6 +101,8 @@
                   Error="ScreenTrail lives only in its folder under Program Files. Remove INSTALLFOLDER from the command line and try again." />
     <InstallUISequence>
       <Custom Action="RefuseInstallFolder" After="CostFinalize" Condition="INSTALLFOLDER ~&lt;&gt; EXPECTEDINSTALLFOLDER" />
+      <Custom Action="RefuseBackendUrlChange" After="SetBACKENDURLFromLegacy" Condition="REINSTALL AND BACKENDURL AND BACKENDURL &lt;&gt; BACKENDURLKEPT AND BACKENDURL &lt;&gt; BACKENDURLLEGACY" />
+      <Custom Action="RefuseBackendUrl" After="SetBACKENDURLFromLegacy" Condition="BACKENDURL AND NOT (REMOVE~=&quot;ALL&quot;) AND BACKENDURL &lt;&gt; BACKENDURLKEPT AND BACKENDURL &lt;&gt; BACKENDURLLEGACY AND (NOT (BACKENDURL ~&lt;&lt; &quot;https://&quot;) OR BACKENDURL ~= &quot;https://&quot; OR BACKENDURL ~&lt;&lt; &quot;https:///&quot; OR BACKENDURL &gt;&lt; &quot;@&quot; OR BACKENDURL &gt;&lt; &quot;?&quot;)" />
     </InstallUISequence>
 
     <!-- Everything the publish produced, as it is laid out: both executables side by side at the top,
@@ -139,25 +141,42 @@
     <!-- The backend's address, for every user of the machine: msiexec /i ScreenTrail.msi BACKENDURL=https://...
          An installed service reads it only from here, a key an ordinary user cannot change, and ignores
          SCREENTRAIL_BACKEND (DeploymentAddresses). The value already on the machine is read into a property of
-         its own and used only when the command line gives none, so an upgrade or a repair keeps it and a new
-         value given later replaces it. Not given at all, nothing is written, and the service drafts on the
-         device. ScreenTrail-Setup.exe BACKENDURL=https://... passes it on to here (Bundle.wxs). Both
-         properties are hidden, so Windows Installer's log names them and shows asterisks for the value,
-         as the service never logs the address. A verbose log still records the registry write with its
-         value (RegAddValue), which MsiHiddenProperties does not cover; docs/dev/installer.md says so. -->
-    <Property Id="BACKENDURL" Secure="yes" Hidden="yes" />
-    <Property Id="BACKENDURLKEPT" Secure="yes" Hidden="yes">
+         its own and used only when the command line gives none, so an upgrade or a repair keeps it, and a new
+         value given with an install or an upgrade replaces it. Not given at all, nothing is written, and the
+         service drafts on the device. ScreenTrail-Setup.exe BACKENDURL=https://... passes it on to here
+         (Bundle.wxs). The properties are hidden, so Windows Installer's log names them and shows asterisks
+         for the value, as the service never logs the address. A verbose log still records the registry write
+         with its value (RegAddValue), which MsiHiddenProperties does not cover; docs/dev/installer.md says so.
+
+         None of them is Secure: Windows Installer then takes BACKENDURL only from a command line that is
+         already elevated (an administrator's, or the system account's, as MSP tools and the setup program's
+         engine run it), and drops it from anyone else's, so a repair a standard user starts keeps the
+         machine's address. The kept values need no crossing: AppSearch and the two steps that fall back to
+         them run in the elevated half too. -->
+    <Property Id="BACKENDURL" Hidden="yes" />
+    <Property Id="BACKENDURLKEPT" Hidden="yes">
       <RegistrySearch Id="BackendUrlKept" Root="HKLM" Key="Software\ScreenTrail" Name="BackendUrl" Type="raw" Bitness="always64" />
     </Property>
     <!-- Before 2026-11-17 the product was ScreenTail and wrote HKLM\Software\ScreenTail\BackendUrl. AppSearch
          reads it before the upgrade removes the older version (and its key with it), so an upgrade from a
          ScreenTail build keeps the address under the new key. Used only when neither the command line nor
          the new key gives one. -->
-    <Property Id="BACKENDURLLEGACY" Secure="yes" Hidden="yes">
+    <Property Id="BACKENDURLLEGACY" Hidden="yes">
       <RegistrySearch Id="BackendUrlLegacy" Root="HKLM" Key="Software\ScreenTail" Name="BackendUrl" Type="raw" Bitness="always64" />
     </Property>
     <SetProperty Id="BACKENDURL" Value="[BACKENDURLKEPT]" After="AppSearch" Sequence="both" Condition="NOT BACKENDURL AND BACKENDURLKEPT" />
     <SetProperty Id="BACKENDURL" Action="SetBACKENDURLFromLegacy" Value="[BACKENDURLLEGACY]" After="SetBACKENDURL" Sequence="both" Condition="NOT BACKENDURL AND BACKENDURLLEGACY" />
+    <!-- Once the address in force is worked out, in both sequences and before anything changes. A repair
+         keeps the address on the machine: one on its command line that differs from it is refused. A new
+         address (one that is not the machine's already) must be an https address with a host and no user
+         name, password or query, or the install or upgrade is refused; the client sends nothing but https
+         anyway (EgressPolicy), and an address with credentials in it would be written to the log. An address
+         already on the machine is never refused, so an upgrade or a repair that keeps it goes through, and
+         neither refusal ever stops an uninstall. -->
+    <CustomAction Id="RefuseBackendUrlChange"
+                  Error="A repair keeps ScreenTrail's backend address. Remove BACKENDURL from the command line, or give the new address with an install or upgrade, or in the BackendUrl registry value (docs/dev/installer.md)." />
+    <CustomAction Id="RefuseBackendUrl"
+                  Error="BACKENDURL must be the backend's https:// address: a host name, with no user name, password or query." />
     <Component Id="BackendAddress" Directory="INSTALLFOLDER" Condition="BACKENDURL" Guid="{5B0E3C21-7F44-4C8B-9E2D-3A61C9D47B18}">
       <RegistryValue Root="HKLM" Key="Software\ScreenTrail" Name="BackendUrl" Type="string" Value="[BACKENDURL]" KeyPath="yes" />
     </Component>
@@ -275,6 +294,8 @@
 
     <InstallExecuteSequence>
       <Custom Action="RefuseInstallFolder" After="CostFinalize" Condition="INSTALLFOLDER ~&lt;&gt; EXPECTEDINSTALLFOLDER" />
+      <Custom Action="RefuseBackendUrlChange" After="SetBACKENDURLFromLegacy" Condition="REINSTALL AND BACKENDURL AND BACKENDURL &lt;&gt; BACKENDURLKEPT AND BACKENDURL &lt;&gt; BACKENDURLLEGACY" />
+      <Custom Action="RefuseBackendUrl" After="SetBACKENDURLFromLegacy" Condition="BACKENDURL AND NOT (REMOVE~=&quot;ALL&quot;) AND BACKENDURL &lt;&gt; BACKENDURLKEPT AND BACKENDURL &lt;&gt; BACKENDURLLEGACY AND (NOT (BACKENDURL ~&lt;&lt; &quot;https://&quot;) OR BACKENDURL ~= &quot;https://&quot; OR BACKENDURL ~&lt;&lt; &quot;https:///&quot; OR BACKENDURL &gt;&lt; &quot;@&quot; OR BACKENDURL &gt;&lt; &quot;?&quot;)" />
       <Custom Action="RemoveUserData" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND NOT UPGRADINGPRODUCTCODE" />
       <Custom Action="ReleaseForUpgrade" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot; AND UPGRADINGPRODUCTCODE" />
     </InstallExecuteSequence>
