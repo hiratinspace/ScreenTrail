@@ -2,6 +2,7 @@ using ScreenTrail.Core.Ipc;
 using ScreenTrail.Core.Privacy;
 using ScreenTrail.Core.Sessions;
 using ScreenTrail.Core.Store;
+using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
 using ScreenTrail.Tests.Sessions;
 
@@ -94,6 +95,35 @@ public sealed class IndicatorGuardTests : IAsyncDisposable
 
         Assert.Equal(SessionState.Recording, machine.State);
         Assert.False(guard.Holding);
+    }
+
+    [Fact]
+    public async Task AUiWhoseConnectionClosesIsSuppressedWithinTheGraceAlone()
+    {
+        // Security review A-09: the pill and the tray icon vanish the moment the UI ends, but its last
+        // report used to be believed until it was six seconds old, and only then did the grace start. The
+        // connection closing now withdraws it, so only the grace is left.
+        var clock = new ManualTime(At);
+        var machine = await IdleAsync(clock);
+        var reports = new IndicatorReports(clock);
+        var indicators = new IndicatorCommands(reports, windowRequired: false);
+        var guard = new IndicatorGuard(machine, reports, clock);
+        var ui = Guid.NewGuid();
+        var ct = TestContext.Current.CancellationToken;
+        indicators.Opened(ui, peer: null);
+        Assert.True((await indicators.ReportAsync(ui, new IndicatorShowingCommand { RequestId = 1, X = 10, Y = 10, Width = PillWidth, Height = PillHeight }, ct)).Ok);
+        Assert.True(await machine.StartAsync(Rdp, ct: ct));
+        await guard.TickAsync(ct);
+
+        indicators.Closed(ui);
+        await guard.TickAsync(ct);
+        clock.Advance(Grace + TimeSpan.FromMilliseconds(100));
+        await guard.TickAsync(ct);
+
+        // The report is well inside its six seconds, and is not believed after the close.
+        Assert.True(Grace + TimeSpan.FromMilliseconds(100) < IndicatorReports.GoodFor);
+        Assert.Equal(SessionState.Suppressed, machine.State);
+        Assert.False(await machine.TryStageFrameAsync(Frame("f-after-the-ui-closed"), ct));
     }
 
     [Fact]

@@ -242,6 +242,36 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task TheHandlerIsToldWhenAConnectionEndsWithTheIdItsCommandsCarried()
+    {
+        // Security review A-09: the indicator a connection reported is withdrawn when it closes, which
+        // needs the server to say so, with the same id the reports were filed under.
+        await StartServerAsync();
+        var ui = await ConnectAsync();
+        Assert.True((await ui.SendAsync(id => new PauseCommand { RequestId = id })).Ok);
+        var caller = Assert.Single(_controller.Calls).Caller;
+        Assert.Empty(_controller.ClosedConnections);
+
+        await ui.DisposeAsync();
+        await WaitUntilAsync(() => _controller.ClosedConnections.Count == 1);
+
+        Assert.Equal(caller, Assert.Single(_controller.ClosedConnections));
+    }
+
+    [Fact]
+    public async Task ARejectedConnectionIsNotReportedAsClosed()
+    {
+        // Only a connection the handler was told of is one it is told has ended.
+        await StartServerAsync();
+
+        var reply = await RawHandshakeAsync(new HelloCommand { RequestId = 1, ContractVersion = IpcContract.Version, Token = IpcToken.Encode(new byte[32]), ClientName = "stranger" });
+        await WaitUntilAsync(() => _audit.Types.Any(type => type.StartsWith("ipc_rejected_", StringComparison.Ordinal)));
+
+        Assert.IsType<Rejected>(reply);
+        Assert.Empty(_controller.ClosedConnections);
+    }
+
+    [Fact]
     public async Task ANameHeldByAnotherPipeIsSaidOnceAfterAFewTries()
     {
         // Security review B-06: another account can hold the capture pipe's name, and the service only
@@ -1545,6 +1575,27 @@ public sealed class IpcServerTests : IAsyncDisposable
 
         private readonly List<(IpcCommand Command, Guid Caller)> _calls = [];
         private Action? _afterStateIsRead;
+        private readonly List<Guid> _closed = [];
+
+        /// <summary>The connections the server said had ended, in order.</summary>
+        public IReadOnlyList<Guid> ClosedConnections
+        {
+            get
+            {
+                lock (_closed)
+                {
+                    return [.. _closed];
+                }
+            }
+        }
+
+        public void Closed(Guid caller)
+        {
+            lock (_closed)
+            {
+                _closed.Add(caller);
+            }
+        }
 
         /// <summary>What reached the handler, in the order it arrived. A copy: two lanes add to it at once.</summary>
         public IReadOnlyList<IpcCommand> Received => [.. Calls.Select(c => c.Command)];
