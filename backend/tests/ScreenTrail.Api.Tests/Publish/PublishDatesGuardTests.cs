@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 namespace ScreenTrail.Api.Tests.Publish;
@@ -48,10 +47,7 @@ public sealed partial class PublishDatesGuardTests
     [Fact]
     public void NoTestFindsFilesThroughItsBuildTimePath()
     {
-        var files = Directory.EnumerateFiles(ProjectFolder(), "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .ToList();
+        var files = Sources();
         Assert.Contains(files, f => Path.GetFileName(f) == nameof(PublishDatesGuardTests) + ".cs");
 
         var offenders = files
@@ -80,13 +76,17 @@ public sealed partial class PublishDatesGuardTests
         throw new DirectoryNotFoundException("ScreenTrail.Api.Tests.csproj was not found above the test's folder.");
     }
 
-    /// <summary>The test project's own sources, found from this file's path at build time.</summary>
-    private static IEnumerable<string> Sources([CallerFilePath] string here = "")
+    /// <summary>
+    /// The test project's own sources. Never empty without failing: they must hold the publish tests these
+    /// guards are known to check.
+    /// </summary>
+    private static List<string> Sources()
     {
-        var root = Path.GetDirectoryName(Path.GetDirectoryName(here))!;
-        Assert.True(File.Exists(Path.Combine(root, "ScreenTrail.Api.Tests.csproj")), root);
-        return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+        List<string> files = [.. Directory.EnumerateFiles(ProjectFolder(), "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
-                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))];
+        Assert.Contains(files, f => Path.GetFileName(f) == "PublishEndpointTests.cs");
+        Assert.Contains(files, f => Path.GetFileName(f) == "KbPublishTests.cs");
+        return files;
     }
 }
