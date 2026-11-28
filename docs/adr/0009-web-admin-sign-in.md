@@ -112,7 +112,8 @@ Every response under `/v1/admin`, refusals included, carries `Cache-Control: no-
 an invite's one-time code and the technician list are not kept by a browser or a proxy. The four
 anonymous routes (the sign-in nonce, sign-in, signup, sign-out; `AdminAccessTests` fails if a fifth
 appears) read at most 16 KB of body, and a body that says it is larger is refused with 413 before it is
-read. A key fetch that
+read. The owner's routes read at most 16 KB too, as does every device route under `/v1` except drafting
+and publishing, which declare their own larger limits (D-01). A key fetch that
 fails is logged as a warning naming only the kind of failure.
 
 ### Tenant scoping

@@ -509,9 +509,13 @@ _ = app.MapGroup("/v1/devices").AllowAnonymous().MapDevices();
 // Mapped beside the device group, not inside it, so no device policy applies here and no owner policy
 // applies there.
 _ = app.MapGroup("/v1/admin").AllowAnonymous().WithMetadata(new RequestSizeLimitAttribute(AdminSession.AnonymousBodyLimit)).MapAdminSession();
-_ = app.MapGroup("/v1/admin").RequireAuthorization(OwnerPolicy.Name).MapAdmin().MapAdminIntegrations();
 
-var v1 = app.MapGroup("/v1").RequireAuthorization(CallerPolicy.Name);
+// Every body these two groups read is a few fields, so each route reads at most 16 KB unless it says
+// otherwise: drafting and publishing declare their own, larger limits, which win over the group's
+// (D-01). Without it a route was left on the server's 30 MB default.
+_ = app.MapGroup("/v1/admin").RequireAuthorization(OwnerPolicy.Name).WithMetadata(new RequestSizeLimitAttribute(BodyLimits.Default)).MapAdmin().MapAdminIntegrations();
+
+var v1 = app.MapGroup("/v1").RequireAuthorization(CallerPolicy.Name).WithMetadata(new RequestSizeLimitAttribute(BodyLimits.Default));
 _ = v1.MapMe();
 _ = v1.MapSummarize();
 _ = v1.MapIntegrations();
