@@ -78,7 +78,26 @@ jobs:
           else
             files=$(git diff --name-only "$base" HEAD)
           fi
-          printf 'Changed files:\n%s\n' "$files"
+          # The names go to the log between stop-commands markers whose token nobody can guess, so the
+          # runner reads none of them as a workflow command, whatever a file is called. A path that
+          # starts with '::' or holds a line break is refused outright; neither can be checked out on
+          # Windows anyway (scripts/ci/check_change_flags.py runs this step on such names).
+          token=$(openssl rand -hex 16)
+          if ! printf '%s' "$token" | grep -Eq '^[0-9a-f]{32}$'; then
+            echo "::error::Could not make a token to print the changed files with."
+            exit 1
+          fi
+          echo 'Changed files:'
+          echo "::stop-commands::$token"
+          printf '%s\n' "$files"
+          echo "::$token::"
+          if [ "$files" != "__all__" ]; then
+            breaks=$(git diff --name-only -z "$base" HEAD | tr -dc '\n\r' | wc -c)
+            if [ $((breaks)) -ne 0 ] || git diff --name-only -z "$base" HEAD | tr '\0' '\n' | grep -q '^::'; then
+              echo "::error::A changed path starts with '::' or holds a line break. Rename it: this job does not read such a name as a change."
+              exit 1
+            fi
+          fi
           common='^(Directory\.Build\.props|global\.json|\.editorconfig|\.gitattributes|\.github/workflows/ci\.yml|shared/)'
           flag() {
             if [ "$files" = "__all__" ] || printf '%s\n' "$files" | grep -Eq "$1|$common"; then echo "$2=true"; else echo "$2=false"; fi
@@ -1480,3 +1499,15 @@ jobs:
             echo "::error::A required job failed or was cancelled."
             exit 1
           fi
+          # A job skipped for want of a flag looks the same as one skipped because its area did not
+          # change, so every flag the changes job declares has to be exactly true or false
+          # (scripts/ci/check_change_flags.py keeps this list and the changes job's outputs together).
+          bad=0
+          for flag in client installer backend deploy web site research schema design hardware scripts; do
+            value=$(printf '%s\n' "$RESULTS" | jq -r --arg f "$flag" '.changes.outputs[$f] | tostring')
+            if [ "$value" != 'true' ] && [ "$value" != 'false' ]; then
+              echo "::error::The changes job's '$flag' flag is not true or false, so the jobs it decides may have been skipped for no reason."
+              bad=1
+            fi
+          done
+          exit $bad
