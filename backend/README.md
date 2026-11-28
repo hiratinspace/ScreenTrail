@@ -189,7 +189,8 @@ where somebody downstream would find it and run it.
 
 A tenant's PSA and documentation keys are stored sealed (ST-009): each row's secret under its own data
 key, that key under the deployment's master key, AES-GCM at both layers. `GET /v1/integrations` shows
-the last four characters of each; nothing over HTTP ever returns a credential, and provider workers
+each provider, its site and when it was connected and last checked, and no part of any credential (a
+credential shorter than 16 characters is refused when stored); nothing over HTTP ever returns one, and provider workers
 read them in process through `IIntegrationVault`. A credential is stored only for an absolute https site
 with no user name or password in the address: the site is where the credential is sent, and the vault
 itself refuses anything else, not only the endpoint. Each secret is bound to its row (tenant, provider

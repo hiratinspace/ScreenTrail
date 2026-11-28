@@ -432,7 +432,7 @@ public sealed record SaveDraftCommand : IpcCommand
 /// <summary>What the tenant has connected. Answered by an <see cref="IntegrationsListed"/>.</summary>
 public sealed record GetIntegrationsCommand : IpcCommand;
 
-/// <param name="Secret">The last four characters behind bullets, as the backend shows them. Never more.</param>
+/// <param name="Secret">As the backend sends it: empty, since the backend returns no part of a credential (security review E-14). Not shown.</param>
 public sealed record IntegrationInfo(
     [property: JsonPropertyName("provider")] string Provider,
     [property: JsonPropertyName("site_url")] string SiteUrl,
@@ -832,13 +832,13 @@ public sealed record MapCompanyCommand : IpcCommand
 // ---- Settings → Integrations (ST-082; 2026-09-25) --------------------------------------------------------
 //
 // The Settings screen manages the tenant's credentials through the service, which asks the backend's
-// vault. A secret crosses this pipe once, on its way in, and is never read back: the list carries its
-// last four characters and nothing more.
+// vault. A secret crosses this pipe once, on its way in, and is never read back: the list carries no part
+// of it (security review E-14).
 
 /// <summary>The integrations with everything the card shows. Answered by an <see cref="IntegrationDetailsListed"/>.</summary>
 public sealed record ListIntegrationsCommand : IpcCommand;
 
-/// <param name="Secret">The last four characters behind bullets. Never more.</param>
+/// <param name="Secret">As the backend sends it: empty, since the backend returns no part of a credential (security review E-14). The UI does not read it.</param>
 public sealed record IntegrationDetailRow(
     [property: JsonPropertyName("provider")] string Provider,
     [property: JsonPropertyName("site_url")] string SiteUrl,

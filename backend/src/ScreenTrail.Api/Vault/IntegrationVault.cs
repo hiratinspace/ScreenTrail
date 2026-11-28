@@ -12,7 +12,7 @@ public sealed record RevealedIntegration(string Provider, string SiteUrl, string
 
 /// <summary>
 /// Where integration credentials live (ST-009). Readable only in process, by the provider workers that
-/// need them; the API shows the last four characters and nothing more.
+/// need them; no route returns any part of one (security review E-14).
 /// </summary>
 public interface IIntegrationVault
 {
@@ -32,9 +32,8 @@ public interface IIntegrationVault
     Task<IReadOnlyList<IntegrationListing>> ListAsync(Guid tenantId, CancellationToken ct = default);
 }
 
-/// <summary>One integration as a list shows it. No ciphertext, no nonce, no wrapped key: only what is safe to display.</summary>
-/// <param name="SecretHint">The credential's last four characters, stored in the clear for exactly this.</param>
-public sealed record IntegrationListing(string Provider, string? SiteUrl, string? SecretHint, DateTimeOffset? ConnectedAt, DateTimeOffset? LastCheckedAt, string? LastError);
+/// <summary>One integration as a list shows it. No ciphertext, no nonce, no wrapped key, and no part of the credential: only what is safe to display.</summary>
+public sealed record IntegrationListing(string Provider, string? SiteUrl, DateTimeOffset? ConnectedAt, DateTimeOffset? LastCheckedAt, string? LastError);
 
 /// <summary>A stored credential the vault will not open: bound to another row, or legacy while legacy rows are refused. The message names the row, never the secret.</summary>
 public sealed class VaultRowRefusedException : InvalidOperationException
@@ -122,7 +121,10 @@ public sealed class IntegrationVault(ScreenTrailContext db, VaultOptions options
 
         // The value the rule judged, trimmed, so what is stored cannot differ from what was checked.
         row.SiteUrl = siteUrl.Trim();
-        row.SecretHint = secret[^Math.Min(4, secret.Length)..];
+
+        // No part of the credential is kept outside the envelope (security review E-14, DEC-11). The column
+        // stays until a migration clears the rows stored before; a store or a replace empties it now.
+        row.SecretHint = null;
         row.SecretCiphertext = sealed_.Ciphertext;
         row.SecretNonce = sealed_.Nonce;
         row.DataKeyWrapped = sealed_.WrappedKey;
@@ -259,7 +261,7 @@ public sealed class IntegrationVault(ScreenTrailContext db, VaultOptions options
         await db.Integrations.AsNoTracking()
             .Where(i => i.TenantId == tenantId)
             .OrderBy(i => i.Provider)
-            .Select(i => new IntegrationListing(i.Provider, i.SiteUrl, i.SecretHint, i.ConnectedAt, i.LastCheckedAt, i.LastError))
+            .Select(i => new IntegrationListing(i.Provider, i.SiteUrl, i.ConnectedAt, i.LastCheckedAt, i.LastError))
             .ToListAsync(ct)
             .ConfigureAwait(false);
 

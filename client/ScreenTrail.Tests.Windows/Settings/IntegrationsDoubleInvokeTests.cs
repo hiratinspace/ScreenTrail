@@ -19,7 +19,7 @@ public sealed class IntegrationsDoubleInvokeTests
         Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows only.");
         UiThread.Run(async () =>
         {
-            var gateway = new FakeIntegrations { Held = new TaskCompletionSource(), Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, null, null)] };
+            var gateway = new FakeIntegrations { Held = new TaskCompletionSource(), Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, null, null)] };
             var screen = new IntegrationsViewModel(new IntegrationsPanel(gateway));
             await screen.LoadAsync();
             Assert.True(screen.Hudu.CheckCommand.CanExecute(null));

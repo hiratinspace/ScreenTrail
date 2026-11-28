@@ -22,7 +22,7 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
     private const string Secret = "acme+PUBLICKEY:PRIVATE-SECRET-9876";
 
     [Fact]
-    public async Task ACredentialGoesInAndOnlyItsLastFourComeBack()
+    public async Task ACredentialGoesInAndNoPartOfItComesBack()
     {
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
@@ -37,8 +37,9 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
         var row = Assert.Single(list!.Integrations);
         Assert.Equal("connectwise", row.Provider);
         Assert.Equal("https://na.myconnectwise.net", row.SiteUrl);
-        Assert.Equal("••••9876", row.Secret);
+        Assert.Equal(string.Empty, row.Secret);
         Assert.DoesNotContain("PRIVATE", body, StringComparison.Ordinal);
+        Assert.DoesNotContain("9876", body, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -103,7 +104,7 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
 
         Assert.NotNull(stored.SecretCiphertext);
         Assert.DoesNotContain(Encoding.UTF8.GetBytes(Secret), stored.SecretCiphertext);
-        Assert.Equal("9876", stored.SecretHint);
+        Assert.Null(stored.SecretHint);
         Assert.NotNull(stored.KeyId);
         Assert.NotNull(stored.ConnectedAt);
     }
@@ -146,14 +147,21 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
     {
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
-        using var first = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://a.huducloud.com", "old-key-0001"));
-        using var second = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://a.huducloud.com", "new-key-0002"));
+        using var first = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://a.huducloud.com", "old-api-key-0001"));
+        using var second = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://a.huducloud.com", "new-api-key-0002"));
 
         var afterReplace = await client.GetFromJsonAsync<IntegrationsResponse>(new Uri("/v1/integrations", UriKind.Relative), TestContext.Current.CancellationToken);
+        string? replaced;
+        using (var scope = api.Services.CreateScope())
+        {
+            replaced = (await scope.ServiceProvider.GetRequiredService<IIntegrationVault>().RevealAsync(tenantId, "hudu", TestContext.Current.CancellationToken))?.Secret;
+        }
+
         using var delete = await client.RemoveIntegrationAsOwnerAsync(api, "hudu");
         var afterDelete = await client.GetFromJsonAsync<IntegrationsResponse>(new Uri("/v1/integrations", UriKind.Relative), TestContext.Current.CancellationToken);
 
-        Assert.Equal("••••0002", Assert.Single(afterReplace!.Integrations).Secret);
+        Assert.Equal(string.Empty, Assert.Single(afterReplace!.Integrations).Secret);
+        Assert.Equal("new-api-key-0002", replaced);
         Assert.Equal(HttpStatusCode.NoContent, delete.StatusCode);
         Assert.Empty(afterDelete!.Integrations);
     }
@@ -172,7 +180,7 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
         var before = await api.UseAsync(db => db.Integrations.AsNoTracking().SingleAsync(i => i.TenantId == tenantId));
 
         using var removed = await theirs.RemoveIntegrationAsOwnerAsync(api, "hudu");
-        using var replaced = await theirs.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://elsewhere.huducloud.com", "their-key-0000"));
+        using var replaced = await theirs.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://elsewhere.huducloud.com", "their-api-key-0000"));
         var after = await api.UseAsync(db => db.Integrations.AsNoTracking().SingleAsync(i => i.TenantId == tenantId));
         using var scope = api.Services.CreateScope();
         var vault = scope.ServiceProvider.GetRequiredService<IIntegrationVault>();
@@ -186,7 +194,7 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
         Assert.Equal(before.DataKeyWrapped, after.DataKeyWrapped);
         Assert.Equal(before.ConnectedAt, after.ConnectedAt);
         Assert.Equal(Secret, (await vault.RevealAsync(tenantId, "hudu", TestContext.Current.CancellationToken))?.Secret);
-        Assert.Equal("their-key-0000", (await vault.RevealAsync(otherTenant, "hudu", TestContext.Current.CancellationToken))?.Secret);
+        Assert.Equal("their-api-key-0000", (await vault.RevealAsync(otherTenant, "hudu", TestContext.Current.CancellationToken))?.Secret);
     }
 
     [Fact]
@@ -415,9 +423,12 @@ public sealed class IntegrationsEndpointTests(ApiFixture api) : IClassFixture<Ap
         using var downgrade = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("http://na.myconnectwise.net", "other-secret-0000"));
         var stored = await api.UseAsync(db => db.Integrations.SingleAsync(i => i.TenantId == tenantId));
 
+        using var scope = api.Services.CreateScope();
+        var kept = await scope.ServiceProvider.GetRequiredService<IIntegrationVault>().RevealAsync(tenantId, "connectwise", TestContext.Current.CancellationToken);
+
         Assert.Equal(HttpStatusCode.BadRequest, downgrade.StatusCode);
         Assert.Equal("https://na.myconnectwise.net", stored.SiteUrl);
-        Assert.Equal("9876", stored.SecretHint);
+        Assert.Equal(Secret, kept?.Secret);
     }
 
     [Theory]

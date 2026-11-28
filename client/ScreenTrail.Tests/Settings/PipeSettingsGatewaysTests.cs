@@ -254,7 +254,7 @@ public sealed class PipeSettingsGatewaysTests : IAsyncDisposable
         var rows = await integrations.ListAsync(TestContext.Current.CancellationToken);
         var page = await integrations.MappingsAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", connected, checkedAt, "Hudu rejected the API key."), Assert.Single(rows!));
+        Assert.Equal(new IntegrationDetail("hudu", "https://acme.huducloud.com", connected, checkedAt, "Hudu rejected the API key."), Assert.Single(rows!));
         Assert.NotNull(page);
         Assert.Equal(new CompanyChoice("7", "Acme Dental (Hudu)"), Assert.Single(page.Companies));
         Assert.Equal(new CompanyMappingEntry("Acme Dental", "7", "Acme Dental (Hudu)", "exact"), Assert.Single(page.Mappings));

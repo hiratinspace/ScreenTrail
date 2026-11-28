@@ -32,7 +32,8 @@
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" Text="{Binding Status}" Visibility="{Binding StatusVisibility}" />
                     <TextBlock Margin="0,4,0,0" Style="{StaticResource Text.Muted}" TextWrapping="Wrap" Text="{Binding OwnerLine}" />
 
-                    <!-- Connected: the site in full and the credential as its last four. -->
+                    <!-- Connected: the site in full and when the credential was connected. No part of the
+                         credential is shown (security review E-14, DEC-11). -->
                     <Grid Margin="0,12,0,0" Visibility="{Binding SummaryVisibility}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -44,7 +45,7 @@
                         </StackPanel>
                         <StackPanel Grid.Column="1" Margin="16,0,0,0">
                             <TextBlock Style="{StaticResource Text.Body}" Text="{Binding SiteUrl}" />
-                            <TextBlock Margin="0,12,0,0" Style="{StaticResource Text.Mono}" Text="{Binding SecretHint}" />
+                            <TextBlock Margin="0,12,0,0" Style="{StaticResource Text.Body}" Text="{Binding ConnectedLine}" />
                         </StackPanel>
                     </Grid>
 

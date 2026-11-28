@@ -97,7 +97,8 @@ the form takes the site and the three parts and joins them), and never returned.
 signed-in session with its CSRF header. A technician's device cannot store or remove it
 (`403 owner_only`) and sees the connection read-only in Settings → Integrations.
 
-`GET /v1/integrations` then shows `connectwise`, the site, and `••••` plus the last four characters.
+`GET /v1/integrations` then shows `connectwise`, the site and when it was connected, and no part of the
+credential.
 
 ## What the deployment supplies
 

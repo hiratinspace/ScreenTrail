@@ -12,10 +12,10 @@ using ScreenTrail.Api.Vault;
 namespace ScreenTrail.Api.Endpoints;
 
 /// <param name="SiteUrl">Where the provider lives for this tenant; not secret, shown in full.</param>
-/// <param name="Secret">The credential, as the provider wants it: for ConnectWise the Basic-auth string, for Hudu the API key. Stored sealed, shown as its last four.</param>
+/// <param name="Secret">The credential, as the provider wants it: for ConnectWise the Basic-auth string, for Hudu the API key. Stored sealed, never shown, not even in part.</param>
 public sealed record StoreIntegrationRequest(string SiteUrl, string Secret);
 
-/// <param name="Secret">The last four characters behind bullets. Never more.</param>
+/// <param name="Secret">Always empty: no route returns any part of a credential (security review E-14, DEC-11). Kept so a client built before reads it as no hint.</param>
 public sealed record IntegrationRow(string Provider, string SiteUrl, string Secret, DateTimeOffset? ConnectedAt, DateTimeOffset? LastCheckedAt, string? LastError);
 
 public sealed record IntegrationsResponse(IReadOnlyList<IntegrationRow> Integrations);
@@ -58,6 +58,9 @@ public static class IntegrationsEndpoint
     /// <summary>The longest credential stored. A ConnectWise Basic-auth string or a Hudu key is far shorter.</summary>
     public const int SecretMax = 4096;
 
+    /// <summary>The shortest credential stored (DEC-11). A ConnectWise Basic-auth string or a Hudu key is far longer; anything shorter is a placeholder or a paste that went wrong.</summary>
+    public const int SecretMin = 16;
+
     /// <summary>The longest site address stored, the column's width.</summary>
     public const int SiteUrlMax = 500;
 
@@ -98,7 +101,7 @@ public static class IntegrationsEndpoint
             return Results.Ok(new IntegrationsResponse([.. rows.Select(Masked)]));
         })
         .WithName("ListIntegrations")
-        .WithSummary("The tenant's integrations, with each credential's last four characters and nothing more.");
+        .WithSummary("The tenant's integrations: provider, site, when it was connected and last checked. No part of any credential.");
 
         // The device's PUT and DELETE stay mapped so that a client written before the owner took this
         // over is answered in words rather than with a bare 404 or 405. Neither reads a body.
@@ -230,6 +233,11 @@ public static class IntegrationsEndpoint
             return Results.Json(new { error = "not_configured", message = "This deployment has no vault master key, so credentials cannot be stored." }, statusCode: StatusCodes.Status501NotImplemented);
         }
 
+        if (request.Secret.Length < SecretMin)
+        {
+            return Results.BadRequest(new { error = "secret_too_short", message = $"The credential is too short to be a ConnectWise or Hudu key. Paste the whole key; it is at least {SecretMin} characters." });
+        }
+
         await using (var transaction = await db.Database.BeginTransactionAsync(ct).ConfigureAwait(false))
         {
             var previous = await db.Integrations.AsNoTracking()
@@ -357,17 +365,18 @@ public static class IntegrationsEndpoint
     private static ProviderResult<bool> Gone() =>
         ProviderResult.Failure<bool>(VaultRefusal.Error);
 
-    /// <summary>The demo PSA and knowledge base, named so nobody can take them for ConnectWise or Hudu. No credential, so no last four.</summary>
+    /// <summary>The demo PSA and knowledge base, named so nobody can take them for ConnectWise or Hudu. No credential.</summary>
     private static readonly IReadOnlyList<IntegrationRow> DemoRows =
     [
         new(DemoNames.Psa, DemoNames.Where, string.Empty, null, null, null),
         new(DemoNames.Kb, DemoNames.Where, string.Empty, null, null, null),
     ];
 
+    // No part of the credential, whatever an older row still holds (security review E-14, DEC-11).
     private static IntegrationRow Masked(IntegrationListing row) => new(
         row.Provider,
         row.SiteUrl ?? string.Empty,
-        row.SecretHint is { Length: > 0 } hint ? "••••" + hint : string.Empty,
+        string.Empty,
         row.ConnectedAt,
         row.LastCheckedAt,
         row.LastError);

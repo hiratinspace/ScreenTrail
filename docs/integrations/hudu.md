@@ -67,7 +67,7 @@ attachments are the images.
 Needs a Hudu instance with an API key, on the owner's list. When there is one:
 
 1. Store the key as above.
-2. `GET /v1/integrations` shows `hudu` with the last four characters of the key.
+2. `GET /v1/integrations` shows `hudu`, the site and when it was connected, and no part of the key.
 3. Publish a session with the KB destination on (ST-096, once the client sends the company): an article
    appears under the mapped company, **as a draft**, with one upload per included screenshot.
 4. Record here, dated: whether `draft` was honoured, whether uploads appeared on the article, and what

@@ -34,8 +34,9 @@ public sealed partial class IntegrationCardViewModel : ObservableObject
     [ObservableProperty]
     public partial string OwnerLine { get; set; } = string.Empty;
 
+    /// <summary>"Connected" and the day, in the credential's place (<see cref="IntegrationCard.ConnectedLine"/>).</summary>
     [ObservableProperty]
-    public partial string SecretHint { get; set; } = string.Empty;
+    public partial string ConnectedLine { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string CheckResult { get; set; } = string.Empty;
@@ -54,7 +55,7 @@ public sealed partial class IntegrationCardViewModel : ObservableObject
     [ObservableProperty]
     public partial Visibility StatusVisibility { get; set; } = Visibility.Collapsed;
 
-    /// <summary>The site and the credential's last four: shown once connected.</summary>
+    /// <summary>The site and when it was connected: shown once connected.</summary>
     [ObservableProperty]
     public partial Visibility SummaryVisibility { get; set; } = Visibility.Collapsed;
 
@@ -91,7 +92,7 @@ public sealed partial class IntegrationCardViewModel : ObservableObject
         Connected = _card.Connected;
         Status = _card.Status;
         OwnerLine = _card.OwnerLine;
-        SecretHint = _card.SecretHint;
+        ConnectedLine = _card.ConnectedLine;
         StatusVisibility = _card.Connected ? Visibility.Visible : Visibility.Collapsed;
         SummaryVisibility = _card.Connected ? Visibility.Visible : Visibility.Collapsed;
         ConnectedBadgeVisibility = _card.Badge == IntegrationCard.ConnectedBadge ? Visibility.Visible : Visibility.Collapsed;

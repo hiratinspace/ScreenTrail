@@ -6,7 +6,7 @@ namespace ScreenTrail.Tests.Settings;
 
 /// <summary>
 /// Settings → Integrations' rules (ST-082, Spec §5 S7, v0.6.15): a read-only card per provider that is
-/// connected or not, the credential shown as its last four, who manages it (the tenant owner, in the web
+/// connected or not, when it was connected (never any part of the credential), who manages it (the tenant owner, in the web
 /// admin), Test connection answered in words either way, and the company mapping table, which
 /// technicians keep. The service is a fake here; <c>PipeIntegrationsTests</c> covers the real one.
 /// </summary>
@@ -56,7 +56,7 @@ public sealed class IntegrationsPanelTests
     {
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, null, null)],
         };
         var panel = new IntegrationsPanel(gateway);
 
@@ -64,10 +64,10 @@ public sealed class IntegrationsPanelTests
 
         Assert.True(panel.ConnectWise.Connected);
         Assert.Equal("https://na.myconnectwise.net", panel.ConnectWise.SiteUrl);
-        Assert.Equal("••••1234", panel.ConnectWise.SecretHint);
+        Assert.StartsWith("Connected ", panel.ConnectWise.ConnectedLine, StringComparison.Ordinal);
         Assert.False(panel.Hudu.Connected);
         Assert.Equal(string.Empty, panel.Hudu.SiteUrl);
-        Assert.Equal(string.Empty, panel.Hudu.SecretHint);
+        Assert.Equal(string.Empty, panel.Hudu.ConnectedLine);
         Assert.Null(panel.Notice);
         Assert.Empty(panel.Others);
     }
@@ -82,8 +82,8 @@ public sealed class IntegrationsPanelTests
         {
             Rows =
             [
-                new IntegrationDetail("demo-psa", "In memory on this backend, Development only", string.Empty, null, null, null),
-                new IntegrationDetail("demo-kb", "In memory on this backend, Development only", string.Empty, null, null, null),
+                new IntegrationDetail("demo-psa", "In memory on this backend, Development only", null, null, null),
+                new IntegrationDetail("demo-kb", "In memory on this backend, Development only", null, null, null),
             ],
         };
         var panel = new IntegrationsPanel(gateway);
@@ -108,7 +108,7 @@ public sealed class IntegrationsPanelTests
         // support it, and keeps the backend's last error.
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("halopsa", "https://acme.halopsa.com", "••••4321", DateTimeOffset.UnixEpoch, null, "HaloPSA did not answer. Try again in a minute.")],
+            Rows = [new IntegrationDetail("halopsa", "https://acme.halopsa.com", DateTimeOffset.UnixEpoch, null, "HaloPSA did not answer. Try again in a minute.")],
         };
         var panel = new IntegrationsPanel(gateway);
 
@@ -136,10 +136,10 @@ public sealed class IntegrationsPanelTests
     public async Task AConnectedCardSaysTheOwnerManagesIt()
     {
         // Spec v0.6.15 S7: integration credentials can only be changed by the tenant owner, in the web
-        // admin. A connected card shows its status, site and last four, and says who manages it.
+        // admin. A connected card shows its status, site and when it was connected, and says who manages it.
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, null, null)],
         };
         var panel = new IntegrationsPanel(gateway);
 
@@ -174,7 +174,7 @@ public sealed class IntegrationsPanelTests
         // It checks the credential the backend holds, so with nothing connected there is nothing to check.
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, null, null)],
         };
         var panel = new IntegrationsPanel(gateway);
 
@@ -189,7 +189,7 @@ public sealed class IntegrationsPanelTests
     {
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, null, null)],
             Check = new CheckOutcome(true, "Connected to https://acme.huducloud.com."),
         };
         var panel = new IntegrationsPanel(gateway);
@@ -203,7 +203,7 @@ public sealed class IntegrationsPanelTests
         Assert.False(panel.Hudu.Connected);
         Assert.Null(panel.Hudu.CheckOk);
         Assert.Null(panel.Hudu.CheckResult);
-        Assert.Equal(string.Empty, panel.Hudu.SecretHint);
+        Assert.Equal(string.Empty, panel.Hudu.ConnectedLine);
         Assert.Equal(IntegrationCard.OwnerConnects, panel.Hudu.OwnerLine);
     }
 
@@ -211,19 +211,20 @@ public sealed class IntegrationsPanelTests
     public async Task AReloadShowsWhatTheOwnerChanged()
     {
         // There is nothing typed on the card to keep, so a reload always shows the backend's truth: a key
-        // the owner replaced shows its new last four.
+        // the owner replaced shows when it was connected again.
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, null, null)],
         };
         var panel = new IntegrationsPanel(gateway);
         await panel.LoadAsync();
 
-        gateway.Rows = [new IntegrationDetail("connectwise", "https://eu.myconnectwise.net", "••••9876", DateTimeOffset.UnixEpoch, null, null)];
+        var replaced = DateTimeOffset.UnixEpoch.AddDays(400);
+        gateway.Rows = [new IntegrationDetail("connectwise", "https://eu.myconnectwise.net", replaced, null, null)];
         await panel.LoadAsync();
 
         Assert.Equal("https://eu.myconnectwise.net", panel.ConnectWise.SiteUrl);
-        Assert.Equal("••••9876", panel.ConnectWise.SecretHint);
+        Assert.Equal("Connected " + replaced.ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture), panel.ConnectWise.ConnectedLine);
     }
 
     [Theory]
@@ -271,7 +272,7 @@ public sealed class IntegrationsPanelTests
     {
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, null, null)],
             Check = new CheckOutcome(false, "ConnectWise rejected the API key. Ask your ScreenTrail admin to update the ConnectWise connection in the web admin."),
         };
         var panel = new IntegrationsPanel(gateway);
@@ -331,8 +332,8 @@ public sealed class IntegrationsPanelTests
         {
             Rows =
             [
-                new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "Hudu rejected the API key. Update it in Settings → Integrations."),
-                new IntegrationDetail("demo-kb", "https://demo.example", "••••0000", DateTimeOffset.UnixEpoch, null, "The site did not answer. Check the site address in Settings → Integrations."),
+                new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "Hudu rejected the API key. Update it in Settings → Integrations."),
+                new IntegrationDetail("demo-kb", "https://demo.example", DateTimeOffset.UnixEpoch, null, "The site did not answer. Check the site address in Settings → Integrations."),
             ],
         };
         var panel = new IntegrationsPanel(gateway);
@@ -355,8 +356,8 @@ public sealed class IntegrationsPanelTests
         {
             Rows =
             [
-                new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, checkedAt, null),
-                new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, checkedAt, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
+                new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, checkedAt, null),
+                new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, checkedAt, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
             ],
         };
         var panel = new IntegrationsPanel(gateway);
@@ -371,7 +372,7 @@ public sealed class IntegrationsPanelTests
         Assert.Equal(shown, panel.Hudu.Status);
 
         // Failed with no time on record: the badge and the reason say it, and the line is empty.
-        gateway.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, null, "Hudu did not answer.")];
+        gateway.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, null, "Hudu did not answer.")];
         await panel.LoadAsync();
         Assert.Equal("Check failed", panel.Hudu.Badge);
         Assert.Equal(string.Empty, panel.Hudu.Status);
@@ -384,7 +385,7 @@ public sealed class IntegrationsPanelTests
         var now = new FixedClock(new DateTimeOffset(2026, 11, 17, 9, 45, 0, TimeSpan.Zero));
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, older, null)],
+            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, older, null)],
             Check = new CheckOutcome(false, "Hudu rejected the API key. Ask your ScreenTrail admin to update the Hudu connection in the web admin."),
         };
         var panel = new IntegrationsPanel(gateway, now);
@@ -411,7 +412,7 @@ public sealed class IntegrationsPanelTests
     {
         var gateway = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••5678", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", DateTimeOffset.UnixEpoch, null, null)],
             Companies = [new CompanyChoice("7", "Acme Dental"), new CompanyChoice("9", "Bright Smiles")],
             Mappings = [new CompanyMappingEntry("Acme Dental", "7", "Acme Dental", "exact")],
         };

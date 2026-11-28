@@ -149,7 +149,7 @@ public sealed class TicketSearchEndpointTests(ApiFixture api) : IClassFixture<Ap
         using var host = HostWith(cw);
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(host, api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
-        using var put = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUB:WRONG"));
+        using var put = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUBLIC:WRONG"));
 
         using var response = await client.GetAsync(new Uri("/v1/psa/tickets?q=printer", UriKind.Relative), TestContext.Current.CancellationToken);
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

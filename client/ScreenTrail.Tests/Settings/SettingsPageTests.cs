@@ -276,7 +276,7 @@ public sealed class SettingsPageTests
     public async Task TestConnectionAndTheCompanyMappingActAtOnceAndLeaveTheBarHidden()
     {
         var gateways = new Gateways();
-        gateways.Integrations.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••1234", null, null, null)];
+        gateways.Integrations.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", null, null, null)];
         var integrations = new IntegrationsPanel(gateways.Integrations);
         await integrations.LoadAsync();
         var (page, _, _, _, _) = await LoadedAsync(gateways: gateways);
@@ -295,7 +295,7 @@ public sealed class SettingsPageTests
     public async Task UndoLeavesTheIntegrationsCardsAsTheBackendHasThem()
     {
         var gateways = new Gateways();
-        gateways.Integrations.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", "••••1234", null, null, null)];
+        gateways.Integrations.Rows = [new IntegrationDetail("hudu", "https://acme.huducloud.com", null, null, null)];
         var integrations = new IntegrationsPanel(gateways.Integrations);
         await integrations.LoadAsync();
         var (page, _, privacy, _, _) = await LoadedAsync(gateways: gateways);
@@ -305,7 +305,7 @@ public sealed class SettingsPageTests
 
         Assert.True(integrations.Hudu.Connected);
         Assert.Equal("https://acme.huducloud.com", integrations.Hudu.SiteUrl);
-        Assert.Equal("••••1234", integrations.Hudu.SecretHint);
+        Assert.Equal("Connected", integrations.Hudu.ConnectedLine);
         Assert.False(page.HasPendingChanges);
     }
 

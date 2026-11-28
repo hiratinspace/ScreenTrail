@@ -275,7 +275,11 @@ public sealed class Integration
     [MaxLength(500)]
     public string? SiteUrl { get; set; }
 
-    /// <summary>The credential's last four characters, in the clear, so a list never has to open a row.</summary>
+    /// <summary>
+    /// Once the credential's last four characters, in the clear. Not written or read since security review
+    /// E-14 (DEC-11): a store or a replace empties it, and no route returns it. Kept until a migration
+    /// clears the rows stored before then.
+    /// </summary>
     [MaxLength(4)]
     public string? SecretHint { get; set; }
 

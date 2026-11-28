@@ -231,7 +231,7 @@ public sealed class OnboardingWizardTests
         // web admin. The step reads what is connected and can be continued as well as skipped.
         var integrations = new FakeIntegrations
         {
-            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", "••••1234", DateTimeOffset.UnixEpoch, null, null)],
+            Rows = [new IntegrationDetail("connectwise", "https://na.myconnectwise.net", DateTimeOffset.UnixEpoch, null, null)],
         };
         var wizard = Wizard(integrations: integrations);
         wizard.Go(OnboardingStep.Connect);

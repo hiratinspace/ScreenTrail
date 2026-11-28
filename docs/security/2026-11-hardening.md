@@ -20,7 +20,8 @@ security lead (ST-114).
 
 **Integration credentials are the owner's.** Only the tenant's owner connects, replaces or disconnects
 ConnectWise and Hudu, from the web admin; a technician's Settings show the connection read-only and can
-still test it. No route returns any part of a secret, the owner's included. A stored secret is bound to
+still test it. No route returns any part of a secret, the owner's included (true since 2026-11-28: until
+then a technician's device was sent a credential's last four characters). A stored secret is bound to
 its tenant, provider and site, so it does not open anywhere else. Every credential change, and every
 company mapping a person makes, is recorded and shown to the owner on the Integrations page with who
 made it.

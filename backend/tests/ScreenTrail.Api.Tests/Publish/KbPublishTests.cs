@@ -344,7 +344,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         var (client, _) = await ConnectedClientAsync(host);
         var before = await client.GetFromJsonAsync<CompanyMappingsResponse>(Companies, TestContext.Current.CancellationToken);
 
-        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-key-9999"));
+        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-api-key-9999"));
         var after = await client.GetFromJsonAsync<CompanyMappingsResponse>(Companies, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, repointed.StatusCode);
@@ -364,7 +364,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         _ = await client.GetFromJsonAsync<CompanyMappingsResponse>(Companies, TestContext.Current.CancellationToken);
         var asked = hudu.Requests.Count(IsCompanyList);
 
-        using var rotated = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-0000"));
+        using var rotated = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-0000"));
         _ = await client.GetFromJsonAsync<CompanyMappingsResponse>(Companies, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, rotated.StatusCode);
@@ -385,7 +385,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         using var theirs = await bystander.PutAsJsonAsync(Companies, new MapCompanyRequest("Acme Dental", "7"), TestContext.Current.CancellationToken);
         Assert.Equal("7", (await api.UseAsync(db => db.CompanyMappings.SingleAsync(m => m.TenantId == tenantId))).DocCompanyId);
 
-        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-key-9999"));
+        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-api-key-9999"));
         var posted = hudu.Requests.Count(IsArticle);
         using var second = await client.PostAsJsonAsync(new Uri("/v1/sessions/publish", UriKind.Relative), Bundle("Acme Dental"), TestContext.Current.CancellationToken);
         var published = await second.Content.ReadFromJsonAsync<PublishResponse>(TestContext.Current.CancellationToken);
@@ -409,7 +409,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         var hudu = new ScriptedHudu { RenamedAt = (site, id) => site == "other.huducloud.com" && id == 7 ? "Zenith Accounting" : null };
         using var host = Host(new ScriptedConnectWise(), hudu);
         var (client, tenantId) = await ConnectedClientAsync(host);
-        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-key-9999"));
+        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-api-key-9999"));
         _ = await RememberDirectlyAsync(tenantId, "Acme Dental", "7", "Acme Dental");
 
         using var response = await client.PostAsJsonAsync(new Uri("/v1/sessions/publish", UriKind.Relative), Bundle("Acme Dental"), TestContext.Current.CancellationToken);
@@ -632,7 +632,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         var (client, tenantId) = await ConnectedClientAsync(host);
         using var mapped = await client.PutAsJsonAsync(Companies, new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
 
-        using var rotated = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest(sameSite, "hudu-key-0000"));
+        using var rotated = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest(sameSite, "hudu-api-key-0000"));
 
         Assert.Equal(HttpStatusCode.NoContent, rotated.StatusCode);
         Assert.Equal("9", (await api.UseAsync(db => db.CompanyMappings.SingleAsync(m => m.TenantId == tenantId))).DocCompanyId);
@@ -651,7 +651,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
 
         using var removed = await client.RemoveIntegrationAsOwnerAsync(api, "hudu");
         var left = await api.UseAsync(db => db.CompanyMappings.CountAsync(m => m.TenantId == tenantId));
-        using var back = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+        using var back = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
         var list = await client.GetFromJsonAsync<CompanyMappingsResponse>(Companies, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, removed.StatusCode);
@@ -668,7 +668,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         var (client, tenantId) = await ConnectedClientAsync(host);
         using var mapped = await client.PutAsJsonAsync(Companies, new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
 
-        using var refused = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("http://other.huducloud.com", "hudu-key-9999"));
+        using var refused = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("http://other.huducloud.com", "hudu-api-key-9999"));
 
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Equal(1, await api.UseAsync(db => db.CompanyMappings.CountAsync(m => m.TenantId == tenantId)));
@@ -687,7 +687,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
             return await db.SaveChangesAsync();
         });
 
-        using var connected = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+        using var connected = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
 
         Assert.Equal(HttpStatusCode.NoContent, connected.StatusCode);
         Assert.Equal(0, await api.UseAsync(db => db.CompanyMappings.CountAsync(m => m.TenantId == tenantId)));
@@ -719,7 +719,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         using var mapped = await client.PutAsJsonAsync(Companies, new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
         using var unmapped = await client.DeleteAsync(new Uri("/v1/integrations/hudu/companies/Nowhere%20Inc", UriKind.Relative), TestContext.Current.CancellationToken);
         using var mappedAgain = await client.PutAsJsonAsync(Companies, new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
-        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-key-9999"));
+        using var repointed = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://other.huducloud.com", "hudu-api-key-9999"));
 
         using var owner = await host.OwnerClientAsync(api, tenantId);
         using var read = await owner.GetAsync(new Uri("/v1/admin/integrations", UriKind.Relative), TestContext.Current.CancellationToken);
@@ -746,7 +746,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
             .Where(text => !DateTimeOffset.TryParseExact(text, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             .ToList();
         Assert.Contains("Nowhere Inc", shown);
-        foreach (var secret in new[] { "hudu-key-5678", "hudu-key-9999", "5678", "9999", "PRIV-1234" })
+        foreach (var secret in new[] { "hudu-api-key-5678", "hudu-api-key-9999", "5678", "9999", "PRIV-1234" })
         {
             Assert.DoesNotContain(shown, text => text.Contains(secret, StringComparison.Ordinal));
         }
@@ -1207,7 +1207,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         using var cw = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUB:PRIV-1234"));
         if (hudu)
         {
-            using var h = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+            using var h = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
         }
 
         return (client, tenantId);

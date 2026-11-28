@@ -79,7 +79,7 @@ public sealed class IntegrationCheckTests(ApiFixture api) : IClassFixture<ApiFix
         using var client = Client(host, api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
         using var put = provider == "connectwise"
             ? await client.StoreIntegrationAsOwnerAsync(api, provider, new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUB:WRONG-0000"))
-            : await client.StoreIntegrationAsOwnerAsync(api, provider, new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-wrong-0000"));
+            : await client.StoreIntegrationAsOwnerAsync(api, provider, new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-wrong-0000"));
         using var owner = await host.Factory.OwnerClientAsync(api, tenantId);
 
         using var deviceCheck = await client.PostAsync(new Uri($"/v1/integrations/{provider}/check", UriKind.Relative), null, TestContext.Current.CancellationToken);
@@ -137,7 +137,7 @@ public sealed class IntegrationCheckTests(ApiFixture api) : IClassFixture<ApiFix
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(host, api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
         using var storedCw = await client.StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUB:PRIV-1234"));
-        using var storedHudu = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+        using var storedHudu = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
         _ = await api.UseAsync(db => db.Integrations.Where(i => i.TenantId == tenantId).ExecuteUpdateAsync(set => set.SetProperty(i => i.SiteUrl, "https://moved.example.com")));
         using var owner = await host.Factory.OwnerClientAsync(api, tenantId);
 
@@ -174,7 +174,7 @@ public sealed class IntegrationCheckTests(ApiFixture api) : IClassFixture<ApiFix
         using var host = HostWith(new ScriptedConnectWise(), hudu);
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(host, api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
-        using var put = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+        using var put = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
 
         using var response = await client.PostAsync(new Uri("/v1/integrations/hudu/check", UriKind.Relative), null, TestContext.Current.CancellationToken);
         var check = await response.Content.ReadFromJsonAsync<IntegrationCheckResponse>(TestContext.Current.CancellationToken);

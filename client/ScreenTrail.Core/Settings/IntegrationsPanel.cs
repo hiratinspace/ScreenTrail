@@ -1,9 +1,10 @@
+using System.Globalization;
 using ScreenTrail.Core.Review.Publish;
 
 namespace ScreenTrail.Core.Settings;
 
-/// <param name="SecretHint">The last four characters behind bullets, as the backend shows them. Never more.</param>
-public sealed record IntegrationDetail(string Provider, string SiteUrl, string SecretHint, DateTimeOffset? ConnectedAt, DateTimeOffset? LastCheckedAt, string? LastError);
+/// <summary>One provider as the card shows it. No part of the credential (security review E-14, DEC-11): a device cannot change an integration, so a piece of one would decide nothing here.</summary>
+public sealed record IntegrationDetail(string Provider, string SiteUrl, DateTimeOffset? ConnectedAt, DateTimeOffset? LastCheckedAt, string? LastError);
 
 /// <summary>
 /// A provider the backend lists that has no card of its own: the backend's Development demo (ST-090), or
@@ -134,9 +135,9 @@ public interface IIntegrationsGateway
 
 /// <summary>
 /// One provider's card (Spec §5 S7), read only. Integration credentials can only be changed by the
-/// tenant owner, in the web admin, so the card shows whether the provider is connected, its site, the
-/// credential's last four as the backend shows them, when it was last checked and what went wrong, and
-/// offers Test connection, which checks the credential the backend holds. Nothing secret is ever here.
+/// tenant owner, in the web admin, so the card shows whether the provider is connected, its site, when it
+/// was connected, when it was last checked and what went wrong, and offers Test connection, which checks
+/// the credential the backend holds. No part of a credential is ever here.
 /// </summary>
 public sealed class IntegrationCard
 {
@@ -177,8 +178,15 @@ public sealed class IntegrationCard
     /// <summary>The site as the backend has it; empty with nothing connected.</summary>
     public string SiteUrl { get; private set; } = string.Empty;
 
-    /// <summary>"••••1234" with a credential; empty without one.</summary>
-    public string SecretHint { get; private set; } = string.Empty;
+    /// <summary>When the owner connected it, as the backend has it; null with nothing connected, or for a row stored before the date was kept.</summary>
+    public DateTimeOffset? ConnectedAt { get; private set; }
+
+    /// <summary>"Connected 3 Nov 2026" in the credential's place (DEC-11), "Connected" with no date known, empty with nothing connected.</summary>
+    public string ConnectedLine => !Connected
+        ? string.Empty
+        : ConnectedAt is { } at
+            ? "Connected " + at.ToLocalTime().ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+            : "Connected";
 
     public DateTimeOffset? LastCheckedAt { get; private set; }
 
@@ -222,7 +230,7 @@ public sealed class IntegrationCard
     {
         Connected = detail is not null;
         SiteUrl = detail?.SiteUrl ?? string.Empty;
-        SecretHint = detail?.SecretHint ?? string.Empty;
+        ConnectedAt = detail?.ConnectedAt;
         LastCheckedAt = detail?.LastCheckedAt;
         LastError = IntegrationNames.OnThisPage(detail?.LastError);
         if (!Connected)

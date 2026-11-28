@@ -5,8 +5,8 @@ The signing key for tokens and sessions has its own procedure, [below](#rotating
 **What the vault is.** Integration credentials (a tenant's ConnectWise key, a Hudu key) are stored in
 the backend's `integrations` table as ciphertext (ST-009). Each row's secret is sealed with its own data
 key, and that data key is sealed with the deployment's master key, `Vault:MasterKey`. Only the process
-that holds the master key can open a row, and only a provider worker ever asks it to; the API shows the
-last four characters and nothing more.
+that holds the master key can open a row, and only a provider worker ever asks it to; no route returns
+any part of a credential, and nothing of one is kept outside the envelope.
 
 **Why two layers.** Rotating the master key is then a rewrap of about forty bytes per row, with the
 secret itself never decrypted into a new ciphertext, and a cloud KMS can take the outer layer over later

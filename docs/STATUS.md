@@ -371,7 +371,8 @@ Phases A and B of the ordered plan (backlog Part C) are complete apart from what
 - **Integrations are the owner's** (#327): the web admin's Integrations page stores, replaces, tests and
   removes ConnectWise and Hudu; a device's attempt is refused with `403 owner_only`, and the service
   refuses an older UI's attempt itself, so a secret never leaves the machine. A technician sees status,
-  site, the last four characters and Test connection.
+  site, when it was connected and Test connection; since 2026-11-28 no part of the credential (it was
+  the last four characters before).
 - **An installed build learns its backend from the machine** (#326, #330): only from
   `HKLM\SOFTWARE\ScreenTrail\BackendUrl`, written by `BACKENDURL` on the setup program's or the MSI's
   command line and kept across upgrades. A development build still reads `SCREENTRAIL_BACKEND` first.

@@ -21,7 +21,7 @@ public sealed class PipeIntegrations(CaptureConnection connection) : IIntegratio
         var listed = await _connection.RequestAsync<IntegrationDetailsListed>(id => new ListIntegrationsCommand { RequestId = id }, ct).ConfigureAwait(false);
         return listed is null
             ? null
-            : [.. listed.Integrations.Select(i => new IntegrationDetail(i.Provider, i.SiteUrl, i.Secret, i.ConnectedAt, i.LastCheckedAt, i.LastError))];
+            : [.. listed.Integrations.Select(i => new IntegrationDetail(i.Provider, i.SiteUrl, i.ConnectedAt, i.LastCheckedAt, i.LastError))];
     }
 
     public async Task<CheckOutcome> CheckAsync(string provider, CancellationToken ct = default)

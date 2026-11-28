@@ -70,7 +70,7 @@ public sealed class ProviderCallsStayPublicTests(ApiFixture api) : IClassFixture
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(service, api.Issuer.ForDevice(tenantId, userId, deviceId).Token);
 
-        using var put = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://localhost:8443", "hudu-key-0001"));
+        using var put = await client.StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://localhost:8443", "hudu-api-key-0001"));
 
         Assert.Equal(System.Net.HttpStatusCode.NoContent, put.StatusCode);
     }

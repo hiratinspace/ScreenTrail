@@ -227,7 +227,7 @@ public sealed class PublishTrustTests(ApiFixture api) : IClassFixture<ApiFixture
         using var cw = await clients[0].StoreIntegrationAsOwnerAsync(api, "connectwise", new StoreIntegrationRequest("https://na.myconnectwise.net", "acme+PUB:PRIV-1234"));
         if (withHudu)
         {
-            using var h = await clients[0].StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-key-5678"));
+            using var h = await clients[0].StoreIntegrationAsOwnerAsync(api, "hudu", new StoreIntegrationRequest("https://acme.huducloud.com", "hudu-api-key-5678"));
         }
 
         return (clients[0], clients[1], tenantId);
