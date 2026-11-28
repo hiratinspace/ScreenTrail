@@ -55,7 +55,7 @@ write migrate-connection "Host=postgres;Port=5432;Database=screentail;Username=s
 # The API's role: rows only, no schema changes (postgres/initdb/10-app-role.sh).
 write api-connection "Host=postgres;Port=5432;Database=screentail;Username=screentail_app;Password=$app_password;GSS Encryption Mode=Disable"
 
-# 48 random bytes; the API refuses fewer than 32. Signs device tokens, and admin sessions and sign-in
+# 48 random bytes, base64; the API refuses anything that is not base64 or hex of at least 32. Signs device tokens, and admin sessions and sign-in
 # nonces under keys derived from it (ADR-0009).
 write jwt-signing-key "$(openssl rand -base64 48 | tr -d '\n')"
 # 32 random bytes, the vault's master key for the tenants' PSA and documentation credentials (ST-009).

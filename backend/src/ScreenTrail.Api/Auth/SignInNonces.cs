@@ -43,14 +43,15 @@ public sealed class SignInNonces(JwtOptions jwt, AdminOptions options, TimeProvi
     /// <summary>The nonce's length as text: 57 bytes, URL-safe base64 without padding.</summary>
     public const int Length = 76;
 
-    private readonly byte[] _key = TokenIssuer.NonceKeyFrom(jwt.SigningKey);
+    // The current key's first: it makes every nonce. During a rotation the previous key's checks too.
+    private readonly IReadOnlyList<byte[]> _keys = TokenIssuer.NonceKeysFrom(jwt);
 
     /// <summary>A fresh nonce, good for <see cref="AdminOptions.SignInNonceLifetime"/>. Writes nothing anywhere.</summary>
     public IssuedNonce Issue()
     {
         var lifetime = options.SignInNonceLifetime;
         var expires = DateTimeOffset.FromUnixTimeSeconds((time.GetUtcNow() + lifetime).ToUnixTimeSeconds());
-        return new IssuedNonce(Mint(_key, expires), expires, (int)lifetime.TotalSeconds);
+        return new IssuedNonce(Mint(_keys[0], expires), expires, (int)lifetime.TotalSeconds);
     }
 
     /// <summary>A nonce under any key and expiry. The service uses its own; tests make ones it must refuse.</summary>
@@ -83,8 +84,14 @@ public sealed class SignInNonces(JwtOptions jwt, AdminOptions options, TimeProvi
         }
 
         Span<byte> expected = stackalloc byte[MacBytes];
-        _ = HMACSHA256.HashData(_key, bytes.AsSpan(0, SignedBytes), expected);
-        if (!CryptographicOperations.FixedTimeEquals(expected, bytes.AsSpan(SignedBytes)))
+        var made = false;
+        foreach (var key in _keys)
+        {
+            _ = HMACSHA256.HashData(key, bytes.AsSpan(0, SignedBytes), expected);
+            made |= CryptographicOperations.FixedTimeEquals(expected, bytes.AsSpan(SignedBytes));
+        }
+
+        if (!made)
         {
             return false;
         }

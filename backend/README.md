@@ -45,8 +45,9 @@ environment variable.
 
 **The signing key has no default on purpose.** A development default becomes a production key the first
 time somebody forgets to set one, and nothing about the failure is visible: tokens sign and validate
-perfectly, and anyone who has read the source can mint one for any tenant. Keys shorter than 32 bytes are
-refused for the same reason.
+perfectly, and anyone who has read the source can mint one for any tenant. A key that is not random data
+written as base64 or hex, at least 32 bytes of it, is refused for the same reason (a memorable phrase is
+found from one token). Replacing it without signing anyone out is in `docs/security/key-rotation.md`.
 
 **Owner sign-in for the web admin is off** until `Admin__GoogleClientId` is set, and nobody can create a
 tenant until `Admin__SignupAllowlist__0` names an address. `docs/dev/web-admin.md` has the Google steps

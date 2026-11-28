@@ -34,7 +34,7 @@ Backend (environment variables, or `dotnet user-secrets` in Development):
 | `Admin__NewTenantSeats` | `5` | Seats a tenant created by signup starts with (1 to 1000). |
 | `Admin__SessionLifetime` | `08:00:00` | How long an admin session lasts (5 minutes to 24 hours). |
 | `Admin__ClientDownloadUrl` | empty | The Windows installer's `https://` address for Download client. Empty shows "no download yet". |
-| `Admin__SignInNonceLifetime` | `00:10:00` | How long a sign-in nonce is accepted after the page asks for it, first-run screen included (1 to 60 minutes). Nonces are signed with a key derived from `Jwt__SigningKey`, so changing that key voids the ones handed out. |
+| `Admin__SignInNonceLifetime` | `00:10:00` | How long a sign-in nonce is accepted after the page asks for it, first-run screen included (1 to 60 minutes). Nonces are signed with a key derived from `Jwt__SigningKey`, so changing that key voids the ones handed out unless the old key stays configured as `Jwt__PreviousSigningKey` meanwhile (`docs/security/key-rotation.md`). |
 | `RateLimit__PermitLimit` | `10` | Calls one client address may make in a window to the sign-in nonce, sign-in, signup and device activation, together (1 to 100000). Sign-out is never counted. |
 | `RateLimit__Window` | `00:01:00` | That window (1 second to 1 hour). The call past the limit gets 429 with `Retry-After` and no body. |
 | `ActivationWatch__WarnAt` | `50` | Device activations refused for their invite code (unknown, malformed, used or expired), from all addresses together, at which one warning is logged per window (1 to 1000000). Nobody is refused or slowed for it. |

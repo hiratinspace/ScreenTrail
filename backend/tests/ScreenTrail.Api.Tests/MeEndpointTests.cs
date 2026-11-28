@@ -17,6 +17,9 @@ namespace ScreenTrail.Api.Tests;
 /// </summary>
 public sealed class MeEndpointTests(ApiFixture api) : IClassFixture<ApiFixture>
 {
+    /// <summary>A key that is not this deployment's, made for the run like the fixture's own.</summary>
+    private static readonly string AnotherKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
+
     [Fact]
     public async Task AValidDeviceTokenGetsItsTenantTechnicianAndDevice()
     {
@@ -62,7 +65,7 @@ public sealed class MeEndpointTests(ApiFixture api) : IClassFixture<ApiFixture>
         {
             Issuer = api.Jwt.Issuer,
             Audience = api.Jwt.Audience,
-            SigningKey = "a-different-key-that-is-also-long-enough!",
+            SigningKey = AnotherKey,
         });
         using var client = Client(impostor.ForDevice(tenantId, userId, deviceId).Token);
 
@@ -158,7 +161,7 @@ public sealed class MeEndpointTests(ApiFixture api) : IClassFixture<ApiFixture>
         var token = failing switch
         {
             "expired" => api.Issuer.ForDevice(tenantId, userId, deviceId, new FixedTime(DateTimeOffset.UtcNow - TimeSpan.FromDays(2))).Token,
-            "wrong-key" => IssuerWith(signingKey: "a-different-key-that-is-also-long-enough!").ForDevice(tenantId, userId, deviceId).Token,
+            "wrong-key" => IssuerWith(signingKey: AnotherKey).ForDevice(tenantId, userId, deviceId).Token,
             "wrong-audience" => IssuerWith(audience: "somebody-elses-api").ForDevice(tenantId, userId, deviceId).Token,
             "wrong-issuer" => IssuerWith(issuer: "somebody-else").ForDevice(tenantId, userId, deviceId).Token,
             _ => throw new ArgumentOutOfRangeException(nameof(failing)),

@@ -64,9 +64,9 @@ is built. Without it the page says sign-in is not configured.
 ./make-secrets.sh             # writes ./secrets/*; never prints a secret, never replaces one
 ```
 
-It writes the database passwords, both connection strings, the JWT signing key (48 random bytes; the
-API refuses fewer than 32) and the vault's master key (32 random bytes), in a directory only you can
-enter. For drafting, put the provider's key in `secrets/summarization-api-key` without echoing it into
+It writes the database passwords, both connection strings, the JWT signing key (48 random bytes, base64;
+the API refuses anything but base64 or hex of at least 32) and the vault's master key (32 random bytes),
+in a directory only you can enter. For drafting, put the provider's key in `secrets/summarization-api-key` without echoing it into
 your shell history:
 
 ```bash

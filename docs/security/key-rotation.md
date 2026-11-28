@@ -1,5 +1,7 @@
 # Rotating the vault's master key
 
+The signing key for tokens and sessions has its own procedure, [below](#rotating-the-token-signing-key).
+
 **What the vault is.** Integration credentials (a tenant's ConnectWise key, a Hudu key) are stored in
 the backend's `integrations` table as ciphertext (ST-009). Each row's secret is sealed with its own data
 key, and that data key is sealed with the deployment's master key, `Vault:MasterKey`. Only the process
@@ -119,3 +121,33 @@ memory: a row under the previous key opens before the rewrap and a new one goes 
 (step 3), every row opens under the current key alone after it (steps 4 and 5), a row under a key the
 deployment no longer holds is refused with that key's id, and legacy rows are sealed again bound. The
 binding itself is exercised by `Vault/VaultBindingTests.cs`.
+
+## Rotating the token signing key
+
+`Jwt:SigningKey` signs the devices' access tokens, and two keys derived from it sign the web admin's
+sessions and its sign-in nonces (ADR-0009). It must be random data written as base64 or hex, at least
+32 bytes of it (`openssl rand -base64 48`, which is what `deploy/make-secrets.sh` writes); the service
+refuses to start with anything else, a memorable phrase of the right length included, and its message
+names the setting, never the key. The key is used as the bytes of its text, exactly as configured.
+
+A device's refresh token and an invite code are random values kept as hashes, not signed, so they do not
+change with this key. What it signs lives for a short time: an access token for `Jwt:AccessTokenLifetime`
+(one hour by default; the service refuses less than 15 minutes or more than 24 hours), an admin session
+for `Admin:SessionLifetime` (at most 24 hours), a sign-in nonce for `Admin:SignInNonceLifetime`.
+
+1. **Make a new key:** `openssl rand -base64 48`.
+2. **Configure both.** The key in use becomes `Jwt:PreviousSigningKey`, the new one `Jwt:SigningKey`,
+   where the deployment reads its configuration (as for the vault's key above, `Jwt__PreviousSigningKey`
+   and `Jwt__SigningKey` in a container). The previous key is held to the same rule as the key.
+3. **Restart the service with both.** From then on everything is signed with the new key, and tokens,
+   sessions and nonces signed with the previous one are still accepted until they run out. Nobody is
+   signed out.
+4. **Drop the previous key** once the longest of those lifetimes has passed since step 3 (24 hours
+   covers every allowed setting), and restart. If the old key was leaked, drop it at once instead: every
+   owner signs in again, and each device fetches a new access token at its next exchange, without a new
+   invite.
+
+Exercised by `backend/tests/ScreenTrail.Api.Tests/StartupTests.cs`: a key that is long enough but not
+random is refused, keys made the ways the guides make them are accepted, a token signed before is still
+valid (the key's bytes did not change), and a device token and an admin session signed under the previous
+key are accepted while it is configured and refused once it is removed.

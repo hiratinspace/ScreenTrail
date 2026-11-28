@@ -19,12 +19,12 @@ namespace ScreenTrail.Api.Tests;
 /// so CI applies the real migrations to a real Postgres in a separate step. Between them, nothing about
 /// the data layer is taken on trust.
 ///
-/// The signing key here is a test key and exists only in this file. The service has no default one and
-/// refuses to start without it, which is the behaviour <c>TheHostWillNotServeWithoutASigningKey</c> asserts.
+/// The signing key here is a test key, made for each run and never written down. The service has no
+/// default one and refuses to start without it, which is the behaviour <c>TheHostWillNotServeWithoutASigningKey</c> asserts.
 /// </summary>
 public class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    public const string SigningKey = "test-signing-key-that-is-long-enough-32+";
+    public static readonly string SigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
 
     /// <summary>The vault's master key for this host, or null for a host with none (ST-009).</summary>
     protected virtual string? VaultMasterKey { get; } = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));

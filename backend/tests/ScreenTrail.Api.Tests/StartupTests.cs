@@ -41,6 +41,7 @@ public sealed class StartupTests
     [InlineData("abababababababababababababababababababababababababababababababab")]
     [InlineData("the quick brown fox jumps over the lazy dog")]
     [InlineData("our-company-name-and-the-year-2026")]
+    [InlineData("this-is-our-very-long-company-signing-key-for-2026")]
     public void AKeyThatIsLongEnoughButNotRandomIsRefused(string key)
     {
         // Security review D-08: a key is the bytes of its text, so length alone let a memorable phrase or
@@ -108,6 +109,18 @@ public sealed class StartupTests
         Assert.True((await handler.ValidateTokenAsync(fresh, TokenIssuer.Validation(rotated))).IsValid);
         Assert.False((await handler.ValidateTokenAsync(device, TokenIssuer.AdminValidation(rotating))).IsValid);
         Assert.False((await handler.ValidateTokenAsync(owner, TokenIssuer.Validation(rotating))).IsValid);
+    }
+
+    [Fact]
+    public void ASignInNonceMadeUnderThePreviousKeyIsReadWhileThatKeyIsConfigured()
+    {
+        // An owner who opened the sign-in page just before the switch can still sign in with its nonce.
+        var before = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var after = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+        var nonce = SignInNonces.Mint(TokenIssuer.NonceKeyFrom(before), DateTimeOffset.UtcNow.AddMinutes(5));
+
+        Assert.True(new SignInNonces(Configured(("Jwt:SigningKey", after), ("Jwt:PreviousSigningKey", before)), new AdminOptions(), TimeProvider.System).TryRead(nonce, out _));
+        Assert.False(new SignInNonces(Configured(("Jwt:SigningKey", after)), new AdminOptions(), TimeProvider.System).TryRead(nonce, out _));
     }
 
     [Fact]

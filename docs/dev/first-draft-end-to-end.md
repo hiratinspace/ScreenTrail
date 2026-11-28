@@ -299,7 +299,7 @@ two calls made by hand. `--offboard-tenant <id>` deletes every row of a tenant.
 These operator commands (`--invite`, `--offboard-tenant`, `--set-policy`, `--rotate-vault-keys`) run with
 the service's own configuration, so they need `Jwt:SigningKey` as well as the connection string: the host
 checks the key before any command runs and stops with a message naming the setting when it is missing or
-shorter than 32 bytes.
+is not base64 or hex of at least 32 random bytes.
 
 The tenant's policy (ST-047): `--set-policy <tenant-id> retention=3 local-only=true locked=true` writes
 a new versioned row; devices apply it within the hour, and the diagnostics panel shows the version. It

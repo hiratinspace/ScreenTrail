@@ -21,14 +21,31 @@ public sealed class JwtOptions
 
     public string Audience { get; set; } = "screentrail-api";
 
-    /// <summary>At least 32 bytes. Read from configuration; there is no fallback.</summary>
+    /// <summary>
+    /// Random bytes written as base64 or hex, at least 32 of them (<c>openssl rand -base64 48</c>). Read
+    /// from configuration; there is no fallback. Tokens are signed with the bytes of the text as written.
+    /// </summary>
     public string SigningKey { get; set; } = string.Empty;
 
     /// <summary>
+    /// During a rotation, the key <see cref="SigningKey"/> replaced: accepted for checking device tokens,
+    /// admin sessions and sign-in nonces, never for signing, so nobody is signed out at the switch. Empty
+    /// outside a rotation; remove it once the longest of those has run out (docs/security/key-rotation.md).
+    /// </summary>
+    public string PreviousSigningKey { get; set; } = string.Empty;
+
+    /// <summary>
     /// How long an access token lasts. Short, because a device holds a long-lived refresh token and
-    /// exchanges it: a leaked access token is then worth minutes rather than months.
+    /// exchanges it: a leaked access token is then worth minutes rather than months. Between
+    /// <see cref="ShortestAccessTokenLifetime"/> and <see cref="LongestAccessTokenLifetime"/>.
     /// </summary>
     public TimeSpan AccessTokenLifetime { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>Shorter, and the device's renewal margin (five minutes) would leave it almost no time holding one.</summary>
+    public static readonly TimeSpan ShortestAccessTokenLifetime = TimeSpan.FromMinutes(15);
+
+    /// <summary>Longer, and a leaked access token is a bearer credential for more than a day.</summary>
+    public static readonly TimeSpan LongestAccessTokenLifetime = TimeSpan.FromHours(24);
 }
 
 /// <summary>Claims this service issues and reads. Names kept short; none of them is personal data.</summary>
@@ -137,6 +154,7 @@ public sealed class TokenIssuer(JwtOptions options)
         var validation = Validation(options);
         validation.ValidAudience = AdminSession.Audience;
         validation.IssuerSigningKey = AdminKeyFrom(options.SigningKey);
+        validation.IssuerSigningKeys = Previous(options) is { } previous ? [AdminKeyFrom(previous)] : null;
         return validation;
     }
 
@@ -146,6 +164,13 @@ public sealed class TokenIssuer(JwtOptions options)
     /// <summary>The sign-in nonce's MAC key: HMAC-SHA256 of its own label under the configured key, like <see cref="AdminKeyFrom"/>.</summary>
     public static byte[] NonceKeyFrom(string key) =>
         HMACSHA256.HashData(KeyFrom(key).Key, Encoding.UTF8.GetBytes(NonceKeyLabel));
+
+    /// <summary>The nonce keys a sign-in nonce is checked against: the current key's, then the previous key's during a rotation.</summary>
+    public static IReadOnlyList<byte[]> NonceKeysFrom(JwtOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return Previous(options) is { } previous ? [NonceKeyFrom(options.SigningKey), NonceKeyFrom(previous)] : [NonceKeyFrom(options.SigningKey)];
+    }
 
     /// <summary>The label the admin session's key is derived under. Changing it ends every admin session.</summary>
     public const string AdminKeyLabel = "screentail-admin-session-key-v1";
@@ -168,6 +193,11 @@ public sealed class TokenIssuer(JwtOptions options)
     public static TokenValidationParameters Validation(JwtOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        if (options.AccessTokenLifetime < JwtOptions.ShortestAccessTokenLifetime || options.AccessTokenLifetime > JwtOptions.LongestAccessTokenLifetime)
+        {
+            throw new InvalidOperationException("Jwt:AccessTokenLifetime must be between 15 minutes and 24 hours.");
+        }
+
         return new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -177,6 +207,9 @@ public sealed class TokenIssuer(JwtOptions options)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = KeyFrom(options.SigningKey),
+
+            // During a rotation the key before it checks too, so tokens it signed stay good until they run out.
+            IssuerSigningKeys = Previous(options) is { } previous ? [KeyFrom(previous, nameof(JwtOptions.PreviousSigningKey))] : null,
             ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
 
             // No grace on expiry. The default is five minutes, which is a long time for a token somebody
@@ -185,17 +218,72 @@ public sealed class TokenIssuer(JwtOptions options)
         };
     }
 
-    private static SymmetricSecurityKey KeyFrom(string key)
+    /// <summary>Fewest bytes a key's text must decode to.</summary>
+    public const int KeyBytes = 32;
+
+    /// <summary>
+    /// Fewest different characters a key may have. 32 or more random bytes as hex (64 characters of 16)
+    /// have all but a few of the sixteen; as base64, around thirty. One letter repeated, or a short
+    /// pattern, has a handful.
+    /// </summary>
+    public const int KeyDistinctCharacters = 12;
+
+    /// <summary>The previous key, when one is configured.</summary>
+    private static string? Previous(JwtOptions options) =>
+        string.IsNullOrEmpty(options.PreviousSigningKey) ? null : options.PreviousSigningKey;
+
+    private static SymmetricSecurityKey KeyFrom(string key) => KeyFrom(key, nameof(JwtOptions.SigningKey));
+
+    /// <summary>
+    /// The key as the bytes of its text, once its text has the shape of generated randomness. The bytes
+    /// are not decoded: a key that decoded would be a different key, and every token and session signed
+    /// before would stop working at that deploy.
+    /// </summary>
+    private static SymmetricSecurityKey KeyFrom(string key, string setting)
     {
-        if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) < 32)
+        if (string.IsNullOrWhiteSpace(key) || !LooksGenerated(key))
         {
-            // Refused at startup rather than at the first request, and refused for being short as well as
-            // for being missing: a sixteen-character key signs tokens perfectly well and is guessable.
+            // Refused at startup rather than at the first request, and refused for being short or made up as
+            // well as for being missing: a memorable phrase of 32 characters signs tokens perfectly well,
+            // and a dictionary finds it from one token. The key itself is never in the message.
             throw new InvalidOperationException(
-                "Jwt:SigningKey must be set to at least 32 bytes. There is no development default, because a "
-                + "development default becomes a production key the first time somebody forgets to set one.");
+                $"Jwt:{setting} must be set to at least {KeyBytes} bytes of random data written as base64 or hex, "
+                + "for example the output of `openssl rand -base64 48`. There is no development default, because "
+                + "a development default becomes a production key the first time somebody forgets to set one.");
         }
 
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+    }
+
+    /// <summary>
+    /// Whether a key's text is hex or base64 (either alphabet, padding optional, capitals and small letters
+    /// both) of at least <see cref="KeyBytes"/> bytes, with at least <see cref="KeyDistinctCharacters"/>
+    /// different characters.
+    /// </summary>
+    internal static bool LooksGenerated(string key)
+    {
+        if (key.Distinct().Count() < KeyDistinctCharacters)
+        {
+            return false;
+        }
+
+        if (key.Length % 2 == 0 && key.All(char.IsAsciiHexDigit))
+        {
+            return key.Length / 2 >= KeyBytes;
+        }
+
+        var body = key.TrimEnd('=');
+        if (key.Length - body.Length > 2)
+        {
+            return false;
+        }
+
+        // Random base64 of 32 bytes or more has capitals and small letters both, all but never one without
+        // the other; words joined by dashes, all in small letters, are base64url too.
+        var standard = body.All(c => char.IsAsciiLetterOrDigit(c) || c is '+' or '/');
+        var urlSafe = body.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
+        return (standard || urlSafe)
+            && body.Any(char.IsAsciiLetterUpper) && body.Any(char.IsAsciiLetterLower)
+            && body.Length % 4 != 1 && body.Length * 6 / 8 >= KeyBytes;
     }
 }
