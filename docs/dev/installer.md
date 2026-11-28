@@ -115,6 +115,33 @@ To move to a newer runtime, in a reviewed pull request:
 A pin Microsoft later takes down fails the build at the download, with the URL in the message: move
 the pin as above.
 
+### The pinned .NET runtime
+
+Both executables are self-contained, so each carries its own .NET runtime, and that runtime is the
+patch the SDK on the build machine ships (today 10.0.15, from SDK 10.0.404 on the hosted image).
+`installer\tools.json` pins it under `runtime`: `Microsoft.NETCore.App.Runtime.win-x64` and
+`Microsoft.WindowsDesktop.App.Runtime.win-x64`, one version for both, and the SHA-256 of each
+package. After publishing, `build.ps1` reads the runtime packs each executable names inside it (the
+single file is not compressed, so its dependency list reads `runtimepack.<id>/<version>`), stops if
+either is another version, checks the SHA-256 of each package in the NuGet folder it was restored
+from, and prints `<id> <version>, SHA-256 <hash>` in the log and the job summary. That line is the
+record of which runtime a build ships. `scripts/ci/check_installer_jobs.py` holds the pin and the check.
+
+**.NET monthly update: rebuild and ship.** Microsoft ships a .NET patch, often a security fix, on
+the second Tuesday of most months, and the hosted image picks up the new SDK within about a week. From
+then the **Installer (Windows)** job fails with "carries ... not the ... pinned": that is the reminder,
+not a fault. In a reviewed pull request:
+
+1. Read the new patch and its SDK at
+   `https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json` (`latest-runtime`;
+   the hosted image's SDK is in the job's `dotnet --version` line). Stay on 10.0: a new major or minor
+   is a decision of its own.
+2. Hash both packages without running anything from them, for example
+   `curl -sSfL https://api.nuget.org/v3-flatcontainer/microsoft.netcore.app.runtime.win-x64/<version>/microsoft.netcore.app.runtime.win-x64.<version>.nupkg | shasum -a 256`,
+   and the same for `microsoft.windowsdesktop.app.runtime.win-x64`.
+3. Put the version and both lowercase hashes in `tools.json`, merge once **Installer (Windows)**
+   passes, and ship that build: a client keeps the runtime it was built with until it is updated.
+
 ## Switch signing on
 
 Nothing in the repository changes when the certificate arrives: signing is configured where the
@@ -297,6 +324,9 @@ old key, then switch that environment's `..._KEY` variable to the new key; remov
 trust file a release later.
 
 ### Release to pilot, then promote to stable
+
+Before a release, check that `tools.json`'s .NET runtime is the latest 10.0 patch (above, ".NET
+monthly update: rebuild and ship").
 
 1. From a signing run on main, upload `ScreenTrail.msi` to `<base><version>/ScreenTrail.msi` and
    `pilot/win-x64.json` to `<feed>pilot/win-x64.json`. Check it first:

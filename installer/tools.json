@@ -28,5 +28,17 @@
       "url": "https://download.visualstudio.microsoft.com/download/pr/78d061c5-9ef3-42ab-98ed-3309d1095dc4/9C02C9ED120F671B900E6B9471D890E3B2414117A7E53F4AE2E855466FA2B7C9/VC_redist.x64.exe",
       "sha256": "9c02c9ed120f671b900e6b9471d890e3b2414117a7e53f4ae2e855466fa2b7c9"
     }
+  ],
+  "runtime": [
+    {
+      "id": "Microsoft.NETCore.App.Runtime.win-x64",
+      "version": "10.0.15",
+      "sha256": "7423f58917342b9e4bf276fb164d5726d2c90fe2fe989c552b9e39056256a035"
+    },
+    {
+      "id": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+      "version": "10.0.15",
+      "sha256": "a036c174bac57a716e21dedccf96459804e4d8d8c31a08e3a8de649bf7684497"
+    }
   ]
 }

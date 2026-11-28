@@ -33,6 +33,10 @@ reach the signing token, before it merges:
     tool command, another script dot-sourced, a process started, a call on anything but dotnet and
     signtool, a WiX extension or the payload used another way, a change of folder), not a proof;
     the structural rules above are what hold the job's shape;
+  - (K-Q21) tools.json pins the .NET runtime packs the payload carries (Microsoft.NETCore.App and
+    Microsoft.WindowsDesktop.App for win-x64) to one exact version, the same for both, with the
+    SHA-256 of each package; build.ps1's payload stage checks both executables against that pin
+    before anything is signed or packaged, version and hash, and stops on any difference;
   - (H-6) the one SDK command the signing job runs, the NuGet signature check, runs from a new empty
     folder under the system temp folder, never from inside the checkout, where the repository's
     global.json would choose the SDK; dotnet is otherwise started only to host WiX. global.json holds
@@ -299,6 +303,20 @@ WIX_FAMILY = ('wix', 'WixToolset.Util.wixext', 'WixToolset.Bal.wixext')
 # URL carries the file's SHA-256, so the pin's hash must be that one. aka.ms links are never a pin:
 # they move to each new release.
 DOWNLOADS = {'vc_redist.x64'}
+# K-Q21: the .NET runtime packs inside the single-file executables, pinned by version and package hash.
+RUNTIME = {'Microsoft.NETCore.App.Runtime.win-x64', 'Microsoft.WindowsDesktop.App.Runtime.win-x64'}
+BUILD_SCRIPT = 'installer/build.ps1'
+BUILD_MUST_CONTAIN = [
+    "$PinnedToolsFile = Join-Path $PSScriptRoot 'tools.json'",
+    "function Test-BundledRuntime([string]$Folder) {",
+    "$pins = @((Get-Content -Raw -Path $PinnedToolsFile | ConvertFrom-Json).runtime)",
+    "$text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes((Join-Path $Folder $exe)))",
+    "[regex]::Matches($text, 'runtimepack\\.([A-Za-z.]+\\.Runtime\\.win-x64)/(\\d+\\.\\d+\\.\\d+)')",
+    "if ($version -ne $pin[0].version) {",
+    "$hash = (Get-FileHash -Algorithm SHA256 -Path $nupkg).Hash.ToLowerInvariant()",
+    "if ($hash -ne $pin.sha256) {",
+]
+BUILD_CALL = '$runtime = Test-BundledRuntime $payload'
 DOWNLOAD_URL = re.compile(r'https://download\.visualstudio\.microsoft\.com/download/pr/[0-9a-f-]{36}/([0-9A-F]{64})/VC_redist\.x64\.exe')
 
 AUTHORING = ('installer/Package.wxs', 'installer/Bundle.wxs')
@@ -656,6 +674,28 @@ def check_tools(text):
             bad.append(f'{d.get("id")} is not pinned to one versioned download.visualstudio.microsoft.com URL')
         elif url.group(1).lower() != sha:
             bad.append(f'{d.get("id")} pins a SHA-256 other than the one in its URL')
+    runtime = json.loads(text).get('runtime')
+    if not isinstance(runtime, list) or len(runtime) != len(RUNTIME) or sorted(str(r.get('id')) for r in runtime if isinstance(r, dict)) != sorted(RUNTIME):
+        return bad + [f'installer/tools.json must pin exactly the .NET runtime packs {sorted(RUNTIME)}, once each']
+    for r in runtime:
+        if not re.fullmatch(r'\d+\.\d+\.\d+', str(r.get('version'))):
+            bad.append(f'{r.get("id")} is not pinned to one exact version')
+        if not re.fullmatch(r'[0-9a-f]{64}', str(r.get('sha256'))):
+            bad.append(f'{r.get("id")} has no lowercase SHA-256 pinned')
+    if len({r.get('version') for r in runtime}) != 1:
+        bad.append('the .NET runtime packs must be pinned to the same version, as one SDK ships them')
+    return bad
+
+
+def check_build(text):
+    # K-Q21: the payload stage checks the .NET runtime both executables carry against the pin.
+    if text is None:
+        return [f'{BUILD_SCRIPT} is missing']
+    code = code_of(text)
+    bad = [f'{BUILD_SCRIPT} no longer contains: {needed}' for needed in BUILD_MUST_CONTAIN if needed not in code]
+    start, end, call = code.find("if ($Stage -in 'All', 'Payload') {"), code.find("if ($Stage -eq 'Payload') {"), code.find(BUILD_CALL)
+    if code.count(BUILD_CALL) != 1 or not (0 <= start < call < end):
+        bad.append(f'{BUILD_SCRIPT} must run {BUILD_CALL!r} once, in its payload stage, before the payload is signed or packaged')
     return bad
 
 
@@ -785,6 +825,7 @@ def check(workflow, files):
     bad += check_scripts(files)
     bad += check_tools(files.get('installer/tools.json', ''))
     bad += check_global_json(files.get('global.json'))
+    bad += check_build(files.get(BUILD_SCRIPT))
     bad += check_root(files.get('_root'))
     for path in AUTHORING:
         bad += check_authoring(path, files.get(path, ''))
@@ -1364,7 +1405,7 @@ def load(root):
     # parsed: GitHub runs .yaml as readily as .yml, so both are read.
     workflow = yaml.safe_load((root / '.github/workflows/ci.yml').read_text())
     files = {}
-    for path in SCRIPTS + AUTHORING + ('installer/tools.json', 'global.json'):
+    for path in SCRIPTS + AUTHORING + ('installer/tools.json', 'global.json', BUILD_SCRIPT):
         file = root / path
         if file.exists():
             files[path] = file.read_text()

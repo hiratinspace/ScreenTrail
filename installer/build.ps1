@@ -16,6 +16,9 @@
          ScreenTrail-Setup.exe, which installs that runtime and then the package. Signs it.
       5. Reports sizes against the ticket's 250 MB limit.
 
+    After step 1 it also checks that both executables carry the .NET runtime pinned under "runtime" in
+    installer/tools.json, by version and by the SHA-256 of the runtime pack, and prints it (K-Q21).
+
     By default it does all of that in one go, signing as it goes when signing is configured. Steps 3
     to 5 are installer/package.ps1, which needs nothing from this repository but the authoring and
     runs only WiX at the versions and hashes pinned in installer/tools.json. With -Stage Payload it
@@ -86,6 +89,70 @@ function Test-Managed([string]$Path) {
     } catch [BadImageFormatException] {
         return $false
     }
+}
+
+# K-Q21: the .NET runtime inside each single-file executable is the one pinned under "runtime" in
+# tools.json: the runtime pack the SDK put in is that version, and its package has the pinned SHA-256.
+# The single file is not compressed, so its embedded dependency list names each runtime pack and its
+# version in plain text ("runtimepack.<id>/<version>"). The pack follows the SDK: a newer SDK on the
+# machine brings a newer .NET patch, and this stops the build until the pin is moved by a reviewed
+# change (docs/dev/installer.md, "The pinned .NET runtime").
+$PinnedToolsFile = Join-Path $PSScriptRoot 'tools.json'
+function Test-BundledRuntime([string]$Folder) {
+    $pins = @((Get-Content -Raw -Path $PinnedToolsFile | ConvertFrom-Json).runtime)
+    if ($pins.Count -eq 0) {
+        throw 'installer/tools.json pins no .NET runtime.'
+    }
+    foreach ($pin in $pins) {
+        if ($pin.version -notmatch '^\d+\.\d+\.\d+$' -or $pin.sha256 -cnotmatch '^[0-9a-f]{64}$') {
+            throw "installer/tools.json must pin $($pin.id) to one exact version and a lowercase SHA-256."
+        }
+    }
+    foreach ($exe in @('ScreenTrail.Service.exe', 'ScreenTrail.UI.exe')) {
+        $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes((Join-Path $Folder $exe)))
+        $found = @([regex]::Matches($text, 'runtimepack\.([A-Za-z.]+\.Runtime\.win-x64)/(\d+\.\d+\.\d+)') | ForEach-Object { "$($_.Groups[1].Value) $($_.Groups[2].Value)" } | Sort-Object -Unique)
+        $text = $null
+        foreach ($entry in $found) {
+            $id, $version = $entry -split ' '
+            $pin = @($pins | Where-Object { $_.id -eq $id })
+            if ($pin.Count -ne 1) {
+                throw "$exe carries the runtime pack $id $version, which installer/tools.json does not pin."
+            }
+            if ($version -ne $pin[0].version) {
+                throw "$exe carries $id $version, not the $($pin[0].version) pinned in installer/tools.json. The SDK on this machine brings another .NET patch: move the pin (docs/dev/installer.md, 'The pinned .NET runtime')."
+            }
+        }
+        foreach ($pin in $pins) {
+            if ($found -notcontains "$($pin.id) $($pin.version)") {
+                throw "$exe does not carry $($pin.id) $($pin.version), which installer/tools.json pins."
+            }
+        }
+    }
+    $packages = $env:NUGET_PACKAGES
+    if (-not $packages) {
+        $packages = Join-Path $env:USERPROFILE '.nuget\packages'
+    }
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($pin in $pins) {
+        $lower = $pin.id.ToLowerInvariant()
+        $nupkg = Join-Path $packages "$lower\$($pin.version)\$lower.$($pin.version).nupkg"
+        if (-not (Test-Path $nupkg)) {
+            # An SDK that ships the pack in its own packs folder restores nothing for it: that copy came
+            # with the SDK, so there is no downloaded package to hash. Said, not hidden.
+            $sdkPack = Join-Path $env:ProgramFiles "dotnet\packs\$($pin.id)\$($pin.version)"
+            if (Test-Path $sdkPack) {
+                $lines.Add("$($pin.id) $($pin.version), from the SDK's own packs folder ($sdkPack), no package to hash")
+                continue
+            }
+            throw "The runtime pack $($pin.id) $($pin.version) is not at $nupkg, so its SHA-256 cannot be checked."
+        }
+        $hash = (Get-FileHash -Algorithm SHA256 -Path $nupkg).Hash.ToLowerInvariant()
+        if ($hash -ne $pin.sha256) {
+            throw "The runtime pack $($pin.id) $($pin.version) at $nupkg has SHA-256 $hash, not the $($pin.sha256) pinned in installer/tools.json. Refusing to ship it."
+        }
+        $lines.Add("$($pin.id) $($pin.version), SHA-256 $hash")
+    }
+    return $lines
 }
 
 function Format-Size([long]$Bytes) {
@@ -246,6 +313,13 @@ if ($Stage -in 'All', 'Payload') {
         throw "The payload is not what the installer expects ($($problems.Count) problem(s) above)."
     }
     Write-Host ('Payload: {0} files, {1}.' -f $rows.Count, (Format-Size ((Get-ChildItem $payload -Recurse -File | Measure-Object Length -Sum).Sum)))
+
+    Write-Step 'Checking the bundled .NET runtime'
+    $runtime = Test-BundledRuntime $payload
+    $runtime | ForEach-Object { Write-Host "  $_ (pinned in installer/tools.json)" }
+    if ($env:GITHUB_STEP_SUMMARY) {
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value (@('### .NET runtime in the installer', '') + @($runtime | ForEach-Object { "- $_" }))
+    }
 
     if ($whole) {
         Write-Step 'Signing the payload'
