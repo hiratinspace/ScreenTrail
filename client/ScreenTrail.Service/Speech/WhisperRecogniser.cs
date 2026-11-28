@@ -3,6 +3,7 @@ using ScreenTrail.Core.Net;
 using ScreenTrail.Core.Perf;
 using ScreenTrail.Core.Speech;
 using Whisper.net;
+using Whisper.net.LibraryLoader;
 
 namespace ScreenTrail.Service.Speech;
 
@@ -417,6 +418,9 @@ public sealed class WhisperRecogniser : ISpeechRecogniser
     {
         if (_factory is null)
         {
+            // Only the CPU runtime ships beside the service, so Whisper.net loads that one and tries no
+            // other first (C-04, hardening): whatever a later package adds, nothing is looked up by name.
+            RuntimeOptions.RuntimeLibraryOrder = [RuntimeLibrary.Cpu];
             _factory = WhisperFactory.FromPath(_path);
             _ = Interlocked.Increment(ref _modelsInMemory);
         }
