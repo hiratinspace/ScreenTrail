@@ -164,6 +164,69 @@ public sealed class RateLimitTests(RateLimitedApiFixture api) : IClassFixture<Ra
     }
 
     [Fact]
+    public async Task SpendingTheNonceBudgetLeavesSignInAndActivationAnswering()
+    {
+        // D-11: the nonce costs one signature and writes nothing, so it has a larger count of its own,
+        // and a neighbour behind the office's address who spends it locks nobody out of signing in or
+        // activating a PC.
+        using var client = api.From("203.0.113.150");
+        var nonces = new List<HttpStatusCode>();
+        for (var i = 0; i < RateLimitedApiFixture.Limit * 6 + 1; i++)
+        {
+            using var nonce = await client.PostAsync(NonceRoute, content: null, TestContext.Current.CancellationToken);
+            nonces.Add(nonce.StatusCode);
+        }
+
+        using var signIn = await SignInAsync(client);
+        using var activate = await client.PostAsJsonAsync(Activate, new ActivateDeviceRequest("WRONG1CODE", "TECH-PC"), TestContext.Current.CancellationToken);
+
+        Assert.Equal([.. Enumerable.Repeat(HttpStatusCode.OK, RateLimitedApiFixture.Limit * 6), HttpStatusCode.TooManyRequests], nonces);
+        Assert.Equal(HttpStatusCode.Forbidden, signIn.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, activate.StatusCode);
+    }
+
+    [Fact]
+    public async Task ActivationHasACountOfItsOwn()
+    {
+        using var client = api.From("203.0.113.151");
+        for (var i = 0; i < RateLimitedApiFixture.Limit; i++)
+        {
+            using var wrong = await client.PostAsJsonAsync(Activate, new ActivateDeviceRequest($"WRONG{i}CODE", "TECH-PC"), TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
+        }
+
+        using var refused = await client.PostAsJsonAsync(Activate, new ActivateDeviceRequest("WRONG9CODE", "TECH-PC"), TestContext.Current.CancellationToken);
+        using var signIn = await SignInAsync(client);
+        using var nonce = await client.PostAsync(NonceRoute, content: null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, signIn.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, nonce.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("same-site")]
+    [InlineData("cross-site")]
+    [InlineData("something-new")]
+    public async Task ACallFromAPageThatIsNotTheAdminsOwnIsRefusedAndNotCounted(string site)
+    {
+        // D-11 with G-02: only the admin's own page (same-origin), an address typed in (none) or a client
+        // that is not a browser (no header) is counted; a same-site page could otherwise spend the office's
+        // allowance from its visitors' browsers.
+        using var client = api.From("203.0.113.152");
+        for (var i = 0; i < RateLimitedApiFixture.Limit + 2; i++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, Signup) { Content = JsonContent.Create(new AdminSignupRequest("not-a-token", "Nobody")) };
+            request.Headers.Add("Sec-Fetch-Site", site);
+            using var refused = await client.SendAsync(request, TestContext.Current.CancellationToken);
+            Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        }
+
+        using var counted = await client.PostAsJsonAsync(Signup, new AdminSignupRequest("not-a-token", "Nobody"), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Unauthorized, counted.StatusCode);
+    }
+
+    [Fact]
     public async Task SignOutStillEndsTheSessionOnceTheLimitIsSpent()
     {
         // Revoking a stolen cookie must never wait for a window to pass, so sign-out is not counted.
