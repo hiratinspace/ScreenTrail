@@ -6,13 +6,15 @@ namespace ScreenTrail.Api.Vault;
 
 /// <param name="Changed">Rows rewrapped under the current key or sealed again in the bound form.</param>
 /// <param name="RefusedLegacy">Legacy rows left exactly as they were because <c>Vault:AllowLegacyRows</c> is off. Ids only.</param>
-/// <param name="Unopenable">Legacy rows that did not open under the key they name, left as they are and reported. Ids only.</param>
-public sealed record VaultRewrite(int Changed, IReadOnlyList<Guid> RefusedLegacy, IReadOnlyList<Guid> Unopenable);
+/// <param name="Unopenable">Rows that did not open under the key they name (a legacy row, or in a rotation a bound row whose data key does not open), left as they are and reported. Ids only.</param>
+/// <param name="NotUnderCurrentKey">For a rotation: the rows with a credential still not under the current key once it has run, whatever key they are under. Zero means the previous key can be dropped.</param>
+public sealed record VaultRewrite(int Changed, IReadOnlyList<Guid> RefusedLegacy, IReadOnlyList<Guid> Unopenable, int NotUnderCurrentKey = 0);
 
 /// <summary>
 /// Rotating the master key (ST-009 AC3). Every row wrapped under <c>Vault:PreviousMasterKey</c> is rewrapped
 /// under <c>Vault:MasterKey</c>; the secrets themselves are not touched. Run with <c>--rotate-vault-keys</c>
-/// after deploying the new key; a second run finds nothing, which is the check that the first finished.
+/// after deploying the new key. A row that does not open is reported and passed over, and every run counts
+/// the rows still not under the current key: zero is the check that the previous key can be dropped.
 /// docs/security/key-rotation.md has the steps in order.
 ///
 /// A row sealed before secrets were bound to their row (<see cref="Envelope.BindingFor"/>, 2026-11-15
@@ -24,13 +26,22 @@ public sealed record VaultRewrite(int Changed, IReadOnlyList<Guid> RefusedLegacy
 /// </summary>
 public static class KeyRotation
 {
-    public static Task<VaultRewrite> RotateAsync(ScreenTrailContext db, VaultOptions options, TimeProvider? time = null, CancellationToken ct = default)
+    public static async Task<VaultRewrite> RotateAsync(ScreenTrailContext db, VaultOptions options, TimeProvider? time = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(options);
         var previous = options.PreviousKey()
             ?? throw new InvalidOperationException("Vault:PreviousMasterKey is not set; there is no key to rotate from.");
-        return RewriteAsync(db, options.CurrentKey(), previous, rewrapPrevious: true, options.AllowLegacyRows, time, ct);
+        var current = options.CurrentKey();
+        var rewrite = await RewriteAsync(db, current, previous, rewrapPrevious: true, options.AllowLegacyRows, time, ct).ConfigureAwait(false);
+
+        // Counted, not worked out: a row under a third key is never selected above, and one that did not
+        // open is still under the previous key. Both mean the previous key cannot be dropped yet.
+        var currentId = Envelope.KeyIdOf(current);
+        var left = await db.Integrations.AsNoTracking()
+            .CountAsync(i => i.SecretCiphertext != null && i.KeyId != null && i.KeyId != currentId, ct)
+            .ConfigureAwait(false);
+        return rewrite with { NotUnderCurrentKey = left };
     }
 
     /// <summary>Seals every legacy row again in the bound form, under the current key, opening it under whichever configured key it is wrapped with.</summary>
@@ -77,11 +88,21 @@ public static class KeyRotation
             Sealed written;
             if (row.BindingVersion >= Envelope.BindingVersion)
             {
-                // Bound already: only the data key changes hands, the secret is not opened.
-                written = Envelope.Rewrap(
-                    new Sealed(row.SecretCiphertext!, row.SecretNonce!, row.DataKeyWrapped!, row.DataKeyNonce!, row.KeyId!),
-                    key,
-                    current);
+                // Bound already: only the data key changes hands, the secret is not opened. A data key that
+                // does not open (a changed byte, a mixed restore) is reported and left as it is, and the
+                // rest go on, so one damaged row cannot stop a rotation (security review E-07).
+                try
+                {
+                    written = Envelope.Rewrap(
+                        new Sealed(row.SecretCiphertext!, row.SecretNonce!, row.DataKeyWrapped!, row.DataKeyNonce!, row.KeyId!),
+                        key,
+                        current);
+                }
+                catch (CryptographicException)
+                {
+                    unopenable.Add(row.Id);
+                    continue;
+                }
             }
             else if (!allowLegacy)
             {

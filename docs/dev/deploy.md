@@ -184,7 +184,8 @@ secrets:
 2. and 3. With the override in place, `docker compose up -d api`: the API now has both keys, seals new
    credentials under the new one and still opens rows under the old one.
 4. Rewrap: `docker compose run --rm api --rotate-vault-keys`, then run it again; the second run must
-   print `rotated 0` (key-rotation.md says what to do if it does not).
+   print `rotated 0` and `rows not under the current key: 0` (key-rotation.md says what to do if it
+   does not).
 5. Remove the override and `secrets/vault-previous-master-key`, then `docker compose up -d api`.
 
 Changing `jwt-signing-key` ends every admin session and every access token at once (devices renew with

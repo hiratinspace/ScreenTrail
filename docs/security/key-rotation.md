@@ -88,11 +88,15 @@ Every step is reversible until step 5, and a second run of step 4 is the check t
    ```bash
    dotnet run --project src/ScreenTrail.Api -- --rotate-vault-keys
    ```
-   It prints how many rows changed hands and exits without listening. "The same configuration" includes
+   It prints how many rows changed hands, then `rows not under the current key: N`, and exits without
+   listening. "The same configuration" includes
    `Jwt:SigningKey`: the host checks it before any command runs, so without it the rewrap stops with a
-   message naming the setting. Run it again: it should print
-   `rotated 0`. If it does not, something wrote a row under the previous key between the two runs, which
-   means a process is still holding the old configuration; find it before going on.
+   message naming the setting. A row that does not open (a damaged data key, say) is named by id, left
+   as it is, and the rest are still rewrapped; the owner connects that integration again in the web
+   admin. The command exits 1 while any row is not under the current key, whatever key it is under.
+   Run it again: it should print `rotated 0` and `rows not under the current key: 0`. If it does not,
+   either a row was named above, or something wrote a row under the previous key between the two runs,
+   which means a process is still holding the old configuration; find it before going on.
 5. **Drop the previous key.** Remove `Vault:PreviousMasterKey` and restart. Rows are now readable only
    under the new key; the old one can be destroyed.
 
@@ -119,7 +123,8 @@ finished; put the previous key back and repeat step 4.
 Exercised by `backend/tests/ScreenTrail.Api.Tests/Vault/KeyRotationTests.cs`, which does steps 2 to 5 in
 memory: a row under the previous key opens before the rewrap and a new one goes under the current key
 (step 3), every row opens under the current key alone after it (steps 4 and 5), a row under a key the
-deployment no longer holds is refused with that key's id, and legacy rows are sealed again bound. The
+deployment no longer holds is refused with that key's id, and legacy rows are sealed again bound. A row
+that does not open is reported while the rest rotate, and a row under a third key is counted. The
 binding itself is exercised by `Vault/VaultBindingTests.cs`.
 
 ## Rotating the token signing key

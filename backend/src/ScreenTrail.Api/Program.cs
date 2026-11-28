@@ -386,8 +386,8 @@ if (args.Contains("--enrol-dev-device", StringComparer.Ordinal))
     return;
 }
 
-// ST-009. Rewraps every credential still under Vault:PreviousMasterKey and exits without listening.
-// docs/security/key-rotation.md says when to run it and what to do after.
+// ST-009. Rewraps every credential still under Vault:PreviousMasterKey and exits without listening, 1 while
+// any row is left under another key. docs/security/key-rotation.md says when to run it and what to do after.
 if (args.Contains("--rotate-vault-keys", StringComparer.Ordinal))
 {
     await using var scope = app.Services.CreateAsyncScope();
@@ -403,9 +403,18 @@ if (args.Contains("--rotate-vault-keys", StringComparer.Ordinal))
 
     foreach (var unopened in rotated.Unopenable)
     {
-        Console.WriteLine($"legacy row {unopened} does not open under the key it names, so it was left as it is: ask the owner to connect that integration again");
+        Console.WriteLine($"row {unopened} does not open under the key it names, so it was left as it is: ask the owner to connect that integration again");
         Environment.ExitCode = 1;
     }
+
+    // Counted, not worked out (E-07): a row under a third key is never rewrapped, so "rotated 0" alone
+    // does not show that the previous key can go. Zero here does.
+    Console.WriteLine($"rows not under the current key: {rotated.NotUnderCurrentKey}");
+    if (rotated.NotUnderCurrentKey > 0)
+    {
+        Environment.ExitCode = 1;
+    }
+
     return;
 }
 
