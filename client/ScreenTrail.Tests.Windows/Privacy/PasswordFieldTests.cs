@@ -85,6 +85,33 @@ public sealed class PasswordFieldTests
     }
 
     [Fact]
+    public void TheWindowMessageAnswersOnlyForAnEditControl()
+    {
+        // A-05 (a). The fallback alone, as it answers when UI Automation has not: an edit control says
+        // whether it masks, and a window that is not one (here a class left to DefWindowProc, as a browser's
+        // render widget or a WPF surface is) gives the default 0, which is no answer.
+        Assert.SkipUnless(OnWindows, "Windows only.");
+        using var window = DesktopWindow.CreateOrdinary("ScreenTrail message probe");
+        window.AddFields();
+        window.RequireForeground();
+
+        window.Focus(window.PlainField);
+        var plain = WindowsFocusedFieldProbe.ReadViaWindowMessage();
+        window.Focus(window.PasswordField);
+        var masked = WindowsFocusedFieldProbe.ReadViaWindowMessage();
+        window.Focus(window.Handle);
+        var other = WindowsFocusedFieldProbe.ReadViaWindowMessage();
+
+        Measurements.Record(
+            $"Window-message fallback: a plain box reads **{plain}**, a password box **{masked}**, "
+            + $"a window that is not an edit control **{other}**");
+
+        Assert.Equal(FocusedField.NotPassword, plain);
+        Assert.Equal(FocusedField.Password, masked);
+        Assert.Equal(FocusedField.Unknown, other);
+    }
+
+    [Fact]
     public void WhatAskingCosts()
     {
         // This runs on every focus change, and focus changes constantly while someone works. ST-031 budgets
