@@ -342,6 +342,20 @@ public sealed class PolicyApplierTests : IAsyncDisposable
     }
 
     [Fact]
+    public void ASettingsDocumentWithNoListsIsAppliedWithEmptyOnes()
+    {
+        // A document read from a file or the pipe may hold null for its lists (F-06); applied, it masks and
+        // excludes as one with empty lists rather than failing the start.
+        var noLists = new ClientSettings { CustomPatterns = null!, ExcludedProcesses = null! };
+        using var rig = new Rig(noLists);
+
+        _ = rig.Applier.Apply();
+        _ = rig.Applier.Apply(noLists with { Emails = true });
+
+        Assert.DoesNotContain("4111 1111 1111 1111", rig.Redaction.ScrubText("card 4111 1111 1111 1111").Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ADevelopmentBuildStillAppliesTheTechniciansOwnSwitches()
     {
         const string Typed = "password: Hunter2-Test";

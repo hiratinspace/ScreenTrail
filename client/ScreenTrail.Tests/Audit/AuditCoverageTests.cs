@@ -174,6 +174,35 @@ public sealed class AuditCoverageTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ACachedPolicyInForceAtStartIsRecordedOnce()
+    {
+        // F-06: until the first fetch the file kept between runs decides; that it did is in the log.
+        var store = await OpenAsync();
+        var cache = new FilePolicyCache(Path.Combine(_dir, "policy.json"));
+        cache.Save(new TenantPolicy("p20260925140200000", 3, true, true, false));
+        var body = new { version = "p20260925140200000", retentionDays = 3, localOnly = true, localOnlyLocked = true, captureAllWindows = false };
+        var sync = new PolicySync(new HttpClient(new Replies(body)) { BaseAddress = new Uri("https://api.screentrail.example/") }, () => "token", cache, audit: store);
+
+        await sync.RecordInForceAtStartAsync(Ct);
+        Assert.True(await sync.FetchAsync(Ct));
+
+        // The fetch brought the same policy, so nothing new took effect.
+        var row = Assert.Single(await store.GetAuditRecordsAsync(ct: Ct), r => r.Type == "policy_applied");
+        Assert.Equal("p20260925140200000", row.Detail);
+    }
+
+    [Fact]
+    public async Task NoPolicyKeptBetweenRunsRecordsNothingAtStart()
+    {
+        var store = await OpenAsync();
+        var sync = new PolicySync(new HttpClient(new Replies(new { })) { BaseAddress = new Uri("https://api.screentrail.example/") }, () => "token", new FilePolicyCache(Path.Combine(_dir, "policy.json")), audit: store);
+
+        await sync.RecordInForceAtStartAsync(Ct);
+
+        Assert.DoesNotContain(await store.GetAuditRecordsAsync(ct: Ct), r => r.Type == "policy_applied");
+    }
+
+    [Fact]
     public async Task APolicyVersionThatIsNotALabelIsLeftOutOfItsRow()
     {
         // The version is the backend's text, not an enum: the row is still written, without it.
