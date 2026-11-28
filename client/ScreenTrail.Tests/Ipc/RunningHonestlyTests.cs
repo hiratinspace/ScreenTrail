@@ -92,6 +92,76 @@ public sealed class RunningHonestlyTests
         Assert.Contains("CORECLR_PROFILER_PATH", refusal, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("CORECLR_ENABLE_NOTIFICATION_PROFILERS")]
+    [InlineData("CORECLR_NOTIFICATION_PROFILERS")]
+    [InlineData("DOTNET_GCPath")]
+    [InlineData("COMPlus_GCPath")]
+    [InlineData("DOTNET_GCName")]
+    [InlineData("COMPlus_GCName")]
+    [InlineData("DOTNET_DiagnosticPorts")]
+    [InlineData("COMPlus_DiagnosticPorts")]
+    public void AShippedBuildAlsoRefusesTheOtherWaysTheRuntimeLoadsCodeOrATool(string variable)
+    {
+        // B-02: notification profilers load without CORECLR_ENABLE_PROFILING, a replacement garbage
+        // collector is a native library the runtime loads, and a diagnostic port connects the process to a
+        // tool at start. Each is honoured before Main, each under either spelling.
+        var refusal = RunningHonestly.WhyNotToStart(development: false, Set(variable, "C:\\somewhere\\x.dll"));
+
+        Assert.NotNull(refusal);
+        Assert.Contains(variable, refusal, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, false, false)]
+    [InlineData(false, true, true)]
+    public void OnlyABuildThatIsNotTheInstallersAndCarriesNoSignatureIsADevelopmentBuild(bool installerBuild, bool carriesNoSignature, bool development)
+    {
+        // B-02: every build is unsigned until the certificate exists, so a rule keyed on the signature alone
+        // made the installed product a development build. The installer's build is compiled in.
+        Assert.Equal(development, RunningHonestly.IsDevelopment(installerBuild, carriesNoSignature));
+    }
+
+    [Fact]
+    public void TheInstallersBuildRefusesWhateverItsSignature()
+    {
+        var refusal = RunningHonestly.WhyNotToStart(
+            RunningHonestly.IsDevelopment(installerBuild: true, carriesNoSignature: true),
+            Set("CORECLR_ENABLE_PROFILING", "1"));
+
+        Assert.NotNull(refusal);
+    }
+
+    [Fact]
+    public void AChildStartedCleanHasNoRuntimeSettingAndDiagnosticsOff()
+    {
+        // B-02 (c): what the UI gives the capture service it starts in the installer's build. Every name the
+        // runtime reads before Main goes, whatever its case; the rest of the environment stays.
+        var environment = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CORECLR_ENABLE_PROFILING"] = "1",
+            ["CORECLR_PROFILER_PATH_64"] = "C:\\x.dll",
+            ["coreclr_notification_profilers"] = "C:\\y.dll",
+            ["DOTNET_GCName"] = "z.dll",
+            ["DOTNET_EnableDiagnostics"] = "1",
+            ["COMPlus_EnableDiagnostics"] = "1",
+            ["DOTNET_ROOT"] = "C:\\dotnet",
+            ["SCREENTRAIL_LOG_LEVEL"] = "Debug",
+            ["PATH"] = "C:\\Windows",
+        };
+
+        RunningHonestly.StartClean(environment);
+
+        Assert.Equal("0", environment[RunningHonestly.DiagnosticsSwitch]);
+        Assert.Equal("DOTNET_EnableDiagnostics", RunningHonestly.DiagnosticsSwitch);
+        Assert.Equal(
+            ["DOTNET_EnableDiagnostics", "PATH", "SCREENTRAIL_LOG_LEVEL"],
+            environment.Keys.Order(StringComparer.Ordinal).ToArray());
+        Assert.Empty(RunningHonestly.ForeignCodeRequested(name => environment.TryGetValue(name, out var value) ? value : null));
+    }
+
     private static Func<string, string?> Set(string variable, string value) =>
         name => string.Equals(name, variable, StringComparison.Ordinal) ? value : null;
 }

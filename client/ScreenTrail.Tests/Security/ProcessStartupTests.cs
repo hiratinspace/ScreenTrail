@@ -87,6 +87,30 @@ public sealed class ProcessStartupTests
         Assert.DoesNotContain("VerifiedSignerThumbprint", signing, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("ScreenTrail.Service", "Program.cs", "RunningHonestly.WhyNotToStart(RunningHonestly.IsDevelopment(BuildKind.Installer, Signing.IsDevelopmentBuild))")]
+    [InlineData("ScreenTrail.UI", "App.xaml.cs", "Core.Ipc.RunningHonestly.WhyNotToStart(Core.Ipc.RunningHonestly.IsDevelopment(BuildKind.Installer, Platform.Ipc.Signing.IsDevelopmentBuild))")]
+    public void BothProcessesRefuseForeignCodeInTheInstallersBuildWhateverItsSignature(string project, string file, string check)
+    {
+        // B-02: every build is unsigned until the certificate exists, so a refusal keyed on the signature
+        // alone was a warning nobody read in the installed product. The installer's build is compiled in.
+        var source = File.ReadAllText(Source(project, file));
+
+        Assert.Contains(check, source, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(source, @"WhyNotToStart\("));
+    }
+
+    [Fact]
+    public void TheWindowStartsTheServiceThroughTheCleanStart()
+    {
+        // B-02 (c): the window's Start (banner, tray, the start after setup) gives the service in the
+        // installer's build an environment with the runtime's settings removed and diagnostics off.
+        var shell = File.ReadAllText(Source("ScreenTrail.UI", Path.Combine("Shell", "LiveShell.cs")));
+
+        Assert.Contains("Process.Start(CaptureServiceStart.StartInfo(path, BuildKind.Installer))", shell, StringComparison.Ordinal);
+        Assert.DoesNotContain("new ProcessStartInfo(path)", shell, StringComparison.Ordinal);
+    }
+
     /// <summary>A file in the client's source tree, found from the test binary the way ClientSources finds projects.</summary>
     [Fact]
     public void TheUiIsPerMonitorDpiAwareFromItsManifest()
