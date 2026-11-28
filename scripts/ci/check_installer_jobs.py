@@ -33,6 +33,11 @@ reach the signing token, before it merges:
     tool command, another script dot-sourced, a process started, a call on anything but dotnet and
     signtool, a WiX extension or the payload used another way, a change of folder), not a proof;
     the structural rules above are what hold the job's shape;
+  - (H-6) the one SDK command the signing job runs, the NuGet signature check, runs from a new empty
+    folder under the system temp folder, never from inside the checkout, where the repository's
+    global.json would choose the SDK; dotnet is otherwise started only to host WiX. global.json holds
+    exactly sdk.version, sdk.rollForward and test.runner (no sdk.paths, which would point the host
+    at an SDK of the repository's), and there is no nuget.config at the root;
   - installer/tools.json pins each package to one version and a SHA-256, and the Visual C++ runtime
     installer to one versioned Microsoft URL, its four-part version and the SHA-256 that URL names;
     package.ps1 takes the runtime only through the pinned download, which checks the hash and the
@@ -192,6 +197,8 @@ MANIFEST_WRITE = './installer/manifest.ps1 -Write -Folder ' + PAYLOAD
 RUN_STEP_KEYS = {'name', 'env', 'run'}
 USES_STEP_KEYS = {'name', 'uses', 'with'}
 UNSAFE = (';', '|', '&', '`', '$(', '\n', '\r')
+# H-6: dotnet is started only to host WiX, and for the one SDK command, the signature check.
+DOTNET_CALLS = {'installer/package.ps1': {'$wix'}, 'installer/tools.ps1': {'nuget'}}
 
 # What the scripts the signing job runs must do, and must never do.
 SCRIPTS = ('installer/package.ps1', 'installer/sign.ps1', 'installer/tools.ps1', 'installer/manifest.ps1', 'installer/update-manifest.ps1', 'installer/check-pilot-run.ps1')
@@ -201,6 +208,9 @@ MUST_CONTAIN = {
         "if ($hash -ne $pin.sha256) {",
         "nuget verify $package --all",
         "Join-Path $env:ProgramFiles 'dotnet\\dotnet.exe'",
+        # H-6: the SDK command runs outside the checkout, from a folder of its own under the temp folder.
+        "$outside = Join-Path ([IO.Path]::GetTempPath()) ('screentrail-verify-' + [guid]::NewGuid().ToString('N'))",
+        "Push-Location $outside",
         # The runtime installer: the pinned URL only, refused unless its hash and version are the pin's.
         "Invoke-WebRequest -UseBasicParsing -Uri $pin.url -OutFile $file",
         "$hash = (Get-FileHash -Algorithm SHA256 -Path $file).Hash.ToLowerInvariant()",
@@ -569,9 +579,50 @@ def script_shape(path, code):
         if match.group(1) not in CALL_TARGETS:
             bad.append(f'{path} calls something other than $dotnet or $signtool: {match.group(1)!r}')
     for match in re.finditer(r'Push-Location\s+(\S+)', code, re.IGNORECASE):
-        if match.group(1) != '$Into':
-            bad.append(f'{path} changes to a folder other than $Into: {match.group(1)!r}')
+        if match.group(1) != '$outside':
+            bad.append(f'{path} changes to a folder other than its own under the temp folder ($outside): {match.group(1)!r}')
+    # H-6: what dotnet is started for. An SDK command reads global.json from the folder it runs in, so
+    # the only one is the signature check, inside the folder change above; WiX is an app dotnet hosts.
+    for match in re.finditer(r'&\s*\$dotnet\s+(\S+)', code, re.IGNORECASE):
+        if match.group(1) not in DOTNET_CALLS.get(path, set()):
+            allowed = ', '.join(sorted(DOTNET_CALLS.get(path, set()))) or 'none'
+            bad.append(f'{path} starts dotnet for {match.group(1)!r}; allowed in this script: {allowed}')
+    if path == 'installer/tools.ps1':
+        verify = [m.start() for m in re.finditer(r'nuget verify', code)]
+        push, pop = code.find('Push-Location $outside'), code.find('Pop-Location')
+        if len(verify) != 1 or not (0 <= push < verify[0] < pop):
+            bad.append(f'{path} must run nuget verify once, between Push-Location $outside and Pop-Location')
     return bad
+
+
+# The SDK picks itself from the nearest global.json: these keys and no others (H-6). sdk.paths would
+# send the host to an SDK folder of the repository's choosing.
+GLOBAL_JSON = {'sdk': {'version', 'rollForward'}, 'test': {'runner'}}
+ROOT_NUGET = re.compile(r'nuget\.config', re.IGNORECASE)
+
+
+def check_global_json(text):
+    if text is None:
+        return ['global.json is missing; it pins the SDK every job builds with']
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return ['global.json is not plain JSON, so this check cannot read what it says']
+    if not isinstance(data, dict) or set(data) != set(GLOBAL_JSON):
+        return [f'global.json must hold exactly {sorted(GLOBAL_JSON)}, nothing else']
+    bad = []
+    for section, keys in GLOBAL_JSON.items():
+        value = data[section]
+        if not isinstance(value, dict) or set(value) != keys:
+            bad.append(f'global.json {section} must hold exactly {sorted(keys)}; anything else (sdk.paths above all) can choose another SDK')
+        elif not all(isinstance(v, str) for v in value.values()):
+            bad.append(f'global.json {section} values must be plain strings')
+    return bad
+
+
+def check_root(names):
+    return [f'{name} at the root of the repository would configure NuGet for every restore and verify; keep NuGet settings out of the tree'
+            for name in (names or []) if ROOT_NUGET.fullmatch(str(name))]
 
 
 def check_tools(text):
@@ -733,6 +784,8 @@ def check(workflow, files):
     bad += check_others(files.get(OTHERS))
     bad += check_scripts(files)
     bad += check_tools(files.get('installer/tools.json', ''))
+    bad += check_global_json(files.get('global.json'))
+    bad += check_root(files.get('_root'))
     for path in AUTHORING:
         bad += check_authoring(path, files.get(path, ''))
     return bad
@@ -1185,7 +1238,7 @@ MUST_FAIL = {
     'a process started through .NET': edit_file('installer/tools.ps1', lambda t: t + '\n[System.Diagnostics.Process]::Start("x")'),
     'a call on WiX directly': edit_file('installer/package.ps1', lambda t: t + '\n& $wix build'),
     'a call on a path': edit_file('installer/sign.ps1', lambda t: t + "\n& 'C:\\tools\\x.exe'"),
-    'a folder change': edit_file('installer/tools.ps1', lambda t: t.replace('Push-Location $Into', 'Push-Location $PSScriptRoot')),
+    'a folder change': edit_file('installer/tools.ps1', lambda t: t.replace('Push-Location $outside', 'Push-Location $PSScriptRoot')),
     'Set-Location': edit_file('installer/package.ps1', lambda t: t + '\nSet-Location C:\\'),
     'a module imported': edit_file('installer/sign.ps1', lambda t: t + '\nImport-Module x'),
     'a tool restore in package.ps1': edit_file('installer/package.ps1', lambda t: t + '\ndotnet tool restore'),
@@ -1275,10 +1328,11 @@ def load(root):
     # parsed: GitHub runs .yaml as readily as .yml, so both are read.
     workflow = yaml.safe_load((root / '.github/workflows/ci.yml').read_text())
     files = {}
-    for path in SCRIPTS + AUTHORING + ('installer/tools.json',):
+    for path in SCRIPTS + AUTHORING + ('installer/tools.json', 'global.json'):
         file = root / path
         if file.exists():
             files[path] = file.read_text()
+    files['_root'] = sorted(entry.name for entry in root.iterdir())
     promote = root / PROMOTE_FILE
     if promote.exists():
         files[PROMOTE_FILE] = yaml.safe_load(promote.read_text())

@@ -479,7 +479,9 @@ jobs:
   # It runs nothing compiled from this repository and nothing from the build job: a fresh checkout of the
   # same commit, the payload to sign (downloaded by the id the build job reported, its digest and every
   # file checked against the build's own record first), sign.ps1, and package.ps1, which runs only WiX
-  # at the versions and SHA-256 hashes pinned in installer/tools.json, fetched and verified here. Each
+  # at the versions and SHA-256 hashes pinned in installer/tools.json, fetched and verified here (the
+  # NuGet signature check, its one SDK command, runs from an empty folder under the system temp folder,
+  # so the repository's global.json cannot choose the SDK it runs with). Each
   # layer is signed before the next one wraps it: the payload, then the MSI built from it, then the
   # setup program built from that, its engine on its own, and the whole. Every step is one exact
   # command, and the check in the workflows job holds the list.

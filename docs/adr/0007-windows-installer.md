@@ -270,7 +270,9 @@ install or upgrade; the service starts at the next sign-in, which is what the ti
   verified and extracted fresh in that job, never taken from the build (the Visual C++ runtime
   installer it wraps is downloaded there too, and checked to be Microsoft-signed). It runs no restore, build,
   tool restore or `build.ps1`, nothing compiled from the repository, and no tool from the build's
-  artifact. A third job with no token smoke-tests the signed build. The unsigned job runs the same
+  artifact. Its one SDK command, the NuGet signature check of each pinned package, runs from a new
+  empty folder under the system temp folder, where the repository's `global.json` cannot choose the
+  SDK (2026-11-28 amendment, H-6). A third job with no token smoke-tests the signed build. The unsigned job runs the same
   sequence with signing switched off, so every pull request exercises it.
 - **The WiX authoring runs nothing while it builds.** WiX executes no custom action at build time.
   Its extensions are code, which is why only the two pinned ones are allowed. The authoring has no

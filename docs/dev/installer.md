@@ -164,7 +164,9 @@ Every merge to main that touches the client or the installer runs three installe
   sign the engine, reattach it, sign the setup program, check every signature, upload the artifact
   `screentrail-installer`. It runs no restore, no build and nothing compiled from the repository, and
   nothing it runs comes from the first job: WiX is downloaded and checked against `tools.json` in this
-  job. Each `sign.ps1` step asks for the token itself, hands it to `signtool` in a temporary file and
+  job. Its one SDK command, the NuGet signature check of each pinned package, runs from a new empty
+  folder under the system temp folder, so the repository's `global.json` cannot choose the SDK it runs
+  with (and the check holds `global.json` to its three known keys). Each `sign.ps1` step asks for the token itself, hands it to `signtool` in a temporary file and
   deletes it. It fails rather than upload an unsigned build if the configuration is incomplete.
 - **Installer (Windows, signed, smoke test)**, with no token: the smoke test on the signed build, now
   with the peer checks taking the signed path.

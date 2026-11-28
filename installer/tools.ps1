@@ -40,6 +40,7 @@ function Get-PinnedPackage([string]$Id, [string]$Into) {
 
     $lower = $Id.ToLowerInvariant()
     $version = $pin.version
+    $Into = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Into)
     New-Item -ItemType Directory -Force -Path $Into | Out-Null
     $package = Join-Path $Into "$lower.$version.nupkg"
     if (-not (Test-Path $package) -or (Get-FileHash -Algorithm SHA256 -Path $package).Hash -ne $pin.sha256) {
@@ -51,13 +52,19 @@ function Get-PinnedPackage([string]$Id, [string]$Into) {
         throw "$Id $version from nuget.org has SHA-256 $hash, not the pinned $($pin.sha256). Refusing to use it."
     }
 
+    # dotnet nuget is an SDK command, and the dotnet host chooses the SDK from the global.json nearest the
+    # folder it runs in. So it runs from a new empty folder under the system temp folder, as sign.ps1's
+    # own files do, where no file of the repository's decides which SDK verifies the package.
     $dotnet = Get-Dotnet
-    Push-Location $Into
+    $outside = Join-Path ([IO.Path]::GetTempPath()) ('screentrail-verify-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $outside | Out-Null
+    Push-Location $outside
     try {
         & $dotnet nuget verify $package --all | Out-Host
         $code = $LASTEXITCODE
     } finally {
         Pop-Location
+        Remove-Item $outside -Recurse -Force -ErrorAction SilentlyContinue
     }
     if ($code -ne 0) {
         throw "The NuGet signatures of $Id $version did not verify."
