@@ -173,6 +173,23 @@ public sealed class PublishPanelTests
         Assert.Equal(NoteType.Internal, panel.NoteType);
     }
 
+    [Theory]
+    [InlineData(long.MaxValue, 1440)]
+    [InlineData(20_000_000_000L, 1440)]
+    [InlineData(1441, 1440)]
+    [InlineData(-5, 0)]
+    public void AStoredDraftsMinutesAreHeldToADayBeforeTheyAreShown(long stored, int shown)
+    {
+        // A draft stored by an older backend may carry any number. Review still opens, and the time entry
+        // starts from at most a day (the schema's 1440) and never below nothing.
+        var panel = Panel(
+            session: Session(draft: Draft() with { SuggestedTimeMinutes = stored }),
+            rounding: new TimeEntryOptions { IncrementMinutes = 1 });
+
+        Assert.Equal(shown, panel.Minutes);
+        Assert.Contains($"{shown} min", panel.TimeNote, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheKbToggleFollowsTheDraftsOpinionAndSaysWhy()
     {
