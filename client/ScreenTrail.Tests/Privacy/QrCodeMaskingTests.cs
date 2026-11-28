@@ -226,6 +226,34 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
         Assert.True(times[2] < 250, $"pairing {QrCodeFinder.MaxCandidates} finders took a median of {times[2]:F0} ms");
     }
 
+    [Fact]
+    public void ALatticeOfFinderPatternsIsSearchedInBoundedTimeAndGivesBoundedMasksOrIsRefused()
+    {
+        // The worst a frame can do to the pairing: as many finders as one search keeps, all one size and
+        // spaced so that every three at the corners of a square pass as a code.
+        var canvas = new PictureCanvas(1920, 1080);
+        for (var i = 0; i < QrCodeFinder.MaxCandidates; i++)
+        {
+            FinderPattern(canvas, 40 + (i % 16 * 24), 40 + (i / 16 * 24), 2);
+        }
+
+        var brightness = canvas.Brightness();
+        var times = new List<double>();
+        QrSearch? search = null;
+        for (var run = 0; run < 3; run++)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            search = QrCodeFinder.Find(brightness);
+            times.Add(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+        }
+
+        times.Sort();
+        Assert.True(times[1] < 250, $"the lattice took a median of {times[1]:F0} ms to search");
+        Assert.True(
+            !search!.Complete || search.Codes.Count <= 32,
+            $"the lattice gave {search.Codes.Count} masks from one frame and the search called itself complete");
+    }
+
     /// <summary>The frame through the real worker and store; the regions the store kept for it.</summary>
     private async Task<IReadOnlyList<MaskedRegion>> RedactAsync(PictureCanvas canvas, IReadOnlyList<OcrWord> words) =>
         await RedactOrDropAsync(canvas, words) ?? throw new InvalidOperationException("the frame was not stored");
