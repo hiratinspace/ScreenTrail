@@ -67,7 +67,8 @@ public sealed class PolicyApplier
         bool builtInRulesLocked = false)
     {
         _policy = policy ?? throw new ArgumentNullException(nameof(policy));
-        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        // A list read as null (a file or a peer) is applied as empty, not as an exception at start (F-06).
+        _settings = settings?.WithDefaultsForNulls() ?? throw new ArgumentNullException(nameof(settings));
         _capture = capture ?? throw new ArgumentNullException(nameof(capture));
         _egress = egress ?? throw new ArgumentNullException(nameof(egress));
         _retention = retention ?? throw new ArgumentNullException(nameof(retention));
@@ -122,7 +123,7 @@ public sealed class PolicyApplier
         AppliedPolicy applied;
         lock (_gate)
         {
-            _settings = settings ?? _settings;
+            _settings = settings?.WithDefaultsForNulls() ?? _settings;
             _capture = capture ?? _capture;
             var current = _policy.Current;
             applied = PolicyApplication.Resolve(current, _settings);

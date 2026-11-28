@@ -553,6 +553,9 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             LogLoopFailed(logger, "settings audit at start", "AuditWriteFailed");
         }
 
+        // F-06: the policy kept between runs decided the apply above; the audit log says which one.
+        await policySync.RecordInForceAtStartAsync(stoppingToken).ConfigureAwait(false);
+
         // The pipe opens only now. The applier keeps saved settings in memory, so a save that reached a
         // no-op apply before this point would be on disk but never in force, local-only and scope included,
         // until the next save. From here every save is applied; the hotkeys follow below, once they exist.

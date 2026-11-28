@@ -43,16 +43,30 @@ public interface IPolicyCache
     void Save(TenantPolicy policy);
 }
 
-/// <summary>A JSON file beside the store. Not a secret: a policy says what the client does, not what it saw.</summary>
+/// <summary>
+/// A JSON file beside the store. Not a secret: a policy says what the client does, not what it saw.
+///
+/// Read as strictly as the backend's answer (security review F-06): every member the contract requires,
+/// numbers as numbers, a version that is not blank. A file that breaks any of that is no policy, and the
+/// defaults apply until the first fetch, where it used to read a missing lock as unlocked. What this build
+/// writes, and a file from before the update fields (ST-113), still load.
+/// </summary>
 public sealed class FilePolicyCache(string path) : IPolicyCache
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true,
+        RespectRequiredConstructorParameters = true,
+        NumberHandling = JsonNumberHandling.Strict,
+    };
 
     public TenantPolicy? Load()
     {
         try
         {
-            return File.Exists(path) ? JsonSerializer.Deserialize<TenantPolicy>(File.ReadAllText(path), Json) : null;
+            return File.Exists(path) && JsonSerializer.Deserialize<TenantPolicy>(File.ReadAllText(path), Json) is { } policy && !string.IsNullOrWhiteSpace(policy.Version)
+                ? policy
+                : null;
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
@@ -235,6 +249,19 @@ public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCach
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Kept from the loop on purpose; see above.
+        }
+    }
+
+    /// <summary>
+    /// The policy kept between runs, when there is one, in the audit log as the policy in force at start
+    /// (security review F-06): until the first fetch it decides scope, retention and local-only. Once; a
+    /// fetch that brings the same policy records nothing more. The host calls it after the first apply.
+    /// </summary>
+    public async Task RecordInForceAtStartAsync(CancellationToken ct = default)
+    {
+        if (Current is { } current && !ReferenceEquals(current, TenantPolicy.Default))
+        {
+            await RecordAppliedAsync(current, ct).ConfigureAwait(false);
         }
     }
 
