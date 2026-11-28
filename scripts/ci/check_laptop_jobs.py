@@ -5,14 +5,18 @@ The laptop's self-hosted runner signs in as the account that also runs the demo,
 there executes can read what that account holds. Two rules keep what a job runs to what this
 repository says:
 
-  - every `uses:` is pinned to a full 40-character commit, so a moved tag cannot run on the laptop
-    (an action in this repository, `./...`, is the repository's own code and is allowed);
+  - every `uses:` is pinned to a full 40-character commit, so a moved tag cannot run on the laptop.
+    A local action (`./...`) and a job that calls a reusable workflow are reported, because their own
+    steps choose actions and shells this check does not read;
   - every `run:` step runs in Windows PowerShell with `-NoProfile`, whether its shell comes from the
     step, the job's defaults or the workflow's defaults, so the account's profile script never runs
     before a step.
 
-A job counts as a laptop job when its runs-on names `self-hosted` or the laptop's label. The checks
-are tried first on made-up jobs that must pass and must fail, so a check that passes everything fails.
+A job is hosted only when its runs-on is exactly one hosted label (HOSTED_LABELS). Every other job,
+whatever its runs-on says or however it is written (other labels, a list, a mapping, a runner group, an
+expression anywhere, or no runs-on at all), could reach the laptop and is held to these rules. Both
+`.yml` and `.yaml` workflow files are read. The checks are tried first on made-up jobs that must pass
+and must fail, so a check that passes everything fails.
 
 Usage: check_laptop_jobs.py [repo root] [workflow file ...]
 """
@@ -25,27 +29,15 @@ import tempfile
 
 import yaml
 
-LAPTOP_LABELS = {'self-hosted', 'screentrail-win'}
+HOSTED_LABELS = {'ubuntu-latest', 'windows-latest'}
 PINNED = re.compile(r'^[^@\s]+@[0-9a-f]{40}$')
 SHELL = re.compile(r'^powershell(\.exe)?\s+-NoProfile(\s|$)', re.IGNORECASE)
 
 
-def labels(runs_on):
-    if isinstance(runs_on, str):
-        return {runs_on}
-    if isinstance(runs_on, list):
-        return {str(label) for label in runs_on}
-    if isinstance(runs_on, dict):
-        return labels(runs_on.get('labels', [])) | labels(runs_on.get('group', []))
-    return set()
-
-
 def is_laptop(job):
-    runs_on = job.get('runs-on', '')
-    # An expression could pick the laptop at run time, and nobody could say here that it does not.
-    if isinstance(runs_on, str) and '${{' in runs_on:
-        return True
-    return bool({label.lower() for label in labels(runs_on)} & LAPTOP_LABELS)
+    # Hosted only when runs-on is exactly one hosted label; anything else might land on the laptop.
+    runs_on = job.get('runs-on')
+    return not (isinstance(runs_on, str) and runs_on in HOSTED_LABELS)
 
 
 def default_shell(node):
@@ -59,7 +51,7 @@ def problems_in(workflow, where):
         if not isinstance(job, dict) or not is_laptop(job):
             continue
         if 'uses' in job:
-            bad.append(f"{where}: laptop job {name!r} calls a reusable workflow, which this check cannot follow.")
+            bad.append(f"{where}: job {name!r} calls a reusable workflow, whose jobs choose their own runner and which this check cannot follow.")
             continue
         job_shell = default_shell(job) or workflow_shell
         for shell, level in ((workflow_shell, 'the workflow defaults'), (default_shell(job), 'its defaults')):
@@ -68,7 +60,9 @@ def problems_in(workflow, where):
         for index, step in enumerate(job.get('steps') or []):
             label = step.get('name') or step.get('uses') or f'step {index + 1}'
             uses = step.get('uses')
-            if uses is not None and not str(uses).startswith('./') and not PINNED.match(str(uses)):
+            if uses is not None and str(uses).startswith('./'):
+                bad.append(f"{where}: laptop job {name!r}, {label!r}: {uses!r} is a local action, whose own steps this check does not read.")
+            elif uses is not None and not PINNED.match(str(uses)):
                 bad.append(f"{where}: laptop job {name!r}, {label!r}: {uses!r} is not pinned to a 40-character commit.")
             if 'run' in step:
                 shell = step.get('shell') or job_shell
@@ -132,7 +126,8 @@ def self_test():
 
 
 def workflow_files(root):
-    return sorted((root / '.github/workflows').glob('*.yml'))
+    folder = root / '.github/workflows'
+    return sorted(list(folder.glob('*.yml')) + list(folder.glob('*.yaml')))
 
 
 def loader_test():
