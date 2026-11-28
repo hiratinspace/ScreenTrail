@@ -149,8 +149,13 @@ these, for what is published.
 Masking works on the text the OCR engine read. A frame it could not read at all is deleted, but one it
 read only in part is kept, and text it did not read (small or scaled-down text in a remote viewer, low
 contrast, a script the installed language does not cover, handwriting) is not masked. Pictures are not
-read: a QR code, such as one an authenticator app is set up from, is never masked. How much is read
-through a remote viewer is measured below.
+read as text, with one exception: a QR code, such as one an authenticator app is set up from, is found
+by the three squares in its corners (each a dark ring, a light ring and a dark centre, checked across,
+down and at the ring's corners, dark on light and light on dark) and its square is masked on the
+screenshot with a margin round it, before the screenshot is stored. A code turned at an angle other
+than a right angle, drawn so small that a module is under a pixel, or with a corner square covered or
+cut off by the window's edge, is not found and stays readable. How much is read through a remote viewer
+is measured below.
 
 The OCR engine is given each frame at twice its captured size (2026-11-11), because it reads small
 text badly and long random strings worst: on the hosted runner's probe, of 1,200 secrets drawn at 9

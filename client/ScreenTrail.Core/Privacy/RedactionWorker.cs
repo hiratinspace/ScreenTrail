@@ -407,6 +407,24 @@ public sealed class RedactionWorker(
         }
 
         var regions = redaction.Regions.ToList();
+
+        // What the recogniser cannot report is looked for in the picture itself (A-02): a QR code is never
+        // text. Found in the decoded pixels before the masker paints them, and painted with the text's
+        // masks; the stored text is unchanged, since none of it was text. A check that fails leaves the
+        // picture unchecked, so the frame goes, as for a masker that fails.
+        IReadOnlyList<MaskedRegion> picture;
+        try
+        {
+            picture = PictureRegions(decoded);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await DiscardAsync(queued.SessionId, unread: false, settled, ct).ConfigureAwait(false);
+            return;
+        }
+
+        regions.AddRange(picture);
+        var counts = WithPicture(redaction.Counts, picture.Count);
         var sensitive = LoginScreenHeuristic.LooksLikeLogin(text.Words);
         if (sensitive)
         {
@@ -460,14 +478,53 @@ public sealed class RedactionWorker(
         // my screen", and the honest answer is a number per kind, never the matches themselves (INV-10).
         if (store is IAuditLog audit)
         {
-            foreach (var (kind, count) in redaction.Counts)
+            foreach (var (kind, count) in counts)
             {
                 await audit.RecordAsync(
                     AuditTypes.FrameRedacted, queued.SessionId, count, AuditDetail.Of(kind), ct).ConfigureAwait(false);
             }
         }
 
-        Record(redaction.Counts, Stopwatch.GetElapsedTime(started));
+        Record(counts, Stopwatch.GetElapsedTime(started));
+    }
+
+    /// <summary>
+    /// The masks the picture itself needs (A-02): the square of every QR code on it. None from a frame
+    /// the platform gives no brightness for; on Windows every decoded frame gives it. The brightness is
+    /// cleared as soon as it has been looked at.
+    /// </summary>
+    private static IReadOnlyList<MaskedRegion> PictureRegions(DecodedFrame? decoded)
+    {
+        var brightness = decoded?.ReadBrightness();
+        if (brightness is null)
+        {
+            return [];
+        }
+
+        try
+        {
+            return QrCodeFinder.Find(brightness);
+        }
+        finally
+        {
+            brightness.Clear();
+        }
+    }
+
+    /// <summary>
+    /// The frame's counts with the picture's masks added, as <see cref="MaskKind.SensitiveContext"/>:
+    /// covered for what the picture holds, not for a match in its text. Counts only (INV-10).
+    /// </summary>
+    private static IReadOnlyDictionary<MaskKind, int> WithPicture(IReadOnlyDictionary<MaskKind, int> counts, int picture)
+    {
+        if (picture == 0)
+        {
+            return counts;
+        }
+
+        var all = new Dictionary<MaskKind, int>(counts);
+        all[MaskKind.SensitiveContext] = all.GetValueOrDefault(MaskKind.SensitiveContext) + picture;
+        return all;
     }
 
     /// <summary>

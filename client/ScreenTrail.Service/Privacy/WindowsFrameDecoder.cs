@@ -81,6 +81,25 @@ internal sealed class WindowsDecodedFrame : DecodedFrame
         return new PixelLock(Bitmap, mode, Width, Height);
     }
 
+    /// <summary>
+    /// The picture's brightness, row by row from the locked pixels, for the worker's checks of the picture
+    /// itself (A-02). Read before the masker paints, so it is the frame as captured.
+    /// </summary>
+    public override FrameBrightness? ReadBrightness()
+    {
+        using var pixels = Lock(BitmapBufferAccessMode.Read);
+        var brightness = new byte[Width * Height];
+        var row = new byte[Width * 4];
+        for (var y = 0; y < Height; y++)
+        {
+            pixels.Read((long)y * pixels.Stride, row, 0, row.Length);
+            FrameBrightness.FromBgra(row, brightness.AsSpan(y * Width, Width));
+        }
+
+        Array.Clear(row);
+        return new FrameBrightness(Width, Height, brightness);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing && !_disposed)

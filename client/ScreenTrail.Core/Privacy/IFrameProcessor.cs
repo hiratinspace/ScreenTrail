@@ -92,6 +92,13 @@ public abstract class DecodedFrame : IDisposable
     /// <summary>Its height in pixels.</summary>
     public int Height { get; }
 
+    /// <summary>
+    /// The frame's brightness, for the checks the worker makes on the picture itself (A-02): QR codes,
+    /// and text the recogniser read no word of. Read before the masker paints. Null from a frame that
+    /// cannot give it, and then those checks are not made.
+    /// </summary>
+    public virtual FrameBrightness? ReadBrightness() => null;
+
     public void Dispose()
     {
         Dispose(disposing: true);

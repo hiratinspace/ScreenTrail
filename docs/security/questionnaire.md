@@ -114,7 +114,9 @@ this masks more than a page needs where unrelated rows happen to complete a patt
 Masking covers only text the on-device OCR engine read. Small or scaled-down text, as in a remote viewer
 shrunk to fit, is read less well: on test pages shown through a resizing viewer, the secrets not masked
 whole were mostly at 0.6 and 0.7 of their size (the data-flow document gives the figures). Pictures are
-not read, so a QR code is never masked.
+not read as text. A QR code is found by the three squares in its corners and masked whole on the
+screenshot; one turned at an angle other than a right angle, drawn so small that a module is under a
+pixel, or with a corner square covered or cut off by the window's edge, is not found and stays readable.
 
 **2.6 Does redaction run locally or in the cloud?**
 Locally, always. OCR uses the Windows on-device engine.

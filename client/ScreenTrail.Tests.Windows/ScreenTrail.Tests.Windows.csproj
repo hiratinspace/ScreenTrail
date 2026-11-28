@@ -39,6 +39,8 @@
     <Compile Include="..\ScreenTrail.Tests\Detection\RealRemoteSessions.cs" Link="Host\RealRemoteSessions.cs" />
     <!-- A-04: a pending row as a build before ADR-0006 left it, written into the file directly, since the store has no way to write one. -->
     <Compile Include="..\ScreenTrail.Tests\Store\LegacyPendingFrame.cs" Link="Store\LegacyPendingFrame.cs" />
+    <!-- A-02: the drawn frames and the QR code's fixed bit matrix the Mac suite masks, so both draw the same code. -->
+    <Compile Include="..\ScreenTrail.Tests\Privacy\PictureCanvas.cs" Link="Privacy\PictureCanvas.cs" />
   </ItemGroup>
 
   <ItemGroup>
