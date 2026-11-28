@@ -15,34 +15,17 @@ using ScreenTrail.Service.Speech;
 using ScreenTrail.Shared.Logging;
 using ScreenTrail.Shared.Settings;
 
-// Before anything else, because everything after it would already be running alongside whatever was
-// loaded. The peer check verifies the file a process started from, and .NET will happily load somebody
-// else's code into a genuine signed process if the environment asks, so an attacker needs no forged
-// binary, only our real one launched with a startup hook set (ST-012, 2026-09-19 review).
-//
-// This is the second line, not the first. A startup hook runs before Main, so by the time this check
-// runs one would already have run; the project builds with StartupHookSupport off so the runtime loads
-// none at all. What this still catches is the variables being set, which is worth refusing and saying,
-// and the profiler variables, which only packaging can fully close (ADR-0003, ST-112).
-//
-// The installer's build refuses, signed or not (B-02), and so does any signed build. A development build
-// says so and carries on, because these variables are how a profiler is attached and a rule that makes
-// debugging impossible is one somebody deletes.
-if (RunningHonestly.WhyNotToStart(RunningHonestly.IsDevelopment(BuildKind.Installer, Signing.IsDevelopmentBuild)) is { } refusal)
-{
-    Console.Error.WriteLine(refusal);
-    return 4;
-}
-
-foreach (var requested in RunningHonestly.ForeignCodeRequested())
-{
-    Console.Error.WriteLine($"Warning: {requested} is set, so this process may be running code that is not ScreenTrail's.");
-}
-
 // ST-112: the uninstaller's own step (ADR-0007). Before anything else that could take the single-instance
 // name or wait on it: it runs while a technician's copy may still be running, stops that copy, and removes
 // what every user's ScreenTrail left outside the install folder. It refuses to run for anybody but an
 // administrator, which the installer is.
+//
+// Both installer steps come before the foreign-code refusal below (C-10). Windows Installer runs them with
+// the machine's environment and ignores their exit code, so a machine-wide profiler variable would have
+// ended the uninstall step before it removed anything, and the files would have gone with every key,
+// credential and Run value left behind. Neither step reads user data or takes input, and the refusal
+// cannot keep foreign code out in any case: it only stops a process started that way going on as
+// ScreenTrail.
 if (args.Contains(InstalledFootprint.UninstallFlag, StringComparer.Ordinal))
 {
     if (!OperatingSystem.IsWindows())
@@ -66,6 +49,31 @@ if (args.Contains(InstalledFootprint.UpgradeReleaseFlag, StringComparer.Ordinal)
     }
 
     return UpgradeRelease.Run(Console.Out);
+}
+
+// Before anything else but the installer's two steps above, because everything after it would already be
+// running alongside whatever was loaded. The peer check verifies the file a process started from, and
+// .NET will happily load somebody else's code into a genuine signed process if the environment asks, so an
+// attacker needs no forged binary, only our real one launched with a startup hook set (ST-012, 2026-09-19
+// review).
+//
+// This is the second line, not the first. A startup hook runs before Main, so by the time this check
+// runs one would already have run; the project builds with StartupHookSupport off so the runtime loads
+// none at all. What this still catches is the variables being set, which is worth refusing and saying,
+// and the profiler variables, which only packaging can fully close (ADR-0003, ST-112).
+//
+// The installer's build refuses, signed or not (B-02), and so does any signed build. A development build
+// says so and carries on, because these variables are how a profiler is attached and a rule that makes
+// debugging impossible is one somebody deletes.
+if (RunningHonestly.WhyNotToStart(RunningHonestly.IsDevelopment(BuildKind.Installer, Signing.IsDevelopmentBuild)) is { } refusal)
+{
+    Console.Error.WriteLine(refusal);
+    return 4;
+}
+
+foreach (var requested in RunningHonestly.ForeignCodeRequested())
+{
+    Console.Error.WriteLine($"Warning: {requested} is set, so this process may be running code that is not ScreenTrail's.");
 }
 
 // The two utility modes first, because neither is the service and neither should be stopped by one, or
