@@ -63,6 +63,26 @@ public sealed class IpcServer : IAsyncDisposable
     public long RefusedConnections { get; private set; }
 
     /// <summary>
+    /// How many refusals of the pipe's name in a row before <see cref="NameHeld"/> is raised (security
+    /// review B-06). A name held for a moment, by this service's previous run while a UI lets go of it,
+    /// clears in fewer.
+    /// </summary>
+    public const int NameHeldNoticeAfter = 5;
+
+    /// <summary>
+    /// The pipe's name has been refused <see cref="NameHeldNoticeAfter"/> times in a row: another pipe,
+    /// perhaps another account's, holds it, and no UI can reach this service. Raised once per such run; the
+    /// server goes on trying, and the count starts again once the name is claimed. Raised on the accept
+    /// loop, so a handler must not block.
+    /// </summary>
+    public event Action? NameHeld;
+
+    /// <summary>How long the accept loop waits after a pipe instance could not be made. Settable for tests.</summary>
+    internal TimeSpan FactoryRetry { get; init; } = TimeSpan.FromSeconds(1);
+
+    private int _heldInARow;
+
+    /// <summary>
     /// How long a peer has to complete the handshake. A real client writes <c>hello</c> in the same
     /// breath as connecting; two seconds is generous for a local pipe and short enough that holding one
     /// open costs an attacker something.
@@ -187,13 +207,19 @@ public sealed class IpcServer : IAsyncDisposable
                 // from the UI. Backing off and retrying is the only safe answer, because the cause is
                 // usually the handle pressure that this loop's own connections created.
                 pipe = _pipeFactory();
+                _heldInARow = 0;
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 RefusedConnections++;
+                if (ex is PipeNameHeldException && ++_heldInARow == NameHeldNoticeAfter)
+                {
+                    NameHeld?.Invoke();
+                }
+
                 try
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(1), _stopping.Token).ConfigureAwait(false);
+                    await Task.Delay(FactoryRetry, _stopping.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {

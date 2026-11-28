@@ -572,6 +572,9 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         // The pipe opens only now. The applier keeps saved settings in memory, so a save that reached a
         // no-op apply before this point would be on disk but never in force, local-only and scope included,
         // until the next save. From here every save is applied; the hotkeys follow below, once they exist.
+        // B-06: a name that stays held means no UI can reach this service and nothing is captured, which
+        // the log alone does not tell anybody. Once per run of refusals, in the Application log.
+        server.NameHeld += () => _ = Platform.Lifecycle.RefusalEventLog.WritePipeNameHeld();
         server.Start();
 
         var mode = verifier.ServiceIsSigned ? "signed-publisher" : "dev-same-directory";
