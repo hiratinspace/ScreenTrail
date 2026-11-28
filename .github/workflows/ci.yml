@@ -1247,6 +1247,11 @@ jobs:
       - name: Laptop jobs pin their actions and skip the account profile
         run: python3 scripts/ci/check_laptop_jobs.py .
 
+      # G-04: a job that names an environment runs no package's code (no install scripts, tests or
+      # builds), and the site deploy runs Wrangler alone from a lockfile the site's lockfile already holds.
+      - name: Jobs with an environment run no package's code
+        run: python3 scripts/ci/check_site_deploy.py .
+
       - name: No duplicate keys, every job has steps
         run: |
           python3 - <<'EOF'
