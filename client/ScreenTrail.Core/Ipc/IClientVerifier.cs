@@ -77,4 +77,12 @@ public interface IServerVerifier
 {
     /// <returns>null when the server is really the service; otherwise a short reason with no content in it.</returns>
     ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default);
+
+    /// <summary>
+    /// The same check, also refusing a server process that started after the connection was made (security
+    /// review B-01 (b)). The client asks this one; a verifier that cannot tell answers as the plain check.
+    /// </summary>
+    /// <param name="connectedAt">When the connect returned, in UTC.</param>
+    ValueTask<string?> VerifyAsync(PipeStream connection, DateTime connectedAt, CancellationToken ct = default) =>
+        VerifyAsync(connection, ct);
 }

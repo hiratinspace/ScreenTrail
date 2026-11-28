@@ -38,7 +38,15 @@ public sealed class WindowsServerVerifier : IServerVerifier
     /// <summary>The path servers are compared against, for the Windows tests.</summary>
     internal string Anchor => _uiExecutable;
 
-    public ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default)
+    public ValueTask<string?> VerifyAsync(PipeStream connection, CancellationToken ct = default) =>
+        VerifyAsync(connection, DateTime.UtcNow, ct);
+
+    /// <summary>
+    /// The check, also refusing a server process that started after <paramref name="connectedAt"/>
+    /// (security review B-01 (b)): the id the pipe recorded is free to name a new process once the one
+    /// that answered has exited.
+    /// </summary>
+    public ValueTask<string?> VerifyAsync(PipeStream connection, DateTime connectedAt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
         if (connection is not NamedPipeClientStream client)
@@ -56,10 +64,15 @@ public sealed class WindowsServerVerifier : IServerVerifier
         // Asked of the kernel, and held open while the answer is used. Process.MainModule reads the
         // target's own loader data, which a same-user process can rewrite to name the real signed
         // executable, so the check would go and verify a genuine file on disk while talking to an
-        // impostor. And a process id is reused the moment its process exits, so the handle is what makes
-        // the file we verify and the peer we are talking to the same thing (2026-09-19 review).
+        // impostor (2026-09-19 review). The handle keeps the id from naming anything new while the check
+        // runs; whether it named the process that answered is the start time's question (B-01).
         using var image = ProcessImage.Of(pid);
-        return ValueTask.FromResult(image is null ? "server_process_unreadable" : Verify(image.Path));
+        if (image is null)
+        {
+            return ValueTask.FromResult<string?>("server_process_unreadable");
+        }
+
+        return ValueTask.FromResult(PeerStart.CanBeThePeer(image.StartedUtc, connectedAt) ? Verify(image.Path) : PeerStart.ServerStartedAfterConnect);
     }
 
     /// <summary>The rule itself, separated from the pipe so it can be tested with plain paths.</summary>

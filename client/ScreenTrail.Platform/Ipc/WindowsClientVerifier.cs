@@ -60,15 +60,16 @@ public sealed class WindowsClientVerifier : IClientVerifier
         // Asked of the kernel, and held open while the answer is used. Process.MainModule reads the
         // target's own loader data, which a same-user process can rewrite to name the real signed
         // executable, so the check would go and verify a genuine file on disk while talking to an
-        // impostor. The handle keeps the process object, and so its id, from being handed to anything
-        // new while it is held (2026-09-19 review).
+        // impostor (2026-09-19 review). The handle keeps the process object, and so its id, from naming
+        // anything new from here on; whether it named the process that connected is the start time's
+        // question (B-01).
         var image = ProcessImage.Of(pid);
         if (image is null)
         {
             return ValueTask.FromResult(new ClientCheck("client_process_unreadable", null));
         }
 
-        var refusal = Verify(image.Path);
+        var refusal = PeerStart.CanBeThePeer(image.StartedUtc, connectedAt) ? Verify(image.Path) : PeerStart.ClientStartedAfterConnect;
         if (refusal is not null)
         {
             image.Dispose();

@@ -6,8 +6,8 @@ using System.Security.Principal;
 namespace ScreenTrail.Platform.Ipc;
 
 /// <summary>
-/// ADR-0003 rule 1: the pipe's DACL admits only the user the service runs as, and the pipe's name is the
-/// service's own.
+/// ADR-0003 rule 1: the pipe's DACL admits only the user the service runs as, and not over the network
+/// (an explicit deny for NETWORK, security review B-01), and the pipe's name is the service's own.
 ///
 /// The service runs as the signed-in technician (started from the Run key in their session, never as
 /// SYSTEM), and so does the UI, so both ends are always the same account.
@@ -21,6 +21,8 @@ public static class WindowsPipeFactory
     /// once the UI notices; a name still held after that is worth an error.
     /// </summary>
     public const int HeldIsAnErrorAfter = 5;
+
+    private static readonly SecurityIdentifier Network = new(WellKnownSidType.NetworkSid, null);
 
     /// <summary>
     /// The service's pipe instances, one per call: the server listens on one and keeps one per client.
@@ -43,6 +45,11 @@ public static class WindowsPipeFactory
         var user = WindowsIdentity.GetCurrent().User ?? throw new InvalidOperationException("Cannot determine the current Windows user.");
         var security = new PipeSecurity();
         security.SetAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
+
+        // And nobody over the network, this user included (security review B-01 (a)). Through the SMB
+        // server the client's process id is a number the client supplies, so a connection from there could
+        // name any process it liked to the verifier. The UI is always on this machine.
+        security.AddAccessRule(new PipeAccessRule(Network, PipeAccessRights.FullControl, AccessControlType.Deny));
 
         var gate = new object();
         string? descriptor = null;
@@ -67,7 +74,7 @@ public static class WindowsPipeFactory
                     }
 
                     descriptor = DescriptorOf(first);
-                    if (descriptor is null)
+                    if (descriptor is null || !DeniesNetwork(descriptor))
                     {
                         first.Dispose();
                         throw Held(null);
@@ -109,6 +116,20 @@ public static class WindowsPipeFactory
             nameHeld?.Invoke(++refusals);
             return new PipeNameHeldException(PipeNameHeldException.Explanation, inner);
         }
+    }
+
+    /// <summary>
+    /// Whether a descriptor, as SDDL, denies the NETWORK SID full control (B-01 (a)). The first instance's
+    /// descriptor is checked with it, and every later instance is compared with that one.
+    /// </summary>
+    public static bool DeniesNetwork(string sddl)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sddl);
+        var dacl = new RawSecurityDescriptor(sddl).DiscretionaryAcl;
+        return dacl is not null && dacl.OfType<CommonAce>().Any(ace =>
+            ace.AceQualifier == AceQualifier.AccessDenied
+            && ace.SecurityIdentifier == Network
+            && ((PipeAccessRights)ace.AccessMask & PipeAccessRights.FullControl) == PipeAccessRights.FullControl);
     }
 
     /// <summary>The per-user pipe name from the user's SID.</summary>

@@ -69,10 +69,13 @@ public sealed class IpcClient : ICaptureChannel
         {
             await pipe.ConnectAsync((int)(timeout ?? TimeSpan.FromSeconds(2)).TotalMilliseconds, ct).ConfigureAwait(false);
 
+            // As soon as the connect returns: a process started after this cannot be the server (B-01).
+            var connectedAt = DateTime.UtcNow;
+
             // Before the token, not after. The token is the thing worth stealing, and a handshake that
             // proves who we are to an unverified stranger has proved it to the stranger.
             if (serverVerifier is not null
-                && await serverVerifier.VerifyAsync(pipe, ct).ConfigureAwait(false) is { } refusal)
+                && await serverVerifier.VerifyAsync(pipe, connectedAt, ct).ConfigureAwait(false) is { } refusal)
             {
                 throw new IpcUntrustedServerException(refusal);
             }

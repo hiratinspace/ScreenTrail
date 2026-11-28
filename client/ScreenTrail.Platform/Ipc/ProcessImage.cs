@@ -16,11 +16,13 @@ namespace ScreenTrail.Platform.Ipc;
 /// <c>QueryFullProcessImageName</c> answers from the kernel's own record of what was mapped, which the
 /// process cannot reach.
 ///
-/// <b>The handle is the other half.</b> A process id is reused the moment the process it named exits, so
-/// between reading the id off the pipe and looking it up there is a window where the answer describes
-/// somebody else entirely. Holding an open handle across the check pins the process object: the id
-/// cannot be handed to anything new while we are still holding it, so the file we verify and the peer we
-/// are talking to are the same thing.
+/// <b>The handle is the other half, and not all of it</b> (corrected 2026-11-28, security review B-01).
+/// Holding an open handle pins the process object, so from the moment it is opened the id cannot be handed
+/// to anything new and every later answer (the path, the start time, the windows) is about the same
+/// process. It does not reach back to before it was opened: the id a pipe records is free to name a new
+/// process once the one that connected has exited, so the process opened may not be the one that
+/// connected. <see cref="StartedUtc"/> is what tells, and the verifiers refuse a process that started after
+/// the connection (<c>PeerStart</c>).
 /// </summary>
 [SupportedOSPlatform("windows")]
 public sealed class ProcessImage : IDisposable
@@ -51,6 +53,10 @@ public sealed class ProcessImage : IDisposable
 
     /// <summary>The open handle, for a further question asked of the same process. Owned by this object.</summary>
     internal SafeProcessHandle Handle => _handle;
+
+    /// <summary>When the process started, in UTC, asked of the handle; null when Windows will not say.</summary>
+    public DateTime? StartedUtc =>
+        GetProcessTimes(_handle, out var created, out _, out _, out _) && created > 0 ? DateTime.FromFileTimeUtc(created) : null;
 
     /// <summary>
     /// Opens the process and reads its image path, keeping it open until this is disposed.
@@ -92,6 +98,10 @@ public sealed class ProcessImage : IDisposable
 
     /// <summary>Lets go of the process. Nothing may be trusted about <see cref="Path"/> after this.</summary>
     public void Dispose() => _handle.Dispose();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetProcessTimes(SafeProcessHandle process, out long creation, out long exit, out long kernel, out long user);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern SafeProcessHandle OpenProcess(
