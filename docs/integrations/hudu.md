@@ -71,7 +71,9 @@ Needs a Hudu instance with an API key, on the owner's list. When there is one:
 3. Publish a session with the KB destination on (ST-096, once the client sends the company): an article
    appears under the mapped company, **as a draft**, with one upload per included screenshot.
 4. Record here, dated: whether `draft` was honoured, whether uploads appeared on the article, and what
-   the article's `url` looked like. Correct `ScriptedHudu`'s recorded shapes from what you saw.
+   the article's `url` looked like. Correct `ScriptedHudu`'s recorded shapes from what you saw. The
+   receipt's "Open in Hudu" link is kept only when that `url` is on the connected site (same scheme,
+   host and port; a path is read on the site), so a `url` on another host means no link.
 
 ## The recorded shapes
 

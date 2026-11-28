@@ -164,7 +164,7 @@ public sealed partial class HuduProvider(HttpClient http, string apiKey, HuduOpt
                 draft = article.Draft,
             },
         };
-        var created = ProviderHttp.Read(await SendAsync(() => Post("api/v1/articles", body), ct).ConfigureAwait(false), Created, "Hudu", written: true);
+        var created = ProviderHttp.Read(await SendAsync(() => Post("api/v1/articles", body), ct).ConfigureAwait(false), answer => Created(answer, _http.BaseAddress), "Hudu", written: true);
         if (!created.Ok)
         {
             // Hudu said the company must exist: the cached list named one it has since deleted. The list
@@ -224,11 +224,35 @@ public sealed partial class HuduProvider(HttpClient http, string apiKey, HuduOpt
     private static partial void LeftOut(ILogger logger, int skipped, int maxId, int maxName);
 
     /// <summary>The new article's id and link. Hudu wraps it in <c>article</c>; a bare object is read the same way.</summary>
-    private static (string Id, Uri? Url) Created(JsonElement answer)
+    private static (string Id, Uri? Url) Created(JsonElement answer, Uri? site)
     {
         var element = answer.TryGetProperty("article", out var inner) ? inner : answer;
-        var url = element.TryGetProperty("url", out var link) && link.ValueKind == JsonValueKind.String && Uri.TryCreate(link.GetString(), UriKind.Absolute, out var uri) ? uri : null;
+        var url = element.TryGetProperty("url", out var link) && link.ValueKind == JsonValueKind.String ? OnTheSite(link.GetString(), site) : null;
         return (ProviderHttp.Id(element), url);
+    }
+
+    /// <summary>
+    /// The article's link, only when it is on the Hudu site the owner connected: the same scheme, host and
+    /// port, and no user name in it. The receipt's "Open in Hudu" opens it, so a link the answer points
+    /// anywhere else is dropped (E-10). A path is read on the site, where on Linux it would have read as a
+    /// file address.
+    /// </summary>
+    private static Uri? OnTheSite(string? text, Uri? site)
+    {
+        if (string.IsNullOrEmpty(text) || site is null || !site.IsAbsoluteUri)
+        {
+            return null;
+        }
+
+        var resolved = text.StartsWith('/') && !text.StartsWith("//", StringComparison.Ordinal)
+            ? Uri.TryCreate(site, text, out var onSite) ? onSite : null
+            : Uri.TryCreate(text, UriKind.Absolute, out var absolute) ? absolute : null;
+
+        return resolved is not null
+            && resolved.UserInfo.Length == 0
+            && Uri.Compare(resolved, site, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) == 0
+            ? resolved
+            : null;
     }
 
     private HttpRequestMessage Get(string route) => Prepare(new HttpRequestMessage(HttpMethod.Get, route));
