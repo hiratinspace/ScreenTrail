@@ -143,8 +143,40 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Finder patterns past what one search pairs, above a code: the code must not come out unmasked. A
+    /// frame the search could not finish is not stored; one it finished has the code masked.
+    /// </summary>
+    [Theory]
+    [InlineData(360, 2, 20)]
+    [InlineData(100, 3, 28)]
+    public async Task ACodeBelowMoreFinderPatternsThanOneSearchPairsIsNotLeftUnmasked(int patterns, int module, int pitch)
+    {
+        var canvas = new PictureCanvas(Width, Height);
+        var heading = canvas.DrawText(40, 24, "setup", scale: 3);
+        var across = (Width - 40) / pitch;
+        for (var i = 0; i < patterns; i++)
+        {
+            FinderPattern(canvas, 20 + (i % across * pitch), 90 + (i / across * pitch), module);
+        }
+
+        var (x, y, size) = canvas.DrawQr(560, 420, 2);
+
+        var regions = await RedactOrDropAsync(canvas, [new OcrWord("Setup", heading.X, heading.Y, heading.Width, heading.Height)]);
+
+        if (regions is not null)
+        {
+            var left = canvas.InkLeft(regions, x, y, size, size);
+            Assert.True(left == 0, $"{left} of the QR code's {canvas.Ink(x, y, size, size)} dark pixels are not masked below {patterns} finder patterns of {module} px modules, and the frame was stored");
+        }
+    }
+
     /// <summary>The frame through the real worker and store; the regions the store kept for it.</summary>
-    private async Task<IReadOnlyList<MaskedRegion>> RedactAsync(PictureCanvas canvas, IReadOnlyList<OcrWord> words)
+    private async Task<IReadOnlyList<MaskedRegion>> RedactAsync(PictureCanvas canvas, IReadOnlyList<OcrWord> words) =>
+        await RedactOrDropAsync(canvas, words) ?? throw new InvalidOperationException("the frame was not stored");
+
+    /// <summary>The frame through the real worker and store; the regions the store kept, or null when it kept no frame.</summary>
+    private async Task<IReadOnlyList<MaskedRegion>?> RedactOrDropAsync(PictureCanvas canvas, IReadOnlyList<OcrWord> words)
     {
         var ct = TestContext.Current.CancellationToken;
         _store ??= await SqliteSessionStore.OpenAsync(_path, new FixedKey(RandomNumberGenerator.GetBytes(32)), ct: ct);
@@ -155,8 +187,16 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
             _store, new Words(words), new Masker(), new RedactionEngine(), _pending, decoder: new Decoder(canvas));
         Assert.True(await worker.ProcessOneAsync(ct));
 
-        var frame = Assert.Single((await _store.LoadSessionAsync("s1", ct))!.Frames);
-        return frame.MaskedRegions;
+        var frames = (await _store.LoadSessionAsync("s1", ct))!.Frames;
+        return frames.Count == 0 ? null : Assert.Single(frames).MaskedRegions;
+    }
+
+    /// <summary>One finder pattern alone: a dark ring, a light ring and a dark centre, seven modules across.</summary>
+    private static void FinderPattern(PictureCanvas canvas, int x, int y, int module)
+    {
+        canvas.Fill(x, y, 7 * module, 7 * module, 0);
+        canvas.Fill(x + module, y + module, 5 * module, 5 * module, 255);
+        canvas.Fill(x + (2 * module), y + (2 * module), 3 * module, 3 * module, 0);
     }
 
     /// <summary>A selected radio button: a ring one sixth of its radius thick, a gap, a dot.</summary>
