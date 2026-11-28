@@ -166,6 +166,150 @@ public sealed class AdminEndpointsTests(AdminApiFixture api) : IClassFixture<Adm
     }
 
     [Fact]
+    public async Task AWithdrawnInviteCodeAnswersLikeACodeNobodyIssued()
+    {
+        // Security review D-04: an owner who pasted a code in the wrong place can take it back before
+        // anybody activates with it.
+        var owner = await api.SeedOwnerAsync();
+        using var client = api.Owner(owner);
+        var invite = await InviteAsync(client, "wrong-chat@acme.example");
+
+        using var withdrawn = await client.DeleteAsync(new Uri($"/v1/admin/invites/{invite.Id}", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var activation = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/activate", UriKind.Relative), new ActivateDeviceRequest(invite.Code, "SOMEBODY-ELSE"), TestContext.Current.CancellationToken);
+        using var again = await client.DeleteAsync(new Uri($"/v1/admin/invites/{invite.Id}", UriKind.Relative), TestContext.Current.CancellationToken);
+        var list = await client.GetFromJsonAsync<TechniciansResponse>(new Uri("/v1/admin/technicians", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, withdrawn.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, activation.StatusCode);
+        Assert.Contains("invite_unknown", await activation.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NotFound, again.StatusCode);
+        Assert.Empty(list!.Invites);
+        Assert.Equal(0, await api.UseAsync(db => db.Devices.CountAsync(d => d.TenantId == owner.TenantId)));
+    }
+
+    [Fact]
+    public async Task AnotherTenantsInviteCannotBeWithdrawnAndLooksLikeNoInvite()
+    {
+        var mine = await api.SeedOwnerAsync();
+        var theirs = await api.SeedOwnerAsync("Birch Legal");
+        var their = await api.UseAsync(db => Invites.CreateAsync(db, theirs.TenantId, "other@birch.example", "Other Tech", TimeProvider.System));
+        using var client = api.Owner(mine);
+
+        using var response = await client.DeleteAsync(new Uri($"/v1/admin/invites/{their.Id}", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var unknown = await client.DeleteAsync(new Uri($"/v1/admin/invites/{Guid.NewGuid()}", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.True(await api.UseAsync(db => db.Invites.AnyAsync(i => i.Id == their.Id && i.AcceptedAt == null)));
+    }
+
+    [Fact]
+    public async Task AnInviteThatWasUsedIsNotWithdrawnTheDeviceIsRevokedInstead()
+    {
+        var owner = await api.SeedOwnerAsync();
+        using var client = api.Owner(owner);
+        var invite = await InviteAsync(client, "used@acme.example");
+        using var activated = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/activate", UriKind.Relative), new ActivateDeviceRequest(invite.Code, "USED-LAPTOP"), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, activated.StatusCode);
+
+        using var response = await client.DeleteAsync(new Uri($"/v1/admin/invites/{invite.Id}", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+        Assert.Contains("invite_used", await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.True(await api.UseAsync(db => db.Invites.AnyAsync(i => i.Id == invite.Id && i.AcceptedAt != null)));
+    }
+
+    [Fact]
+    public async Task ADisabledTechniciansDevicesTokensAndPendingInvitesStopWorking()
+    {
+        var owner = await api.SeedOwnerAsync();
+        var other = await api.SeedOwnerAsync("Birch Legal");
+        var (_, otherDevice, otherToken) = await api.SeedDeviceAsync(other.TenantId);
+        using var client = api.Owner(owner);
+        var first = await InviteAsync(client, "leaving@acme.example");
+        using var activated = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/activate", UriKind.Relative), new ActivateDeviceRequest(first.Code, "LEAVING-LAPTOP"), TestContext.Current.CancellationToken);
+        var bound = await activated.Content.ReadFromJsonAsync<ActivatedDevice>(TestContext.Current.CancellationToken);
+        var pending = await InviteAsync(client, "leaving@acme.example");
+        var someoneElse = await InviteAsync(client, "staying@acme.example");
+        var before = await client.GetFromJsonAsync<TechniciansResponse>(new Uri("/v1/admin/technicians", UriKind.Relative), TestContext.Current.CancellationToken);
+        var technician = Assert.Single(before!.Technicians);
+
+        using var disabled = await client.PostAsync(new Uri($"/v1/admin/technicians/{technician.Id}/disable", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        using var me = await api.Device(bound!.AccessToken).GetAsync(new Uri("/v1/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        using var exchange = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/token", UriKind.Relative), new RefreshRequest(bound.RefreshToken), TestContext.Current.CancellationToken);
+        using var second = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/activate", UriKind.Relative), new ActivateDeviceRequest(pending.Code, "SPARE-LAPTOP"), TestContext.Current.CancellationToken);
+        using var again = await client.PostAsync(new Uri($"/v1/admin/technicians/{technician.Id}/disable", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        var after = await client.GetFromJsonAsync<TechniciansResponse>(new Uri("/v1/admin/technicians", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, me.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, exchange.StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, second.StatusCode);
+        Assert.Contains("invite_unknown", await second.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.NoContent, again.StatusCode);
+        var gone = Assert.Single(after!.Technicians);
+        Assert.NotNull(gone.DisabledAt);
+        Assert.NotNull(Assert.Single(gone.Devices).RevokedAt);
+        Assert.Equal(0, after.Seats.Used);
+        Assert.Equal([someoneElse.Id, first.Id], after.Invites.Select(i => i.Id).Order());
+        Assert.Contains(after.Invites, i => i.Id == someoneElse.Id && i.Status == "pending");
+
+        // The other tenant's technician is untouched.
+        using var stillWorks = await api.Device(otherToken).GetAsync(new Uri("/v1/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, stillWorks.StatusCode);
+        Assert.Null(await api.UseAsync(db => db.Devices.Where(d => d.Id == otherDevice).Select(d => d.RevokedAt).SingleAsync()));
+    }
+
+    [Fact]
+    public async Task ADisabledTechnicianIsNotInvitedAgainAndAnInviteMadeAnotherWayDoesNotSeatThem()
+    {
+        var owner = await api.SeedOwnerAsync();
+        using var client = api.Owner(owner);
+        var (userId, _, _) = await api.SeedDeviceAsync(owner.TenantId);
+        var email = await api.UseAsync(db => db.Users.Where(u => u.Id == userId).Select(u => u.Email).SingleAsync());
+        using var disabled = await client.PostAsync(new Uri($"/v1/admin/technicians/{userId}/disable", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.NoContent, disabled.StatusCode);
+
+        using var invited = await client.PostAsJsonAsync(new Uri("/v1/admin/invites", UriKind.Relative), new CreateInviteRequest(email, "A Technician"), TestContext.Current.CancellationToken);
+
+        // The operator's --invite writes an invite without asking the owner's route; activation still refuses it.
+        var direct = await api.UseAsync(db => Invites.CreateAsync(db, owner.TenantId, email, "A Technician", TimeProvider.System));
+        using var activation = await api.CreateClient().PostAsJsonAsync(new Uri("/v1/devices/activate", UriKind.Relative), new ActivateDeviceRequest(direct.Code, "BACK-AGAIN"), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.Conflict, invited.StatusCode);
+        Assert.Contains("technician_disabled", await invited.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Forbidden, activation.StatusCode);
+        Assert.Contains("technician_disabled", await activation.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), StringComparison.Ordinal);
+        Assert.Equal(0, await api.UseAsync(db => db.Devices.CountAsync(d => d.TenantId == owner.TenantId && d.RevokedAt == null)));
+        Assert.True(await api.UseAsync(db => db.Invites.AnyAsync(i => i.Id == direct.Id && i.AcceptedAt == null)));
+    }
+
+    [Fact]
+    public async Task AnotherTenantsTechnicianCannotBeDisabledAndLooksLikeNoTechnician()
+    {
+        var mine = await api.SeedOwnerAsync();
+        var theirs = await api.SeedOwnerAsync("Birch Legal");
+        var (theirUser, _, theirToken) = await api.SeedDeviceAsync(theirs.TenantId);
+        using var client = api.Owner(mine);
+
+        using var response = await client.PostAsync(new Uri($"/v1/admin/technicians/{theirUser}/disable", UriKind.Relative), null, TestContext.Current.CancellationToken);
+        using var unknown = await client.PostAsync(new Uri($"/v1/admin/technicians/{Guid.NewGuid()}/disable", UriKind.Relative), null, TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(await unknown.Content.ReadAsStringAsync(TestContext.Current.CancellationToken), await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Null(await api.UseAsync(db => db.Users.Where(u => u.Id == theirUser).Select(u => u.DisabledAt).SingleAsync()));
+        using var stillWorks = await api.Device(theirToken).GetAsync(new Uri("/v1/me", UriKind.Relative), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, stillWorks.StatusCode);
+    }
+
+    private static async Task<CreatedInvite> InviteAsync(HttpClient owner, string email)
+    {
+        using var response = await owner.PostAsJsonAsync(new Uri("/v1/admin/invites", UriKind.Relative), new CreateInviteRequest(email, null), TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<CreatedInvite>(TestContext.Current.CancellationToken))!;
+    }
+
+    [Fact]
     public async Task ThePolicyIsReadAndSetForThisTenantOnly()
     {
         var mine = await api.SeedOwnerAsync();
