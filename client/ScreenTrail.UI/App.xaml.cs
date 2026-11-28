@@ -54,8 +54,9 @@ public partial class App : Application, IDisposable
         // with StartupHookSupport off and the runtime loads none. This still refuses the variables being
         // set, and the profiler ones, which only packaging can fully close (ADR-0003, ST-112).
         //
-        // A development build says so and carries on: this is how a profiler is attached.
-        if (Core.Ipc.RunningHonestly.WhyNotToStart(Platform.Ipc.Signing.IsDevelopmentBuild) is { } refusal)
+        // The installer's build refuses, signed or not (B-02), and so does any signed build. A development
+        // build carries on: this is how a profiler is attached.
+        if (Core.Ipc.RunningHonestly.WhyNotToStart(Core.Ipc.RunningHonestly.IsDevelopment(BuildKind.Installer, Platform.Ipc.Signing.IsDevelopmentBuild)) is { } refusal)
         {
             _ = MessageBox.Show(refusal, "ScreenTrail", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(4);

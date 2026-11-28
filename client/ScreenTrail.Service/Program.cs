@@ -6,6 +6,7 @@ using ScreenTrail.Core.Ipc;
 using ScreenTrail.Core.Lifecycle;
 using ScreenTrail.Core.Speech;
 using ScreenTrail.Platform.Ipc;
+using ScreenTrail.Service;
 using ScreenTrail.Service.Capabilities;
 using ScreenTrail.Service.Capture;
 using ScreenTrail.Service.Host;
@@ -24,9 +25,10 @@ using ScreenTrail.Shared.Settings;
 // none at all. What this still catches is the variables being set, which is worth refusing and saying,
 // and the profiler variables, which only packaging can fully close (ADR-0003, ST-112).
 //
-// Signed builds refuse. A development build says so and carries on, because these variables are how a
-// profiler is attached and a rule that makes debugging impossible is one somebody deletes.
-if (RunningHonestly.WhyNotToStart(Signing.IsDevelopmentBuild) is { } refusal)
+// The installer's build refuses, signed or not (B-02), and so does any signed build. A development build
+// says so and carries on, because these variables are how a profiler is attached and a rule that makes
+// debugging impossible is one somebody deletes.
+if (RunningHonestly.WhyNotToStart(RunningHonestly.IsDevelopment(BuildKind.Installer, Signing.IsDevelopmentBuild)) is { } refusal)
 {
     Console.Error.WriteLine(refusal);
     return 4;

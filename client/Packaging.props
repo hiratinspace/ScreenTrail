@@ -18,7 +18,9 @@
 
     The runtime's diagnostics (debugger, profiler and EventPipe attach) cannot be turned off from inside
     the build: .NET 10 reads that switch only from the environment (ADR-0007 records the check). The
-    startup-hook switch is the one that can be, and is, in each project file.
+    startup-hook switch is the one that can be, and is, in each project file. The window passes
+    DOTNET_EnableDiagnostics=0, and no other runtime setting, to the capture service it starts in this
+    build (CaptureServiceStart.StartInfo).
   -->
   <PropertyGroup>
     <!-- On in every build, so a call that only works when the assemblies are files on disk (Assembly.Location,

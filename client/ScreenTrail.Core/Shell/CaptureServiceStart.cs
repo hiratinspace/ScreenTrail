@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using ScreenTrail.Core.Ipc;
 using ScreenTrail.Core.Net;
 
 namespace ScreenTrail.Core.Shell;
@@ -56,6 +58,25 @@ public static class CaptureServiceStart
 
         start();
         return true;
+    }
+
+    /// <summary>
+    /// How the service at <paramref name="path"/> is started: as the technician, from its own folder. In the
+    /// installer's build its environment is made clean first (<see cref="RunningHonestly.StartClean"/>), so
+    /// the service this window starts runs with the runtime's diagnostics off and nothing the runtime would
+    /// load before Main (B-02). A development build passes the environment on as it is, so a developer can
+    /// still attach a profiler or a debugger.
+    /// </summary>
+    public static ProcessStartInfo StartInfo(string path, bool installerBuild)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(path);
+        var start = new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(path) };
+        if (installerBuild)
+        {
+            RunningHonestly.StartClean(start.Environment);
+        }
+
+        return start;
     }
 
     /// <summary>Starts the service from <paramref name="appFolder"/>.</summary>

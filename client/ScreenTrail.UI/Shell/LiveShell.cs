@@ -538,7 +538,7 @@ public sealed class LiveShell : IAsyncDisposable
         var problem = CaptureServiceStart.Run(
             AppContext.BaseDirectory,
             File.Exists,
-            path => Process.Start(new ProcessStartInfo(path) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(path) })?.Dispose());
+            path => Process.Start(CaptureServiceStart.StartInfo(path, BuildKind.Installer))?.Dispose());
         if (problem is not null && !_disposed)
         {
             _tray.Notify(new Notification(problem, NotificationAction.None, "start-service-failed", "Capture service not started", NotificationLevel.Warning));
