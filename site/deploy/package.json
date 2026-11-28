@@ -1,0 +1,12 @@
+{
+  "name": "screentrail-site-deploy",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Wrangler on its own, for the deploy job of site-deploy.yml. Same version as in site/package.json.",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "wrangler": "4.166.0"
+  }
+}

@@ -15,7 +15,8 @@ Decided 2026-11-18 after a review of what could go wrong with a security product
 | Cross-site scripting | `Content-Security-Policy` with `default-src 'none'`, scripts and styles from the site only, and Trusted Types required. `src/scripts/home.ts` never writes HTML from a string, and ESLint forbids `innerHTML`. |
 | Spam or abuse through the form | Same-origin check, a hidden honeypot field, a size limit, strict field checks and a rate limit of five posts a minute per address. No third-party CAPTCHA, so no third-party script; Turnstile can be added if spam gets through. |
 | The form leaking what people typed | One plain-text email to one fixed inbox (the binding cannot send anywhere else). Nothing is stored; only an error code is ever logged; Cloudflare's request logs are off. |
-| A stranger's pull request deploying, or reading the token | Deploys come only from `main` (`.github/workflows/site-deploy.yml`), with the token in the `site-production` environment. Pull requests run the Site job in `ci.yml`, which has no secrets. Actions in the deploy job are pinned to commits. |
+| A stranger's pull request deploying, or reading the token | Deploys come only from `main` (`.github/workflows/site-deploy.yml`), with the token in the `site-production` environment. Pull requests run the Site job in `ci.yml`, which has no secrets. Actions in the deploy workflow are pinned to commits. |
+| A compromised npm package reaching the deploy token | The workflow has two jobs. The build job installs, tests and builds with no environment and no secret, and hands over `dist/` alone. The deploy job, the only one in `site-production`, installs Wrangler on its own from `site/deploy/` with `npm ci --ignore-scripts` (its lockfile holds only packages `site/package-lock.json` already pins, at the same versions and hashes) and runs nothing else. `scripts/ci/check_site_deploy.py` holds that shape, and refuses an install script, test or build in any job with an environment. Keep `site/deploy/package.json`'s Wrangler at the same version as `site/package.json`'s: after a Dependabot update, run `npm install --package-lock-only --ignore-scripts` in `site/deploy/` with the new version. |
 | Claims the product does not keep | The copy is held to `docs/STATUS.md`: no redaction guarantee, targets marked as targets, the ConnectWise and Hudu connections called built but not yet checked against live accounts. Change the copy when the status changes. |
 | Being tied to one host | The output is plain files plus a 120-line Worker; moving to another host is an afternoon. |
 
@@ -64,13 +65,20 @@ Do these once, in order. Nothing deploys until step 6.
 3. **Email for the form.** In Cloudflare, turn on Email Service sending for the domain
    (`npx wrangler email sending enable <domain>`), and choose two addresses: a sender on the domain (for
    example `pilot-form@<domain>`) and the inbox that receives enquiries.
-4. **A deploy token.** In Cloudflare, create an API token from the "Edit Cloudflare Workers" template,
-   limited to this account and, under Zone Resources, to this domain. Note the account ID.
+4. **A deploy token.** The site has a Cloudflare account of its own, holding no other Worker, and the
+   product's host names live outside it (DEC-10): a token for Workers reaches every Worker in its
+   account. In that account, create a **custom** API token with one permission, Account, Workers
+   Scripts, Edit, limited to this account (not the "Edit Cloudflare Workers" template, which also
+   grants Workers Routes on the zone and more). Note the account ID. If Wrangler cannot attach the custom
+   domain with this token on the first deploy, attach it to the Worker once by hand (Workers, the
+   Worker, Settings, Domains and Routes).
 5. **The GitHub environment.** In the repository's Settings, Environments, create `site-production`:
    - Deployment branches: **main only**. Optionally add yourself as a required reviewer.
    - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
-   - Variables: `SITE_URL` (for example `https://screentrail.com`, no trailing slash),
-     `SITE_CONTACT_EMAIL`, `SITE_SECURITY_EMAIL`, `SITE_PILOT_FROM`, `SITE_PILOT_TO`.
+   - Variables: `SITE_PILOT_FROM`, `SITE_PILOT_TO`.
+   - And as **repository** variables (Settings, Secrets and variables, Actions, Variables), because the
+     build job names no environment: `SITE_URL` (for example `https://screentrail.com`, no trailing
+     slash), `SITE_CONTACT_EMAIL`, `SITE_SECURITY_EMAIL`. All three are printed on the site anyway.
 
    This changes none of the three settings that protect the laptop runner.
 6. **Turn it on.** Add the repository variable `SITE_DEPLOY` = `true`, then run "Deploy site" from the
