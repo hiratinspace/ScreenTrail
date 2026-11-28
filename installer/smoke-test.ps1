@@ -572,10 +572,16 @@ try {
 }
 Check 'the installed service answers --capabilities with JSON' (($code -eq 0 -or $code -eq 1) -and $null -ne $json) "exit $code"
 
-$gallery = Join-Path $Logs 'gallery'
-$code = Invoke-Process $uiExe "--gallery --screenshot `"$gallery`"" 180
-$pngs = @(Get-ChildItem $gallery -Filter '*.png' -ErrorAction SilentlyContinue)
-Check 'the installed UI renders its gallery (WPF from the single file)' ($code -eq 0 -and $pngs.Count -ge 3) "exit $code, $($pngs.Count) images"
+# K6: the screenshot harness is compiled out of the installer's build, so the installed UI carries none of
+# its switches (the single file is not compressed, so its strings are there to read). WPF from the single
+# file is proved below, where the installed UI is started and opens its window for Restart Manager.
+# A .NET string is UTF-16 and may start at an odd offset, so the file is read both ways.
+$uiBytes = [System.IO.File]::ReadAllBytes($uiExe)
+$uiText = @([System.Text.Encoding]::Unicode.GetString($uiBytes, 0, $uiBytes.Length), [System.Text.Encoding]::Unicode.GetString($uiBytes, 1, $uiBytes.Length - 1))
+$switches = @(@('--screenshot', '--gallery', '--note', '--hud') | Where-Object { $name = $_; @($uiText | Where-Object { $_.Contains($name) }).Count -gt 0 })
+$uiText = $null
+$uiBytes = $null
+Check "the installed UI has no screenshot harness (none of its switches is in the file)" ($switches.Count -eq 0) "found: $($switches -join ', ')"
 
 Check 'the installed service starts and writes its pipe token' (Start-InstalledService)
 

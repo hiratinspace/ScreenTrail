@@ -63,9 +63,17 @@ public partial class App : Application, IDisposable
             return;
         }
 
+        // The screenshot harness (CI's renders of the shell, the gallery, the note pane and the pill) is
+        // compiled out of the installer's build (K6): an installed UI started with one of its switches is
+        // the application, never a sample window drawn from fixture files.
+#if SCREENTRAIL_INSTALLER
+        var harness = false;
+#else
         var args = e.Args;
         var screenshotIndex = Array.IndexOf(args, "--screenshot");
         var directory = screenshotIndex >= 0 && screenshotIndex + 1 < args.Length ? args[screenshotIndex + 1] : null;
+        var harness = Array.IndexOf(args, "--gallery") >= 0 || Array.IndexOf(args, "--note") >= 0 || directory is not null;
+#endif
 
         // Dark for the screenshot harnesses below, which set each theme they draw. The application takes
         // the technician's Settings, Appearance choice (ST-070), Windows' app mode until they choose, read
@@ -73,7 +81,6 @@ public partial class App : Application, IDisposable
         // dictionary first and then its own (review finding D-28). High contrast always wins: Apply
         // substitutes it, so every caller gets that rather than only this one, and FollowSystem keeps it
         // true if Windows switches while the app is running, as it keeps a System choice on Windows' app mode.
-        var harness = Array.IndexOf(args, "--gallery") >= 0 || Array.IndexOf(args, "--note") >= 0 || directory is not null;
         if (harness)
         {
             ThemeManager.Apply(AppTheme.Dark, Resources);
@@ -86,6 +93,7 @@ public partial class App : Application, IDisposable
 
         ThemeManager.FollowSystem(Resources);
 
+#if !SCREENTRAIL_INSTALLER
         Window window;
         if (Array.IndexOf(args, "--gallery") >= 0)
         {
@@ -136,6 +144,7 @@ public partial class App : Application, IDisposable
             window = new ShellWindow(directory);
         }
         else
+#endif
         {
             // The application (ST-085). Everything above this line is a screenshot harness; this is the
             // only path that connects to the capture service, and until it existed the UI process was a
@@ -188,11 +197,15 @@ public partial class App : Application, IDisposable
             _live = new Shell.LiveShell();
             _instance.OnShowAsked(_live.ShowWindow);
             _ = _live.StartAsync(opensWindow);
+#if !SCREENTRAIL_INSTALLER
             return;
+#endif
         }
 
+#if !SCREENTRAIL_INSTALLER
         MainWindow = window;
         window.Show();
+#endif
     }
 
     private static void Report(Exception crash) =>
