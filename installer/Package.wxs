@@ -25,8 +25,13 @@
     <!-- The UpgradeCode above is how Windows recognises an older ScreenTrail; it never changes
          (InstallerAuthoringTests holds it). An upgrade removes the old version completely before the new
          one is installed, and that removal is an uninstall with UPGRADINGPRODUCTCODE set, which is what
-         keeps the user-data step below from running during it. -->
-    <MajorUpgrade DowngradeErrorMessage="A newer version of ScreenTrail is already installed. Uninstall it first to install this one." />
+         keeps the user-data step below from running during it. A package of the version already installed
+         replaces it the same way (AllowSameVersionUpgrades): every build has a product code of its own, and
+         two builds can carry one version (a local build left at 0.1.0, the unsigned and the signed package
+         of one CI run), so the second is an upgrade too and one ScreenTrail stays registered. The version is
+         three fields (build.ps1), so no fourth field goes unnoticed. -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+                  DowngradeErrorMessage="A newer version of ScreenTrail is already installed. Uninstall it first to install this one." />
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
 

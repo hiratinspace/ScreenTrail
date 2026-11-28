@@ -21,6 +21,11 @@
     An older package built from the same payload. Installed first, so the test can check that an
     upgrade replaces it and keeps the user's data.
 
+.PARAMETER RebuiltMsi
+    A second package of the same version, built from the same payload (so with a product code of its
+    own). Installed over the package, to check it replaces it as an upgrade: one product registered, no
+    uninstall step run, the user's data kept.
+
 .PARAMETER Bundle
     ScreenTrail-Setup.exe. Installed and uninstalled after the package, with a link planted where the
     data folder would be, to check the uninstall leaves what a link points at untouched. Installed with
@@ -35,6 +40,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Msi,
     [Parameter(Mandatory = $true)][string]$Version,
     [string]$OlderMsi,
+    [string]$RebuiltMsi,
     [string]$Bundle,
     [string]$Logs = (Join-Path ([IO.Path]::GetTempPath()) 'screentrail-installer-logs'),
     [switch]$Force
@@ -306,6 +312,54 @@ function Get-BackendUrl {
     }
 }
 
+function Invoke-Member($Object, [string]$Name, [string]$Kind, [object[]]$Arguments) {
+    # Windows Installer's automation objects are late-bound COM, so each call goes through IDispatch by name.
+    return $Object.GetType().InvokeMember($Name, [Reflection.BindingFlags]$Kind, $null, $Object, $Arguments)
+}
+
+function Get-MsiProperty([string]$Path, [string]$Name) {
+    # A value from a package's Property table, read with the database opened read-only and closed again
+    # before anything installs the package.
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $database = Invoke-Member $installer 'OpenDatabase' 'InvokeMethod' @($Path, 0)
+    $view = Invoke-Member $database 'OpenView' 'InvokeMethod' @(('SELECT `Value` FROM `Property` WHERE `Property` = ''{0}''' -f $Name))
+    $record = $null
+    $value = $null
+    try {
+        $null = Invoke-Member $view 'Execute' 'InvokeMethod' $null
+        $record = Invoke-Member $view 'Fetch' 'InvokeMethod' $null
+        if ($null -ne $record) {
+            $value = [string](Invoke-Member $record 'StringData' 'GetProperty' @(1))
+        }
+    } finally {
+        $null = Invoke-Member $view 'Close' 'InvokeMethod' $null
+        foreach ($object in @($record, $view, $database, $installer) | Where-Object { $null -ne $_ }) {
+            $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($object)
+        }
+        $record = $null
+        $view = $null
+        $database = $null
+        $installer = $null
+        [GC]::Collect()
+        [GC]::WaitForPendingFinalizers()
+    }
+    return $value
+}
+
+function Get-RelatedProducts([string]$UpgradeCode) {
+    # The product codes Windows Installer has registered under the upgrade code, one per line of output.
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    try {
+        $list = Invoke-Member $installer 'RelatedProducts' 'GetProperty' @($UpgradeCode)
+        $count = [int](Invoke-Member $list 'Count' 'GetProperty' $null)
+        for ($i = 0; $i -lt $count; $i++) {
+            [string](Invoke-Member $list 'Item' 'GetProperty' @($i))
+        }
+    } finally {
+        $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($installer)
+    }
+}
+
 function Test-AddressNotLogged([string]$What, [string]$Prefix) {
     # The setup program's log and the package's log it writes beside it (and msiexec's own) name BACKENDURL
     # but show the value as asterisks: the variable and the package's properties are hidden. One line is
@@ -478,7 +532,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 if (-not $Force -and ((Test-Path $installDir) -or (Test-Path $dataDir))) {
     throw "ScreenTrail is installed here, or $dataDir exists. This test uninstalls it and deletes that folder; run it on a throwaway machine, or pass -Force."
 }
-foreach ($file in @($Msi, $OlderMsi, $Bundle) | Where-Object { $_ }) {
+foreach ($file in @($Msi, $OlderMsi, $RebuiltMsi, $Bundle) | Where-Object { $_ }) {
     if (-not (Test-Path $file)) {
         throw "$file does not exist."
     }
@@ -866,6 +920,57 @@ if ($OlderMsi) {
     }
     $pending = @(Get-PendingRestartFiles)
     Check 'no installed file is left for the next restart at the end' ($pending.Count -eq 0) ($pending -join ', ')
+    if (Test-Path $dataDir) {
+        Remove-Item $dataDir -Recurse -Force
+    }
+}
+
+# --- A second package of the same version replaces the installed one ------------------------------------
+# C-09: every build has a product code of its own, and two builds can carry one version (a local build left
+# at its default, the unsigned and the signed package of one CI run). Installed over the first, the second
+# must replace it as an upgrade: one product registered under the upgrade code, no uninstall step run, the
+# user's data kept. Its uninstall is then the only one there is.
+if ($RebuiltMsi) {
+    $RebuiltMsi = (Resolve-Path $RebuiltMsi).Path
+    Write-Step 'A rebuilt package of the same version replaces the installed one'
+    $upgradeCode = $null
+    $firstCode = $null
+    $rebuiltCode = $null
+    $alike = $false
+    try {
+        $upgradeCode = Get-MsiProperty $Msi 'UpgradeCode'
+        $firstCode = Get-MsiProperty $Msi 'ProductCode'
+        $rebuiltCode = Get-MsiProperty $RebuiltMsi 'ProductCode'
+        $alike = (Get-MsiProperty $RebuiltMsi 'ProductVersion') -eq (Get-MsiProperty $Msi 'ProductVersion') -and (Get-MsiProperty $RebuiltMsi 'UpgradeCode') -eq $upgradeCode
+    } catch {
+        Write-Host "  Reading the packages' Property tables failed: $($_.Exception.Message)"
+    }
+    Check 'the rebuilt package has the same version and upgrade code, and a product code of its own' ($alike -and $firstCode -and $rebuiltCode -and $rebuiltCode -ne $firstCode) "$firstCode then $rebuiltCode"
+    $code = Invoke-Msi '/i' $Msi 'install-same-version.log'
+    Check 'msiexec /i /qn exits 0 (before the rebuilt package)' ($code -eq 0) "exit $code"
+    Check 'the installed service starts and writes its pipe token' (Start-InstalledService)
+    $since = Get-Date
+    $code = Invoke-Msi '/i' $RebuiltMsi 'install-same-version-rebuilt.log'
+    Check 'msiexec /i rebuilt /qn over the same version exits 0, with no restart needed' ($code -eq 0) "exit $code"
+    $related = @(if ($upgradeCode) { Get-RelatedProducts $upgradeCode })
+    Check 'exactly one product is registered under the upgrade code, the rebuilt one' ($related.Count -eq 1 -and $related[0] -eq $rebuiltCode) ($related -join ', ')
+    Check 'the replacement ran no uninstall step' (@(Get-UninstallReport $Logs $since).Count -eq 0)
+    Check 'the replacement kept the user data (store key still there)' (Test-Path (Join-Path $dataDir 'store.key'))
+    Test-InstalledLayout $version
+
+    Write-Step 'Silent uninstall after the same-version replacement'
+    $since = Get-Date
+    $n = 0
+    # Every product left under the upgrade code (one, or two if the second installed beside the first);
+    # by the packages themselves if the code could not be read.
+    $products = $(if ($upgradeCode) { @(Get-RelatedProducts $upgradeCode) } else { @($RebuiltMsi, $Msi) })
+    foreach ($product in $products) {
+        $n++
+        $code = Invoke-Msi '/x' $product "uninstall-same-version-$n.log"
+        Check "msiexec /x $product /qn exits 0, with no restart needed" ($code -eq 0 -or ($code -eq 1605 -and -not $upgradeCode)) "exit $code"
+    }
+    Test-Removed
+    Test-ReleaseWait (Get-UninstallReport $Logs $since)
     if (Test-Path $dataDir) {
         Remove-Item $dataDir -Recurse -Force
     }

@@ -441,12 +441,15 @@ jobs:
         run: ./installer/update-manifest.ps1 -Channel pilot -Msi artifacts/installer/packages/ScreenTrail.msi -Version "0.1.${{ github.run_number }}" -Out artifacts/installer/manifests
       - name: Build an older package from the same payload, for the upgrade check
         run: ./installer/package.ps1 -Step Msi -Version "0.0.${{ github.run_number }}" -MsiName ScreenTrail-older.msi
+      - name: Build a second package of the same version from the same payload, for the same-version check
+        run: ./installer/package.ps1 -Step Msi -Version "0.1.${{ github.run_number }}" -MsiName ScreenTrail-rebuilt.msi
       - name: Smoke test (silent install, upgrade, uninstall, setup program)
         run: >-
           ./installer/smoke-test.ps1
           -Msi artifacts/installer/packages/ScreenTrail.msi
           -Version "0.1.${{ github.run_number }}"
           -OlderMsi artifacts/installer/packages/ScreenTrail-older.msi
+          -RebuiltMsi artifacts/installer/packages/ScreenTrail-rebuilt.msi
           -Bundle artifacts/installer/packages/ScreenTrail-Setup.exe
           -Logs "${{ runner.temp }}/installer-logs"
       - name: Upload the unsigned installer

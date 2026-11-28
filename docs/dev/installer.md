@@ -48,7 +48,9 @@ pull request.
 
 CI builds it on every pull request that touches `client/` or `installer/` (the **Installer (Windows)**
 job): it runs the same steps the signing job runs, with nothing signed, then installs, upgrades over an
-older build, runs both installed programs, uninstalls, and checks what each step left. It also upgrades
+older build, runs both installed programs, uninstalls, and checks what each step left. It also builds a
+second package of the same version from the same payload and installs it over the first, and checks that
+it replaced it as an upgrade: one product registered, no uninstall step run, the user's data kept. It also upgrades
 three ways (msiexec `/qn`, the update installer's `/passive /norestart`, and the setup program) while
 another process reads `ScreenTrail.Service.exe` for 4 seconds from the moment the old service ends, and
 each must exit 0 with nothing left for a restart. It installs the setup program with `BACKENDURL` and
@@ -381,7 +383,8 @@ Left out, nothing is written (see below).
   program was run again after a restart, and without `/norestart` a `/quiet` install restarted the
   machine without asking. Keep `/norestart` on every command line all the same.
 - **Upgrades:** deploy the newer package the same way. It replaces the old version and keeps every
-  user's data. Running ScreenTrail processes are ended first, so no restart is needed. That reaches
+  user's data. A package of the version already installed (a rebuild, or the signed package of the same
+  build) replaces it the same way; only an older version is refused. Running ScreenTrail processes are ended first, so no restart is needed. That reaches
   every signed-in user when the installer runs as the system account (as Intune and RMM tools run it);
   run by hand from one user's session, it may only reach that session. Where Windows Installer's Restart
   Manager reaches a session (the session the installer was started from), it asks first, and both
