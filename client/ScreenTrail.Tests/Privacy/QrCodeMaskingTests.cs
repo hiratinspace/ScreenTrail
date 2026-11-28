@@ -190,7 +190,7 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
 
         // Under it, with more finders than any code needs: every one is paired, so the code below is found.
         var under = new PictureCanvas(Width, Height);
-        for (var i = 0; i < 100; i++)
+        for (var i = 0; i < 80; i++)
         {
             FinderPattern(under, 20 + (i % 44 * 28), 90 + (i / 44 * 28), 3);
         }
@@ -204,10 +204,10 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
     [Fact]
     public void PairingTheMostFindersOneSearchKeepsStaysWithinTheFrameBudget()
     {
-        // The bound's worst case: a full HD frame holding as many finders as are kept, all one size, so
+        // The bound's worst case: a full HD frame holding as many finders as are paired, all one size, so
         // none is ruled out before the geometry. Every three of them are tried.
         var canvas = new PictureCanvas(1920, 1080);
-        for (var i = 0; i < QrCodeFinder.MaxCandidates; i++)
+        for (var i = 0; i < QrCodeFinder.MaxFinders; i++)
         {
             FinderPattern(canvas, 20 + (i % 90 * 21), 20 + (i / 90 * 21), 2);
         }
@@ -223,7 +223,7 @@ public sealed class QrCodeMaskingTests : IAsyncDisposable
         }
 
         times.Sort();
-        Assert.True(times[2] < 250, $"pairing {QrCodeFinder.MaxCandidates} finders took a median of {times[2]:F0} ms");
+        Assert.True(times[2] < 250, $"pairing {QrCodeFinder.MaxFinders} finders took a median of {times[2]:F0} ms");
     }
 
     [Fact]

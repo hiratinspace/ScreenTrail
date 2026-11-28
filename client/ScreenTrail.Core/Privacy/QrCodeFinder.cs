@@ -41,6 +41,18 @@ internal static class QrCodeFinder
     /// </summary>
     internal const int MaxCandidates = 256;
 
+    /// <summary>
+    /// Finder patterns seen on two rows or more that are paired into codes, at most: every three are tried,
+    /// so this bounds the pairing. Room for thirty-two codes; a frame with more is not wholly searched.
+    /// </summary>
+    internal const int MaxFinders = 96;
+
+    /// <summary>
+    /// Codes from one frame, at most, after squares that overlap are joined. A frame with more is not
+    /// wholly searched: what it holds is not codes a page shows but a pattern made to look like many.
+    /// </summary>
+    internal const int MaxCodes = 32;
+
     /// <summary>How far past a finder's centre, in modules, the code's square and its margin reach.</summary>
     private const double Reach = 4.5;
 
@@ -53,15 +65,23 @@ internal static class QrCodeFinder
         foreach (var ink in new[] { true, false })
         {
             var (finders, complete) = Finders(dark, frame.Width, frame.Height, ink);
-            if (!complete)
+            if (!complete || finders.Count > MaxFinders)
             {
-                return new QrSearch(found, Complete: false);
+                return new QrSearch([], Complete: false);
             }
 
-            found.AddRange(Codes(finders, frame.Width, frame.Height));
+            foreach (var code in Codes(finders, frame.Width, frame.Height))
+            {
+                found.Add(code);
+                if (found.Count > MaxCodes * 16)
+                {
+                    return new QrSearch([], Complete: false);
+                }
+            }
         }
 
-        return new QrSearch(found, Complete: true);
+        var joined = Joined(found);
+        return joined.Count > MaxCodes ? new QrSearch([], Complete: false) : new QrSearch(joined, Complete: true);
     }
 
     /// <summary>Each pixel dark (true) or light, against the contrast of the 3 by 3 tiles round it.</summary>
@@ -305,6 +325,38 @@ internal static class QrCodeFinder
         }
 
         return new Finder(x + horizontal.Middle, cy + vertical.Middle, (horizontal.Total + vertical.Total) / 14.0, 1);
+    }
+
+    /// <summary>Squares that overlap, as one square round both, until none overlap.</summary>
+    private static List<MaskedRegion> Joined(List<MaskedRegion> squares)
+    {
+        var joined = new List<MaskedRegion>(squares);
+        for (var merged = true; merged;)
+        {
+            merged = false;
+            for (var i = 0; i < joined.Count && !merged; i++)
+            {
+                for (var j = i + 1; j < joined.Count && !merged; j++)
+                {
+                    var (a, b) = (joined[i], joined[j]);
+                    if (a.X < b.X + b.Width && b.X < a.X + a.Width && a.Y < b.Y + b.Height && b.Y < a.Y + a.Height)
+                    {
+                        var (left, top) = (Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+                        joined[i] = a with
+                        {
+                            X = left,
+                            Y = top,
+                            Width = Math.Max(a.X + a.Width, b.X + b.Width) - left,
+                            Height = Math.Max(a.Y + a.Height, b.Y + b.Height) - top,
+                        };
+                        joined.RemoveAt(j);
+                        merged = true;
+                    }
+                }
+            }
+        }
+
+        return joined;
     }
 
     /// <summary>
