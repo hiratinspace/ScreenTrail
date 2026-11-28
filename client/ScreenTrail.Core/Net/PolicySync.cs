@@ -210,7 +210,9 @@ public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCach
 
     /// <summary>
     /// The policy that just took effect, in the audit log (ST-045). Its version is the detail when it is a
-    /// label, as the backend's are; anything else is left out rather than written (INV-10).
+    /// label, as the backend's are; anything else is left out rather than written (INV-10). The version
+    /// comes from the backend rather than from an enum or a host, so a line break in it is refused here as
+    /// well as by the label rule.
     ///
     /// A store that cannot take the row does not stop the sync: the policy is already in force, and the
     /// loop that would end here is the one that lifts and sets local-only.
@@ -225,7 +227,7 @@ public sealed class PolicySync(HttpClient http, Func<string?> token, IPolicyCach
         try
         {
             await audit.RecordAsync(
-                AuditTypes.PolicyApplied, null, null, AuditDetail.IsValid(policy.Version) ? policy.Version : null, ct).ConfigureAwait(false);
+                AuditTypes.PolicyApplied, null, null, AuditDetail.IsValid(policy.Version) && !policy.Version.Contains('\n', StringComparison.Ordinal) ? policy.Version : null, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
