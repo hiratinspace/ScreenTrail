@@ -81,6 +81,41 @@ public sealed class PipeSettingsGatewaysTests : IAsyncDisposable
         Assert.True(sent[0].Settings.Telemetry);
     }
 
+    [Fact]
+    public async Task BothSettingsGatewaysCarryTheTokenTheServiceIssuedOnTheSave()
+    {
+        // A-03 (d): a save that changes masking or widens capture is refused without a token from the same
+        // connection, so each gateway asks for one before it saves and sends it back on the save. It also
+        // brings back whether the built-in rules are locked, apart from the technician's own values.
+        _service.Reply = command => command switch
+        {
+            RequestConfirmationCommand { Action: SettingsCommands.ConfirmAction } => new ConfirmationIssued { Token = "privacy-token", Phrase = "SAVE" },
+            RequestConfirmationCommand { Action: CaptureSettingsCommands.ConfirmAction } => new ConfirmationIssued { Token = "capture-token", Phrase = "SAVE" },
+            GetSettingsCommand => new SettingsReported
+            {
+                Settings = new ClientSettings { Passwords = false },
+                LocalOnlyLocked = false,
+                RetentionLocked = false,
+                PolicyVersion = "default",
+                EffectiveLocalOnly = false,
+                EffectiveRetentionDays = 7,
+                BuiltInRulesLocked = true,
+            },
+            _ => null,
+        };
+        _service.Result = command => new CommandResult { RequestId = command.RequestId, Ok = true };
+        var connection = await ConnectAsync();
+
+        var snapshot = await new PipePrivacy(connection).LoadAsync(TestContext.Current.CancellationToken);
+        Assert.Null(await new PipePrivacy(connection).SaveAsync(new ClientSettings { Emails = true }, TestContext.Current.CancellationToken));
+        Assert.Null(await new PipeCapture(connection).SaveAsync(new CaptureSettings { CaptureAllWindows = true }, TestContext.Current.CancellationToken));
+
+        Assert.True(snapshot!.BuiltInRulesLocked);
+        Assert.False(snapshot.Settings.Passwords);
+        Assert.Equal("privacy-token", Assert.Single(_service.Received.OfType<SetSettingsCommand>()).Confirmation);
+        Assert.Equal("capture-token", Assert.Single(_service.Received.OfType<SetCaptureSettingsCommand>()).Confirmation);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

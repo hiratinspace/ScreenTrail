@@ -322,6 +322,37 @@ public sealed class PolicyApplierTests : IAsyncDisposable
     }
 
     [Fact]
+    public void InAnInstalledCopyTheBuiltInRulesStayOnWhateverTheSettingsSay()
+    {
+        // DEC-06: until the tenant's policy carries a floor, the four built-in rules are not switched off in
+        // an installed build, whether the file at start or a save says so.
+        const string Typed = "password: Hunter2-Test card 4111 1111 1111 1111";
+        var off = new ClientSettings { Ssn = false, Cards = false, ApiKeys = false, Passwords = false };
+        using var rig = new Rig(off, builtInRulesLocked: true);
+
+        _ = rig.Applier.Apply();
+        var atStart = rig.Redaction.ScrubText(Typed).Text;
+        _ = rig.Applier.Apply(off with { Emails = true });
+        var afterSave = rig.Redaction.ScrubText(Typed).Text;
+
+        Assert.DoesNotContain("Hunter2-Test", atStart, StringComparison.Ordinal);
+        Assert.DoesNotContain("4111 1111 1111 1111", atStart, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hunter2-Test", afterSave, StringComparison.Ordinal);
+        Assert.DoesNotContain("4111 1111 1111 1111", afterSave, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ADevelopmentBuildStillAppliesTheTechniciansOwnSwitches()
+    {
+        const string Typed = "password: Hunter2-Test";
+        using var rig = new Rig(new ClientSettings { Passwords = false });
+
+        _ = rig.Applier.Apply();
+
+        Assert.Contains("Hunter2-Test", rig.Redaction.ScrubText(Typed).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void EveryApplyReportsWhatIsNowInForce()
     {
         using var rig = new Rig();
@@ -440,7 +471,7 @@ public sealed class PolicyApplierTests : IAsyncDisposable
     /// </summary>
     private sealed class Rig : IDisposable
     {
-        public Rig(ClientSettings? settings = null, CaptureSettings? capture = null)
+        public Rig(ClientSettings? settings = null, CaptureSettings? capture = null, bool builtInRulesLocked = false)
         {
             Egress = new EgressPolicy(EgressSettings.ForBackend(Address, SpeechModels.Hosts));
             Http = new HttpClient(new EgressGuard(Egress, Backend)) { BaseAddress = Address };
@@ -448,7 +479,7 @@ public sealed class PolicyApplierTests : IAsyncDisposable
             var registry = RemoteToolRegistry.Load(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Registry", "remote-tools.json")));
             Scope = new ScopePolicy(registry, new ScopeOptions { Exclusions = ExclusionList.Load(Exclusions) });
             Trigger = new SessionTrigger(Scope);
-            Applier = new PolicyApplier(Sync, settings ?? new ClientSettings(), capture ?? new CaptureSettings(), Egress, Retention, Scope, Trigger, Sampler, Redaction);
+            Applier = new PolicyApplier(Sync, settings ?? new ClientSettings(), capture ?? new CaptureSettings(), Egress, Retention, Scope, Trigger, Sampler, Redaction, builtInRulesLocked);
         }
 
         public ScriptedBackend Backend { get; } = new();

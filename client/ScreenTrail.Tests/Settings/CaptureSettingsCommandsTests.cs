@@ -45,6 +45,37 @@ public sealed class CaptureSettingsCommandsTests : IDisposable
     }
 
     [Fact]
+    public async Task AllWindowsOverThePipeWithoutAConfirmationIsRefused()
+    {
+        // INV-5 and A-03 (d): every window is an opt-in somebody confirmed, so the service asks for the
+        // token as well as the screen asking for the tick. Turning it off again needs none.
+        var applied = new List<CaptureSettings>();
+        var commands = Commands(TenantPolicy.Default, applied.Add);
+
+        var refused = await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 2, Settings = new CaptureSettings { CaptureAllWindows = true } }, TestContext.Current.CancellationToken);
+
+        Assert.False(refused!.Ok);
+        Assert.Empty(applied);
+        Assert.False(new CaptureSettingsStore(Path.Combine(_dir, "capture.json")).Load().CaptureAllWindows);
+    }
+
+    [Fact]
+    public async Task AllWindowsWithTheConnectionsTokenIsSavedAndTurningItOffNeedsNone()
+    {
+        var commands = Commands(TenantPolicy.Default);
+        var window = Guid.NewGuid();
+        var issued = commands.Confirm(new RequestConfirmationCommand { RequestId = 1, Action = CaptureSettingsCommands.ConfirmAction }, window);
+        Assert.NotNull(issued);
+
+        var on = await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 2, Settings = new CaptureSettings { CaptureAllWindows = true }, Confirmation = issued.Token }, window, TestContext.Current.CancellationToken);
+        var off = await commands.HandleAsync(new SetCaptureSettingsCommand { RequestId = 3, Settings = new CaptureSettings { CaptureAllWindows = false } }, window, TestContext.Current.CancellationToken);
+
+        Assert.True(on!.Ok, on.Error);
+        Assert.True(off!.Ok, off.Error);
+        Assert.Null(commands.Confirm(new RequestConfirmationCommand { RequestId = 4, Action = SettingsCommands.ConfirmAction }, window));
+    }
+
+    [Fact]
     public async Task TwoSavesAtOnceLeaveTheFileAndWhatIsInForceTheSame()
     {
         // As for Settings → Privacy: the second save waits until the first has written and applied, so the

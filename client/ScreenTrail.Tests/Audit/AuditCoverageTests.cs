@@ -81,6 +81,52 @@ public sealed class AuditCoverageTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ASettingsFileChangedOnDiskIsRecordedAtTheNextStart()
+    {
+        // A-03 (c): an edit made to the files while the service was not running is found at start and
+        // recorded as the pipe's saves are, the setting's label and never its value.
+        var store = await OpenAsync();
+        var settingsPath = Path.Combine(_dir, "settings.json");
+        var capturePath = Path.Combine(_dir, "capture.json");
+        var settings = new ClientSettingsStore(settingsPath);
+        var capture = new CaptureSettingsStore(capturePath);
+        Assert.True(settings.Save(new ClientSettings { CustomPatterns = ["acme-ticket-\\d{6}"] }));
+        Assert.True(capture.Save(new CaptureSettings()));
+        await File.WriteAllTextAsync(settingsPath, """{ "passwords": false, "custom_patterns": [] }""", Ct);
+        await File.WriteAllTextAsync(capturePath, """{ "capture_all_windows": true }""", Ct);
+
+        Assert.True(await SettingsAtStart.RecordAsync(store, settings, settings.Load(), capture, capture.Load(), Ct));
+
+        var rows = (await store.GetAuditRecordsAsync(ct: Ct)).Where(r => r.Type == "settings_changed").ToList();
+        Assert.Equal(["AllWindowsOn", "CustomPatterns", "PasswordsOff"], rows.Select(r => r.Detail).Order(StringComparer.Ordinal));
+        Assert.DoesNotContain("acme", AuditExport.ToCsv(await store.GetAuditRecordsAsync(ct: Ct)), StringComparison.OrdinalIgnoreCase);
+
+        // The next start finds nothing new, and says nothing.
+        Assert.True(await SettingsAtStart.RecordAsync(store, settings, settings.Load(), capture, capture.Load(), Ct));
+        Assert.Equal(3, (await store.GetAuditRecordsAsync(ct: Ct)).Count(r => r.Type == "settings_changed"));
+    }
+
+    [Fact]
+    public async Task AFirstStartAfterTheUpgradeRecordsNothing()
+    {
+        // Files an older build wrote, with nothing beside them to compare against: nothing is said, and the
+        // next start compares against what this one applied.
+        var store = await OpenAsync();
+        Directory.CreateDirectory(_dir);
+        var settingsPath = Path.Combine(_dir, "settings.json");
+        await File.WriteAllTextAsync(settingsPath, """{ "passwords": false }""", Ct);
+        var settings = new ClientSettingsStore(settingsPath);
+        var capture = new CaptureSettingsStore(Path.Combine(_dir, "capture.json"));
+
+        Assert.True(await SettingsAtStart.RecordAsync(store, settings, settings.Load(), capture, capture.Load(), Ct));
+        await File.WriteAllTextAsync(settingsPath, """{ "passwords": true }""", Ct);
+        Assert.True(await SettingsAtStart.RecordAsync(store, settings, settings.Load(), capture, capture.Load(), Ct));
+
+        var row = Assert.Single(await store.GetAuditRecordsAsync(ct: Ct), r => r.Type == "settings_changed");
+        Assert.Equal("PasswordsOn", row.Detail);
+    }
+
+    [Fact]
     public async Task ACaptureSettingsSaveThatWidensTheScopeIsRecorded()
     {
         var store = await OpenAsync();

@@ -113,6 +113,30 @@ public sealed class PrivacyPanelTests
     }
 
     [Fact]
+    public async Task InAnInstalledCopyTheBuiltInRulesShowOnAndASaveKeepsThemOn()
+    {
+        // DEC-06: the service refuses a save that switches one of the four off in an installed build, so the
+        // screen shows them on, ignores a write that would switch one off, and saves them on. A file an
+        // older build left with one off is shown as what is in force, not as an edit to save.
+        var gateway = new FakePrivacy
+        {
+            Snapshot = new SettingsSnapshot(new ClientSettings { Passwords = false, Cards = false }, LocalOnlyLocked: false, RetentionLocked: false, PolicyVersion: "default", EffectiveLocalOnly: false, EffectiveRetentionDays: 7, BuiltInRulesLocked: true),
+        };
+        var panel = new PrivacyPanel(gateway);
+        await panel.LoadAsync();
+
+        Assert.True(panel.BuiltInRulesLocked);
+        Assert.True(panel.Passwords && panel.Cards && panel.Ssn && panel.ApiKeys);
+        Assert.False(panel.HasUnsavedEdits);
+        panel.Ssn = false;
+        panel.Emails = true;
+        Assert.True(panel.Ssn);
+        Assert.True(await panel.SaveAsync());
+        Assert.True(gateway.Saved!.Ssn && gateway.Saved.Cards && gateway.Saved.ApiKeys && gateway.Saved.Passwords);
+        Assert.True(gateway.Saved.Emails);
+    }
+
+    [Fact]
     public async Task ReloadingFollowsThePolicyAndLiftingTheLockBringsBackTheTechniciansOwnValues()
     {
         // The Settings pane is kept and reloaded on every visit, so one panel sees the policy change.
