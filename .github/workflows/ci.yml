@@ -1209,6 +1209,13 @@ jobs:
       - name: The hardware gate counts a skipped laptop job as no evidence
         run: python3 scripts/ci/check_hardware_gate.py .
 
+      # Every area job runs on a flag from the changes job, and ci-ok is what branch protection reads,
+      # so both are held here: the area step, run on made-up changes in a scratch repository, prints no
+      # file name where the runner would read it as a command and sets every flag to true or false; and
+      # ci-ok fails when any flag is anything else (scripts/ci/check_change_flags.py).
+      - name: The changed files cannot change the flags, and ci-ok checks every flag
+        run: python3 scripts/ci/check_change_flags.py .
+
       # The laptop runner signs in as the demo's account. Every job that can land on it pins each action
       # to a commit, so a moved tag cannot run there, and runs every step in Windows PowerShell without
       # that account's profile (scripts/ci/check_laptop_jobs.py, 2026-11-15 review).
