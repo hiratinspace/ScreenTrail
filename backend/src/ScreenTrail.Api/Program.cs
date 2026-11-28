@@ -95,7 +95,12 @@ builder.Services
 var adminOptions = builder.Configuration.GetSection(AdminOptions.Section).Get<AdminOptions>() ?? new AdminOptions();
 adminOptions.Validate(jwt);
 builder.Services.AddSingleton(adminOptions);
-builder.Services.AddHttpClient(GoogleSigningKeys.HttpClientName, client => client.Timeout = GoogleSigningKeys.FetchTimeout);
+builder.Services.AddHttpClient(GoogleSigningKeys.HttpClientName, client =>
+{
+    client.Timeout = GoogleSigningKeys.FetchTimeout;
+    FixedHostHttp.Limit(client);
+})
+    .ConfigurePrimaryHttpMessageHandler(FixedHostHttp.Handler);
 
 // The web admin's browser tests sign their own Google ID tokens with a key pair made for the run, and
 // hand this host the public half (Testing:GoogleSigningKeys). Refused outside Development, where the
@@ -163,18 +168,24 @@ builder.Services.AddScoped<ICostLedger, CostLedger>();
 // One fixed host per provider, and nothing else. The backend has no general egress list for drafting:
 // each model is reached through a named client whose base address is set here and nowhere else, and the
 // Claude provider pins the SDK to that address and that key, so neither ANTHROPIC_BASE_URL nor
-// ANTHROPIC_API_KEY in the environment can redirect a customer's session.
+// ANTHROPIC_API_KEY in the environment can redirect a customer's session. Nor can the host itself: a
+// redirect comes back as the answer rather than being followed, no proxy from the environment is used,
+// and an answer is held only up to its limit (FixedHostHttp, security review E-11).
 var prompt = PromptLibrary.Note();
 builder.Services.AddHttpClient(nameof(GeminiProvider), client =>
 {
     client.BaseAddress = new Uri("https://generativelanguage.googleapis.com/");
     client.Timeout = summarization.Timeout;
-});
+    FixedHostHttp.Limit(client);
+})
+    .ConfigurePrimaryHttpMessageHandler(FixedHostHttp.Handler);
 builder.Services.AddHttpClient(nameof(ClaudeProvider), client =>
 {
     client.BaseAddress = new Uri("https://api.anthropic.com/");
     client.Timeout = summarization.Timeout;
-});
+    FixedHostHttp.Limit(client);
+})
+    .ConfigurePrimaryHttpMessageHandler(FixedHostHttp.Handler);
 
 // The client is asked for by name. Handing this to ActivatorUtilities looked the same and was not: it
 // resolves a plain HttpClient from the container, which is the unnamed one: no base address, so the

@@ -142,6 +142,9 @@ leaves with exactly the configured `Authorization: Bearer` key, the pinned `anth
 betas that request asked for and a JSON content type, plus the SDK's own description headers matched by
 exact name with one plain value each; anything else, `ANTHROPIC_WORKSPACE_ID`'s header included, is
 removed. `ClaudeEnvironmentTests` and the `Scrub` tests in `ClaudeProviderTests` pin both layers.
+Nor can the model's host, or Google's key endpoint: the Gemini, Claude and Google signing-key clients
+follow no redirect (a 3xx comes back as the answer), use no proxy from the environment, keep no cookie
+and hold at most 8 MB of an answer (`FixedHostHttp`, pinned by `FixedHostClientsTests`).
 
 **The model name is a setting, and it expires.** The first build of this asked for `gemini-2.0-flash`;
 by the time a key was pointed at it Google had retired that name, and every draft was a 404. Retirements
