@@ -525,7 +525,8 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
         indicator.Failed += failure => LogGuardFailed(logger, "indicator", failure.GetType().Name);
 
         // ST-077: the clipboard is read once, as a session starts, by the coordinator and nowhere else;
-        // TicketHint keeps digits or nothing of it.
+        // TicketHint keeps digits or nothing of it. K3: on a thread of its own, given up after a moment, so
+        // an owner that renders on request cannot hold the start.
         var trigger = new SessionTrigger(policy, grace: captureSettings.GraceSeconds is { } graceSeconds ? TimeSpan.FromSeconds(graceSeconds) : null);
         var coordinator = new AutoSessionCoordinator(
             machine,
@@ -534,7 +535,7 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
             () => indicator.Indicated,
             logger,
             sessionPolicy,
-            Platform.Clipboard.ClipboardText.ReadOnce,
+            Core.Intel.ClipboardBlock.Bounded(Platform.Clipboard.ClipboardText.ReadOnce, Core.Intel.ClipboardBlock.LongestWait),
             () => captureStore.Load().AutoStart,
             latest: () => foreground.Latest,
             exists: WindowsForegroundWatcher.Exists,

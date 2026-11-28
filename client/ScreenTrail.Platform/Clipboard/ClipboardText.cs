@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using ScreenTrail.Core.Intel;
 
 namespace ScreenTrail.Platform.Clipboard;
 
@@ -11,12 +12,15 @@ namespace ScreenTrail.Platform.Clipboard;
 /// nothing; the text itself is not kept, logged or passed on. A clipboard is whatever the technician
 /// last copied, which may be a password (INV-10, ST-077 AC3). Anything that is not plain text, or a
 /// clipboard held open by another process, is null.
+///
+/// The block is another process's memory: it is read no further than the size Windows gives for it, and
+/// to its first NUL inside that (<see cref="ClipboardBlock.Text"/>, K3). The host calls this through
+/// <see cref="ClipboardBlock.Bounded"/>, so an owner that renders on request cannot hold a session start.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class ClipboardText
 {
     private const uint CF_UNICODETEXT = 13;
-    private const int LongestRead = 4_096;
 
     public static string? ReadOnce()
     {
@@ -41,8 +45,7 @@ public static class ClipboardText
 
             try
             {
-                var text = Marshal.PtrToStringUni(pointer);
-                return text is { Length: > LongestRead } ? text[..LongestRead] : text;
+                return ClipboardBlock.Text(pointer, (ulong)GlobalSize(handle));
             }
             finally
             {
@@ -76,4 +79,7 @@ public static class ClipboardText
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GlobalUnlock(IntPtr handle);
+
+    [DllImport("kernel32.dll")]
+    private static extern UIntPtr GlobalSize(IntPtr handle);
 }
