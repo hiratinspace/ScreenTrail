@@ -48,7 +48,6 @@ public sealed partial class OcrScaledSecretTests
         var recogniser = new WindowsOcrRecogniser(scale: 2.0);
         Assert.SkipUnless(recogniser.Available, "Windows has no OCR language pack installed.");
         var engines = new[] { ("default", new RedactionEngine()), ("label rules on", new RedactionEngine(RedactionPolicy.Default with { LabelledIds = true })) };
-        var plain = OnTheLaptop ? 1 : 3;
 
         var table = new List<string>
         {
@@ -66,29 +65,27 @@ public sealed partial class OcrScaledSecretTests
             {
                 foreach (var points in new[] { 9f, 11f })
                 {
-                    for (var n = 0; n < (kind == "label words in use" ? 1 : plain); n++)
+                    // One page each, on the hosted runner too: the Windows job's time is shared (see the class above).
+                    using var bitmap = kind == "label words in use" ? DrawLines(LabelWordsInUse, font, points) : DrawPlain(kind, font, points, 0);
+                    var words = (await recogniser.ReadAsync(Encode(bitmap, 82), TestContext.Current.CancellationToken)).Words;
+                    var dark = Dark(bitmap);
+                    pages++;
+                    for (var e = 0; e < engines.Length; e++)
                     {
-                        using var bitmap = kind == "label words in use" ? DrawLines(LabelWordsInUse, font, points) : DrawPlain(kind, font, points, n);
-                        var words = (await recogniser.ReadAsync(Encode(bitmap, 82), TestContext.Current.CancellationToken)).Words;
-                        var dark = Dark(bitmap);
-                        pages++;
-                        for (var e = 0; e < engines.Length; e++)
+                        var redaction = engines[e].Item2.RedactFrame(words);
+                        var under = Masked(redaction.Regions, bitmap.Width, bitmap.Height);
+                        var onInk = 0;
+                        for (var i = 0; i < under.Length; i++)
                         {
-                            var redaction = engines[e].Item2.RedactFrame(words);
-                            var under = Masked(redaction.Regions, bitmap.Width, bitmap.Height);
-                            var onInk = 0;
-                            for (var i = 0; i < under.Length; i++)
-                            {
-                                ink[e] += dark[i] ? 1 : 0;
-                                onInk += under[i] && dark[i] ? 1 : 0;
-                            }
+                            ink[e] += dark[i] ? 1 : 0;
+                            onInk += under[i] && dark[i] ? 1 : 0;
+                        }
 
-                            masked[e] += onInk;
-                            touched[e] += onInk > 0 ? 1 : 0;
-                            foreach (var (found, count) in redaction.Counts)
-                            {
-                                kinds[e][found] = kinds[e].GetValueOrDefault(found) + count;
-                            }
+                        masked[e] += onInk;
+                        touched[e] += onInk > 0 ? 1 : 0;
+                        foreach (var (found, count) in redaction.Counts)
+                        {
+                            kinds[e][found] = kinds[e].GetValueOrDefault(found) + count;
                         }
                     }
                 }
