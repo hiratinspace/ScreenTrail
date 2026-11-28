@@ -477,6 +477,23 @@ public sealed class InstallerAuthoringTests
         Assert.True(mode > 0 && mode < mutex, "the uninstall mode is dispatched before the single-instance mutex is taken");
     }
 
+    [Theory]
+    [InlineData("InstalledFootprint.UninstallFlag")]
+    [InlineData("InstalledFootprint.UpgradeReleaseFlag")]
+    public void TheInstallersStepsRunBeforeTheForeignCodeRefusal(string flag)
+    {
+        // C-10: Windows Installer runs these as the system account with the machine's environment and
+        // ignores their exit code. A machine-wide profiler variable that arrived after ScreenTrail was in use
+        // made the refusal exit first, so the uninstall removed the files and left every key, credential and
+        // Run value. Neither step reads user data or takes input, and the refusal cannot keep foreign code out
+        // anyway, only stop a process going on as ScreenTrail.
+        var program = File.ReadAllText(Repo.File("client", "ScreenTrail.Service", "Program.cs"));
+
+        var mode = program.IndexOf($"args.Contains({flag}, StringComparer.Ordinal)", StringComparison.Ordinal);
+        var refusal = program.IndexOf("RunningHonestly.WhyNotToStart(", StringComparison.Ordinal);
+        Assert.True(mode > 0 && refusal > 0 && mode < refusal, $"{flag} is dispatched before the foreign-code refusal");
+    }
+
     [Fact]
     public void TheUninstallStepWaitsForTheInstalledFilesAfterEverythingElseItDoes()
     {
