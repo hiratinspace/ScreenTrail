@@ -51,7 +51,8 @@ copy of our own binaries, and the network.
   the screen being captured. Out of scope, and worth saying aloud because the product's whole premise is
   watching one.
 - **What shows through a see-through window in a frame.** Frames are copied off the screen over the
-  window's rectangle, not taken from the window itself. A frame is skipped when another application's
+  area the window draws (its frame as the compositor reports it, without the invisible resize border
+  around it, and no further than its monitor when maximized), not taken from the window itself. A frame is skipped when another application's
   window lies over the one in front, when the window in front is drawn below full opacity, and when it
   has a colour key and is not a remote tool in the shipped registry (`WindowCover`). Two cases are left
   open on purpose, because refusing them could lose every frame of the tool a session is about: a remote

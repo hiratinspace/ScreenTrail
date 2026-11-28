@@ -234,20 +234,37 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     }
 
     /// <summary>
-    /// The window in front and its rectangle, read now. The window that was judged in scope, or nothing:
-    /// checked here rather than at the caller because this is the last moment before the pixels are read,
-    /// and any gap between the two is a window in which the foreground can move (INV-5).
+    /// The window in front and the part of the screen to copy for it, read now. The window that was judged
+    /// in scope, or nothing: checked here rather than at the caller because this is the last moment before
+    /// the pixels are read, and any gap between the two is a window in which the foreground can move (INV-5).
+    /// What is copied is what the window draws, not its rectangle, whose invisible border lies over the
+    /// window beside or behind it (<see cref="CaptureBounds"/>, A-06).
     /// </summary>
     private static bool ReadTarget(nint expected, int minWidth, int minHeight, out IntPtr window, out Rect rect)
     {
         window = GetForegroundWindow();
         rect = default;
-        if (window == IntPtr.Zero || (expected != 0 && window != expected) || !GetWindowRect(window, out rect))
+        if (window == IntPtr.Zero || (expected != 0 && window != expected) || !GetWindowRect(window, out var outer))
         {
             return false;
         }
 
+        var bounds = CaptureBounds.Of(
+            new ScreenRect(outer.Left, outer.Top, outer.Right, outer.Bottom),
+            VisibleFrame(window),
+            IsZoomed(window) ? MonitorOf(window) : null);
+        rect = new Rect { Left = bounds.Left, Top = bounds.Top, Right = bounds.Right, Bottom = bounds.Bottom };
         return rect.Right - rect.Left >= minWidth && rect.Bottom - rect.Top >= minHeight;
+    }
+
+    /// <summary>The whole of the monitor a window is on, or null when Windows will not say.</summary>
+    private static ScreenRect? MonitorOf(IntPtr window)
+    {
+        var monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+        return monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info)
+            ? new ScreenRect(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom)
+            : null;
     }
 
     /// <summary>
@@ -482,9 +499,13 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     }
 
     private static ScreenRect VisibleBounds(IntPtr window, Rect fallback) =>
+        VisibleFrame(window) ?? new ScreenRect(fallback.Left, fallback.Top, fallback.Right, fallback.Bottom);
+
+    /// <summary>What the window draws, without the invisible resize border, or null when the compositor will not say.</summary>
+    private static ScreenRect? VisibleFrame(IntPtr window) =>
         DwmGetWindowAttribute(window, DWMWA_EXTENDED_FRAME_BOUNDS, out Rect frame, Marshal.SizeOf<Rect>()) == 0
             ? new ScreenRect(frame.Left, frame.Top, frame.Right, frame.Bottom)
-            : new ScreenRect(fallback.Left, fallback.Top, fallback.Right, fallback.Bottom);
+            : null;
 
     private static bool IsCloaked(IntPtr window) =>
         DwmGetWindowAttribute(window, DWMWA_CLOAKED, out int cloaked, sizeof(int)) == 0 && cloaked != 0;
@@ -669,6 +690,7 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     private const uint WDA_NONE = 0;
     private const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
     private const int DWMWA_CLOAKED = 14;
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
 
     /// <summary>Averages the source pixels into each destination pixel: a box filter, done by GDI.</summary>
     private const int STRETCH_HALFTONE = 4;
@@ -683,6 +705,15 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
         public int Top;
         public int Right;
         public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public Rect Monitor;
+        public Rect Work;
+        public uint Flags;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -712,6 +743,17 @@ internal sealed partial class ScreenshotCapturer(int jpegQuality = 82, ILogger? 
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsIconic(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsZoomed(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
