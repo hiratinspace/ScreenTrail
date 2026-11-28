@@ -175,6 +175,75 @@ public sealed class KeyRotationTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ARowThatDoesNotOpenIsReportedAndTheRestStillRotate()
+    {
+        // Security review E-07. One bound row under the previous key whose wrapped data key no longer
+        // opens (a changed byte, a mixed restore) is reported by id and left as it is; the other rows are
+        // still rewrapped, so an emergency rotation finishes everything it can.
+        var tenant = Guid.NewGuid();
+        Guid damagedId;
+        byte[]? damagedWrapped;
+        await using (var db = await OpenAsync())
+        {
+            var before = new IntegrationVault(db, Options(current: _old), TimeProvider.System);
+            await before.StoreAsync(tenant, "connectwise", "https://na", "cw-secret-0001", TestContext.Current.CancellationToken);
+            await before.StoreAsync(tenant, "hudu", "https://h", "hudu-key-0002", TestContext.Current.CancellationToken);
+            var damaged = await db.Integrations.SingleAsync(i => i.Provider == "connectwise", TestContext.Current.CancellationToken);
+            byte[] flipped = [.. damaged.DataKeyWrapped!];
+            flipped[0] ^= 0x01;
+            damaged.DataKeyWrapped = flipped;
+            _ = await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            (damagedId, damagedWrapped) = (damaged.Id, flipped);
+        }
+
+        VaultRewrite rotated;
+        await using (var db = await OpenAsync())
+        {
+            rotated = await KeyRotation.RotateAsync(db, Options(current: _new, previous: _old), ct: TestContext.Current.CancellationToken);
+        }
+
+        await using (var db = await OpenAsync())
+        {
+            Assert.Equal(1, rotated.Changed);
+            Assert.Equal([damagedId], rotated.Unopenable);
+            Assert.Equal(1, rotated.NotUnderCurrentKey);
+            var damaged = await db.Integrations.AsNoTracking().SingleAsync(i => i.Id == damagedId, TestContext.Current.CancellationToken);
+            Assert.Equal(Envelope.KeyIdOf(_old), damaged.KeyId);
+            Assert.Equal(damagedWrapped, damaged.DataKeyWrapped);
+            var after = new IntegrationVault(db, Options(current: _new), TimeProvider.System);
+            Assert.Equal("hudu-key-0002", (await after.RevealAsync(tenant, "hudu", TestContext.Current.CancellationToken))?.Secret);
+        }
+    }
+
+    [Fact]
+    public async Task ARotationCountsTheRowsStillNotUnderTheCurrentKey()
+    {
+        // Security review E-07. A row under a key that is neither the current nor the previous one is not
+        // rewrapped, and "rotated 0" alone would not show it: the rotation counts every row not under the
+        // current key, so the operator knows whether the old key can be dropped.
+        var tenant = Guid.NewGuid();
+        var third = RandomNumberGenerator.GetBytes(32);
+        await using (var db = await OpenAsync())
+        {
+            await new IntegrationVault(db, Options(current: _old), TimeProvider.System).StoreAsync(tenant, "connectwise", "https://na", "cw-secret-0001", TestContext.Current.CancellationToken);
+            await new IntegrationVault(db, Options(current: third), TimeProvider.System).StoreAsync(tenant, "hudu", "https://h", "hudu-key-0002", TestContext.Current.CancellationToken);
+        }
+
+        await using (var db = await OpenAsync())
+        {
+            var rotated = await KeyRotation.RotateAsync(db, Options(current: _new, previous: _old), ct: TestContext.Current.CancellationToken);
+
+            Assert.Equal(1, rotated.Changed);
+            Assert.Empty(rotated.Unopenable);
+            Assert.Equal(1, rotated.NotUnderCurrentKey);
+
+            // With every row under the current key, the count is the check that the old key can go.
+            await new IntegrationVault(db, Options(current: _new), TimeProvider.System).StoreAsync(tenant, "hudu", "https://h", "hudu-key-0003", TestContext.Current.CancellationToken);
+            Assert.Equal(0, (await KeyRotation.RotateAsync(db, Options(current: _new, previous: _old), ct: TestContext.Current.CancellationToken)).NotUnderCurrentKey);
+        }
+    }
+
+    [Fact]
     public async Task WithoutAPreviousKeyThereIsNothingToRotateFrom()
     {
         await using var db = await OpenAsync();
