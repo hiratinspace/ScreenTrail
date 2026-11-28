@@ -303,14 +303,21 @@ pass "an invite issued with --invite activates a device through the proxy, and i
 # --- Whose address the API counts -------------------------------------------------------------------
 
 # From this machine, every call naming a different X-Forwarded-For: the proxy sets that header itself,
-# so they all count as this machine and the limit (10 a minute, the device's activation included) is hit.
+# so they all count as this machine and the nonce's own limit is hit. That limit is RateLimit__PermitLimit,
+# as the API is given it, times AnonymousRateLimit.NonceMultiple in the backend: both read here, not
+# written, and ten calls more are sent (DeploySmokeTests checks the script still reads them this way).
+permits=$(sed -nE 's/^RateLimit__PermitLimit=([0-9]+)$/\1/p' "$scratch/api.env")
+multiple=$(sed -nE 's/^ *public const int NonceMultiple = ([0-9]+);$/\1/p' "$repo/backend/src/ScreenTrail.Api/Auth/AnonymousRateLimit.cs")
+echo "$permits" | grep -Eqx '[0-9]+' && echo "$multiple" | grep -Eqx '[0-9]+' \
+    || fail "could not read the nonce's limit (RateLimit__PermitLimit '$permits', NonceMultiple '$multiple')"
+calls=$(( permits * multiple + 10 ))
 limited=""
-for i in $(seq 1 25); do
+for i in $(seq 1 "$calls"); do
     status=$(fetch --output /dev/null --write-out '%{http_code}' -X POST -H "X-Forwarded-For: 198.51.100.$i" "$origin/v1/admin/session/nonce")
     if [ "$status" = 429 ]; then limited=$i; break; fi
     [ "$status" = 200 ] || fail "the sign-in nonce answered $status"
 done
-[ -n "$limited" ] || fail "twenty-five calls naming twenty-five forwarded addresses were never limited: the client chose its partition"
+[ -n "$limited" ] || fail "$calls calls naming $calls forwarded addresses were never limited: the client chose its partition"
 pass "a client's own X-Forwarded-For is not believed (limited at call $limited)"
 
 # Another client, from another address on the edge network: counted apart, which it is only if the API
