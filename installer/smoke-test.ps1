@@ -312,29 +312,33 @@ function Get-BackendUrl {
     }
 }
 
-function Invoke-Member($Object, [string]$Name, [string]$Kind, [object[]]$Arguments) {
-    # Windows Installer's automation objects are late-bound COM, so each call goes through IDispatch by name.
-    return $Object.GetType().InvokeMember($Name, [Reflection.BindingFlags]$Kind, $null, $Object, $Arguments)
-}
-
 function Get-MsiProperty([string]$Path, [string]$Name) {
     # A value from a package's Property table, read with the database opened read-only and closed again
-    # before anything installs the package.
+    # before anything installs the package. Windows Installer's automation objects are late-bound COM, so
+    # each call goes through IDispatch by name, inline: a COM object written to the pipeline (returned from
+    # a helper) could be enumerated on the way.
+    $call = [Reflection.BindingFlags]::InvokeMethod
+    $get = [Reflection.BindingFlags]::GetProperty
     $installer = New-Object -ComObject WindowsInstaller.Installer
-    $database = Invoke-Member $installer 'OpenDatabase' 'InvokeMethod' @($Path, 0)
-    $view = Invoke-Member $database 'OpenView' 'InvokeMethod' @(('SELECT `Value` FROM `Property` WHERE `Property` = ''{0}''' -f $Name))
+    $database = $null
+    $view = $null
     $record = $null
     $value = $null
     try {
-        $null = Invoke-Member $view 'Execute' 'InvokeMethod' $null
-        $record = Invoke-Member $view 'Fetch' 'InvokeMethod' $null
+        $database = $installer.GetType().InvokeMember('OpenDatabase', $call, $null, $installer, @($Path, 0))
+        $query = 'SELECT `Value` FROM `Property` WHERE `Property` = ''{0}''' -f $Name
+        $view = $database.GetType().InvokeMember('OpenView', $call, $null, $database, @($query))
+        $null = $view.GetType().InvokeMember('Execute', $call, $null, $view, $null)
+        $record = $view.GetType().InvokeMember('Fetch', $call, $null, $view, $null)
         if ($null -ne $record) {
-            $value = [string](Invoke-Member $record 'StringData' 'GetProperty' @(1))
+            $value = [string]$record.GetType().InvokeMember('StringData', $get, $null, $record, @(1))
         }
+        $null = $view.GetType().InvokeMember('Close', $call, $null, $view, $null)
     } finally {
-        $null = Invoke-Member $view 'Close' 'InvokeMethod' $null
-        foreach ($object in @($record, $view, $database, $installer) | Where-Object { $null -ne $_ }) {
-            $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($object)
+        foreach ($object in @($record, $view, $database, $installer)) {
+            if ($null -ne $object) {
+                $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($object)
+            }
         }
         $record = $null
         $view = $null
@@ -348,12 +352,13 @@ function Get-MsiProperty([string]$Path, [string]$Name) {
 
 function Get-RelatedProducts([string]$UpgradeCode) {
     # The product codes Windows Installer has registered under the upgrade code, one per line of output.
+    $get = [Reflection.BindingFlags]::GetProperty
     $installer = New-Object -ComObject WindowsInstaller.Installer
     try {
-        $list = Invoke-Member $installer 'RelatedProducts' 'GetProperty' @($UpgradeCode)
-        $count = [int](Invoke-Member $list 'Count' 'GetProperty' $null)
+        $list = $installer.GetType().InvokeMember('RelatedProducts', $get, $null, $installer, @($UpgradeCode))
+        $count = [int]$list.GetType().InvokeMember('Count', $get, $null, $list, $null)
         for ($i = 0; $i -lt $count; $i++) {
-            [string](Invoke-Member $list 'Item' 'GetProperty' @($i))
+            [string]$list.GetType().InvokeMember('Item', $get, $null, $list, @($i))
         }
     } finally {
         $null = [Runtime.InteropServices.Marshal]::ReleaseComObject($installer)
