@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using ScreenTrail.Core.Capture;
 using ScreenTrail.Core.Detection;
@@ -44,7 +45,8 @@ internal sealed partial class ClickCaptureLoop
         _machine = machine;
         _hooks = hooks;
         _logger = logger;
-        _recorder = new SessionRecorder(machine, capturer, currentScope, foreground: GetForegroundWindow, lastFrame: lastFrame);
+        // The hooks stamp signals with the Stopwatch, so it is the clock the recorder compares them with.
+        _recorder = new SessionRecorder(machine, capturer, currentScope, foreground: GetForegroundWindow, lastFrame: lastFrame, now: Stopwatch.GetTimestamp);
         _recorder.FrameMissed += tsMs => LogNoFrame(logger, tsMs);
         _recorder.FrameStaged += frame =>
         {
@@ -92,8 +94,10 @@ internal sealed partial class ClickCaptureLoop
 
     private async Task DrainAsync(CancellationToken ct)
     {
+        // An empty drain still reaches the recorder while it holds keyboard events back, because with no
+        // new input this is when they are written once the guard has had time to look (A-07).
         var count = _hooks.Buffer.Drain(_scratch);
-        if (count == 0)
+        if (count == 0 && !_recorder.HoldsKeyboardEvents)
         {
             return;
         }

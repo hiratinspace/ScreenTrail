@@ -1,7 +1,9 @@
 using ScreenTrail.Core.Detection;
 using ScreenTrail.Core.Input;
+using ScreenTrail.Core.Privacy;
 using ScreenTrail.Core.Sessions;
 using ScreenTrail.Core.Store;
+using ScreenTrail.Shared.Ipc;
 using ScreenTrail.Shared.Schema;
 
 namespace ScreenTrail.Core.Capture;
@@ -32,16 +34,35 @@ namespace ScreenTrail.Core.Capture;
 /// on-screen keyboard) is clicked while another is in front, so in both the position is about a window
 /// nobody judged (INV-6).
 /// </param>
+/// <param name="now">
+/// The hooks' clock now, in the units the signals are stamped in, or null when the caller has none. With
+/// it, a signal stamped before the session last came back to Recording is dropped, and keyboard events
+/// wait <see cref="KeyboardHoldBack"/> before they are written, so a hold that lands in that time drops
+/// them (A-07). The capture loop passes it; without it neither is done.
+/// </param>
 public sealed class SessionRecorder(
     SessionMachine machine,
     IScreenshotCapturer capturer,
     Func<ScopeDecision?> currentScope,
     ClickDebouncer? debouncer = null,
     Func<nint>? foreground = null,
-    LastFrame? lastFrame = null)
+    LastFrame? lastFrame = null,
+    Func<long>? now = null)
 {
+    /// <summary>
+    /// How long a typing burst, Enter or shortcut waits before it is written: the password-field guard's
+    /// worst case, its one-second backstop poll and a slow probe. Keys typed into a field the guard has not
+    /// yet noticed (a PIN and Enter, quicker than the probe) are dropped when its hold lands inside this
+    /// time, instead of being written before the hold existed (A-07, INV-6). Each keeps the time it was
+    /// typed, so the timeline reads as before; only the write is later.
+    /// </summary>
+    public static readonly TimeSpan KeyboardHoldBack = new PasswordFieldOptions().PollEvery + TimeSpan.FromMilliseconds(500);
+
     private readonly ClickDebouncer _debouncer = debouncer ?? new ClickDebouncer();
     private readonly InputSignalReader _reader = new();
+    private readonly Boundaries _boundaries = new(machine, now);
+    private readonly List<(SessionEvent Event, long HeldFrom)> _held = [];
+    private long _boundariesSeen;
     private long _dropped;
     private long _beforeSession;
 
@@ -50,6 +71,9 @@ public sealed class SessionRecorder(
 
     /// <summary>Signals stamped before the session began, and so not part of it. Counts only.</summary>
     public long DroppedBeforeSession => Interlocked.Read(ref _beforeSession);
+
+    /// <summary>Whether keyboard events are waiting out <see cref="KeyboardHoldBack"/>, so an empty drain still has something to write.</summary>
+    public bool HoldsKeyboardEvents => _held.Count > 0;
 
     /// <summary>Clicks that shared a frame with an earlier one (ST-025).</summary>
     public long ClicksSharingAFrame => _debouncer.Suppressed;
@@ -68,6 +92,7 @@ public sealed class SessionRecorder(
 
         // Whatever was being typed belonged to no session, or to the last one.
         _reader.Discard();
+        _held.Clear();
     }
 
     /// <summary>
@@ -99,9 +124,21 @@ public sealed class SessionRecorder(
         ArgumentNullException.ThrowIfNull(toSessionMs);
         ArgumentNullException.ThrowIfNull(elapsed);
 
+        // The session left Recording since the last call. Whatever was open or waiting then belongs before
+        // that boundary, even when every drain while it held was empty and so never reached the check
+        // below: a burst kept across a hold was written by the first key or click after it (A-07).
+        var left = _boundaries.Left;
+        if (left != _boundariesSeen)
+        {
+            _boundariesSeen = left;
+            _reader.Discard();
+            _held.Clear();
+        }
+
         if (machine.State != SessionState.Recording)
         {
             _reader.Discard();
+            _held.Clear();
             return;
         }
 
@@ -113,12 +150,21 @@ public sealed class SessionRecorder(
             _reader.Discard();
         }
 
+        // Stamped before the session last came back to Recording: typed or clicked inside a pause or a
+        // hold and drained just after it ended. As with what came before the session began, it is not
+        // the session's (A-07).
+        var recordingSince = _boundaries.RecordingSince;
         var kept = new List<InputSignal>(signals.Length);
         foreach (var signal in signals.Span)
         {
             if (toSessionMs(signal.Timestamp) < 0)
             {
                 _ = Interlocked.Increment(ref _beforeSession);
+                continue;
+            }
+
+            if (signal.Timestamp < recordingSince)
+            {
                 continue;
             }
 
@@ -131,20 +177,50 @@ public sealed class SessionRecorder(
             kept.Add(signal);
         }
 
-        if (kept.Count == 0)
+        if (kept.Count > 0)
         {
-            return;
+            var events = _reader.Read(kept.ToArray(), toSessionMs, elapsed);
+            await RecordAsync([.. events], holdKeyboardFrom: now is null ? null : kept[^1].Timestamp, ct).ConfigureAwait(false);
         }
 
-        var events = _reader.Read(kept.ToArray(), toSessionMs, elapsed);
-        await RecordAsync([.. events], ct).ConfigureAwait(false);
+        if (now is not null)
+        {
+            await WriteHeldAsync(now(), elapsed, ct).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Writes the keyboard events that have waited out <see cref="KeyboardHoldBack"/>, oldest first. A
+    /// boundary since this call began leaves them for the next, which drops them.
+    /// </summary>
+    private async Task WriteHeldAsync(long present, Func<long, long, TimeSpan> elapsed, CancellationToken ct)
+    {
+        while (_held.Count > 0 && elapsed(_held[0].HeldFrom, present) >= KeyboardHoldBack)
+        {
+            if (_boundaries.Left != _boundariesSeen)
+            {
+                return;
+            }
+
+            // Taken off before the write, so a write that throws is not tried again and written twice.
+            var next = _held[0].Event;
+            _held.RemoveAt(0);
+            _ = await machine.TryRecordEventAsync(next, ct).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
     /// Records a batch of events. Each is checked against the scope decision in force, and a click that
     /// survives may also produce a frame.
     /// </summary>
-    public async Task RecordAsync(IReadOnlyList<SessionEvent> events, CancellationToken ct = default)
+    public Task RecordAsync(IReadOnlyList<SessionEvent> events, CancellationToken ct = default) =>
+        RecordAsync(events, holdKeyboardFrom: null, ct);
+
+    /// <param name="holdKeyboardFrom">
+    /// When not null, keyboard events that pass are held from this hook time rather than written now
+    /// (<see cref="KeyboardHoldBack"/>).
+    /// </param>
+    private async Task RecordAsync(IReadOnlyList<SessionEvent> events, long? holdKeyboardFrom, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(events);
 
@@ -176,6 +252,12 @@ public sealed class SessionRecorder(
                 admitted = ScopeDecision.WithoutPosition(admitted);
             }
 
+            if (holdKeyboardFrom is { } heldFrom && IsKeyboard(admitted))
+            {
+                _held.Add((admitted, heldFrom));
+                continue;
+            }
+
             _ = await machine.TryRecordEventAsync(admitted, ct).ConfigureAwait(false);
             if (admitted is ClickEvent { X: { } x, Y: { } y } click)
             {
@@ -191,6 +273,39 @@ public sealed class SessionRecorder(
     /// </summary>
     private static bool IsKeyboard(SessionEvent sessionEvent) =>
         sessionEvent is TypingBurstEvent or ShortcutEvent or EnterEvent;
+
+    /// <summary>
+    /// When the session leaves Recording and when it comes back, as the machine announces each transition.
+    /// Counted and stamped here, on the machine's thread; the recorder reads them on its own.
+    /// </summary>
+    private sealed class Boundaries
+    {
+        private long _left;
+        private long _recordingSince = long.MinValue;
+        private bool _recording;
+
+        public Boundaries(SessionMachine machine, Func<long>? now) =>
+            machine.StateChanged += snapshot =>
+            {
+                var recording = snapshot.State == CaptureStates.Recording;
+                if (recording && !_recording && now is not null)
+                {
+                    _ = Interlocked.Exchange(ref _recordingSince, now());
+                }
+                else if (!recording)
+                {
+                    _ = Interlocked.Increment(ref _left);
+                }
+
+                _recording = recording;
+            };
+
+        /// <summary>How many times the session has left Recording.</summary>
+        public long Left => Interlocked.Read(ref _left);
+
+        /// <summary>The hook time the session last came back to Recording; the smallest value when unknown.</summary>
+        public long RecordingSince => Interlocked.Read(ref _recordingSince);
+    }
 
     private async Task CaptureForAsync(ClickEvent click, long x, long y, CancellationToken ct)
     {
