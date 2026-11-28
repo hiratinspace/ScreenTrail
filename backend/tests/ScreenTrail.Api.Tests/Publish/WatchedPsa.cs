@@ -40,6 +40,8 @@ internal sealed class WatchedPsa
 
         public Task<ProviderResult<IReadOnlyList<TicketRef>>> SearchTicketsAsync(string query, CancellationToken ct = default) => psa.SearchTicketsAsync(query, ct);
 
+        public Task<ProviderResult<TicketRef?>> FindTicketAsync(string ticketId, CancellationToken ct = default) => psa.FindTicketAsync(ticketId, ct);
+
         public Task<ProviderResult<IReadOnlyList<TicketRef>>> RecentTicketsAsync(CancellationToken ct = default) => psa.RecentTicketsAsync(ct);
 
         public Task<ProviderResult<CompanyRef?>> FindCompanyAsync(string name, CancellationToken ct = default) => psa.FindCompanyAsync(name, ct);

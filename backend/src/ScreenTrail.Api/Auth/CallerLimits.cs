@@ -65,6 +65,18 @@ public sealed class CallerLimits(TimeProvider time)
         $"The connection was tested 6 times in the last minute. Wait {Seconds(wait)}, then test it again.");
 
     /// <summary>
+    /// Publishes from one device: 30 in ten minutes, as many as the mapping limit allows changes. A
+    /// technician publishes a session once, and Retry sends only the destinations that failed; thirty is
+    /// a publish every twenty seconds for ten minutes.
+    /// </summary>
+    public static readonly RequestBudget Publishes = new("publish", LimitScope.Caller, 30, TimeSpan.FromMinutes(10), wait =>
+        $"This PC has published 30 times in the last ten minutes, which is as often as ScreenTrail allows. Wait {Seconds(wait)}, then publish again.");
+
+    /// <summary>The same for the whole tenant: 300 in ten minutes, ten technicians at their full rate.</summary>
+    public static readonly RequestBudget TenantPublishes = new("publish-tenant", LimitScope.Tenant, 300, TimeSpan.FromMinutes(10), wait =>
+        $"Your team has published 300 times in the last ten minutes, which is as often as ScreenTrail allows. Wait {Seconds(wait)}, then publish again.");
+
+    /// <summary>
     /// The requests allowed in flight at once for one tenant on the routes that call its PSA or
     /// documentation platform. Sixteen: the picker does not cancel a search when the next keystroke sends
     /// another, so two technicians typing at once against a PSA that takes a second hold about ten.

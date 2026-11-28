@@ -327,8 +327,10 @@ public sealed class DemoPsaTests(ApiFixture api) : IClassFixture<ApiFixture>
     }
 
     [Fact]
-    public async Task WhileTheDemoIsOnACompanyTheDemoDoesNotHaveIsAskedAboutAndNothingIsWritten()
+    public async Task WhileTheDemoIsOnTheArticleGoesUnderTheDemoTicketsCompanyNotTheOneTheDeviceNames()
     {
+        // E-02: the device names a company the demo does not have; the demo's ticket is Acme Dental's,
+        // so the article is filed there, and the tenant's own mappings are neither read nor written.
         using var host = Demo();
         var (tenantId, userId, deviceId) = await SeedAsync();
         using var client = Client(host, Token(tenantId, userId, deviceId));
@@ -342,9 +344,8 @@ public sealed class DemoPsaTests(ApiFixture api) : IClassFixture<ApiFixture>
             TestContext.Current.CancellationToken);
         var result = Assert.Single(JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement.GetProperty("results").EnumerateArray().ToList());
 
-        Assert.False(result.GetProperty("ok").GetBoolean());
-        Assert.Equal("needs_mapping", result.GetProperty("kind").GetString());
-        Assert.Empty(host.Services.GetRequiredService<DemoStore>().Articles());
+        Assert.True(result.GetProperty("ok").GetBoolean(), result.ToString());
+        Assert.Equal("demo-kb-1", Assert.Single(host.Services.GetRequiredService<DemoStore>().Articles()).CompanyId);
         Assert.Empty(await MappingsOfAsync(tenantId));
     }
 

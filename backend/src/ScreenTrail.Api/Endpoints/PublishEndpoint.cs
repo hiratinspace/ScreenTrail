@@ -37,7 +37,7 @@ public static class PublishEndpoint
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
 
-            if (PublishLimits.Check(bundle) is { } problem)
+            if ((PublishLimits.Check(bundle) ?? PublishLimits.CheckStart(bundle.StartedAt, time.GetUtcNow())) is { } problem)
             {
                 return Results.BadRequest(new { error = "rejected", message = problem });
             }
@@ -50,8 +50,10 @@ public static class PublishEndpoint
 
             // The footer names whoever reviewed it, and the token says who that is. The request's
             // reviewer is still accepted, so an older client's body binds, but never used: a device could
-            // otherwise sign a note with another technician's name (2026-11-15 review).
-            var reviewed = bundle with { Reviewer = who.User.DisplayName };
+            // otherwise sign a note with another technician's name (2026-11-15 review). The footer stays
+            // a choice for an internal note (ST-093 AC3); a Discussion note is read by the customer, so it
+            // always says who reviewed it (E-02).
+            var reviewed = bundle with { Reviewer = who.User.DisplayName, Footer = bundle.Footer || bundle.NoteType == "discussion" };
 
             // The knowledge base is optional: none connected means that one destination says so.
             var docs = bundle.Destinations.Contains(Destinations.KbArticle, StringComparer.Ordinal)
@@ -73,6 +75,7 @@ public static class PublishEndpoint
         })
         .WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxRequestBytes))
         .WithMetadata(PublishConcurrency.Gated)
+        .WithMetadata(new CallerLimits.Spends(CallerLimits.Publishes, CallerLimits.TenantPublishes))
         .WithName("Publish")
         .WithSummary("Publish a reviewed note, its screenshots and a time entry to the tenant's PSA. Each destination is answered on its own; nothing is stored (INV-7).");
 

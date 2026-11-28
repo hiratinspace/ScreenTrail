@@ -191,12 +191,31 @@ public static partial class Publisher
     /// list is the one the platform checks the article against anyway, so this asks it for nothing more.
     ///
     /// An exact match is remembered only under the PSA's own spelling of a company the PSA has (ST-097),
-    /// as a mapping chosen by hand is: the ticket's company is a name the device sends, and a variant of
-    /// it is not a second company. When the PSA has no such company or cannot say, the article is still
-    /// filed under the exact match, and nothing is remembered.
+    /// as a mapping chosen by hand is: a variant of a name is not a second company. When the PSA has no
+    /// such company or cannot say, the article is still filed under the exact match, and nothing is
+    /// remembered.
+    ///
+    /// The company is the one the PSA gives the ticket, read here, not the one the request names (E-02):
+    /// a device could otherwise file one customer's write-up in another customer's knowledge base. A
+    /// ticket the PSA does not have, or a PSA that cannot say, files nothing.
     /// </summary>
     private static async Task<PublishResultJson> ArticleAsync(string destination, IPsaProvider psa, IDocProvider docs, ICompanyMappings mappings, PublishBundle bundle, IReadOnlyList<NoteAttachment> attachments, Sending sent, CancellationToken ct)
     {
+        var ticket = await psa.FindTicketAsync(bundle.TicketId, ct).ConfigureAwait(false);
+        if (!ticket.Ok)
+        {
+            return Failed(destination, ticket.Error!);
+        }
+
+        if (ticket.Value is null)
+        {
+            return Failed(destination, new ProviderError(
+                ProviderErrorKind.NotFound,
+                $"The PSA has no ticket {bundle.TicketId}, so there is nowhere to file the article.",
+                "Check the ticket number, then publish the article again."));
+        }
+
+        bundle = bundle with { Company = ticket.Value.Company };
         if (string.IsNullOrWhiteSpace(bundle.Company))
         {
             return new PublishResultJson(destination, false, Error: "The ticket has no company, so there is nowhere to file the article.", Kind: "needs_mapping");

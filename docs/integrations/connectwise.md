@@ -24,6 +24,16 @@ that has not answered by then comes back `timed_out`, and one whose answer could
 `unknown`: both may have landed, so neither is retryable. If the upload used the whole deadline,
 nothing is sent and each destination says so.
 
+**What a publish takes from the device is bounded** (E-02). A knowledge-base article is filed under the
+company ConnectWise gives the ticket, read by id when the article is published (one more read); the
+company the request names is not used. A ticket ConnectWise does not have files nothing (`notfound`),
+and a read that fails answers with ConnectWise's sentences like any other destination. A Discussion note,
+which the customer reads, always ends with the reviewer line; the footer switch applies to internal
+notes (ST-093 AC3). A time entry may start at most 10 minutes ahead of the backend's clock and at most
+365 days behind it (the longest a session is kept); outside that the publish is refused with `400
+rejected` and nothing is sent. One device publishes at most 30 times in ten minutes and one tenant 300;
+past that the answer is `429 too_many_requests` with a Retry-After.
+
 **A company mapping is checked against ConnectWise before it is saved** (ST-097), as the Hudu company is
 checked against Hudu. The technician's device sends the PSA company's name; the backend looks it up and
 saves the mapping only when ConnectWise has a company with exactly that name (the same spelling first,

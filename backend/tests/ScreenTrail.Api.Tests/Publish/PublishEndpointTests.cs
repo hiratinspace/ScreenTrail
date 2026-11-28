@@ -84,11 +84,22 @@ public sealed class PublishEndpointTests(ApiFixture api) : IClassFixture<ApiFixt
             new StringContent(request.ToJsonString(), Encoding.UTF8, "application/json"),
             TestContext.Current.CancellationToken);
 
+        // A discussion note always names its reviewer (E-02), so the footer flag is seen on an internal one.
+        request["note_type"] = "internal";
+        using var internalNote = await client.PostAsync(
+            new Uri("/v1/sessions/publish", UriKind.Relative),
+            new StringContent(request.ToJsonString(), Encoding.UTF8, "application/json"),
+            TestContext.Current.CancellationToken);
+
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, internalNote.StatusCode);
         var note = JsonDocument.Parse(BodyOf(cw, "/notes")).RootElement;
         var entry = JsonDocument.Parse(BodyOf(cw, "/time/entries")).RootElement;
+        var notes = cw.Requests.Select((r, i) => (r, i)).Where(x => x.r.RequestUri!.AbsolutePath.EndsWith("/notes", StringComparison.Ordinal)).ToList();
+        var secondNote = JsonDocument.Parse(cw.Bodies[notes[1].i]!).RootElement;
         Assert.False(note.GetProperty("internalAnalysisFlag").GetBoolean());
-        Assert.DoesNotContain("Drafted with ScreenTrail", note.GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.EndsWith("Drafted with ScreenTrail, reviewed by A Technician.", note.GetProperty("text").GetString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Drafted with ScreenTrail", secondNote.GetProperty("text").GetString(), StringComparison.Ordinal);
         Assert.Equal("DoNotBill", entry.GetProperty("billableOption").GetString());
         Assert.StartsWith("Problem\n", entry.GetProperty("notes").GetString(), StringComparison.Ordinal);
     }

@@ -213,6 +213,10 @@ public sealed class PublisherIsolationTests(ApiFixture api) : IClassFixture<ApiF
         public Task<ProviderResult<IReadOnlyList<TicketRef>>> RecentTicketsAsync(CancellationToken ct = default) =>
             Task.FromResult(ProviderResult.Success<IReadOnlyList<TicketRef>>([]));
 
+        /// <summary>The ticket every bundle here names, under the company they file under (E-02: the article's company is the PSA's).</summary>
+        public Task<ProviderResult<TicketRef?>> FindTicketAsync(string ticketId, CancellationToken ct = default) =>
+            Task.FromResult(ProviderResult.Success<TicketRef?>(new TicketRef(ticketId, "Printer offline in reception", "Acme Dental")));
+
         public Task<ProviderResult<CompanyRef?>> FindCompanyAsync(string name, CancellationToken ct = default) =>
             Task.FromResult(ProviderResult.Success<CompanyRef?>(null));
 

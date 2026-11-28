@@ -71,6 +71,20 @@ public interface IPsaProvider
     /// </summary>
     Task<ProviderResult<CompanyRef?>> FindCompanyAsync(string name, CancellationToken ct = default);
 
+    /// <summary>
+    /// The ticket with exactly this id, for a publish to file a knowledge-base article under the company
+    /// the PSA gives the ticket rather than one the device names (E-02). Null when the PSA has no such
+    /// ticket: that is an answer, not an error. By default the search's match on the id; a provider that
+    /// can ask for one ticket answers it itself.
+    /// </summary>
+    async Task<ProviderResult<TicketRef?>> FindTicketAsync(string ticketId, CancellationToken ct = default)
+    {
+        var found = await SearchTicketsAsync(ticketId, ct).ConfigureAwait(false);
+        return found.Ok
+            ? ProviderResult.Success(found.Value!.FirstOrDefault(t => string.Equals(t.Id, ticketId, StringComparison.Ordinal)))
+            : ProviderResult.Failure<TicketRef?>(found.Error!);
+    }
+
     /// <summary>Publishes the note. INV-3: only ever called because a technician pressed Publish.</summary>
     Task<ProviderResult<PublishedNote>> AddNoteAsync(TicketNote note, CancellationToken ct = default);
 

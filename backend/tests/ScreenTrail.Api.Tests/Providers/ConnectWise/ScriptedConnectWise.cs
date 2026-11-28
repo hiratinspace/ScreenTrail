@@ -49,6 +49,12 @@ internal sealed class ScriptedConnectWise : HttpMessageHandler
     /// <summary>Answers in order for the next requests, before the routes are consulted. For backoff tests.</summary>
     public Queue<HttpResponseMessage> Scripted { get; } = new();
 
+    /// <summary>
+    /// The company ConnectWise gives ticket 48213 when it is read by id, which is where a publish takes a
+    /// knowledge-base article's company from (E-02). Acme Dental unless a test files under another.
+    /// </summary>
+    public string TicketCompany { get; set; } = "Acme Dental";
+
     /// <summary>Every request fails with this status while set. The contract's <c>Break</c>.</summary>
     public HttpStatusCode? Failing { get; set; }
 
@@ -152,7 +158,7 @@ internal sealed class ScriptedConnectWise : HttpMessageHandler
                 Ok(new { version = "v2026.1", isCloud = true, serverTimeZone = "Eastern Standard Time" }),
 
             ("GET", var p) when p.EndsWith("/service/tickets/48213", StringComparison.Ordinal) =>
-                Ok(Ticket(48213, "Printer offline in reception", "Acme Dental", "In Progress")),
+                Ok(Ticket(48213, "Printer offline in reception", TicketCompany, "In Progress")),
 
             ("GET", var p) when p.Contains("/service/tickets/", StringComparison.Ordinal) =>
                 NotFound("Ticket not found"),

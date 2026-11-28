@@ -51,6 +51,21 @@ public sealed class ConnectWiseProvider(HttpClient http, string credential, Conn
     /// summaries newest first, a page at a time (ST-092). A ticket that is not there is an empty list,
     /// not an error: "no such ticket" is an answer.
     /// </summary>
+    /// <summary>One ticket by its id, the read the search starts with for a number. A ticket that is not there is null.</summary>
+    public async Task<ProviderResult<TicketRef?>> FindTicketAsync(string ticketId, CancellationToken ct = default)
+    {
+        var trimmed = (ticketId ?? string.Empty).Trim();
+        if (trimmed.Length == 0 || !trimmed.All(char.IsAsciiDigit))
+        {
+            return ProviderResult.Success<TicketRef?>(null);
+        }
+
+        var exact = ProviderHttp.Read(await SendAsync(() => Get($"service/tickets/{trimmed}"), ct).ConfigureAwait(false), Ticket, "ConnectWise", written: false);
+        return exact.Ok
+            ? ProviderResult.Success<TicketRef?>(exact.Value!)
+            : exact.Error!.Kind == ProviderErrorKind.NotFound ? ProviderResult.Success<TicketRef?>(null) : ProviderResult.Failure<TicketRef?>(exact.Error);
+    }
+
     public async Task<ProviderResult<IReadOnlyList<TicketRef>>> SearchTicketsAsync(string query, CancellationToken ct = default)
     {
         var trimmed = (query ?? string.Empty).Trim();

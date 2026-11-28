@@ -101,6 +101,15 @@ internal sealed partial class ConnectWiseStandIn : StandInHost
 
     public IReadOnlyList<CwCompany> Companies => Locked(() => _companies.ToList());
 
+    /// <summary>One more open ticket, of a customer ConnectWise may not list as a company: a publish files its article under that name (E-02).</summary>
+    public void AddTicket(int id, string company) =>
+        _ = Locked(() =>
+        {
+            var at = new DateTimeOffset(2026, 9, 20, 9, 0, 0, TimeSpan.Zero);
+            _tickets.Add(new CwTicket(id, "Booking system will not print", 0, company, "New", false, at, at));
+            return true;
+        });
+
     /// <summary>More open tickets whose summaries match, newest last, for a search that has more than one page.</summary>
     public void AddTickets(int count, string summary)
     {

@@ -57,8 +57,11 @@ public sealed class HuduOverHttpTests(ApiFixture api) : IClassFixture<ApiFixture
             Assert.Contains("application/json", r.Header("Accept"), StringComparison.Ordinal);
             Assert.Equal(200, r.Status);
         });
-        // ConnectWise is asked one thing: whether it has the company, before the match is remembered.
-        var lookup = Assert.Single(cw.Requests);
+        // ConnectWise is asked two things: the ticket, whose company the article is filed under (E-02),
+        // and whether it has that company, before the match is remembered.
+        Assert.Equal(2, cw.Requests.Count);
+        Assert.Equal(("GET", $"{ConnectWiseStandIn.ApiRoot}service/tickets/731946"), (cw.Requests[0].Method, cw.Requests[0].Path));
+        var lookup = cw.Requests[1];
         Assert.Equal(("GET", $"{ConnectWiseStandIn.ApiRoot}company/companies", "name = 'Acme Dental'"), (lookup.Method, lookup.Path, lookup.Query["conditions"]));
 
         var mapping = await api.UseAsync(db => db.CompanyMappings.SingleAsync(m => m.TenantId == backend.TenantId, TestContext.Current.CancellationToken));
@@ -75,7 +78,8 @@ public sealed class HuduOverHttpTests(ApiFixture api) : IClassFixture<ApiFixture
         await using var hudu = await StartAsync();
         await using var backend = new StandInBackend(api, cw, hudu);
         await backend.SignInAsync();
-        var bundle = StandInBackend.Bundle(company: "Harbour Physio Ltd") with { Destinations = ["kb_article"] };
+        cw.AddTicket(731970, "Harbour Physio Ltd");
+        var bundle = StandInBackend.Bundle(ticketId: "731970", company: "Harbour Physio Ltd") with { Destinations = ["kb_article"] };
         backend.Remember("Harbour Physio Ltd");
 
         var first = Assert.Single((await backend.PublishAsync(bundle)).Results);

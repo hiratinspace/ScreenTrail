@@ -1,5 +1,6 @@
 using System.Buffers.Text;
 using System.Text.RegularExpressions;
+using ScreenTrail.Api.Endpoints;
 using ScreenTrail.Api.Summarize;
 
 namespace ScreenTrail.Api.Publish;
@@ -63,6 +64,27 @@ public static partial class PublishLimits
     /// </summary>
     [GeneratedRegex(@"\A[A-Za-z0-9._:-]+\z")]
     private static partial Regex Identifier();
+
+    /// <summary>
+    /// How far ahead of the server's clock a time entry may start: a PC's clock a few minutes fast is
+    /// still the session that just ended (E-02).
+    /// </summary>
+    public static readonly TimeSpan StartAheadAllowed = TimeSpan.FromMinutes(10);
+
+    /// <summary>
+    /// How long ago a time entry may start: the longest any tenant keeps a session (365 days, the
+    /// policy's most), since a session can be published as long as it is kept and no longer (E-02).
+    /// </summary>
+    public static readonly TimeSpan StartBehindAllowed = TimeSpan.FromDays(AdminEndpoint.RetentionMax);
+
+    /// <summary>Why a time entry's start is refused, or null when it is inside the window around <paramref name="now"/>.</summary>
+    public static string? CheckStart(DateTimeOffset? startedAt, DateTimeOffset now) => startedAt switch
+    {
+        null => null,
+        { } start when start > now + StartAheadAllowed => "The time entry starts in the future. Check this PC's clock, then publish again.",
+        { } start when start < now - StartBehindAllowed => "The time entry starts before any session ScreenTrail keeps, so it cannot be published.",
+        _ => null,
+    };
 
     public static string? Check(PublishBundle? bundle)
     {

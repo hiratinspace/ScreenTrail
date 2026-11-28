@@ -22,7 +22,11 @@ public sealed record PublishBundle
     [JsonPropertyName("ticket_id")]
     public required string TicketId { get; init; }
 
-    /// <summary>The PSA's name for the ticket's company, for the knowledge-base mapping (ST-097). Never stored with a session.</summary>
+    /// <summary>
+    /// The PSA's name for the ticket's company, as the device's search returned it. Accepted and not
+    /// trusted: a knowledge-base article is filed under the company the PSA gives the ticket, read at
+    /// publish (ST-097, E-02). Never stored with a session.
+    /// </summary>
     [JsonPropertyName("company")]
     public string? Company { get; init; }
 
@@ -46,7 +50,7 @@ public sealed record PublishBundle
     [JsonPropertyName("reviewer")]
     public string? Reviewer { get; init; }
 
-    /// <summary>"Drafted with ScreenTrail, reviewed by …" at the foot of the note. Configurable (ST-093 AC3).</summary>
+    /// <summary>"Drafted with ScreenTrail, reviewed by …" at the foot of the note. Configurable for an internal note (ST-093 AC3); a discussion note always carries it (E-02).</summary>
     [JsonPropertyName("footer")]
     public bool Footer { get; init; } = true;
 

@@ -69,7 +69,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
     public async Task ACompanyNobodyCanMatchAsksForAMappingAndPublishesNothing()
     {
         var hudu = new ScriptedHudu();
-        using var host = Host(new ScriptedConnectWise(), hudu);
+        using var host = Host(new ScriptedConnectWise { TicketCompany = "Nowhere Inc" }, hudu);
         var (client, _) = await ConnectedClientAsync(host);
 
         using var response = await client.PostAsJsonAsync(new Uri("/v1/sessions/publish", UriKind.Relative), Bundle("Nowhere Inc"), TestContext.Current.CancellationToken);
@@ -89,7 +89,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         // enough to file one customer's runbook under. The name is offered, nothing is written, and
         // nothing is remembered, so the next publish asks again.
         var hudu = new ScriptedHudu();
-        using var host = Host(new ScriptedConnectWise(), hudu);
+        using var host = Host(new ScriptedConnectWise { TicketCompany = "Borough Legal, LLC" }, hudu);
         var (client, tenantId) = await ConnectedClientAsync(host);
 
         using var first = await client.PostAsJsonAsync(new Uri("/v1/sessions/publish", UriKind.Relative), Bundle("Borough Legal, LLC"), TestContext.Current.CancellationToken);
@@ -135,7 +135,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
     {
         // ST-097 AC2 and AC3: the prompt's answer is remembered, and the list is what Settings edits.
         var hudu = new ScriptedHudu();
-        using var host = Host(new ScriptedConnectWise(), hudu);
+        using var host = Host(new ScriptedConnectWise { TicketCompany = "Nowhere Inc" }, hudu);
         var (client, _) = await ConnectedClientAsync(host);
 
         using var put = await client.PutAsJsonAsync(new Uri("/v1/integrations/hudu/companies", UriKind.Relative), new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
@@ -316,7 +316,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
         // T-174. "Nowhere Inc" matches nothing in Hudu, so only a mapping can file it. One tenant has
         // mapped it by hand; the other publishes the same name and is asked for its own mapping.
         var hudu = new ScriptedHudu();
-        using var host = Host(new ScriptedConnectWise(), hudu);
+        using var host = Host(new ScriptedConnectWise { TicketCompany = "Nowhere Inc" }, hudu);
         var (mine, _) = await ConnectedClientAsync(host);
         var (theirs, theirTenant) = await ConnectedClientAsync(host);
         using var mapped = await mine.PutAsJsonAsync(Companies, new MapCompanyRequest("Nowhere Inc", "9"), TestContext.Current.CancellationToken);
@@ -1093,7 +1093,7 @@ public sealed class KbPublishTests(ApiFixture api) : IClassFixture<ApiFixture>
     {
         // Existing mappings keep working: a publish reads them without asking the PSA about the company,
         // and forgetting one asks the PSA nothing.
-        var cw = new ScriptedConnectWise();
+        var cw = new ScriptedConnectWise { TicketCompany = "Nowhere Inc" };
         var hudu = new ScriptedHudu();
         using var host = Host(cw, hudu);
         var (client, tenantId) = await ConnectedClientAsync(host);
