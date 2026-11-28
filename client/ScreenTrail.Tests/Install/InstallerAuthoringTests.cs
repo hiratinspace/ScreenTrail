@@ -495,6 +495,25 @@ public sealed class InstallerAuthoringTests
     }
 
     [Fact]
+    public void TheInstallersStepsAreRunOnlyForTheSystemAccount()
+    {
+        // C-07: every installer route runs both steps as the system account (deferred, not impersonated).
+        // An elevated administrator is not the installer: with no session token to ask for, everybody looks
+        // signed out and every user's key and credentials would go, with no confirmation and no record.
+        var check = Method(Source("UninstallCleanup.cs"), "internal static bool RunByTheInstaller()");
+
+        Assert.Contains("return identity.IsSystem;", check, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsInRole", check, StringComparison.Ordinal);
+        Assert.DoesNotContain("Administrator", check, StringComparison.Ordinal);
+        foreach (var id in new[] { "RemoveUserData", "ReleaseForUpgrade" })
+        {
+            var action = Package().Descendants(Wix + "CustomAction").Single(a => (string?)a.Attribute("Id") == id);
+            Assert.Equal("deferred", (string?)action.Attribute("Execute"));
+            Assert.Equal("no", (string?)action.Attribute("Impersonate"));
+        }
+    }
+
+    [Fact]
     public void TheUninstallStepWaitsForTheInstalledFilesAfterEverythingElseItDoes()
     {
         // Windows Installer deletes the installed files the moment this step exits, and leaves one that
