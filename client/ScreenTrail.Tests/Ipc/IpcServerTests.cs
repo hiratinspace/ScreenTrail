@@ -711,6 +711,66 @@ public sealed class IpcServerTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task AStateChangedHandlerThatThrowsEndsTheConnectionAndSaysSo()
+    {
+        // Security review B-10: a StateChanged subscriber throwing anything but the four expected types
+        // ended the UI's read loop without marking the connection closed. Disconnected was never raised, so
+        // nothing reconnected; requests waited for ever; and the service's next write to the unread pipe
+        // blocked, so the pill stopped being reported and capture was suppressed.
+        _controller.Holds = typeof(GetIntegrationsCommand);
+        await StartServerAsync();
+        var ui = await ConnectAsync();
+        var ct = TestContext.Current.CancellationToken;
+        var disconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ui.Disconnected += () => disconnected.TrySetResult();
+        ui.StateChanged += _ => throw new InvalidOperationException("a window's handler failed");
+
+        var pending = ui.RequestAsync<IntegrationsListed>(id => new GetIntegrationsCommand { RequestId = id }, ct);
+        await _controller.Holding.Task.WaitAsync(Soon, ct);
+        await _server!.BroadcastAsync(new StateChanged { State = Recording("s1") }, ct);
+
+        await disconnected.Task.WaitAsync(Soon, ct);
+        await Assert.ThrowsAsync<IOException>(() => pending.WaitAsync(Soon, ct));
+        Assert.False(ui.IsConnected);
+
+        // Closed from our side as well, so the service is not left writing to a pipe nobody reads, and
+        // disposing it afterwards does not throw the handler's fault back.
+        await WaitUntilAsync(() => _server.ConnectedClients == 0);
+        await ui.DisposeAsync();
+        _controller.Release.TrySetResult();
+    }
+
+    [Fact]
+    public async Task AConnectionWhoseStateHandlerThrewIsReplacedByANewOne()
+    {
+        // The rest of B-10: the window reconnects on its own.
+        await StartServerAsync();
+        var ct = TestContext.Current.CancellationToken;
+        var shell = new ScreenTrail.Core.Shell.ShellState();
+        var opened = 0;
+        await using var connection = new ScreenTrail.Core.Shell.CaptureConnection(
+            shell,
+            async open =>
+            {
+                var client = await ConnectAsync();
+                if (Interlocked.Increment(ref opened) == 1)
+                {
+                    client.StateChanged += _ => throw new InvalidOperationException("a window's handler failed");
+                }
+
+                return client;
+            },
+            retryAfter: _ => TimeSpan.FromMilliseconds(20));
+        await connection.StartAsync(ct);
+        await WaitUntilAsync(() => _server!.ConnectedClients == 1);
+
+        await _server!.BroadcastAsync(new StateChanged { State = Recording("s1") }, ct);
+
+        await WaitUntilAsync(() => Volatile.Read(ref opened) == 2 && _server.ConnectedClients == 1);
+        Assert.Equal(ScreenTrail.Core.Shell.ServiceConnection.Connected, shell.Snapshot.Connection);
+    }
+
+    [Fact]
     public async Task AnAnswerTooLargeForThePipeIsRefusedAndTheConnectionStaysUp()
     {
         // 2026-10-12 review, E-2. Writing a reply over the frame limit threw out of the serve loop and the
