@@ -111,6 +111,20 @@ public sealed class ProcessStartupTests
         Assert.DoesNotContain("new ProcessStartInfo(path)", shell, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheSpeechModelLoadsOnlyTheCpuRuntimeItShipsWith()
+    {
+        // C-04 (hardening): Whisper.net otherwise tries its other runtimes first, by name. Only the CPU
+        // runtime ships beside the service, so the order is set to it alone before every model load: the
+        // service, --transcribe and the tests all load through this method.
+        var recogniser = File.ReadAllText(Source("ScreenTrail.Service", Path.Combine("Speech", "WhisperRecogniser.cs")));
+
+        var order = recogniser.IndexOf("RuntimeOptions.RuntimeLibraryOrder = [RuntimeLibrary.Cpu];", StringComparison.Ordinal);
+        var load = recogniser.IndexOf("WhisperFactory.FromPath(", StringComparison.Ordinal);
+        Assert.True(order > 0 && order < load, "the runtime order is set to the CPU runtime alone before the model loads");
+        Assert.Single(Regex.Matches(recogniser, @"WhisperFactory\.From"));
+    }
+
     /// <summary>A file in the client's source tree, found from the test binary the way ClientSources finds projects.</summary>
     [Fact]
     public void TheUiIsPerMonitorDpiAwareFromItsManifest()
