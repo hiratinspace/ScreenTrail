@@ -90,13 +90,14 @@
     <!-- Only ever C:\Program Files\ScreenTrail (or wherever this machine's 64-bit Program Files is).
          INSTALLFOLDER is a public property, so a command line could otherwise put ScreenTrail in a folder
          ordinary users can change, and the uninstall would run the service from there as the system
-         account. The expected folder comes from the environment, not from a property the same command
-         line could set. Checked once the folders are resolved, in both sequences, so a silent install
+         account. The expected folder is ProgramFiles64Folder's, which Windows Installer sets from the
+         machine's known folder: a private property, so no command line sets it, and no environment variable
+         a caller could change goes into it. Checked once the folders are resolved, in both sequences, so a silent install
          refuses too. Checked for every run, not only a first install: an uninstall or a repair runs the
          installed service from [INSTALLFOLDER] as the system account too, so a command line that names
          another folder there is refused the same way. A correct installation is always in this folder, so
          its uninstall and repair pass. -->
-    <SetProperty Id="EXPECTEDINSTALLFOLDER" Value="[%ProgramW6432]\ScreenTrail\" Before="CostInitialize" Sequence="both" />
+    <SetProperty Id="EXPECTEDINSTALLFOLDER" Value="[ProgramFiles64Folder]ScreenTrail\" Before="CostInitialize" Sequence="both" />
     <CustomAction Id="RefuseInstallFolder"
                   Error="ScreenTrail lives only in its folder under Program Files. Remove INSTALLFOLDER from the command line and try again." />
     <InstallUISequence>

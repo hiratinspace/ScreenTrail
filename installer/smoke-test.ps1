@@ -561,6 +561,30 @@ Check 'and installs nothing there' (-not (Test-Path (Join-Path $elsewhere 'Scree
 Check 'and registers nothing' (@(Get-ArpEntries).Count -eq 0)
 Remove-Item $elsewhere -Recurse -Force -ErrorAction SilentlyContinue
 
+# C-06: the expected folder is Windows Installer's own ProgramFiles64Folder, so a caller whose environment
+# points ProgramW6432 at the other folder too is refused the same way, and the folder the package expected,
+# in the installer's own property list, is still the one under Program Files.
+Write-Step 'A silent install into another folder is refused when the caller''s ProgramW6432 points there too'
+$spoofRoot = Join-Path $env:SystemDrive 'ScreenTrailSpoof'
+$savedProgramW6432 = $env:ProgramW6432
+try {
+    $env:ProgramW6432 = $spoofRoot
+    $code = Invoke-Msi '/i' $Msi 'install-elsewhere-environment.log' "INSTALLFOLDER=$(Join-Path $spoofRoot 'ScreenTrail')"
+} finally {
+    $env:ProgramW6432 = $savedProgramW6432
+}
+$spoofLog = @(Get-Content (Join-Path $Logs 'install-elsewhere-environment.log') -ErrorAction SilentlyContinue)
+Check 'msiexec /i with INSTALLFOLDER and ProgramW6432 both outside Program Files is refused by the folder check' ($code -eq 1603 -and @($spoofLog | Where-Object { $_ -match 'RefuseInstallFolder\. Return value 3' }).Count -ge 1) "exit $code"
+Check 'and installs nothing there' (-not (Test-Path (Join-Path $spoofRoot 'ScreenTrail\ScreenTrail.Service.exe')))
+Check 'and registers nothing' (@(Get-ArpEntries).Count -eq 0)
+$expectedFolder = @($spoofLog | ForEach-Object { [regex]::Match($_, '^Property\(S\): EXPECTEDINSTALLFOLDER = (.*)$') } | Where-Object { $_.Success } | ForEach-Object { $_.Groups[1].Value.Trim() }) | Select-Object -Last 1
+if ($expectedFolder) {
+    Check 'the folder the installer expected is the one under Program Files' ($expectedFolder -eq "$installDir\") "EXPECTEDINSTALLFOLDER $expectedFolder"
+} else {
+    Note 'the installer log has no property list with EXPECTEDINSTALLFOLDER' 'the refusal above is the check'
+}
+Remove-Item $spoofRoot -Recurse -Force -ErrorAction SilentlyContinue
+
 # --- Install (and upgrade) -----------------------------------------------------------------------------
 # A fresh profile need not have a Run key of its own yet (some hosted images do not), and the checks
 # below plant values in it.
