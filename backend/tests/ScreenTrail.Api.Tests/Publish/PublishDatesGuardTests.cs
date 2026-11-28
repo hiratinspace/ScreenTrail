@@ -40,6 +40,46 @@ public sealed partial class PublishDatesGuardTests
         Assert.Empty(unreplaced);
     }
 
+    /// <summary>
+    /// A source path recorded at build time is not where the sources are when the build maps its paths
+    /// (CI's deterministic build records <c>/_/</c>), so a test that finds files through it passes on a
+    /// developer's machine and fails on CI. Tests find their files from the folder they run in instead.
+    /// </summary>
+    [Fact]
+    public void NoTestFindsFilesThroughItsBuildTimePath()
+    {
+        var files = Directory.EnumerateFiles(ProjectFolder(), "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .ToList();
+        Assert.Contains(files, f => Path.GetFileName(f) == nameof(PublishDatesGuardTests) + ".cs");
+
+        var offenders = files
+            .Where(f => BuildTimePath().IsMatch(File.ReadAllText(f)))
+            .Select(Path.GetFileName)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
+
+    [GeneratedRegex(@"[\[,]\s*(System\.Runtime\.CompilerServices\.)?CallerFilePath(Attribute)?\b")]
+    private static partial Regex BuildTimePath();
+
+    /// <summary>The test project's folder, found by walking up from the folder the tests run in.</summary>
+    private static string ProjectFolder()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "ScreenTrail.Api.Tests.csproj")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        // Failed rather than passed over no files: a guard that reads nothing guards nothing.
+        throw new DirectoryNotFoundException("ScreenTrail.Api.Tests.csproj was not found above the test's folder.");
+    }
+
     /// <summary>The test project's own sources, found from this file's path at build time.</summary>
     private static IEnumerable<string> Sources([CallerFilePath] string here = "")
     {
