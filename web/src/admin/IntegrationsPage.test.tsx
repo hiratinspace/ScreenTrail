@@ -21,9 +21,11 @@ const notConnected = (provider: string, name: string): Integration => ({
 const nothingConnected: Integrations = {
   integrations: [notConnected('connectwise', 'ConnectWise Manage'), notConnected('hudu', 'Hudu')],
   changes: [],
+  mappings: [],
 };
 
 const huduConnected: Integrations = {
+  mappings: [],
   integrations: [
     notConnected('connectwise', 'ConnectWise Manage'),
     {
@@ -50,6 +52,7 @@ describe('IntegrationsPage', () => {
   it('says what is connected, by whom, and how its last test went', async () => {
     const api = fakeApi({
       integrations: async () => ({
+        mappings: [],
         integrations: [
           {
             provider: 'connectwise',
@@ -85,6 +88,7 @@ describe('IntegrationsPage', () => {
   it('shows just the date when who connected is not known, and Connect when nothing is connected', async () => {
     const api = fakeApi({
       integrations: async () => ({
+        mappings: [],
         integrations: [
           { ...notConnected('connectwise', 'ConnectWise Manage'), connected: true, siteUrl: 'https://na.myconnectwise.example', connectedAt: '2026-11-01T12:00:00Z' },
           notConnected('hudu', 'Hudu'),
@@ -142,7 +146,7 @@ describe('IntegrationsPage', () => {
       docCompanyId: null,
       docCompanyName: null,
     }));
-    const api = fakeApi({ integrations: async () => ({ integrations: integrations.integrations, changes }) });
+    const api = fakeApi({ integrations: async () => ({ integrations: integrations.integrations, changes, mappings: [] }) });
     render(<IntegrationsPage api={api} />);
 
     const table = await screen.findByRole('table', { name: 'Recent changes' });
@@ -158,6 +162,7 @@ describe('IntegrationsPage', () => {
   it('lists recent changes in words, with who made each', async () => {
     const api = fakeApi({
       integrations: async () => ({
+        mappings: [],
         integrations: integrations.integrations,
         changes: [
           ...integrations.changes,
@@ -351,6 +356,7 @@ describe('IntegrationsPage', () => {
 
   it('shows the newest read of the list when two answer out of order', async () => {
     const both: Integrations = {
+      mappings: [],
       integrations: [integrations.integrations[0]!, { ...huduConnected.integrations[1]! }],
       changes: [],
     };

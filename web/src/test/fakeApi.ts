@@ -49,6 +49,7 @@ export const technicians: Technicians = {
 
 /** ConnectWise connected by the owner, Hudu not connected, and a few changes, newest first. */
 export const integrations: Integrations = {
+  mappings: [],
   integrations: [
     {
       provider: 'connectwise',

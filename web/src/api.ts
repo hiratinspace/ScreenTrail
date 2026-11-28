@@ -144,8 +144,8 @@ export interface Integrations {
   integrations: Integration[];
   /** At most 100, newest first. */
   changes: IntegrationChange[];
-  /** Every PSA company's current mapping, by name, with who chose it. */
-  mappings?: CompanyMappingNow[];
+  /** Every PSA company's current mapping, by name, with who chose it. Required, so dropping it does not compile (G-01). */
+  mappings: CompanyMappingNow[];
 }
 
 /** A PSA company's mapping as it stands. */
@@ -301,7 +301,7 @@ export function httpApi(base = ''): AdminApi {
     setPolicy: (change) => call<Policy>('PUT', '/v1/admin/policy', change),
     integrations: async () => {
       const answer = await call<Partial<Integrations>>('GET', '/v1/admin/integrations');
-      return { integrations: answer.integrations ?? [], changes: answer.changes ?? [] };
+      return { integrations: answer.integrations ?? [], changes: answer.changes ?? [], mappings: answer.mappings ?? [] };
     },
     connectIntegration: (provider, siteUrl, secret) =>
       call<void>('PUT', `/v1/admin/integrations/${encodeURIComponent(provider)}`, { siteUrl, secret }),

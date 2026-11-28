@@ -94,7 +94,7 @@ describe('httpApi', () => {
     const api = httpApi();
     await api.signIn('t');
 
-    expect(await api.integrations()).toEqual({ integrations: [], changes: [] });
+    expect(await api.integrations()).toEqual({ integrations: [], changes: [], mappings: [] });
     await api.connectIntegration('connectwise', 'https://na.myconnectwise.example', 'acme+pub:priv');
     expect(await api.checkIntegration('connectwise')).toEqual({ ok: false, message: 'ConnectWise refused the key.', checkedAt: 'x' });
     await api.disconnectIntegration('hudu');
