@@ -290,6 +290,43 @@ public sealed class ReleaseSurfaceTests
             $"The client publishes through the backend and knows no provider by type. Found: {string.Join(", ", offenders)}");
     }
 
+    /// <summary>The screenshot harness's switches (CI renders the shell, the gallery, the note pane and the pill).</summary>
+    private static readonly string[] HarnessSwitches = ["--screenshot", "--gallery", "--note", "--hud"];
+
+    [Fact]
+    public void TheInstallersBuildOfTheUiKnowsNoneOfTheHarnessSwitches()
+    {
+        // K6: the screenshot harness renders sample windows from fixture files for CI. It is compiled out of
+        // the installer's build, so an installed UI started with one of its switches is the application,
+        // not a sample that looks like a recording and reads fixtures from wherever the search reaches.
+        var offenders = SourceFiles("ScreenTrail.UI")
+            .SelectMany(file => HarnessSwitches
+                .Where(name => CompiledText(File.ReadAllText(file), ["SCREENTRAIL_INSTALLER", "RELEASE", "TRACE"]).Contains($"\"{name}\"", StringComparison.Ordinal))
+                .Select(name => $"{SourceKey("ScreenTrail.UI", file)}: {name}"))
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"The installer's build of the UI has no screenshot harness. Found: {string.Join(", ", offenders)}");
+
+        // The development build keeps all four: CI's render jobs run it.
+        var app = File.ReadAllText(Path.Combine(Path.GetDirectoryName(ProjectFile("ScreenTrail.UI"))!, "App.xaml.cs"));
+        foreach (var name in HarnessSwitches)
+        {
+            Assert.Contains($"\"{name}\"", CompiledText(app, ["RELEASE", "TRACE"]), StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("a\n#if !SCREENTRAIL_INSTALLER\nb\n#endif\nc", "a c", "a b c")]
+    [InlineData("#if SCREENTRAIL_INSTALLER\na\n#else\nb\n#endif", "a", "b")]
+    [InlineData("  #  if   !SCREENTRAIL_INSTALLER\na\n  #else\nb\n  #endif", "b", "a")]
+    [InlineData("#if !SCREENTRAIL_INSTALLER\n#if X\na\n#endif\nb\n#endif\nc", "c", "b c")]
+    [InlineData("a\n// #if !SCREENTRAIL_INSTALLER\nb", "a // #if !SCREENTRAIL_INSTALLER b", "a // #if !SCREENTRAIL_INSTALLER b")]
+    public void TheBuildViewKnowsTheShapesItIsFor(string source, string installer, string development)
+    {
+        Assert.Equal(installer, string.Join(' ', CompiledText(source, ["SCREENTRAIL_INSTALLER"]).Split('\n', StringSplitOptions.RemoveEmptyEntries)));
+        Assert.Equal(development, string.Join(' ', CompiledText(source, []).Split('\n', StringSplitOptions.RemoveEmptyEntries)));
+    }
+
     [Fact]
     public void TheseTestsAreLookingAtRealFiles()
     {
@@ -604,6 +641,55 @@ public sealed class ReleaseSurfaceTests
 
     /// <summary>The render harness, which may call the one-argument shell constructor behind --render.</summary>
     private static bool IsRenderHarness(string key) => key == "ScreenTrail.UI/App.xaml.cs";
+
+    /// <summary>
+    /// The lines of <paramref name="source"/> the compiler sees with <paramref name="symbols"/> defined:
+    /// <c>#if</c>, <c>#else</c> and <c>#endif</c> on one symbol, plain or negated. Anything else the
+    /// preprocessor could be asked fails the test rather than being guessed at.
+    /// </summary>
+    private static string CompiledText(string source, string[] symbols)
+    {
+        var kept = new List<string>();
+        var active = new Stack<(bool Outer, bool Taken)>();
+        var on = true;
+        foreach (var line in source.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        {
+            var directive = Regex.Match(line, @"^\s*#\s*(?<kind>if|elif|else|endif)\b\s*(?<condition>.*?)\s*$");
+            if (!directive.Success)
+            {
+                if (on)
+                {
+                    kept.Add(line.Trim());
+                }
+
+                continue;
+            }
+
+            switch (directive.Groups["kind"].Value)
+            {
+                case "if":
+                    var condition = Regex.Match(directive.Groups["condition"].Value, @"^(?<not>!?)\s*(?<symbol>[A-Za-z_]\w*)$");
+                    Assert.True(condition.Success, $"Only a single symbol is understood here: {line}");
+                    var holds = symbols.Contains(condition.Groups["symbol"].Value, StringComparer.Ordinal) != (condition.Groups["not"].Value == "!");
+                    active.Push((on, holds));
+                    on = on && holds;
+                    break;
+                case "else":
+                    var (outer, taken) = active.Peek();
+                    on = outer && !taken;
+                    break;
+                case "endif":
+                    on = active.Pop().Outer;
+                    break;
+                default:
+                    Assert.Fail($"#elif is not understood here: {line}");
+                    break;
+            }
+        }
+
+        Assert.Empty(active);
+        return string.Join('\n', kept);
+    }
 
     private static string ProjectFile(string project)
     {
