@@ -625,6 +625,40 @@ public sealed class InstallerAuthoringTests
         Assert.DoesNotContain("MergedDictionaries.Remove(_colors)", theme, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheInstallersBuildSaysSoInItsOwnCode()
+    {
+        // K1, B-02, K6: what the installer packages is known to the code it compiles, so a copy taken out
+        // of Program Files, renamed or stripped of its signature is still the installer's build.
+        var constants = Packaged()["DefineConstants"];
+        Assert.Contains("$(DefineConstants)", constants, StringComparison.Ordinal);
+        Assert.Contains(";SCREENTRAIL_INSTALLER", constants, StringComparison.Ordinal);
+
+        foreach (var project in new[] { "ScreenTrail.Service", "ScreenTrail.UI" })
+        {
+            var kind = File.ReadAllText(Repo.File("client", project, "BuildKind.cs"));
+            Assert.Matches(new Regex(@"#if SCREENTRAIL_INSTALLER\s+public static bool Installer => true;\s+#else\s+public static bool Installer => false;\s+#endif"), kind);
+        }
+    }
+
+    [Fact]
+    public void TheServiceDecidesInstalledFromItsBuildAndTheMachinesSettings()
+    {
+        // K1: installed is the installer's build, the install folder or the signed service executable, and
+        // a build that is none of them reads the variables only where the machine has no address or its
+        // administrator allowed development overrides.
+        var host = File.ReadAllText(Repo.File("client", "ScreenTrail.Service", "Host", "CaptureHost.cs"));
+        Assert.Contains("installerBuild: BuildKind.Installer", host, StringComparison.Ordinal);
+        Assert.Contains("var machineBackend = MachineBackend.Read();", host, StringComparison.Ordinal);
+        Assert.Contains("var overridesAllowed = MachineBackend.DevelopmentOverridesAllowed();", host, StringComparison.Ordinal);
+        Assert.Contains("DeploymentAddresses.Resolve(installed, machineBackend, Environment.GetEnvironmentVariable, overridesAllowed)", host, StringComparison.Ordinal);
+        Assert.Contains("DeploymentAddresses.FallbackToken(installed, Environment.GetEnvironmentVariable, machineBackend, overridesAllowed)", host, StringComparison.Ordinal);
+
+        var machine = File.ReadAllText(Repo.File("client", "ScreenTrail.Service", "Host", "MachineBackend.cs"));
+        Assert.Contains("DeploymentAddresses.DevelopmentOverridesValue", machine, StringComparison.Ordinal);
+        Assert.Contains("RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)", machine, StringComparison.Ordinal);
+    }
+
     /// <summary>The properties Packaging.props sets when the installer build asks for them.</summary>
     private static Dictionary<string, string> Packaged()
     {

@@ -79,8 +79,9 @@ public sealed class DeploymentAddressesTests
     public void ADevelopmentBuildUsesTheEnvironmentFirst()
     {
         // The demo's start.ps1 and the end-to-end run give the service SCREENTRAIL_BACKEND for its own
-        // process. That keeps working.
-        var address = DeploymentAddresses.Resolve(installed: false, Machine, Environment("https://localhost:5001", null));
+        // process. That keeps working where no machine address is set, and, where one is, on a machine
+        // whose administrator allowed development overrides.
+        var address = DeploymentAddresses.Resolve(installed: false, Machine, Environment("https://localhost:5001", null), developmentOverridesAllowed: true);
 
         Assert.Equal(new Uri("https://localhost:5001"), address.Backend);
         Assert.Equal(AddressOrigin.Environment, address.Origin);
@@ -193,6 +194,104 @@ public sealed class DeploymentAddressesTests
     {
         Assert.False(DeploymentAddresses.InstalledAt("/Program Files/ScreenTrail/ScreenTrail.Service.exe", null));
         Assert.False(DeploymentAddresses.InstalledAt("/Program Files/ScreenTrail/ScreenTrail.Service.exe", string.Empty));
+    }
+
+    [Fact]
+    public void ASignedReleaseCopiedOutAndRenamedStillReadsOnlyTheMachineAddress()
+    {
+        // The shipped service executable, copied to a folder the technician can write and renamed. What it
+        // is (the build the installer packages) goes with every copy, whatever its folder, name or signature.
+        var copy = @"C:\Users\tech\AppData\Local\Temp\st\svc.exe";
+        var installed = DeploymentAddresses.Installed(copy, @"C:\Program Files", carriesSignature: _ => true, installerBuild: true);
+        var address = DeploymentAddresses.Resolve(installed, machine: "https://backend.msp.example", Environment(Elsewhere, "a-token"));
+
+        Assert.True(installed, "A copy of the installer's build under another file name counts as installed.");
+        Assert.Equal("backend.msp.example", address.Backend?.Host);
+        Assert.Null(DeploymentAddresses.FallbackToken(installed, Environment(Elsewhere, "a-token")));
+    }
+
+    [Theory]
+    [InlineData(@"C:\Users\tech\AppData\Local\Temp\st\svc.exe", false)]
+    [InlineData(@"C:\Users\tech\AppData\Local\Temp\st\ScreenTrail.Service.exe", false)]
+    [InlineData(@"C:\Users\tech\AppData\Local\Temp\st\svc.exe", true)]
+    public void TheInstallersBuildCountsAsInstalledWhereverItRunsAndWhateverItsSignature(string copy, bool carriesSignature)
+    {
+        Assert.True(DeploymentAddresses.Installed(copy, @"C:\Program Files", _ => carriesSignature, installerBuild: true));
+    }
+
+    [Fact]
+    public void TodaysUnsignedReleaseCopiedOutStillReadsOnlyTheMachineAddress()
+    {
+        // Every build is unsigned until the certificate exists. On a machine an administrator gave an
+        // address, a build that does not count as installed does not read the variables either, unless
+        // the administrator also allowed development overrides.
+        var copy = @"C:\Users\tech\AppData\Local\Temp\st\ScreenTrail.Service.exe";
+        var installed = DeploymentAddresses.Installed(copy, @"C:\Program Files", carriesSignature: _ => false);
+        var address = DeploymentAddresses.Resolve(installed, machine: "https://backend.msp.example", Environment(Elsewhere, "a-token"));
+
+        Assert.Equal("backend.msp.example", address.Backend?.Host);
+        Assert.Equal(AddressOrigin.Machine, address.Origin);
+        Assert.True(address.EnvironmentIgnored);
+        Assert.Null(DeploymentAddresses.FallbackToken(installed, Environment(Elsewhere, "a-token"), "https://backend.msp.example"));
+    }
+
+    [Fact]
+    public void AMachineAddressThatDoesNotParseIsStillNotReplacedByTheEnvironment()
+    {
+        // Present is what counts, not usable: a value an administrator wrote badly is not an opening.
+        var address = DeploymentAddresses.Resolve(installed: false, machine: "not a url", Environment(Elsewhere, null));
+
+        Assert.Null(address.Backend);
+        Assert.Equal(AddressOrigin.None, address.Origin);
+        Assert.Null(DeploymentAddresses.FallbackToken(installed: false, Environment(Elsewhere, "a-token"), machine: "not a url"));
+    }
+
+    [Fact]
+    public void ADevelopmentBuildReadsTheVariablesWhereTheAdministratorAllowsDevelopmentOverrides()
+    {
+        var address = DeploymentAddresses.Resolve(installed: false, Machine, Environment("https://localhost:5001", null), developmentOverridesAllowed: true);
+        var fallback = DeploymentAddresses.FallbackToken(installed: false, Environment(Machine, "a-token"), Machine, developmentOverridesAllowed: true);
+
+        Assert.Equal(new Uri("https://localhost:5001"), address.Backend);
+        Assert.Equal(AddressOrigin.Environment, address.Origin);
+        Assert.NotNull(fallback);
+        Assert.Equal("a-token", fallback());
+    }
+
+    [Fact]
+    public void AnInstalledBuildNeverReadsTheVariablesWhateverTheMachineAllows()
+    {
+        var address = DeploymentAddresses.Resolve(installed: true, Machine, Environment(Elsewhere, "a-token"), developmentOverridesAllowed: true);
+
+        Assert.Equal(new Uri(Machine), address.Backend);
+        Assert.Null(DeploymentAddresses.FallbackToken(installed: true, Environment(Machine, "a-token"), Machine, developmentOverridesAllowed: true));
+    }
+
+    [Fact]
+    public void WithNoMachineAddressADevelopmentBuildKeepsTheVariables()
+    {
+        // The test loop, the demo and the end-to-end run, on a machine nobody installed ScreenTrail on.
+        var address = DeploymentAddresses.Resolve(installed: false, machine: null, Environment("https://localhost:5001", null));
+        var fallback = DeploymentAddresses.FallbackToken(installed: false, Environment(null, "a-token"), machine: null);
+
+        Assert.Equal(AddressOrigin.Environment, address.Origin);
+        Assert.Equal("a-token", fallback?.Invoke());
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    [InlineData(0, false)]
+    [InlineData("1", true)]
+    [InlineData("true", true)]
+    [InlineData("TRUE", true)]
+    [InlineData("0", false)]
+    [InlineData("", false)]
+    [InlineData("yes please", false)]
+    [InlineData(null, false)]
+    public void DevelopmentOverridesAreAllowedOnlyByAPlainYes(object? value, bool allowed)
+    {
+        Assert.Equal(allowed, DeploymentAddresses.DevelopmentOverridesAllowed(value));
     }
 
     private static Func<string, string?> Environment(string? backend, string? token) => name => name switch
