@@ -401,7 +401,9 @@ the file `%LOCALAPPDATA%\ScreenTrail\device.cred`, and run `start.cmd`.
 Nothing is set in the Windows environment for good: the two settings the capture service needs
 (`SCREENTRAIL_BACKEND` and `SCREENTRAIL_DEVICE_TOKEN`) are given to that one process when start launches it,
 and the backend's (`ASPNETCORE_ENVIRONMENT`, `ASPNETCORE_URLS` and `Summarization__Provider`) are set
-inside its window only.
+inside its window only. On a laptop where an installed ScreenTrail was given an address (`BackendUrl` under
+`HKLM\SOFTWARE\ScreenTrail`), the demo's service reads that address and not the variables unless the
+machine also has `AllowDevelopmentOverrides` set (`docs/dev/installer.md`).
 
 ---
 

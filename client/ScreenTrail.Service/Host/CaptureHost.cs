@@ -120,20 +120,25 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
         // Where this deployment's backend is (2026-11-15 review). The address decides where the egress
         // allowlist points and where the tenant's policy comes from, so a locked local-only is only as
-        // strong as the place it is read from. An installed build (running from ScreenTrail's folder under
-        // Program Files, or the signed service executable started from anywhere) reads it only from the
-        // machine-wide setting the installer writes, which only an administrator can change, and ignores
-        // SCREENTRAIL_BACKEND and SCREENTRAIL_DEVICE_TOKEN. A development build (unsigned) keeps the
-        // variables, which the test loop, the demo and the end-to-end run set for the service's process
-        // alone. DeploymentAddressesTests pins it.
+        // strong as the place it is read from. An installed build (the installer's build wherever it runs,
+        // anything running from ScreenTrail's folder under Program Files, or the signed service executable
+        // started from anywhere) reads it only from the machine-wide setting the installer writes, which
+        // only an administrator can change, and ignores SCREENTRAIL_BACKEND and SCREENTRAIL_DEVICE_TOKEN. A
+        // development build keeps the variables, which the test loop, the demo and the end-to-end run set
+        // for the service's process alone, on a machine with no machine-wide address or whose administrator
+        // allowed development overrides; elsewhere it reads the machine's address too.
+        // DeploymentAddressesTests pins it.
         //
         // Unset is the ordinary case and not an error. The queue keeps the work, Review says the session
         // could not be drafted, and the screenshots and transcript are still there (Spec §5 S3).
         var installed = DeploymentAddresses.Installed(
             serviceExecutable,
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-            _ => PackageSignature.Running() is not null);
-        var address = DeploymentAddresses.Resolve(installed, MachineBackend.Read(), Environment.GetEnvironmentVariable);
+            _ => PackageSignature.Running() is not null,
+            installerBuild: BuildKind.Installer);
+        var machineBackend = MachineBackend.Read();
+        var overridesAllowed = MachineBackend.DevelopmentOverridesAllowed();
+        var address = DeploymentAddresses.Resolve(installed, machineBackend, Environment.GetEnvironmentVariable, overridesAllowed);
         var backend = address.Backend;
         LogAddress(logger, installed, address.Origin, address.EnvironmentIgnored);
 
@@ -178,11 +183,12 @@ internal sealed partial class CaptureHost(ILogger<CaptureHost> logger, IHostAppl
 
         // ST-010: the device's standing with the backend. Activated once with an invite's code (the
         // refresh token under DPAPI), then an access token an hour at a time. A development build falls
-        // back to the environment's token, as the M1 runbook and the demo do; an installed one never.
+        // back to the environment's token, as the M1 runbook and the demo do, where it reads the variables
+        // at all (as the address above); an installed one never.
         var device = new DeviceSession(
             draftHttp,
             new DpapiDeviceCredentials(paths.DeviceCredentials),
-            DeploymentAddresses.FallbackToken(installed, Environment.GetEnvironmentVariable),
+            DeploymentAddresses.FallbackToken(installed, Environment.GetEnvironmentVariable, machineBackend, overridesAllowed),
             TimeProvider.System)
         {
             // An installed copy with no machine-wide address says an administrator sets it, on the device

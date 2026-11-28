@@ -92,7 +92,7 @@ failure names the join of the loop that broke and what was there instead.
 | setup-08 backend | The backend answers `/health` over HTTPS in Development, with `Providers:Demo=true` and `Summarization:Provider=scripted` |
 | setup-09 enrol | `--enrol-dev-device` gives a token the backend accepts at `/v1/me` |
 | setup-10 client-publish | The service, the UI and the driver publish into one folder (the unsigned handshake's rule) |
-| setup-11 service | The capture service starts with `SCREENTRAIL_BACKEND` and the token in its own environment only, publishes its pipe token and says it started |
+| setup-11 service | The capture service starts with `SCREENTRAIL_BACKEND` and the token in its own environment only, publishes its pipe token and says it started. On a machine with a `BackendUrl` value under `HKLM\SOFTWARE\ScreenTrail` it reads that instead, unless `AllowDevelopmentOverrides` is set there (`docs/dev/installer.md`) |
 | setup-12 ui | The UI starts and stays up |
 
 **The loop** (`client/ScreenTrail.E2E`, through the pipe commands the UI sends)

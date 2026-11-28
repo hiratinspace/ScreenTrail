@@ -36,4 +36,23 @@ internal static class MachineBackend
             return null;
         }
     }
+
+    /// <summary>
+    /// Whether an administrator allowed development builds on this machine to read the variables although
+    /// it has an address (<see cref="DeploymentAddresses.DevelopmentOverridesValue"/>, new key only). False
+    /// when it is not set or cannot be read.
+    /// </summary>
+    public static bool DevelopmentOverridesAllowed()
+    {
+        try
+        {
+            using var machine = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+            using var key = machine.OpenSubKey(DeploymentAddresses.MachineKey);
+            return DeploymentAddresses.DevelopmentOverridesAllowed(key?.GetValue(DeploymentAddresses.DevelopmentOverridesValue));
+        }
+        catch (Exception ex) when (ex is SecurityException or UnauthorizedAccessException or IOException)
+        {
+            return false;
+        }
+    }
 }

@@ -27,6 +27,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(ScreenTrailInstaller)' == 'true'">
+    <!-- The code knows it is the installer's build (each project's BuildKind): a copy of the release taken
+         out of Program Files, renamed or stripped of its signature is still the installer's build, so it
+         still reads its backend address only from the machine (K1), refuses foreign code whatever its
+         signature (B-02) and has no screenshot harness (K6). -->
+    <DefineConstants>$(DefineConstants);SCREENTRAIL_INSTALLER</DefineConstants>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>

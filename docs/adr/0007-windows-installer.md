@@ -322,6 +322,11 @@ install or upgrade; the service starts at the next sign-in, which is what the ti
   writes, and ignores `SCREENTRAIL_BACKEND` and `SCREENTRAIL_DEVICE_TOKEN`. The address decides where the
   egress allowlist points and where policy comes from, so a per-user setting could have pointed a
   locked local-only device elsewhere. The variables remain for development builds.)*
+  *(Amended 2026-11-28, security fix run, K1: "installed" also means the installer's build wherever it
+  runs, a fact compiled in by `ScreenTrailInstaller=true` that a copy cannot shed by moving, renaming or
+  losing its signature. A development build on a machine with a `BackendUrl` value reads that value and
+  ignores the variables unless the machine's `AllowDevelopmentOverrides` value (same key, DWORD 1) is set;
+  `docs/dev/installer.md` has the line.)*
   *(Amended 2026-11-16, follow-up: `ScreenTrail-Setup.exe` passes `BACKENDURL` on to the package, so
   either installer sets it: `ScreenTrail-Setup.exe BACKENDURL=https://... /quiet /norestart` or
   `msiexec /i ScreenTrail.msi BACKENDURL=https://... /qn /norestart`. The setup program's variable is

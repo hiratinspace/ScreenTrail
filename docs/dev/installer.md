@@ -326,8 +326,16 @@ Left out, nothing is written (see below).
 - **The backend address:** an installed ScreenTrail reads it only from
   `HKEY_LOCAL_MACHINE\SOFTWARE\ScreenTrail`, value `BackendUrl` (a string), which only an administrator can
   change, and ignores the `SCREENTRAIL_BACKEND` and `SCREENTRAIL_DEVICE_TOKEN` variables those development
-  builds use. "Installed" means running from `ScreenTrail` under the machine's Program Files, the one folder
-  the package installs into, or being the signed `ScreenTrail.Service.exe` wherever it runs.
+  builds use. "Installed" means being the build the installer packages (wherever it runs, whatever its
+  file is called, signed or not), running from `ScreenTrail` under the machine's Program Files, the one
+  folder the package installs into, or being the signed `ScreenTrail.Service.exe` wherever it runs. On a
+  machine with a `BackendUrl` value, a development build reads that value too and ignores the variables,
+  unless an administrator also set `AllowDevelopmentOverrides` (a DWORD, 1) under the same key; never do
+  that on a customer's machine:
+
+  ```powershell
+  reg add HKLM\SOFTWARE\ScreenTrail /v AllowDevelopmentOverrides /t REG_DWORD /d 1 /f /reg:64
+  ```
   `BACKENDURL` writes it, on the `msiexec` line or on the setup program's, which passes it on to the
   package. Write the name in capitals, as above; the setup program also takes it in any case. It is read
   only when the package is installed or upgraded: an upgrade or a repair without it keeps the value
@@ -353,7 +361,8 @@ Left out, nothing is written (see below).
   upgrade's `msiexec` or `ScreenTrail-Setup.exe` line, or run the `reg add` line above, before or after
   upgrading. Setup programs built before the 2026-11-16 follow-up did not pass `BACKENDURL` on: with one
   of those, use `msiexec` or the `reg add` line. Development builds,
-  the demo and the end-to-end run are not installed and keep reading the variable.
+  the demo and the end-to-end run are not installed and keep reading the variable, on a machine with no
+  `BackendUrl` value or with `AllowDevelopmentOverrides` set.
 
 - **Intune:** add `ScreenTrail.msi` as a *line-of-business app* (product code detection is automatic), with
   the Visual C++ 2015-2022 x64 runtime as a Win32 app it depends on; or wrap `ScreenTrail-Setup.exe` as a
