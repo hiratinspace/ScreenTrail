@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # The proxy (ST-007): Caddy serving the built web admin and forwarding /v1 and /health to the API.
 # Build from the repo root, as deploy/compose.yaml does:
 #   docker build -f deploy/web/Dockerfile --build-arg VITE_GOOGLE_CLIENT_ID=... .

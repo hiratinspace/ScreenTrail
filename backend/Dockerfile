@@ -1,10 +1,11 @@
-# syntax=docker/dockerfile:1
 # Build from the repo root: docker build -f backend/Dockerfile -t screentrail-api .
 # (The root holds Directory.Build.props and global.json; .dockerignore allow-lists what's copied.)
 # deploy/compose.yaml builds it the same way (ST-007, docs/dev/deploy.md).
 #
 # Both images are pinned by version and digest, so a rebuild gets the bytes this file was tested with.
 # To move to a newer patch, change the tag and the digest together.
+# There is no `# syntax=` line, so the builder's own front end reads this file and nothing is fetched
+# by tag before the build; scripts/ci/check_images.py holds both rules (H-9).
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0.403-noble@sha256:de4fe90a98845d75910b9769662465c84de1a934665c431279d1382b2bddc02b AS build
 WORKDIR /repo
