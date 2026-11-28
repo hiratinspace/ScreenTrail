@@ -1257,6 +1257,10 @@ jobs:
       - name: Production images are pinned by digest
         run: python3 scripts/ci/check_images.py .
 
+      # H-2: Dependabot watches every manifest the product is built from, and never the workflows.
+      - name: Dependabot watches every manifest and no workflow
+        run: python3 scripts/ci/check_dependabot.py .
+
       - name: No duplicate keys, every job has steps
         run: |
           python3 - <<'EOF'
