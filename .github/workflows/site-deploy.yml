@@ -99,11 +99,13 @@ jobs:
         with:
           name: site-dist
           path: site/dist
+      # The pilot form's addresses are environment secrets, not variables: Wrangler prints the mail
+      # binding's addresses as it deploys, and the runner masks a secret's value in the log (G-07).
       - name: Write the deploy configuration (the real domain and the pilot form's addresses)
         env:
           SITE_URL: ${{ vars.SITE_URL }}
-          PILOT_FROM: ${{ vars.SITE_PILOT_FROM }}
-          PILOT_TO: ${{ vars.SITE_PILOT_TO }}
+          PILOT_FROM: ${{ secrets.SITE_PILOT_FROM }}
+          PILOT_TO: ${{ secrets.SITE_PILOT_TO }}
         run: node scripts/deploy-config.mjs > wrangler.deploy.json
       - name: Deploy
         env:

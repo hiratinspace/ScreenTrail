@@ -74,8 +74,9 @@ Do these once, in order. Nothing deploys until step 6.
    Worker, Settings, Domains and Routes).
 5. **The GitHub environment.** In the repository's Settings, Environments, create `site-production`:
    - Deployment branches: **main only**. Optionally add yourself as a required reviewer.
-   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
-   - Variables: `SITE_PILOT_FROM`, `SITE_PILOT_TO`.
+   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, and the pilot form's sender and inbox as
+     `SITE_PILOT_FROM` and `SITE_PILOT_TO`. Secrets, not variables: the deploy log shows the mail
+     binding's addresses, and only a secret's value is masked there.
    - And as **repository** variables (Settings, Secrets and variables, Actions, Variables), because the
      build job names no environment: `SITE_URL` (for example `https://screentrail.com`, no trailing
      slash), `SITE_CONTACT_EMAIL`, `SITE_SECURITY_EMAIL`. All three are printed on the site anyway.
