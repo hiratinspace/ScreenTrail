@@ -302,7 +302,10 @@ checks the key before any command runs and stops with a message naming the setti
 shorter than 32 bytes.
 
 The tenant's policy (ST-047): `--set-policy <tenant-id> retention=3 local-only=true locked=true` writes
-a new versioned row; devices apply it within the hour, and the diagnostics panel shows the version.
+a new versioned row; devices apply it within the hour, and the diagnostics panel shows the version. It
+starts from the tenant's latest policy and changes only the fields named, printing each one before and
+after; `retention=7` later leaves the lock on. Turning `locked` or `local-only` off takes
+`--confirm-unlock` as well, and an unknown key or a malformed value is refused with nothing written.
 
 Usage telemetry (ST-098) is off until switched on in Settings → Privacy & Redaction; the fields it
 sends are listed there and in `shared/contracts/session-metric.v1.json`, and nothing else ever is.

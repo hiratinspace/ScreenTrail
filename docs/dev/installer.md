@@ -221,8 +221,10 @@ nobody signed never updates itself either.
 ### Admin policy
 
 `--set-policy <tenant-id> update-channel=stable|pilot update-channel-locked=true|false update-hours=0-168
-update-local-only=true|false`. Defaults: stable, chosen by the technician, every 24 hours, and **no update
-checks under local-only**. `update-local-only=true` lets update checks through a local-only the admin
+update-local-only=true|false`. Only the fields named change; the others keep the tenant's latest
+policy (they used to fall back to their defaults, which lifted a locked local-only). Defaults for a tenant
+with no policy yet: stable, chosen by the technician, every 24 hours, and **no update checks under
+local-only**. `update-local-only=true` lets update checks through a local-only the admin
 locked on (`local-only=true locked=true`) and nothing else: a local-only the technician turned on
 themselves stops update checks whatever this says.
 

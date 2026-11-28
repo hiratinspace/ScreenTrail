@@ -319,25 +319,39 @@ if (Array.IndexOf(args, "--invite") is var inviteAt and >= 0)
 
 // ST-047: --set-policy <tenant-id> [retention=<days>] [local-only=true|false] [locked=true|false] [all-windows=true|false]
 // ST-113: [update-channel=stable|pilot] [update-channel-locked=true|false] [update-hours=0-168] [update-local-only=true|false]
-// A new policy row each time; devices pick it up within the hour.
+// A new policy row each time a field changes, from the latest one: a field left out keeps its value (D-02).
+// Turning a local-only lock off also takes --confirm-unlock. Devices pick it up within the hour.
 if (Array.IndexOf(args, "--set-policy") is var policyAt and >= 0)
 {
-    var tenantId = Guid.Parse(args.ElementAtOrDefault(policyAt + 1) ?? throw new InvalidOperationException("--set-policy <tenant-id> [retention=7] [local-only=false] [locked=false] [all-windows=false]"));
-    var settings = args.Skip(policyAt + 2).TakeWhile(a => a.Contains('=', StringComparison.Ordinal)).Select(a => a.Split('=', 2)).ToDictionary(kv => kv[0].ToLowerInvariant(), kv => kv[1], StringComparer.Ordinal);
+    var tenantId = Guid.Parse(args.ElementAtOrDefault(policyAt + 1) ?? throw new InvalidOperationException(PolicyArguments.Usage));
     await using var scope = app.Services.CreateAsyncScope();
-    var set = await Policies.SetAsync(
-        scope.ServiceProvider.GetRequiredService<ScreenTrailContext>(),
-        tenantId,
-        settings.TryGetValue("retention", out var r) && int.TryParse(r, out var days) ? days : 7,
-        settings.TryGetValue("local-only", out var lo) && bool.Parse(lo),
-        settings.TryGetValue("locked", out var lk) && bool.Parse(lk),
-        settings.TryGetValue("all-windows", out var aw) && bool.Parse(aw),
-        new Policies.UpdateSettings(
-            settings.TryGetValue("update-channel", out var uc) ? uc : "stable",
-            settings.TryGetValue("update-channel-locked", out var ucl) && bool.Parse(ucl),
-            settings.TryGetValue("update-hours", out var uh) && int.TryParse(uh, out var hours) ? hours : 24,
-            settings.TryGetValue("update-local-only", out var ulo) && bool.Parse(ulo)),
-        scope.ServiceProvider.GetRequiredService<TimeProvider>());
+    PolicyArguments.Result result;
+    try
+    {
+        result = await PolicyArguments.SetAsync(
+            scope.ServiceProvider.GetRequiredService<ScreenTrailContext>(),
+            tenantId,
+            PolicyArguments.Of(args.Skip(policyAt + 2)),
+            scope.ServiceProvider.GetRequiredService<TimeProvider>());
+    }
+    catch (ArgumentException refused)
+    {
+        await Console.Error.WriteLineAsync(refused.Message.Split(" (Parameter", 2)[0]);
+        Environment.ExitCode = 2;
+        return;
+    }
+
+    if (result.Policy is not { } set)
+    {
+        Console.WriteLine("policy  unchanged: no field differs from the tenant's latest policy, nothing written");
+        return;
+    }
+
+    foreach (var change in result.Changes)
+    {
+        Console.WriteLine($"        {change.Field}: {change.Before} -> {change.After}");
+    }
+
     Console.WriteLine($"policy  {set.Version}  retention {set.RetentionDays} d  local-only {set.LocalOnly} (locked {set.LocalOnlyLocked})  all-windows {set.CaptureAllWindows}  updates {set.UpdateChannel} (locked {set.UpdateChannelLocked}) every {set.UpdateCheckHours} h, under local-only {set.UpdateChecksUnderLocalOnly}");
     return;
 }

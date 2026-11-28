@@ -178,7 +178,8 @@ can do that), drafts the session on its own instead. An installed client takes i
 from a machine-wide setting an administrator writes, which is defence in depth: it keeps the address out
 of the technician's reach, but it does not by itself stop the fetch being intercepted on the way.
 *(2026-11-15.)* The operator sets a policy with
-`--set-policy` until the web admin exists (ST-099).
+`--set-policy` until the web admin exists (ST-099). It changes only the fields it names, and lifting a
+locked local-only takes an explicit `--confirm-unlock` *(security review D-02, 2026-11-28)*.
 
 ⚠ The policy has no redaction fields yet: it cannot require a rule on or add a pattern. In the meantime an
 installed copy keeps the four built-in rules on whatever its settings say; a change to any redaction

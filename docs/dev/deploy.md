@@ -117,6 +117,11 @@ docker compose run --rm api --set-policy <tenant-id> retention=7
 docker compose run --rm api --offboard-tenant <tenant-id>
 ```
 
+`--set-policy` changes only the fields it names and keeps the rest of the tenant's latest policy; it
+prints each field it changed, before and after, and writes nothing when nothing differs. An unknown key or
+a malformed value is refused. Turning `locked` or `local-only` off where it is on also needs
+`--confirm-unlock`, because the tenant's devices then leave local-only within the hour.
+
 ## 7. Updating
 
 ```bash
